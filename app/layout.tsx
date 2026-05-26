@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Aula Virtual Escolar",
+  title: "Aula Virtual",
   description: "Plataforma educativa moderna para instituciones de secundaria en Colombia.",
 };
 
