@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Loader2, Save } from "lucide-react";
+import { ArrowLeft, Loader2, Save, UploadCloud } from "lucide-react";
 import Link from "next/link";
 
 export default function NuevaTareaPage() {
@@ -10,6 +10,7 @@ export default function NuevaTareaPage() {
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [courseId, setCourseId] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [courses, setCourses] = useState<{id: string, name: string}[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -32,11 +33,19 @@ export default function NuevaTareaPage() {
     setError("");
     setLoading(true);
 
+    const formData = new FormData();
+    formData.append("title", title);
+    formData.append("description", description);
+    formData.append("dueDate", dueDate);
+    formData.append("courseId", courseId);
+    if (file) {
+      formData.append("file", file);
+    }
+
     try {
       const res = await fetch("/api/docente/tareas", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description, dueDate, courseId }),
+        body: formData,
       });
 
       const data = await res.json();
@@ -125,6 +134,18 @@ export default function NuevaTareaPage() {
             onChange={(e) => setDueDate(e.target.value)}
             required
           />
+        </div>
+
+        <div className="input-group">
+          <label className="block text-sm font-medium mb-2">Archivo Adjunto / Guía de Apoyo (Opcional)</label>
+          <label htmlFor="task-file" style={{ display: "block", border: "2px dashed var(--border-color)", borderRadius: "var(--radius-md)", padding: "1.5rem", textAlign: "center", cursor: "pointer", transition: "border-color 0.2s" }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--primary-color)")}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border-color)")}>
+            <UploadCloud size={32} className="mx-auto mb-2" style={{ color: "var(--primary-color)" }} />
+            <p className="text-sm font-medium">{file ? file.name : "Haz clic para seleccionar un archivo"}</p>
+            <p className="text-xs text-muted mt-1">PDF, Word, Excel, presentaciones o imágenes</p>
+            <input id="task-file" type="file" className="hidden" onChange={e => setFile(e.target.files?.[0] || null)} />
+          </label>
         </div>
 
         <div className="flex justify-end gap-3 mt-2 border-t pt-4" style={{ borderColor: 'var(--border-color)' }}>
