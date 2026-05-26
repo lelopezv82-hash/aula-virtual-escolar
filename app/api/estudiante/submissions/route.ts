@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/lib/prisma';
 import { supabase } from '@/lib/supabase';
 
-const prisma = new PrismaClient();
+
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
 export async function POST(request: Request) {
