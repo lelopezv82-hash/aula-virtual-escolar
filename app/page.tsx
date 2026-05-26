@@ -10,7 +10,7 @@ export default function Home() {
           <div className="logo-icon">
             <BookOpen size={48} color="var(--primary-color)" />
           </div>
-          <h1 className="logo-text">Aula Virtual Escolar</h1>
+          <h1 className="logo-text">Aula Virtual</h1>
           <p className="subtitle">Excelencia educativa en tus manos</p>
         </div>
         
