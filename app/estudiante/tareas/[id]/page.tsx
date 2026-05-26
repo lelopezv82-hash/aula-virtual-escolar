@@ -98,9 +98,27 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
 
       <div className="card mb-6">
         <h2 className="text-lg font-bold mb-2">Instrucciones</h2>
-        <p className="whitespace-pre-wrap" style={{ color: "var(--text-secondary)" }}>
+        <p className="whitespace-pre-wrap mb-4" style={{ color: "var(--text-secondary)" }}>
           {task.description}
         </p>
+
+        {task.attachmentUrl && (
+          <div className="flex items-center gap-3 p-4 border rounded-md" style={{ borderColor: "var(--border-color)", background: "var(--bg-primary)" }}>
+            <FileText className="text-blue-500" size={32} />
+            <div>
+              <p className="font-medium">Guía / Archivo Adjunto</p>
+              <p className="text-xs text-muted">Subido por el docente</p>
+            </div>
+            <a 
+              href={task.attachmentUrl} 
+              target="_blank"
+              download
+              className="btn btn-secondary ml-auto"
+            >
+              Descargar Guía
+            </a>
+          </div>
+        )}
       </div>
 
       <div className="card" style={{ borderTop: isGraded ? '4px solid var(--success)' : isSubmitted ? '4px solid var(--primary-color)' : '4px solid var(--border-color)' }}>
