@@ -1,11 +1,11 @@
-import { PrismaClient } from "@prisma/client";
+import prisma from '@/lib/prisma';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { ArrowLeft, Download, CheckCircle, Clock } from "lucide-react";
 import Link from "next/link";
 import ExportButtons from "./ExportButtons";
 
-const prisma = new PrismaClient();
+
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
 export default async function TareaEntregasPage({ params }: { params: Promise<{ id: string }> }) {
