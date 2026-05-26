@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { cookies } from "next/headers";
 import { jwtVerify, SignJWT } from "jose";
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 
-const prisma = new PrismaClient();
+
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
 export async function PATCH(request: Request) {
