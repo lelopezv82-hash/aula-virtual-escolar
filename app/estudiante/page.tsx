@@ -1,10 +1,10 @@
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
-import { PrismaClient } from "@prisma/client";
+import prisma from '@/lib/prisma';
 import { BookOpen, FileText, Download, Clock } from "lucide-react";
 import Link from "next/link";
 
-const prisma = new PrismaClient();
+
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
 export default async function EstudianteDashboard() {
