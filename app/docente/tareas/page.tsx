@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { ClipboardList, Plus } from "lucide-react";
 import Link from "next/link";
+import TaskActions from "./TaskActions";
 
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
@@ -60,9 +61,7 @@ export default async function TareasDocentePage() {
                           {new Date(task.dueDate).toLocaleDateString()}
                         </td>
                         <td className="py-3 px-4 text-right">
-                          <Link href={`/docente/tareas/${task.id}`} className="btn btn-secondary text-sm">
-                            Ver Entregas
-                          </Link>
+                          <TaskActions taskId={task.id} />
                         </td>
                       </tr>
                     ))}
