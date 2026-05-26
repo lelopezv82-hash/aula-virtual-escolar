@@ -1,1 +1,0 @@
-// Sanitized temporary file
