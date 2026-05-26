@@ -40,7 +40,7 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
       <div className="print-only mb-6">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid var(--primary-color)", paddingBottom: "1rem" }}>
           <div>
-            <h1 style={{ fontSize: "1.75rem", fontWeight: "bold", color: "var(--primary-color)", margin: 0 }}>Aula Virtual Escolar</h1>
+            <h1 style={{ fontSize: "1.75rem", fontWeight: "bold", color: "var(--primary-color)", margin: 0 }}>Aula Virtual</h1>
             <p style={{ margin: "0.25rem 0 0 0", color: "var(--text-secondary)", fontSize: "0.875rem" }}>Reporte Oficial de Calificaciones</p>
           </div>
           <div style={{ textAlign: "right", fontSize: "0.875rem", color: "var(--text-muted)" }}>
