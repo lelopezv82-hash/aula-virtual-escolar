@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { jwtVerify } from "jose";
-import { BookOpen, Book, ClipboardList, Bell, Award } from "lucide-react";
+import { BookOpen, Book, ClipboardList, Bell, Award, Settings } from "lucide-react";
 import DashboardShell from "@/components/DashboardShell";
 import "../docente/docente.css"; // Reuse dashboard layout styles
 
@@ -46,6 +46,11 @@ export default async function EstudianteLayout({ children }: { children: React.R
       href: "/estudiante/notificaciones",
       label: "Notificaciones",
       icon: <Bell size={20} />,
+    },
+    {
+      href: "/estudiante/configuracion",
+      label: "Configuración",
+      icon: <Settings size={20} />,
     },
   ];
 
