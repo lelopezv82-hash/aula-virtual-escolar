@@ -12,7 +12,7 @@ model User {
   username      String   @unique
   password      String
   passwordPlain String?
-  role          String   @default("STUDENT") // TEACHER, STUDENT
+  role          String   @default("STUDENT") // ADMIN, TEACHER, STUDENT
   name          String
   profilePic    String?
   grade         String?  // e.g., "10"
