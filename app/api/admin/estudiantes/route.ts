@@ -29,7 +29,7 @@ export async function GET() {
     const token = cookieStore.get("auth_token")?.value;
     if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    if (payload.role !== "ADMIN") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (payload.role !== "ADMIN" && payload.role !== "SUPER_ADMIN") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const students = await prisma.user.findMany({
       where: { role: "STUDENT" },
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     const token = cookieStore.get("auth_token")?.value;
     if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    if (payload.role !== "ADMIN") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (payload.role !== "ADMIN" && payload.role !== "SUPER_ADMIN") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const { name, grade, groupName, password: customPassword } = await request.json();
     if (!name) return NextResponse.json({ error: 'El nombre es obligatorio' }, { status: 400 });
@@ -89,7 +89,7 @@ export async function PATCH(request: Request) {
     const token = cookieStore.get("auth_token")?.value;
     if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    if (payload.role !== "ADMIN") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (payload.role !== "ADMIN" && payload.role !== "SUPER_ADMIN") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const { id, name, grade, groupName, password: newPassword } = await request.json();
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
@@ -120,7 +120,7 @@ export async function DELETE(request: Request) {
     const token = cookieStore.get("auth_token")?.value;
     if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    if (payload.role !== "ADMIN") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (payload.role !== "ADMIN" && payload.role !== "SUPER_ADMIN") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const { id } = await request.json();
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
