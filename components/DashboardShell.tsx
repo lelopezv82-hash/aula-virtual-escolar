@@ -82,7 +82,7 @@ export default function DashboardShell({
           </div>
           <div className="mobile-header-user">
             <div className="avatar" style={{ width: 32, height: 32, fontSize: "0.875rem", background: themeColor || "var(--primary-color)" }}>
-              {user.name?.charAt(0).toUpperCase()}
+              {user?.name ? user.name.charAt(0).toUpperCase() : ""}
             </div>
           </div>
         </header>
@@ -135,10 +135,10 @@ export default function DashboardShell({
         <div className="sidebar-footer">
           <div className="user-info">
             <div className="avatar" style={{ background: themeColor || "var(--primary-color)" }}>
-              {user.name?.charAt(0).toUpperCase()}
+              {user?.name ? user.name.charAt(0).toUpperCase() : ""}
             </div>
             <div className="details">
-              <strong className="user-name">{user.name}</strong>
+              <strong className="user-name">{user?.name || ""}</strong>
               <span className="user-role">{roleTitle}</span>
             </div>
           </div>
