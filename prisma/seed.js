@@ -16,7 +16,7 @@ async function main() {
       password: adminPassword,
       passwordPlain: 'admin123',
       name: 'Administrador del Sistema',
-      role: 'ADMIN',
+      role: 'SUPER_ADMIN',
     },
   });
   console.log('Created admin:', admin.username);
