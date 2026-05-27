@@ -10,6 +10,7 @@ interface AdminUser {
   id: string;
   name: string;
   username: string;
+  role: string;
   passwordPlain?: string | null;
   createdAt: string;
 }
@@ -38,7 +39,11 @@ export default function AdministradoresPage() {
     try {
       const res = await fetch("/api/admin/administradores");
       const data = await res.json();
-      if (data.admins) setAdmins(data.admins);
+      if (res.ok && data.admins) {
+        setAdmins(data.admins);
+      } else if (res.status === 403 || res.status === 401) {
+        setError("Acceso denegado: Solo el Superadministrador puede acceder a este panel.");
+      }
     } catch (err) {
       console.error("Error loading admins:", err);
     } finally {
@@ -170,111 +175,123 @@ export default function AdministradoresPage() {
       <div className="dashboard-header flex justify-between items-center flex-wrap gap-4">
         <div>
           <h1>Gestión de Administradores</h1>
-          <p>Administra las cuentas con privilegios de administrador del sistema.</p>
+          <p>Módulo exclusivo de Superadministrador para la gestión de cuentas administrativas.</p>
         </div>
-        <div>
-          <button className="btn btn-primary flex items-center gap-2" onClick={openCreate}>
-            <UserPlus size={18} /> Nuevo Administrador
-          </button>
-        </div>
-      </div>
-
-      <div className="card w-full">
-        <div className="flex justify-between items-center mb-6 gap-4 flex-wrap">
-          <div style={{ position: "relative", maxWidth: "320px", width: "100%" }}>
-            <Search size={18} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
-            <input
-              type="text"
-              className="input-field"
-              style={{ paddingLeft: "2.75rem" }}
-              placeholder="Buscar por nombre, usuario…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <span className="text-muted text-sm">{filtered.length} administrador(es)</span>
-        </div>
-
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="animate-spin text-blue-500" size={36} />
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left" style={{ borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ borderBottom: "1px solid var(--border-color)", color: "var(--text-muted)" }}>
-                  <th className="py-3 px-4 font-medium">Nombre</th>
-                  <th className="py-3 px-4 font-medium">Usuario</th>
-                  <th className="py-3 px-4 font-medium">Contraseña</th>
-                  <th className="py-3 px-4 font-medium">Fecha de Registro</th>
-                  <th className="py-3 px-4 font-medium text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="text-center py-10 text-muted">
-                      {search ? "No se encontraron resultados." : "No hay administradores registrados."}
-                    </td>
-                  </tr>
-                ) : (
-                  filtered.map((admin) => (
-                    <tr key={admin.id} style={{ borderBottom: "1px solid var(--border-color)", transition: "background 0.15s" }}
-                      onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-primary)")}
-                      onMouseLeave={e => (e.currentTarget.style.background = "")}
-                    >
-                      <td className="py-3 px-4 font-medium">{admin.name}</td>
-                      <td className="py-3 px-4" style={{ color: "var(--text-secondary)", fontFamily: "monospace" }}>{admin.username}</td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          <span style={{ fontFamily: "monospace", fontSize: "0.95rem", color: "var(--text-primary)" }}>
-                            {admin.passwordPlain ? (
-                              visiblePasswords[admin.id] ? admin.passwordPlain : "••••••••"
-                            ) : (
-                              <span className="text-muted italic text-xs">No disponible</span>
-                            )}
-                          </span>
-                          {admin.passwordPlain && (
-                            <button
-                              type="button"
-                              onClick={() => setVisiblePasswords(prev => ({ ...prev, [admin.id]: !prev[admin.id] }))}
-                              className="p-1 rounded text-muted hover:text-primary hover:bg-gray-100 transition-colors"
-                              style={{ background: "none", border: "none", cursor: "pointer", display: "flex", padding: "0.25rem" }}
-                              title={visiblePasswords[admin.id] ? "Ocultar contraseña" : "Mostrar contraseña"}
-                            >
-                              {visiblePasswords[admin.id] ? <EyeOff size={15} /> : <Eye size={15} />}
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-sm text-muted">
-                        {new Date(admin.createdAt).toLocaleDateString("es-CO")}
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex justify-end gap-1">
-                          <button title="Editar" onClick={() => openEdit(admin)}
-                            className="p-2 rounded-md hover:bg-blue-50 transition-colors" style={{ color: "var(--primary-color)" }}>
-                            <Edit2 size={16} />
-                          </button>
-                          <button title="Reiniciar contraseña" onClick={() => handleResetPassword(admin)}
-                            className="p-2 rounded-md hover:bg-yellow-50 transition-colors" style={{ color: "var(--warning)" }}>
-                            <KeyRound size={16} />
-                          </button>
-                          <button title="Eliminar" onClick={() => handleDelete(admin.id, admin.name)}
-                            className="p-2 rounded-md hover:bg-red-50 transition-colors" style={{ color: "var(--danger)" }}>
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+        {admins.length > 0 && (
+          <div>
+            <button className="btn btn-primary flex items-center gap-2" onClick={openCreate}>
+              <UserPlus size={18} /> Nuevo Administrador
+            </button>
           </div>
         )}
       </div>
+
+      {error && admins.length === 0 ? (
+        <div className="alert alert-danger mt-4 max-w-[600px]">{error}</div>
+      ) : (
+        <div className="card w-full">
+          <div className="flex justify-between items-center mb-6 gap-4 flex-wrap">
+            <div style={{ position: "relative", maxWidth: "320px", width: "100%" }}>
+              <Search size={18} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
+              <input
+                type="text"
+                className="input-field"
+                style={{ paddingLeft: "2.75rem" }}
+                placeholder="Buscar por nombre, usuario…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <span className="text-muted text-sm">{filtered.length} administrador(es)</span>
+          </div>
+
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="animate-spin text-blue-500" size={36} />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left" style={{ borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid var(--border-color)", color: "var(--text-muted)" }}>
+                    <th className="py-3 px-4 font-medium">Nombre</th>
+                    <th className="py-3 px-4 font-medium">Usuario</th>
+                    <th className="py-3 px-4 font-medium">Rol</th>
+                    <th className="py-3 px-4 font-medium">Contraseña</th>
+                    <th className="py-3 px-4 font-medium">Fecha de Registro</th>
+                    <th className="py-3 px-4 font-medium text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-10 text-muted">
+                        {search ? "No se encontraron resultados." : "No hay administradores registrados."}
+                      </td>
+                    </tr>
+                  ) : (
+                    filtered.map((admin) => (
+                      <tr key={admin.id} style={{ borderBottom: "1px solid var(--border-color)", transition: "background 0.15s" }}
+                        onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-primary)")}
+                        onMouseLeave={e => (e.currentTarget.style.background = "")}
+                      >
+                        <td className="py-3 px-4 font-medium">{admin.name}</td>
+                        <td className="py-3 px-4" style={{ color: "var(--text-secondary)", fontFamily: "monospace" }}>{admin.username}</td>
+                        <td className="py-3 px-4">
+                          <span className={`badge ${admin.role === "SUPER_ADMIN" ? "badge-danger" : "badge-info"}`}>
+                            {admin.role === "SUPER_ADMIN" ? "Super Admin" : "Admin"}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <span style={{ fontFamily: "monospace", fontSize: "0.95rem", color: "var(--text-primary)" }}>
+                              {admin.passwordPlain ? (
+                                visiblePasswords[admin.id] ? admin.passwordPlain : "••••••••"
+                              ) : (
+                                <span className="text-muted italic text-xs">No disponible</span>
+                              )}
+                            </span>
+                            {admin.passwordPlain && (
+                              <button
+                                type="button"
+                                onClick={() => setVisiblePasswords(prev => ({ ...prev, [admin.id]: !prev[admin.id] }))}
+                                className="p-1 rounded text-muted hover:text-primary hover:bg-gray-100 transition-colors"
+                                style={{ background: "none", border: "none", cursor: "pointer", display: "flex", padding: "0.25rem" }}
+                                title={visiblePasswords[admin.id] ? "Ocultar contraseña" : "Mostrar contraseña"}
+                              >
+                                {visiblePasswords[admin.id] ? <EyeOff size={15} /> : <Eye size={15} />}
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-muted">
+                          {new Date(admin.createdAt).toLocaleDateString("es-CO")}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex justify-end gap-1">
+                            <button title="Editar" onClick={() => openEdit(admin)}
+                              className="p-2 rounded-md hover:bg-blue-50 transition-colors" style={{ color: "var(--primary-color)" }}>
+                              <Edit2 size={16} />
+                            </button>
+                            <button title="Reiniciar contraseña" onClick={() => handleResetPassword(admin)}
+                              className="p-2 rounded-md hover:bg-yellow-50 transition-colors" style={{ color: "var(--warning)" }}>
+                              <KeyRound size={16} />
+                            </button>
+                            <button title="Eliminar" onClick={() => handleDelete(admin.id, admin.name)}
+                              className="p-2 rounded-md hover:bg-red-50 transition-colors" style={{ color: "var(--danger)" }}>
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Single Admin Modal */}
       {showModal && (
