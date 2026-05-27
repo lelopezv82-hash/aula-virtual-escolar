@@ -1,0 +1,1899 @@
+{
+  "hasMore": true,
+  "logs": [
+    {
+      "id": "d35c89ce-7a4c-45e6-a14d-d9ba8c15999f",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "",
+      "timestamp": "2026-05-27T22:06:03.829628203Z"
+    },
+    {
+      "id": "237254d0-c7c3-48b7-92df-696c7e0ba0c6",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "To address all issues possible (including breaking changes), run:",
+      "timestamp": "2026-05-27T22:06:03.829632753Z"
+    },
+    {
+      "id": "481d4052-1cd2-4471-84a0-9f3f2021b96c",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "  npm audit fix --force",
+      "timestamp": "2026-05-27T22:06:03.829635403Z"
+    },
+    {
+      "id": "2a7726f2-52d5-4dc8-860a-bc4aa9e9ec5e",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "",
+      "timestamp": "2026-05-27T22:06:03.829637323Z"
+    },
+    {
+      "id": "01c0ad25-3a2f-44c4-aa5d-7e735a4be253",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "Some issues need review, and may require choosing",
+      "timestamp": "2026-05-27T22:06:03.829639833Z"
+    },
+    {
+      "id": "852719b9-05f3-43d5-a3da-bf15ea5151b3",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "a different dependency.",
+      "timestamp": "2026-05-27T22:06:03.829641884Z"
+    },
+    {
+      "id": "691fb267-1ab3-4e7c-a51d-0e2db21ce5d6",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "",
+      "timestamp": "2026-05-27T22:06:03.829643884Z"
+    },
+    {
+      "id": "2680a835-b156-43f6-b5bc-be24ba6f6e26",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "Run `npm audit` for details.",
+      "timestamp": "2026-05-27T22:06:03.829646564Z"
+    },
+    {
+      "id": "0c678e50-c7cc-4034-80fc-12497c9e6fd1",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "",
+      "timestamp": "2026-05-27T22:06:04.088059475Z"
+    },
+    {
+      "id": "56c5bd68-65f7-4075-96ef-51525a82c5fc",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "> aula_virtual_escolar@0.1.0 build",
+      "timestamp": "2026-05-27T22:06:04.088081806Z"
+    },
+    {
+      "id": "4450db78-4fe4-41a7-86e9-48753f05a606",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "> next build",
+      "timestamp": "2026-05-27T22:06:04.088085296Z"
+    },
+    {
+      "id": "803b26f0-e2bf-4126-aabe-a7dc7fd3155d",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "",
+      "timestamp": "2026-05-27T22:06:04.088088166Z"
+    },
+    {
+      "id": "692322bf-1998-4a7d-8111-0c1551fc6d4a",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache",
+      "timestamp": "2026-05-27T22:06:04.483355632Z"
+    },
+    {
+      "id": "11df7a41-f1bb-485d-8bb6-f0f4aaa6cd0f",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "▲ Next.js 16.2.6 (Turbopack)",
+      "timestamp": "2026-05-27T22:06:04.495286876Z"
+    },
+    {
+      "id": "4e23b279-21a5-4916-a804-59722b7db9e5",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "",
+      "timestamp": "2026-05-27T22:06:04.495411258Z"
+    },
+    {
+      "id": "ddb1aaad-91d2-4850-a2fb-ff83e4082c51",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "  Creating an optimized production build ...",
+      "timestamp": "2026-05-27T22:06:04.531959826Z"
+    },
+    {
+      "id": "1bc31437-c99c-4a48-abc6-d82c5de61416",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "✓ Compiled successfully in 7.9s",
+      "timestamp": "2026-05-27T22:06:12.633570365Z"
+    },
+    {
+      "id": "b5ab2800-a0c0-4630-a5b8-ec1e8ffeffd8",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "  Running TypeScript ...",
+      "timestamp": "2026-05-27T22:06:12.634919331Z"
+    },
+    {
+      "id": "3a60916d-c9d5-49c8-a677-fa1451dc9b29",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "  Finished TypeScript in 4.0s ...",
+      "timestamp": "2026-05-27T22:06:16.665129834Z"
+    },
+    {
+      "id": "40ef59c0-5f08-45c0-a82e-5d7426dd056a",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "  Collecting page data using 15 workers ...",
+      "timestamp": "2026-05-27T22:06:16.666843307Z"
+    },
+    {
+      "id": "e4f793ca-6277-4ff2-ba2c-3001b46d56c6",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "  Generating static pages using 15 workers (0/38) ...",
+      "timestamp": "2026-05-27T22:06:20.887631234Z"
+    },
+    {
+      "id": "8aecf1f3-f2b3-48fb-a62e-e39d4cf02346",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "  Generating static pages using 15 workers (9/38) ",
+      "timestamp": "2026-05-27T22:06:21.029247118Z"
+    },
+    {
+      "id": "45cee33b-9fe2-4466-b72e-f623d8085908",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "  Generating static pages using 15 workers (18/38) ",
+      "timestamp": "2026-05-27T22:06:21.086957083Z"
+    },
+    {
+      "id": "a21a4e7e-68f2-46d2-b2ea-d75311efe7da",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "  Generating static pages using 15 workers (28/38) ",
+      "timestamp": "2026-05-27T22:06:21.136129968Z"
+    },
+    {
+      "id": "9e76a8f5-c481-4b57-b994-2cccc3ce7414",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "✓ Generating static pages using 15 workers (38/38) in 281ms",
+      "timestamp": "2026-05-27T22:06:21.16866586Z"
+    },
+    {
+      "id": "7af12e8f-1974-4436-b6c5-ea42aa111535",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "  Finalizing page optimization ...",
+      "timestamp": "2026-05-27T22:06:21.173741566Z"
+    },
+    {
+      "id": "fc351148-adc9-4259-bfb9-51ba709f1844",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "",
+      "timestamp": "2026-05-27T22:06:21.182430109Z"
+    },
+    {
+      "id": "54222079-7d21-452a-a054-f184d434d808",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "Route (app)",
+      "timestamp": "2026-05-27T22:06:21.185538478Z"
+    },
+    {
+      "id": "bb867b5b-8738-4106-8041-251381289aae",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "┌ ○ /",
+      "timestamp": "2026-05-27T22:06:21.185553488Z"
+    },
+    {
+      "id": "d2d22102-4468-4d23-9df2-b16f23851a14",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ○ /_not-found",
+      "timestamp": "2026-05-27T22:06:21.185558838Z"
+    },
+    {
+      "id": "805f555c-699c-4af0-99b0-78bf8fc27c3a",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /admin",
+      "timestamp": "2026-05-27T22:06:21.185562958Z"
+    },
+    {
+      "id": "270d6f39-d813-492f-a379-f5befbb2f2eb",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /admin/administradores",
+      "timestamp": "2026-05-27T22:06:21.185568268Z"
+    },
+    {
+      "id": "cfd7d0f3-7a86-4846-af2c-b0ec134df5bc",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /admin/configuracion",
+      "timestamp": "2026-05-27T22:06:21.185572478Z"
+    },
+    {
+      "id": "cff6ea51-4b67-4b97-9cca-08997049e411",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /admin/docentes",
+      "timestamp": "2026-05-27T22:06:21.185576678Z"
+    },
+    {
+      "id": "46fa3b2f-5c45-48f0-9d66-af68b9baacb9",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /admin/estudiantes",
+      "timestamp": "2026-05-27T22:06:21.185580938Z"
+    },
+    {
+      "id": "74df3008-5c87-46b6-8076-4e5ad2493d2e",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /api/admin/administradores",
+      "timestamp": "2026-05-27T22:06:21.185586208Z"
+    },
+    {
+      "id": "33cf342e-06e5-487b-a9e5-57b583f8eee5",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /api/admin/configuracion",
+      "timestamp": "2026-05-27T22:06:21.185590459Z"
+    },
+    {
+      "id": "ac1421ff-3f29-42f5-9dc3-d5b7ed64b125",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /api/admin/docentes",
+      "timestamp": "2026-05-27T22:06:21.185594789Z"
+    },
+    {
+      "id": "2ec9256a-897a-4cd3-802a-b1b21c7b7790",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /api/admin/docentes/importar",
+      "timestamp": "2026-05-27T22:06:21.185609949Z"
+    },
+    {
+      "id": "f8b72f25-12a1-4a8d-b67d-37881c8c0179",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /api/admin/estudiantes",
+      "timestamp": "2026-05-27T22:06:21.185612889Z"
+    },
+    {
+      "id": "3c274d2b-bc75-4933-9f66-0caea98b1c5d",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /api/admin/estudiantes/importar",
+      "timestamp": "2026-05-27T22:06:21.185615609Z"
+    },
+    {
+      "id": "fbd1ad91-9add-497d-b2bf-6c5ac0b4ac75",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /api/auth/login",
+      "timestamp": "2026-05-27T22:06:21.185618109Z"
+    },
+    {
+      "id": "31b1599b-73a1-4288-98fe-3fa3c97526ce",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /api/auth/logout",
+      "timestamp": "2026-05-27T22:06:21.185620559Z"
+    },
+    {
+      "id": "99372180-a93e-42ed-9ffb-337f00034f96",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /api/docente/calificar",
+      "timestamp": "2026-05-27T22:06:21.185623219Z"
+    },
+    {
+      "id": "9f3c21cd-b0f3-4b6e-9bbd-305dcfdc618b",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /api/docente/configuracion",
+      "timestamp": "2026-05-27T22:06:21.185625989Z"
+    },
+    {
+      "id": "d139b9a7-c698-4810-9d6a-231ada0db5bb",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /api/docente/cursos",
+      "timestamp": "2026-05-27T22:06:21.185628759Z"
+    },
+    {
+      "id": "9900dba5-4cda-4f43-ab46-b40f8b340592",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /api/docente/estudiantes",
+      "timestamp": "2026-05-27T22:06:21.185631619Z"
+    },
+    {
+      "id": "df29a4e7-8b2f-44b6-bc6d-1165915ed340",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /api/docente/estudiantes/importar",
+      "timestamp": "2026-05-27T22:06:21.185634229Z"
+    },
+    {
+      "id": "d05f6272-7245-4c6b-b006-0981bf6d51e6",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /api/docente/recursos",
+      "timestamp": "2026-05-27T22:06:21.185636769Z"
+    },
+    {
+      "id": "26f2ea4d-7c34-45ae-9161-e780699630e2",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /api/docente/tareas",
+      "timestamp": "2026-05-27T22:06:21.18563948Z"
+    },
+    {
+      "id": "4690395a-077e-46f9-863b-200a730e19f5",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /api/docente/tareas/[id]",
+      "timestamp": "2026-05-27T22:06:21.18564204Z"
+    },
+    {
+      "id": "b89e7bd2-32ff-4b58-b524-450de3a836ea",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /api/docente/tareas/[id]/submission/[studentId]",
+      "timestamp": "2026-05-27T22:06:21.1856452Z"
+    },
+    {
+      "id": "4c931510-88f7-4993-9057-f43c792a69b6",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /api/estudiante/configuracion",
+      "timestamp": "2026-05-27T22:06:21.18564776Z"
+    },
+    {
+      "id": "bf384122-bf2c-4390-94b3-67f4cf0b0620",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /api/estudiante/submissions",
+      "timestamp": "2026-05-27T22:06:21.18565041Z"
+    },
+    {
+      "id": "18fb55a4-521d-4d8a-a439-e9659b6fccab",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /api/estudiante/tareas/[id]",
+      "timestamp": "2026-05-27T22:06:21.18565298Z"
+    },
+    {
+      "id": "eec3d5fd-668f-4c48-891f-6b880b157368",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /docente",
+      "timestamp": "2026-05-27T22:06:21.18565552Z"
+    },
+    {
+      "id": "6843cb4c-1449-4991-a724-9b0267d5d629",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /docente/configuracion",
+      "timestamp": "2026-05-27T22:06:21.1856582Z"
+    },
+    {
+      "id": "ee4b8c3c-f2e2-4771-90fa-5d7713500cd2",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /docente/cursos",
+      "timestamp": "2026-05-27T22:06:21.18566075Z"
+    },
+    {
+      "id": "b0e8692f-2592-405b-8c63-57be88085ae3",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /docente/estudiantes",
+      "timestamp": "2026-05-27T22:06:21.18566322Z"
+    },
+    {
+      "id": "925bb68e-fcb0-44d0-9879-bc239f0f7b80",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /docente/tareas",
+      "timestamp": "2026-05-27T22:06:21.18566564Z"
+    },
+    {
+      "id": "42deb2cc-8514-47e4-852e-cdef130a6dbe",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /docente/tareas/[id]",
+      "timestamp": "2026-05-27T22:06:21.18566828Z"
+    },
+    {
+      "id": "a8f36ac6-c2e5-433c-aa5a-4f893dd4fde9",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /docente/tareas/[id]/calificar/[studentId]",
+      "timestamp": "2026-05-27T22:06:21.18567073Z"
+    },
+    {
+      "id": "2221c8b1-f744-4d22-b5e2-510fad644ed0",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /docente/tareas/[id]/editar",
+      "timestamp": "2026-05-27T22:06:21.1856733Z"
+    },
+    {
+      "id": "1fd4192b-36e4-4f9b-ad59-936385f31858",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /docente/tareas/nueva",
+      "timestamp": "2026-05-27T22:06:21.18567592Z"
+    },
+    {
+      "id": "175830e3-5b8d-4348-a1ae-ea6c1151b75a",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /estudiante",
+      "timestamp": "2026-05-27T22:06:21.18567858Z"
+    },
+    {
+      "id": "d30ca62b-dcc2-4122-bc53-771eaf507b10",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /estudiante/calificaciones",
+      "timestamp": "2026-05-27T22:06:21.18568114Z"
+    },
+    {
+      "id": "0f4104aa-e522-42f1-bc0c-c3565fede274",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /estudiante/configuracion",
+      "timestamp": "2026-05-27T22:06:21.18568376Z"
+    },
+    {
+      "id": "bb799f58-e78f-4ff0-b9b8-65a4bb3a3b51",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /estudiante/cursos/[id]",
+      "timestamp": "2026-05-27T22:06:21.18568637Z"
+    },
+    {
+      "id": "480d09ef-13dc-499c-8c8d-028bbf4a4811",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /estudiante/notificaciones",
+      "timestamp": "2026-05-27T22:06:21.18568883Z"
+    },
+    {
+      "id": "d473da0a-36a4-4af1-b24e-a79925dd62cf",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /estudiante/tareas",
+      "timestamp": "2026-05-27T22:06:21.18569131Z"
+    },
+    {
+      "id": "14a9871f-bc9e-428d-bb2a-b466cb49f10e",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "├ ƒ /estudiante/tareas/[id]",
+      "timestamp": "2026-05-27T22:06:21.185693741Z"
+    },
+    {
+      "id": "c0f3b0e0-ee1f-4711-a6ab-2c98f68ea7f5",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "└ ○ /login",
+      "timestamp": "2026-05-27T22:06:21.185696361Z"
+    },
+    {
+      "id": "79d76efb-3ff5-40ea-b4ac-e8d7d34c839a",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "",
+      "timestamp": "2026-05-27T22:06:21.185698831Z"
+    },
+    {
+      "id": "32f5971a-23c2-44f5-b55b-c1314a5241e0",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "",
+      "timestamp": "2026-05-27T22:06:21.185701101Z"
+    },
+    {
+      "id": "7f45dfac-a085-4c26-8f1c-3ef76897211a",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "○  (Static)   prerendered as static content",
+      "timestamp": "2026-05-27T22:06:21.186600658Z"
+    },
+    {
+      "id": "e85b0182-83f9-41e7-bfa8-e5cdcdff879c",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "ƒ  (Dynamic)  server-rendered on demand",
+      "timestamp": "2026-05-27T22:06:21.186611578Z"
+    },
+    {
+      "id": "1edc2f47-633e-4726-b488-f77af5bb3475",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "",
+      "timestamp": "2026-05-27T22:06:21.186615048Z"
+    },
+    {
+      "id": "71dd349d-4076-47b2-8943-491afecf4b9a",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "\u001b[34;1m==>\u001b[0;22m \u001b[1mUploading build...\u001b[22m",
+      "timestamp": "2026-05-27T22:06:23.391453262Z"
+    },
+    {
+      "id": "f835e353-9498-4b2e-b3df-ccafab59b06e",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "\u001b[34;1m==>\u001b[0;22m \u001b[1mUploaded in 6.7s. Compression took 3.2s\u001b[22m",
+      "timestamp": "2026-05-27T22:06:33.241335186Z"
+    },
+    {
+      "id": "e8a7ed87-b622-4cd2-8781-1571825fa38b",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "\u001b[32;1m==>\u001b[0;22m \u001b[1mBuild successful 🎉\u001b[22m",
+      "timestamp": "2026-05-27T22:06:33.569503608Z"
+    },
+    {
+      "id": "d8bmpq4p3tds73al027g",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "\u001b[0;34m\u001b[1m==> \u001b[0m\u001b[1mDeploying...\u001b[0m",
+      "timestamp": "2026-05-27T22:06:36.273096015Z"
+    },
+    {
+      "id": "d8bmpq4p3tds73al0270",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "\u001b[0;34m\u001b[1m==> \u001b[0m\u001b[1mSetting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance\u001b[0m",
+      "timestamp": "2026-05-27T22:06:36.362760088Z"
+    },
+    {
+      "id": "6a287133-8203-4722-a3f0-418406c7c72f",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "instance",
+          "value": "srv-d8avvkegvqtc73a4bqa0-gnclb"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "\u001b[32m\u001b[1m==>\u001b(B\u001b[m \u001b[1mRunning 'npm run start'\u001b(B\u001b[m",
+      "timestamp": "2026-05-27T22:06:57.276323739Z"
+    },
+    {
+      "id": "a0ca33c1-7030-4de8-83ea-5907f29d0066",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "instance",
+          "value": "srv-d8avvkegvqtc73a4bqa0-gnclb"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "",
+      "timestamp": "2026-05-27T22:06:58.671044435Z"
+    },
+    {
+      "id": "f03f2a4a-a621-47a4-9151-b11a2f3bbb56",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "instance",
+          "value": "srv-d8avvkegvqtc73a4bqa0-gnclb"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "> aula_virtual_escolar@0.1.0 start",
+      "timestamp": "2026-05-27T22:06:58.671075947Z"
+    },
+    {
+      "id": "a6cdeb68-4dbc-43bc-aed5-82853a966e86",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "instance",
+          "value": "srv-d8avvkegvqtc73a4bqa0-gnclb"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "> next start",
+      "timestamp": "2026-05-27T22:06:58.671080697Z"
+    },
+    {
+      "id": "e23e6095-ac73-4367-af6b-e10ce2c70813",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "instance",
+          "value": "srv-d8avvkegvqtc73a4bqa0-gnclb"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "",
+      "timestamp": "2026-05-27T22:06:58.671083618Z"
+    },
+    {
+      "id": "dfb5d8f8-dfa2-43fe-b2dd-7b612089102f",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "instance",
+          "value": "srv-d8avvkegvqtc73a4bqa0-gnclb"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "▲ Next.js 16.2.6",
+      "timestamp": "2026-05-27T22:07:01.177032193Z"
+    },
+    {
+      "id": "2c356fe5-39e0-4ccb-95cd-bd0a7f115d4a",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "instance",
+          "value": "srv-d8avvkegvqtc73a4bqa0-gnclb"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "- Local:         http://localhost:10000",
+      "timestamp": "2026-05-27T22:07:01.177061245Z"
+    },
+    {
+      "id": "a6929c88-459e-4368-8caf-1a9533dcd06f",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "instance",
+          "value": "srv-d8avvkegvqtc73a4bqa0-gnclb"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "- Network:       http://10.30.195.220:10000",
+      "timestamp": "2026-05-27T22:07:01.177079947Z"
+    },
+    {
+      "id": "2829aa78-a813-47d0-8304-7371b1b5ff2e",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "instance",
+          "value": "srv-d8avvkegvqtc73a4bqa0-gnclb"
+        },
+        {
+          "name": "level",
+          "value": "info"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "✓ Ready in 1498ms",
+      "timestamp": "2026-05-27T22:07:01.177084727Z"
+    },
+    {
+      "id": "d8bmpq4p3tds73al026g",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "\u001b[0;32m\u001b[1m==> \u001b[0m\u001b[1mYour service is live 🎉\u001b[0m",
+      "timestamp": "2026-05-27T22:07:07.432864192Z"
+    },
+    {
+      "id": "d8bmpq4p3tds73al0260",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "\u001b[0;32m\u001b[1m==> \u001b[0m\u001b[1m\u001b[0m",
+      "timestamp": "2026-05-27T22:07:07.55802965Z"
+    },
+    {
+      "id": "d8bmpq4p3tds73al025g",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "\u001b[0;32m\u001b[1m==> \u001b[0m\u001b[1m///////////////////////////////////////////////////////////\u001b[0m",
+      "timestamp": "2026-05-27T22:07:07.564358883Z"
+    },
+    {
+      "id": "d8bmpq4p3tds73al0250",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "\u001b[0;32m\u001b[1m==> \u001b[0m\u001b[1m\u001b[0m",
+      "timestamp": "2026-05-27T22:07:07.567878702Z"
+    },
+    {
+      "id": "d8bmpq4p3tds73al024g",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "\u001b[0;32m\u001b[1m==> \u001b[0m\u001b[1mAvailable at your primary URL https://aula-virtual-co.onrender.com\u001b[0m",
+      "timestamp": "2026-05-27T22:07:07.571234587Z"
+    },
+    {
+      "id": "d8bmpq4p3tds73al0240",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "\u001b[0;32m\u001b[1m==> \u001b[0m\u001b[1m\u001b[0m",
+      "timestamp": "2026-05-27T22:07:07.574028392Z"
+    },
+    {
+      "id": "d8bmpq4p3tds73al023g",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "\u001b[0;32m\u001b[1m==> \u001b[0m\u001b[1m///////////////////////////////////////////////////////////\u001b[0m",
+      "timestamp": "2026-05-27T22:07:07.577325116Z"
+    },
+    {
+      "id": "d8bmpq4p3tds73al0230",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "\u001b[0;32m\u001b[1m==> \u001b[0m\u001b[1mDetected service running on port 10000\u001b[0m",
+      "timestamp": "2026-05-27T22:12:11.008547392Z"
+    },
+    {
+      "id": "d8bmpq4p3tds73al022g",
+      "labels": [
+        {
+          "name": "resource",
+          "value": "srv-d8avvkegvqtc73a4bqa0"
+        },
+        {
+          "name": "type",
+          "value": "app"
+        }
+      ],
+      "message": "\u001b[0;32m\u001b[1m==> \u001b[0m\u001b[1mDocs on specifying a port: https://render.com/docs/web-services#port-binding\u001b[0m",
+      "timestamp": "2026-05-27T22:12:11.081431085Z"
+    }
+  ],
+  "nextEndTime": "2026-05-27T22:06:03.829628203Z",
+  "nextStartTime": "2026-05-20T22:15:04.298609943Z"
+}
