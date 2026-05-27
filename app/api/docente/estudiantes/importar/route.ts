@@ -63,6 +63,7 @@ export async function POST(request: Request) {
           name,
           username,
           password: hashedPassword,
+          passwordPlain: plainPassword,
           role: "STUDENT",
           grade,
           groupName
