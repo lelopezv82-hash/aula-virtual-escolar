@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Save, Loader2 } from "lucide-react";
+import { Save, Loader2, Eye, EyeOff } from "lucide-react";
 
 export default function ConfigForm() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -9,6 +9,10 @@ export default function ConfigForm() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "danger"; text: string } | null>(null);
+
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +50,9 @@ export default function ConfigForm() {
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
+        setShowCurrent(false);
+        setShowNew(false);
+        setShowConfirm(false);
       } else {
         setMessage({ type: "danger", text: data.error || "Ocurrió un error al actualizar." });
       }
@@ -75,14 +82,38 @@ export default function ConfigForm() {
         <label className="font-semibold text-sm mb-1 block" style={{ color: "var(--text-secondary)" }}>
           Contraseña Actual
         </label>
-        <input
-          type="password"
-          className="input-field"
-          value={currentPassword}
-          onChange={(e) => setCurrentPassword(e.target.value)}
-          required
-          placeholder="••••••••"
-        />
+        <div style={{ position: "relative" }}>
+          <input
+            type={showCurrent ? "text" : "password"}
+            className="input-field"
+            style={{ paddingRight: "2.5rem" }}
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            required
+            placeholder="••••••••"
+          />
+          {currentPassword && (
+            <button
+              type="button"
+              onClick={() => setShowCurrent(!showCurrent)}
+              style={{
+                position: "absolute",
+                right: "0.75rem",
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "var(--text-muted)",
+                display: "flex",
+                alignItems: "center"
+              }}
+              title={showCurrent ? "Ocultar" : "Mostrar"}
+            >
+              {showCurrent ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          )}
+        </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }} className="flex-col sm:grid">
@@ -90,28 +121,76 @@ export default function ConfigForm() {
           <label className="font-semibold text-sm mb-1 block" style={{ color: "var(--text-secondary)" }}>
             Nueva Contraseña
           </label>
-          <input
-            type="password"
-            className="input-field"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            required
-            placeholder="Mínimo 6 caracteres"
-          />
+          <div style={{ position: "relative" }}>
+            <input
+              type={showNew ? "text" : "password"}
+              className="input-field"
+              style={{ paddingRight: "2.5rem" }}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+              placeholder="Mínimo 6 caracteres"
+            />
+            {newPassword && (
+              <button
+                type="button"
+                onClick={() => setShowNew(!showNew)}
+                style={{
+                  position: "absolute",
+                  right: "0.75rem",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "var(--text-muted)",
+                  display: "flex",
+                  alignItems: "center"
+                }}
+                title={showNew ? "Ocultar" : "Mostrar"}
+              >
+                {showNew ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="input-group">
           <label className="font-semibold text-sm mb-1 block" style={{ color: "var(--text-secondary)" }}>
             Confirmar Nueva Contraseña
           </label>
-          <input
-            type="password"
-            className="input-field"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-            placeholder="Repite la contraseña"
-          />
+          <div style={{ position: "relative" }}>
+            <input
+              type={showConfirm ? "text" : "password"}
+              className="input-field"
+              style={{ paddingRight: "2.5rem" }}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              placeholder="Repite la contraseña"
+            />
+            {confirmPassword && (
+              <button
+                type="button"
+                onClick={() => setShowConfirm(!showConfirm)}
+                style={{
+                  position: "absolute",
+                  right: "0.75rem",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "var(--text-muted)",
+                  display: "flex",
+                  alignItems: "center"
+                }}
+                title={showConfirm ? "Ocultar" : "Mostrar"}
+              >
+                {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
