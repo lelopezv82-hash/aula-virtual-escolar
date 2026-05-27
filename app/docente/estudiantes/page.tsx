@@ -14,6 +14,7 @@ interface Student {
   username: string;
   grade: string | null;
   groupName: string | null;
+  passwordPlain?: string | null;
 }
 
 interface NewCredentials {
@@ -72,7 +73,12 @@ export default function EstudiantesPage() {
 
   const openEdit = (student: Student) => {
     setEditStudent(student);
-    setFormData({ name: student.name, grade: student.grade || "", groupName: student.groupName || "", password: "" });
+    setFormData({
+      name: student.name,
+      grade: student.grade || "",
+      groupName: student.groupName || "",
+      password: student.passwordPlain || ""
+    });
     setError("");
     setNewCredentials(null);
     setShowModal(true);
@@ -309,6 +315,7 @@ export default function EstudiantesPage() {
                 <tr style={{ borderBottom: "1px solid var(--border-color)", color: "var(--text-muted)" }}>
                   <th className="py-3 px-4 font-medium">Nombre</th>
                   <th className="py-3 px-4 font-medium">Usuario</th>
+                  <th className="py-3 px-4 font-medium">Contraseña</th>
                   <th className="py-3 px-4 font-medium">Curso / Grupo</th>
                   <th className="py-3 px-4 font-medium text-right">Acciones</th>
                 </tr>
@@ -328,6 +335,9 @@ export default function EstudiantesPage() {
                     >
                       <td className="py-3 px-4 font-medium">{student.name}</td>
                       <td className="py-3 px-4" style={{ color: "var(--text-secondary)", fontFamily: "monospace" }}>{student.username}</td>
+                      <td className="py-3 px-4" style={{ fontFamily: "monospace", color: "var(--text-primary)" }}>
+                        {student.passwordPlain || <span className="text-muted italic text-xs">No disponible</span>}
+                      </td>
                       <td className="py-3 px-4">
                         {(student.grade || student.groupName) ? (
                           <span className="badge badge-info">
@@ -431,10 +441,12 @@ export default function EstudiantesPage() {
                 </div>
 
                 <div className="input-group">
-                  <label>{editStudent ? "Nueva contraseña (opcional)" : "Contraseña (opcional)"}</label>
-                  <input type="text" className="input-field" placeholder="Dejar vacío para generar automáticamente"
+                  <label>{editStudent ? "Contraseña" : "Contraseña (opcional)"}</label>
+                  <input type="text" className="input-field" placeholder={editStudent ? "Contraseña actual del estudiante" : "Dejar vacío para generar automáticamente"}
                     value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} />
-                  <p className="text-muted text-xs mt-1">Si no escribes una, se generará automáticamente.</p>
+                  <p className="text-muted text-xs mt-1">
+                    {editStudent ? "Modifica este campo para cambiar la contraseña del estudiante." : "Si no escribes una, se generará automáticamente."}
+                  </p>
                 </div>
 
                 {!editStudent && (
