@@ -34,7 +34,7 @@ export async function GET() {
 
     const students = await prisma.user.findMany({
       where: { role: "STUDENT" },
-      select: { id: true, name: true, username: true, grade: true, groupName: true, createdAt: true },
+      select: { id: true, name: true, username: true, grade: true, groupName: true, passwordPlain: true, createdAt: true },
       orderBy: { name: "asc" }
     });
     return NextResponse.json({ students });
@@ -68,12 +68,12 @@ export async function POST(request: Request) {
     const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
     const student = await prisma.user.create({
-      data: { name, username, password: hashedPassword, role: "STUDENT", grade, groupName }
+      data: { name, username, password: hashedPassword, passwordPlain: plainPassword, role: "STUDENT", grade, groupName }
     });
 
     return NextResponse.json({
       success: true,
-      student: { id: student.id, name: student.name, username: student.username, grade: student.grade, groupName: student.groupName },
+      student: { id: student.id, name: student.name, username: student.username, grade: student.grade, groupName: student.groupName, passwordPlain: student.passwordPlain },
       plainPassword  // return only on creation so teacher can share it
     });
   } catch {
@@ -96,12 +96,13 @@ export async function PATCH(request: Request) {
     const updateData: Record<string, unknown> = { name, grade, groupName };
     if (newPassword) {
       updateData.password = await bcrypt.hash(newPassword, 10);
+      updateData.passwordPlain = newPassword;
     }
 
     const student = await prisma.user.update({
       where: { id },
       data: updateData,
-      select: { id: true, name: true, username: true, grade: true, groupName: true }
+      select: { id: true, name: true, username: true, grade: true, groupName: true, passwordPlain: true }
     });
 
     return NextResponse.json({ success: true, student });
