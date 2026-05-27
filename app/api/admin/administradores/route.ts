@@ -29,11 +29,11 @@ export async function GET() {
     const token = cookieStore.get("auth_token")?.value;
     if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    if (payload.role !== "ADMIN") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (payload.role !== "SUPER_ADMIN") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const admins = await prisma.user.findMany({
-      where: { role: "ADMIN" },
-      select: { id: true, name: true, username: true, passwordPlain: true, createdAt: true },
+      where: { role: { in: ["ADMIN", "SUPER_ADMIN"] } }, // List both ADMIN and SUPER_ADMIN
+      select: { id: true, name: true, username: true, role: true, passwordPlain: true, createdAt: true },
       orderBy: { name: "asc" }
     });
     return NextResponse.json({ admins });
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     const token = cookieStore.get("auth_token")?.value;
     if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    if (payload.role !== "ADMIN") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (payload.role !== "SUPER_ADMIN") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const { name, password: customPassword } = await request.json();
     if (!name) return NextResponse.json({ error: 'El nombre es obligatorio' }, { status: 400 });
@@ -68,12 +68,12 @@ export async function POST(request: Request) {
     const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
     const admin = await prisma.user.create({
-      data: { name, username, password: hashedPassword, passwordPlain: plainPassword, role: "ADMIN" }
+      data: { name, username, password: hashedPassword, passwordPlain: plainPassword, role: "ADMIN" } // new admins are created with role ADMIN
     });
 
     return NextResponse.json({
       success: true,
-      admin: { id: admin.id, name: admin.name, username: admin.username, passwordPlain: admin.passwordPlain },
+      admin: { id: admin.id, name: admin.name, username: admin.username, role: admin.role, passwordPlain: admin.passwordPlain },
       plainPassword
     });
   } catch (error) {
@@ -89,7 +89,7 @@ export async function PATCH(request: Request) {
     const token = cookieStore.get("auth_token")?.value;
     if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    if (payload.role !== "ADMIN") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (payload.role !== "SUPER_ADMIN") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const { id, name, password: newPassword } = await request.json();
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
@@ -103,7 +103,7 @@ export async function PATCH(request: Request) {
     const admin = await prisma.user.update({
       where: { id },
       data: updateData,
-      select: { id: true, name: true, username: true, passwordPlain: true }
+      select: { id: true, name: true, username: true, role: true, passwordPlain: true }
     });
 
     return NextResponse.json({ success: true, admin });
@@ -120,14 +120,14 @@ export async function DELETE(request: Request) {
     const token = cookieStore.get("auth_token")?.value;
     if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    if (payload.role !== "ADMIN") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (payload.role !== "SUPER_ADMIN") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const { id } = await request.json();
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
 
     // Prevent self-deletion
     if (id === payload.id) {
-      return NextResponse.json({ error: 'No puedes eliminar tu propia cuenta de administrador' }, { status: 400 });
+      return NextResponse.json({ error: 'No puedes eliminar tu propia cuenta de superadministrador' }, { status: 400 });
     }
 
     await prisma.user.delete({ where: { id } });
