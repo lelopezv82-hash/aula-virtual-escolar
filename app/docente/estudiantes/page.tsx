@@ -6,6 +6,7 @@ import {
   X, Save, Loader2, Upload, FileSpreadsheet, Download
 } from "lucide-react";
 import Papa from "papaparse";
+import * as XLSX from "xlsx";
 
 interface Student {
   id: string;
@@ -144,39 +145,78 @@ export default function EstudiantesPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // CSV Import Handlers
-  const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // CSV / Excel Import Handlers
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setImportFile(file);
     setImportError("");
     setImportData([]);
 
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        const mapped = results.data.map((row: any) => {
-          const name = row.Nombre || row.nombre || row.name || row.Name || '';
-          const grade = row.Grado || row.grado || row.grade || row.Grade || '';
-          const groupName = row.Grupo || row.grupo || row.groupName || row.group || row.Group || '';
-          return {
-            name: String(name).trim(),
-            grade: String(grade).trim(),
-            groupName: String(groupName).trim()
-          };
-        }).filter((item: any) => item.name !== "");
+    const fileExt = file.name.split('.').pop()?.toLowerCase();
 
-        if (mapped.length === 0) {
-          setImportError("No se encontraron registros con nombre en el archivo CSV. Asegúrate de tener una columna llamada 'Nombre'.");
-        } else {
-          setImportData(mapped);
+    if (fileExt === 'xlsx' || fileExt === 'xls') {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const arrayBuffer = evt.target?.result as ArrayBuffer;
+          const data = new Uint8Array(arrayBuffer);
+          const wb = XLSX.read(data, { type: 'array' });
+          const wsname = wb.SheetNames[0];
+          const ws = wb.Sheets[wsname];
+          const jsonData = XLSX.utils.sheet_to_json(ws, { defval: "" });
+          
+          const mapped = jsonData.map((row: any) => {
+            const name = row.Nombre || row.nombre || row.name || row.Name || '';
+            const grade = row.Grado || row.grado || row.grade || row.Grade || '';
+            const groupName = row.Grupo || row.grupo || row.groupName || row.group || row.Group || '';
+            return {
+              name: String(name).trim(),
+              grade: String(grade).trim(),
+              groupName: String(groupName).trim()
+            };
+          }).filter((item: any) => item.name !== "");
+
+          if (mapped.length === 0) {
+            setImportError("No se encontraron registros con nombre en el archivo Excel. Asegúrate de tener una columna llamada 'Nombre'.");
+          } else {
+            setImportData(mapped);
+          }
+        } catch (err: any) {
+          setImportError("Error al procesar el archivo Excel: " + err.message);
         }
-      },
-      error: (err) => {
-        setImportError("Error al procesar el archivo CSV: " + err.message);
-      }
-    });
+      };
+      reader.onerror = () => {
+        setImportError("Error al leer el archivo Excel.");
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          const mapped = results.data.map((row: any) => {
+            const name = row.Nombre || row.nombre || row.name || row.Name || '';
+            const grade = row.Grado || row.grado || row.grade || row.Grade || '';
+            const groupName = row.Grupo || row.grupo || row.groupName || row.group || row.Group || '';
+            return {
+              name: String(name).trim(),
+              grade: String(grade).trim(),
+              groupName: String(groupName).trim()
+            };
+          }).filter((item: any) => item.name !== "");
+
+          if (mapped.length === 0) {
+            setImportError("No se encontraron registros con nombre en el archivo CSV. Asegúrate de tener una columna llamada 'Nombre'.");
+          } else {
+            setImportData(mapped);
+          }
+        },
+        error: (err) => {
+          setImportError("Error al procesar el archivo CSV: " + err.message);
+        }
+      });
+    }
   };
 
   const executeImport = async () => {
@@ -234,7 +274,7 @@ export default function EstudiantesPage() {
             setImportError("");
             setShowImportModal(true);
           }}>
-            <Upload size={18} /> Importar CSV
+            <Upload size={18} /> Importar CSV / Excel
           </button>
           <button className="btn btn-primary flex items-center gap-2" onClick={openCreate}>
             <UserPlus size={18} /> Nuevo Estudiante
@@ -430,7 +470,7 @@ export default function EstudiantesPage() {
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold flex items-center gap-2">
                 <FileSpreadsheet className="text-emerald-600" />
-                Importar Estudiantes desde CSV
+                Importar Estudiantes desde CSV / Excel
               </h2>
               <button type="button" onClick={closeImportModal} className="p-1 rounded hover:bg-gray-100" disabled={importing}>
                 <X size={20} />
@@ -484,7 +524,7 @@ export default function EstudiantesPage() {
             ) : (
               <div>
                 <p className="text-muted text-sm mb-4">
-                  Sube un archivo CSV con los datos de los estudiantes. El archivo debe incluir encabezados. 
+                  Sube un archivo CSV o Excel (.xlsx, .xls) con los datos de los estudiantes. El archivo debe incluir encabezados. 
                   Las columnas sugeridas son: <strong>Nombre</strong>, <strong>Grado</strong>, <strong>Grupo</strong> (o en inglés: <em>name, grade, groupName</em>).
                 </p>
 
@@ -493,9 +533,9 @@ export default function EstudiantesPage() {
                     onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--primary-color)")}
                     onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border-color)")}>
                     <Upload size={32} className="mx-auto mb-2 text-blue-600" />
-                    <p className="text-sm font-semibold">{importFile ? importFile.name : "Seleccionar Archivo CSV"}</p>
-                    <p className="text-xs text-muted mt-1">Formato delimitado por comas (.csv)</p>
-                    <input id="csv-file" type="file" accept=".csv" className="hidden" onChange={handleCSVUpload} />
+                    <p className="text-sm font-semibold">{importFile ? importFile.name : "Seleccionar Archivo CSV / Excel"}</p>
+                    <p className="text-xs text-muted mt-1">Formatos soportados: .csv, .xlsx, .xls</p>
+                    <input id="csv-file" type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleFileUpload} />
                   </label>
                 </div>
 
