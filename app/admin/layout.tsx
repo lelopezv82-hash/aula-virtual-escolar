@@ -18,7 +18,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   let user: any = null;
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    if (payload.role !== "ADMIN") {
+    if (payload.role !== "ADMIN" && payload.role !== "SUPER_ADMIN") {
       redirect("/login");
     }
     user = payload;
@@ -26,6 +26,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect("/login");
   }
 
+  const isSuperAdmin = user.role === "SUPER_ADMIN";
   const links = [
     {
       href: "/admin",
@@ -42,22 +43,26 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       label: "Estudiantes",
       icon: <Users size={20} />,
     },
-    {
+  ];
+
+  if (isSuperAdmin) {
+    links.push({
       href: "/admin/administradores",
       label: "Administradores",
       icon: <Shield size={20} />,
-    },
-    {
-      href: "/admin/configuracion",
-      label: "Configuración",
-      icon: <Settings size={20} />,
-    },
-  ];
+    });
+  }
+
+  links.push({
+    href: "/admin/configuracion",
+    label: "Configuración",
+    icon: <Settings size={20} />,
+  });
 
   return (
     <DashboardShell
       user={user}
-      roleTitle="Administrador"
+      roleTitle={isSuperAdmin ? "Super Administrador" : "Administrador"}
       sidebarTitle="Admin Aula"
       links={links}
     >
