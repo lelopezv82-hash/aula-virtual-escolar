@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { jwtVerify } from "jose";
-import { LayoutDashboard, GraduationCap, Users, Settings } from "lucide-react";
+import { LayoutDashboard, GraduationCap, Users, Settings, Shield } from "lucide-react";
 import DashboardShell from "@/components/DashboardShell";
 import "@/app/docente/docente.css";
 
@@ -41,6 +41,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       href: "/admin/estudiantes",
       label: "Estudiantes",
       icon: <Users size={20} />,
+    },
+    {
+      href: "/admin/administradores",
+      label: "Administradores",
+      icon: <Shield size={20} />,
     },
     {
       href: "/admin/configuracion",
