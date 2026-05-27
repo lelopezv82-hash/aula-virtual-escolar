@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   UserPlus, Search, Edit2, Trash2, KeyRound, Copy, Check,
-  X, Save, Loader2, Upload, FileSpreadsheet, Download
+  X, Save, Loader2, Upload, FileSpreadsheet, Download,
+  Eye, EyeOff
 } from "lucide-react";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
@@ -33,6 +34,8 @@ export default function EstudiantesPage() {
   const [formData, setFormData] = useState({ name: "", grade: "", groupName: "", password: "" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
+  const [showModalPassword, setShowModalPassword] = useState(false);
 
   // Import CSV states
   const [showImportModal, setShowImportModal] = useState(false);
@@ -68,6 +71,7 @@ export default function EstudiantesPage() {
     setFormData({ name: "", grade: "", groupName: "", password: "" });
     setError("");
     setNewCredentials(null);
+    setShowModalPassword(false);
     setShowModal(true);
   };
 
@@ -81,6 +85,7 @@ export default function EstudiantesPage() {
     });
     setError("");
     setNewCredentials(null);
+    setShowModalPassword(false);
     setShowModal(true);
   };
 
@@ -88,6 +93,7 @@ export default function EstudiantesPage() {
     setShowModal(false);
     setNewCredentials(null);
     setEditStudent(null);
+    setShowModalPassword(false);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -335,8 +341,27 @@ export default function EstudiantesPage() {
                     >
                       <td className="py-3 px-4 font-medium">{student.name}</td>
                       <td className="py-3 px-4" style={{ color: "var(--text-secondary)", fontFamily: "monospace" }}>{student.username}</td>
-                      <td className="py-3 px-4" style={{ fontFamily: "monospace", color: "var(--text-primary)" }}>
-                        {student.passwordPlain || <span className="text-muted italic text-xs">No disponible</span>}
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <span style={{ fontFamily: "monospace", fontSize: "0.95rem", color: "var(--text-primary)" }}>
+                            {student.passwordPlain ? (
+                              visiblePasswords[student.id] ? student.passwordPlain : "••••••••"
+                            ) : (
+                              <span className="text-muted italic text-xs">No disponible</span>
+                            )}
+                          </span>
+                          {student.passwordPlain && (
+                            <button
+                              type="button"
+                              onClick={() => setVisiblePasswords(prev => ({ ...prev, [student.id]: !prev[student.id] }))}
+                              className="p-1 rounded text-muted hover:text-primary hover:bg-gray-100 transition-colors"
+                              style={{ background: "none", border: "none", cursor: "pointer", display: "flex", padding: "0.25rem" }}
+                              title={visiblePasswords[student.id] ? "Ocultar contraseña" : "Mostrar contraseña"}
+                            >
+                              {visiblePasswords[student.id] ? <EyeOff size={15} /> : <Eye size={15} />}
+                            </button>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 px-4">
                         {(student.grade || student.groupName) ? (
@@ -442,8 +467,37 @@ export default function EstudiantesPage() {
 
                 <div className="input-group">
                   <label>{editStudent ? "Contraseña" : "Contraseña (opcional)"}</label>
-                  <input type="text" className="input-field" placeholder={editStudent ? "Contraseña actual del estudiante" : "Dejar vacío para generar automáticamente"}
-                    value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} />
+                  <div style={{ position: "relative" }}>
+                    <input 
+                      type={showModalPassword ? "text" : "password"} 
+                      className="input-field" 
+                      style={{ paddingRight: "2.5rem" }}
+                      placeholder={editStudent ? "Contraseña actual del estudiante" : "Dejar vacío para generar automáticamente"}
+                      value={formData.password} 
+                      onChange={e => setFormData({ ...formData, password: e.target.value })} 
+                    />
+                    {formData.password && (
+                      <button
+                        type="button"
+                        onClick={() => setShowModalPassword(!showModalPassword)}
+                        style={{
+                          position: "absolute",
+                          right: "0.75rem",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          color: "var(--text-muted)",
+                          display: "flex",
+                          alignItems: "center"
+                        }}
+                        title={showModalPassword ? "Ocultar" : "Mostrar"}
+                      >
+                        {showModalPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    )}
+                  </div>
                   <p className="text-muted text-xs mt-1">
                     {editStudent ? "Modifica este campo para cambiar la contraseña del estudiante." : "Si no escribes una, se generará automáticamente."}
                   </p>
