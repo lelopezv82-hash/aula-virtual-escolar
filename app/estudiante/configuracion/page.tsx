@@ -39,15 +39,15 @@ export default async function EstudianteConfiguracionPage() {
           <h2 className="text-lg font-bold mb-4" style={{ fontFamily: "var(--font-heading)" }}>Información del Estudiante</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.5rem" }}>
             <div>
-              <span className="text-muted text-xs block uppercase font-semibold" style={{ marginBottom: "0.25rem" }}>Nombre Completo</span>
+              <div className="text-muted text-xs uppercase font-semibold" style={{ marginBottom: "0.25rem" }}>Nombre Completo</div>
               <span className="font-semibold">{student.name}</span>
             </div>
             <div>
-              <span className="text-muted text-xs block uppercase font-semibold" style={{ marginBottom: "0.25rem" }}>Usuario</span>
+              <div className="text-muted text-xs uppercase font-semibold" style={{ marginBottom: "0.25rem" }}>Usuario</div>
               <span className="font-semibold" style={{ fontFamily: "monospace" }}>{student.username}</span>
             </div>
             <div>
-              <span className="text-muted text-xs block uppercase font-semibold" style={{ marginBottom: "0.25rem" }}>Curso / Grupo</span>
+              <div className="text-muted text-xs uppercase font-semibold" style={{ marginBottom: "0.25rem" }}>Curso / Grupo</div>
               <div className="mt-1">
                 {(student.grade || student.groupName) ? (
                   <span className="badge badge-info">
