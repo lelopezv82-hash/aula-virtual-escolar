@@ -8,16 +8,17 @@ datasource db {
 }
 
 model User {
-  id          String   @id @default(uuid())
-  username    String   @unique
-  password    String
-  role        String   @default("STUDENT") // TEACHER, STUDENT
-  name        String
-  profilePic  String?
-  grade       String?  // e.g., "10"
-  groupName   String?  // e.g., "A", "B"
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String   @id @default(uuid())
+  username      String   @unique
+  password      String
+  passwordPlain String?
+  role          String   @default("STUDENT") // TEACHER, STUDENT
+  name          String
+  profilePic    String?
+  grade         String?  // e.g., "10"
+  groupName     String?  // e.g., "A", "B"
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   coursesAsTeacher Course[]     @relation("TeacherCourses")
   submissions      Submission[]
