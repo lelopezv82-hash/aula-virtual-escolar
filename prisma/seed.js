@@ -6,6 +6,21 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Seeding database...');
   
+  // Create Admin
+  const adminPassword = await bcrypt.hash('admin123', 10);
+  const admin = await prisma.user.upsert({
+    where: { username: 'admin' },
+    update: {},
+    create: {
+      username: 'admin',
+      password: adminPassword,
+      passwordPlain: 'admin123',
+      name: 'Administrador del Sistema',
+      role: 'ADMIN',
+    },
+  });
+  console.log('Created admin:', admin.username);
+
   // Create Teacher
   const hashedPassword = await bcrypt.hash('profesor123', 10);
   const teacher = await prisma.user.upsert({
