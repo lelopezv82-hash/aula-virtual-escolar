@@ -28,7 +28,9 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (res.ok) {
-        if (data.user.role === "TEACHER") {
+        if (data.user.role === "ADMIN") {
+          router.push("/admin");
+        } else if (data.user.role === "TEACHER") {
           router.push("/docente");
         } else {
           router.push("/estudiante");
