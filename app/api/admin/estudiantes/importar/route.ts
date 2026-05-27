@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     const token = cookieStore.get("auth_token")?.value;
     if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    if (payload.role !== "ADMIN") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (payload.role !== "ADMIN" && payload.role !== "SUPER_ADMIN") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const { students } = await request.json();
     if (!students || !Array.isArray(students) || students.length === 0) {
