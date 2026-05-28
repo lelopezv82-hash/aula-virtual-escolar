@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import ConfigForm from "./ConfigForm";
+import GoogleDriveConfig from "./GoogleDriveConfig";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
@@ -24,9 +25,15 @@ export default async function DocenteConfiguracionPage() {
         <p>Administra tus datos personales y credenciales de acceso.</p>
       </div>
 
-      <div className="card w-full">
-        <h2 className="text-xl font-bold mb-4">Datos del Perfil</h2>
-        <ConfigForm initialName={user.name} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1.5rem", alignItems: "start" }}>
+        <div className="card">
+          <h2 className="text-xl font-bold mb-4">Datos del Perfil</h2>
+          <ConfigForm initialName={user.name} />
+        </div>
+        <div className="card">
+          <h2 className="text-xl font-bold mb-4">Almacenamiento en Drive</h2>
+          <GoogleDriveConfig />
+        </div>
       </div>
     </div>
   );
