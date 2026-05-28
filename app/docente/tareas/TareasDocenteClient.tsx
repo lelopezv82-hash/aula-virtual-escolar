@@ -10,6 +10,7 @@ interface Task {
   dueDate: string | Date;
   theme?: string | null;
   period?: string | null;
+  weight?: number | null;
 }
 
 interface Course {
@@ -97,6 +98,7 @@ export default function TareasDocenteClient({ courses }: { courses: Course[] }) 
                         <th className="py-2 px-4 font-medium">Título</th>
                         <th className="py-2 px-4 font-medium">Tema</th>
                         <th className="py-2 px-4 font-medium">Periodo</th>
+                        <th className="py-2 px-4 font-medium">Porcentaje</th>
                         <th className="py-2 px-4 font-medium">Fecha Límite</th>
                         <th className="py-2 px-4 font-medium text-right">Acciones</th>
                       </tr>
@@ -122,6 +124,11 @@ export default function TareasDocenteClient({ courses }: { courses: Course[] }) 
                             ) : (
                               <span className="text-xs text-muted italic">-</span>
                             )}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+                              {task.weight !== undefined && task.weight !== null ? task.weight : 0}%
+                            </span>
                           </td>
                           <td className="py-3 px-4 text-muted">
                             {new Date(task.dueDate).toLocaleDateString()}
