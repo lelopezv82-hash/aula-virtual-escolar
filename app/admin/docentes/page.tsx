@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
+import ConfirmModal from "@/components/ConfirmModal";
 
 interface Teacher {
   id: string;
@@ -37,6 +38,18 @@ export default function DocentesPage() {
 
   // Import CSV/Excel states
   const [showImportModal, setShowImportModal] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type?: 'danger' | 'warning' | 'info';
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importData, setImportData] = useState<any[]>([]);
   const [importResults, setImportResults] = useState<any[] | null>(null);
@@ -126,8 +139,7 @@ export default function DocentesPage() {
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`¿Estás seguro de que deseas eliminar al docente ${name}? Esta acción eliminará permanentemente sus cursos y es irreversible.`)) return;
+  const handleDelete = async (id: string) => {
     try {
       const res = await fetch("/api/admin/docentes", {
         method: "DELETE",
@@ -387,7 +399,13 @@ export default function DocentesPage() {
                             className="p-2 rounded-md hover:bg-yellow-50 transition-colors" style={{ color: "var(--warning)" }}>
                             <KeyRound size={16} />
                           </button>
-                          <button title="Eliminar" onClick={() => handleDelete(teacher.id, teacher.name)}
+                          <button title="Eliminar" onClick={() => setConfirmModal({
+                            isOpen: true,
+                            title: "Eliminar Docente",
+                            message: `¿Estás seguro de que deseas eliminar al docente ${teacher.name}? Esta acción eliminará permanentemente sus cursos y es irreversible.`,
+                            onConfirm: () => handleDelete(teacher.id),
+                            type: "danger"
+                          })}
                             className="p-2 rounded-md hover:bg-red-50 transition-colors" style={{ color: "var(--danger)" }}>
                             <Trash2 size={16} />
                           </button>
@@ -636,6 +654,11 @@ export default function DocentesPage() {
           </div>
         </div>
       )}
+        {/* Custom Confirm Modal */}
+      <ConfirmModal
+        {...confirmModal}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 }
