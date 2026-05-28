@@ -48,6 +48,26 @@ export default async function DocenteLayout({ children }: { children: React.Reac
       icon: <ClipboardList size={20} />,
     },
     {
+      href: "/docente/periodo/1",
+      label: "Periodo 1",
+      icon: <span className="text-[10px] font-extrabold bg-blue-100 text-blue-700 rounded-full w-5 h-5 flex items-center justify-center shrink-0">P1</span>,
+    },
+    {
+      href: "/docente/periodo/2",
+      label: "Periodo 2",
+      icon: <span className="text-[10px] font-extrabold bg-blue-100 text-blue-700 rounded-full w-5 h-5 flex items-center justify-center shrink-0">P2</span>,
+    },
+    {
+      href: "/docente/periodo/3",
+      label: "Periodo 3",
+      icon: <span className="text-[10px] font-extrabold bg-blue-100 text-blue-700 rounded-full w-5 h-5 flex items-center justify-center shrink-0">P3</span>,
+    },
+    {
+      href: "/docente/periodo/4",
+      label: "Periodo 4",
+      icon: <span className="text-[10px] font-extrabold bg-blue-100 text-blue-700 rounded-full w-5 h-5 flex items-center justify-center shrink-0">P4</span>,
+    },
+    {
       href: "/docente/configuracion",
       label: "Configuración",
       icon: <Settings size={20} />,
