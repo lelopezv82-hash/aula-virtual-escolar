@@ -13,6 +13,8 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [theme, setTheme] = useState("");
+  const [period, setPeriod] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [existingAttachment, setExistingAttachment] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -26,6 +28,8 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
         if (data.task) {
           setTitle(data.task.title);
           setDescription(data.task.description || "");
+          setTheme(data.task.theme || "");
+          setPeriod(data.task.period || "");
           // Convert date to local string for datetime-local input (yyyy-MM-ddThh:mm)
           const date = new Date(data.task.dueDate);
           const localDateTime = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
@@ -50,6 +54,8 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
     formData.append("title", title);
     formData.append("description", description);
     formData.append("dueDate", dueDate);
+    if (theme) formData.append("theme", theme);
+    if (period) formData.append("period", period);
     if (file) {
       formData.append("file", file);
     }
@@ -97,6 +103,31 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
             {error}
           </div>
         )}
+
+        <div className="flex gap-4">
+          <div className="input-group flex-1">
+            <label htmlFor="theme">Tema</label>
+            <input
+              id="theme"
+              type="text"
+              className="input-field"
+              placeholder="Ej. Cinemática, Álgebra"
+              value={theme}
+              onChange={(e) => setTheme(e.target.value)}
+            />
+          </div>
+          <div className="input-group flex-1">
+            <label htmlFor="period">Periodo</label>
+            <input
+              id="period"
+              type="text"
+              className="input-field"
+              placeholder="Ej. Periodo 1"
+              value={period}
+              onChange={(e) => setPeriod(e.target.value)}
+            />
+          </div>
+        </div>
 
         <div className="input-group">
           <label htmlFor="title">Título de la Tarea</label>
