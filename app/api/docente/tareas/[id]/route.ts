@@ -73,9 +73,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const file = formData.get('file') as File | null;
     const theme = formData.get('theme') as string | null;
     const period = formData.get('period') as string | null;
+    const weightRaw = formData.get('weight') as string | null;
+    const weight = weightRaw ? parseInt(weightRaw, 10) : 0;
 
-    if (!title || !dueDate) {
-      return NextResponse.json({ error: 'Faltan datos obligatorios' }, { status: 400 });
+    if (!title || !dueDate || !theme || !period) {
+      return NextResponse.json({ error: 'Faltan datos obligatorios (título, fecha límite, tema y periodo)' }, { status: 400 });
     }
 
     let attachmentUrl = task.attachmentUrl;
@@ -113,7 +115,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         dueDate: new Date(dueDate),
         attachmentUrl,
         theme,
-        period
+        period,
+        weight: isNaN(weight) ? 0 : weight
       }
     });
 
