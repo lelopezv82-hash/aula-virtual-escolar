@@ -44,6 +44,8 @@ model Resource {
   url         String
   courseId    String
   course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  theme       String?
+  period      String?
   createdAt   DateTime @default(now())
 }
 
@@ -55,6 +57,8 @@ model Task {
   attachmentUrl String?
   courseId      String
   course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  theme         String?
+  period        String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
