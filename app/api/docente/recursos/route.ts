@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import prisma from '@/lib/prisma';
 import { supabase } from '@/lib/supabase';
+import { getGoogleAccessToken, uploadToGoogleDrive } from '@/lib/gdrive';
 
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
@@ -34,6 +35,8 @@ export async function POST(request: Request) {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     if (payload.role !== "TEACHER") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
+    const teacherId = payload.id as string;
+
     const formData = await request.formData();
     const courseId = formData.get('courseId') as string;
     const title = formData.get('title') as string;
@@ -52,26 +55,40 @@ export async function POST(request: Request) {
     if (file && file.size > 0) {
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
-      const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-      const uniqueName = `recursos/${Date.now()}_${safeName}`;
-      
-      const { data, error } = await supabase.storage
-        .from('aula-virtual')
-        .upload(uniqueName, buffer, {
-          contentType: file.type,
-          duplex: 'half'
-        });
 
-      if (error) {
-        console.error("Supabase upload error:", error);
-        return NextResponse.json({ error: 'Error al subir el archivo a almacenamiento en la nube' }, { status: 500 });
+      // Try uploading to Google Drive first if teacher has it connected
+      const gAccessToken = await getGoogleAccessToken(teacherId);
+      if (gAccessToken) {
+        try {
+          url = await uploadToGoogleDrive(buffer, file.name, file.type, teacherId, "Recursos");
+        } catch (driveError) {
+          console.error("Google Drive upload error, falling back to Supabase:", driveError);
+        }
       }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('aula-virtual')
-        .getPublicUrl(uniqueName);
+      // Fallback to Supabase if not uploaded to Drive
+      if (!url) {
+        const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        const uniqueName = `recursos/${Date.now()}_${safeName}`;
+        
+        const { data, error } = await supabase.storage
+          .from('aula-virtual')
+          .upload(uniqueName, buffer, {
+            contentType: file.type,
+            duplex: 'half'
+          });
 
-      url = publicUrl;
+        if (error) {
+          console.error("Supabase upload error:", error);
+          return NextResponse.json({ error: 'Error al subir el archivo a almacenamiento en la nube' }, { status: 500 });
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('aula-virtual')
+          .getPublicUrl(uniqueName);
+
+        url = publicUrl;
+      }
     }
 
     if (!url) return NextResponse.json({ error: 'Debes adjuntar un archivo o un enlace' }, { status: 400 });
