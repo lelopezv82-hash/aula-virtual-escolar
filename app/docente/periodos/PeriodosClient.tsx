@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { 
   FileText, Plus, ExternalLink, Trash2, Loader2, 
-  UploadCloud, X, Save, ClipboardList, BookOpen, ToggleLeft, ToggleRight
+  UploadCloud, X, Save, ClipboardList, BookOpen, ToggleLeft, ToggleRight,
+  Pencil
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -57,6 +58,7 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
   // Resource Modal State
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [showResourceModal, setShowResourceModal] = useState(false);
+  const [editingResource, setEditingResource] = useState<Resource | null>(null);
   const [resourceForm, setResourceForm] = useState({ title: "", type: "PDF", link: "", theme: "" });
   const [resourceFile, setResourceFile] = useState<File | null>(null);
   const [uploadingResource, setUploadingResource] = useState(false);
@@ -64,7 +66,22 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
 
   const openUploadModal = (course: Course) => {
     setSelectedCourse(course);
+    setEditingResource(null);
     setResourceForm({ title: "", type: "PDF", link: "", theme: "" });
+    setResourceFile(null);
+    setError("");
+    setShowResourceModal(true);
+  };
+
+  const openEditModal = (resource: Resource, course: Course) => {
+    setSelectedCourse(course);
+    setEditingResource(resource);
+    setResourceForm({
+      title: resource.title,
+      type: resource.type,
+      link: resource.type === "LINK" ? resource.url : "",
+      theme: resource.theme || "",
+    });
     setResourceFile(null);
     setError("");
     setShowResourceModal(true);
@@ -78,7 +95,11 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
     setError("");
     
     const fd = new FormData();
-    fd.append("courseId", selectedCourse.id);
+    if (editingResource) {
+      fd.append("id", editingResource.id);
+    } else {
+      fd.append("courseId", selectedCourse.id);
+    }
     fd.append("title", resourceForm.title);
     fd.append("type", resourceForm.type);
     fd.append("period", selectedPeriod);
@@ -87,16 +108,19 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
     if (resourceForm.link) fd.append("link", resourceForm.link);
 
     try {
-      const res = await fetch("/api/docente/recursos", { method: "POST", body: fd });
+      const url = "/api/docente/recursos";
+      const method = editingResource ? "PATCH" : "POST";
+      const res = await fetch(url, { method, body: fd });
       const data = await res.json();
       if (res.ok) {
         setShowResourceModal(false);
+        setEditingResource(null);
         router.refresh();
       } else {
-        setError(data.error || "Error al subir recurso");
+        setError(data.error || "Error al guardar recurso");
       }
     } catch {
-      setError("Error de conexión al subir el recurso");
+      setError("Error de conexión al guardar el recurso");
     } finally {
       setUploadingResource(false);
     }
@@ -171,17 +195,23 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
     <div className="flex flex-col gap-6 animate-fade-in">
       
       {/* Periods Tabs Selector */}
-      <div className="flex gap-2 p-1 rounded-lg bg-gray-100 dark:bg-gray-800 self-start" style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-color)" }}>
+      <div 
+        className="flex gap-2 p-1.5 rounded-xl self-start transition-all duration-300 shadow-sm" 
+        style={{ 
+          background: "var(--bg-secondary)", 
+          border: "1px solid var(--border-color)" 
+        }}
+      >
         {["Periodo 1", "Periodo 2", "Periodo 3", "Periodo 4"].map((pName) => {
           const isActive = selectedPeriod === pName;
           return (
             <button
               key={pName}
               onClick={() => setSelectedPeriod(pName)}
-              className={`px-4 py-2 text-sm font-semibold rounded-md transition-all ${
+              className={`px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${
                 isActive 
-                  ? "bg-white text-blue-600 shadow-sm dark:bg-gray-700" 
-                  : "text-muted hover:text-primary"
+                  ? "shadow-md bg-white text-blue-600 dark:bg-gray-700 font-bold" 
+                  : "text-muted hover:text-primary hover:bg-white/40 dark:hover:bg-gray-800/40"
               }`}
               style={isActive ? { background: "var(--bg-primary)", color: "var(--primary-color)" } : {}}
             >
@@ -193,12 +223,12 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
 
       {courses.length === 0 ? (
         <div className="card text-center py-12 text-muted">
-          <BookOpen size={48} className="mx-auto mb-4 opacity-40" />
+          <BookOpen size={48} className="mx-auto mb-4 opacity-40 animate-pulse" />
           <p className="text-lg font-medium">No tienes cursos activos.</p>
           <p className="text-sm mt-1">Crea un curso en la pestaña "Mis Cursos" para empezar.</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-8">
           {courses.map((course) => {
             const isPeriodActive = (course as any)[`period${periodNum}Active`] !== false;
             
@@ -209,21 +239,25 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
             return (
               <div 
                 key={course.id} 
-                className="card w-full border-t-4" 
+                className="w-full rounded-2xl border p-6 transition-all duration-300 hover:shadow-lg hover:border-blue-400/20" 
                 style={{ 
-                  borderTopColor: isPeriodActive ? "var(--primary-color)" : "var(--text-muted)",
-                  background: "var(--bg-primary)"
+                  borderLeft: isPeriodActive ? "6px solid var(--primary-color)" : "6px solid var(--text-muted)",
+                  borderColor: "var(--border-color)",
+                  background: "var(--bg-primary)",
+                  boxShadow: "0 10px 30px -10px rgba(0, 0, 0, 0.04)"
                 }}
               >
                 {/* Course Header */}
-                <div className="flex flex-wrap justify-between items-start gap-4 border-b pb-4 mb-4" style={{ borderColor: "var(--border-color)" }}>
+                <div className="flex flex-wrap justify-between items-center gap-4 border-b pb-5 mb-5" style={{ borderColor: "var(--border-color)" }}>
                   <div>
-                    <h2 className="text-xl font-bold flex items-center gap-2">
-                      <BookOpen className={isPeriodActive ? "text-blue-600" : "text-gray-500"} />
+                    <h2 className="text-xl font-bold flex items-center gap-2.5">
+                      <div className={`p-2 rounded-lg ${isPeriodActive ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30" : "bg-gray-100 text-gray-500 dark:bg-gray-800"}`}>
+                        <BookOpen size={20} />
+                      </div>
                       {course.name}
                     </h2>
                     {course.description && (
-                      <p className="text-muted text-sm mt-1">{course.description}</p>
+                      <p className="text-muted text-sm mt-1.5 ml-1">{course.description}</p>
                     )}
                   </div>
                   
@@ -231,10 +265,13 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
                   <div className="flex items-center gap-4">
                     <button 
                       onClick={() => togglePeriodActive(course)}
-                      className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full border hover:bg-gray-50 transition-colors"
+                      className={`flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-full border transition-all duration-200 ${
+                        isPeriodActive 
+                          ? "bg-green-50/50 hover:bg-green-50 text-green-700 dark:bg-green-950/20 dark:text-green-400" 
+                          : "bg-gray-50/50 hover:bg-gray-50 text-muted dark:bg-gray-800/20"
+                      }`}
                       style={{ 
-                        borderColor: "var(--border-color)", 
-                        color: isPeriodActive ? "var(--primary-color)" : "var(--text-muted)"
+                        borderColor: isPeriodActive ? "rgba(16, 185, 129, 0.2)" : "var(--border-color)", 
                       }}
                       title="Activar o desactivar este periodo para los estudiantes"
                     >
@@ -246,7 +283,7 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
                       ) : (
                         <>
                           <ToggleLeft className="text-gray-400" size={18} />
-                          <span className="text-gray-500">Oculto para Alumnos</span>
+                          <span>Oculto para Alumnos</span>
                         </>
                       )}
                     </button>
@@ -254,38 +291,46 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
                 </div>
 
                 {/* Main Content: Split Resources and Tasks */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   
                   {/* Resources Column */}
                   <div className="flex flex-col gap-4">
                     <div className="flex justify-between items-center">
-                      <h3 className="text-sm font-bold uppercase tracking-wider text-muted flex items-center gap-1.5">
-                        <FileText size={16} />
+                      <h3 className="text-sm font-bold uppercase tracking-wider text-muted flex items-center gap-2">
+                        <FileText size={16} className="text-blue-500" />
                         Materiales de Clase ({selectedPeriod})
                       </h3>
                       <button 
                         onClick={() => openUploadModal(course)}
-                        className="btn btn-primary py-1 px-3 text-xs h-auto flex items-center gap-1"
+                        className="btn btn-primary py-1.5 px-3 text-xs h-auto flex items-center gap-1.5 rounded-lg shadow-sm"
                       >
                         <Plus size={14} /> Subir Material
                       </button>
                     </div>
 
-                    <div className="flex flex-col gap-2 min-h-[100px] justify-center p-2 rounded-lg" style={{ background: "var(--bg-secondary)", border: "1px dashed var(--border-color)" }}>
+                    <div className="flex flex-col gap-2 min-h-[140px] justify-center p-3 rounded-xl transition-all" style={{ background: "var(--bg-secondary)", border: "1px dashed var(--border-color)" }}>
                       {periodResources.length === 0 ? (
-                        <p className="text-muted text-xs text-center italic py-6">No hay materiales de clase en este periodo.</p>
+                        <div className="text-center py-8">
+                          <p className="text-muted text-xs italic">No hay materiales de clase en este periodo.</p>
+                        </div>
                       ) : (
-                        <div className="flex flex-col gap-2 w-full">
+                        <div className="flex flex-col gap-2.5 w-full">
                           {periodResources.map((resource) => (
-                            <div key={resource.id} className="flex items-center justify-between p-2.5 rounded-md border" style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)" }}>
-                              <div className="flex items-center gap-2 min-w-0">
-                                <span style={{ fontSize: "1.25rem" }}>{TYPE_ICONS[resource.type] || "📁"}</span>
+                            <div 
+                              key={resource.id} 
+                              className="flex items-center justify-between p-3.5 rounded-xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm" 
+                              style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)" }}
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <span className="p-2 rounded-lg bg-gray-50 dark:bg-gray-800" style={{ fontSize: "1.25rem" }}>
+                                  {TYPE_ICONS[resource.type] || "📁"}
+                                </span>
                                 <div className="min-w-0">
-                                  <p className="font-medium truncate text-sm">{resource.title}</p>
-                                  <div className="flex gap-2 items-center text-[10px] text-muted mt-0.5">
-                                    <span>{resource.type}</span>
+                                  <p className="font-semibold truncate text-sm">{resource.title}</p>
+                                  <div className="flex gap-2 items-center text-[10px] text-muted mt-1">
+                                    <span className="font-semibold">{resource.type}</span>
                                     {resource.theme && (
-                                      <span className="px-1.5 py-0.5 rounded-full font-medium" style={{ background: "rgba(37, 99, 235, 0.08)", color: "var(--primary-color)" }}>
+                                      <span className="px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(37, 99, 235, 0.08)", color: "var(--primary-color)" }}>
                                         {resource.theme}
                                       </span>
                                     )}
@@ -297,14 +342,21 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
                                   href={resource.url} 
                                   target="_blank" 
                                   rel="noreferrer" 
-                                  className="p-1.5 rounded hover:bg-gray-100 text-muted hover:text-primary transition-colors"
+                                  className="p-1.5 rounded-lg hover:bg-gray-100 text-muted hover:text-primary transition-colors"
                                   title="Ver archivo"
                                 >
                                   <ExternalLink size={14} />
                                 </a>
                                 <button 
+                                  onClick={() => openEditModal(resource, course)}
+                                  className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 text-muted hover:text-blue-600 transition-colors"
+                                  title="Editar material"
+                                >
+                                  <Pencil size={14} />
+                                </button>
+                                <button 
                                   onClick={() => handleDeleteResource(resource.id)}
-                                  className="p-1.5 rounded hover:bg-red-50 text-muted hover:text-red-600 transition-colors"
+                                  className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-muted hover:text-red-600 transition-colors"
                                   title="Eliminar"
                                 >
                                   <Trash2 size={14} />
@@ -320,51 +372,64 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
                   {/* Tasks Column */}
                   <div className="flex flex-col gap-4">
                     <div className="flex justify-between items-center">
-                      <h3 className="text-sm font-bold uppercase tracking-wider text-muted flex items-center gap-1.5">
-                        <ClipboardList size={16} />
+                      <h3 className="text-sm font-bold uppercase tracking-wider text-muted flex items-center gap-2">
+                        <ClipboardList size={16} className="text-green-500" />
                         Tareas del Periodo ({selectedPeriod})
                       </h3>
                       <Link 
                         href={`/docente/tareas/nueva?courseId=${course.id}&periodo=${encodeURIComponent(selectedPeriod)}`}
-                        className="btn btn-primary py-1 px-3 text-xs h-auto flex items-center gap-1"
+                        className="btn btn-primary py-1.5 px-3 text-xs h-auto flex items-center gap-1.5 rounded-lg shadow-sm"
                       >
                         <Plus size={14} /> Crear Tarea
                       </Link>
                     </div>
 
-                    <div className="flex flex-col gap-2 min-h-[100px] justify-center p-2 rounded-lg" style={{ background: "var(--bg-secondary)", border: "1px dashed var(--border-color)" }}>
+                    <div className="flex flex-col gap-2 min-h-[140px] justify-center p-3 rounded-xl transition-all" style={{ background: "var(--bg-secondary)", border: "1px dashed var(--border-color)" }}>
                       {periodTasks.length === 0 ? (
-                        <p className="text-muted text-xs text-center italic py-6">No hay tareas asignadas en este periodo.</p>
+                        <div className="text-center py-8">
+                          <p className="text-muted text-xs italic">No hay tareas asignadas en este periodo.</p>
+                        </div>
                       ) : (
-                        <div className="flex flex-col gap-2 w-full">
+                        <div className="flex flex-col gap-2.5 w-full">
                           {periodTasks.map((task) => (
-                            <div key={task.id} className="flex items-center justify-between p-2.5 rounded-md border" style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)" }}>
+                            <div 
+                              key={task.id} 
+                              className="flex items-center justify-between p-3.5 rounded-xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm" 
+                              style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)" }}
+                            >
                               <div className="min-w-0">
-                                <p className="font-medium truncate text-sm">{task.title}</p>
-                                <div className="flex flex-wrap gap-2 items-center text-[10px] text-muted mt-0.5">
-                                  <span>Vence: {new Date(task.dueDate).toLocaleDateString()}</span>
+                                <p className="font-semibold truncate text-sm">{task.title}</p>
+                                <div className="flex flex-wrap gap-2 items-center text-[10px] text-muted mt-1">
+                                  <span className="font-medium">Vence: {new Date(task.dueDate).toLocaleDateString()}</span>
                                   {task.weight !== undefined && task.weight !== null && (
-                                    <span className="px-1.5 py-0.5 rounded-full font-medium" style={{ background: "rgba(16, 185, 129, 0.08)", color: "#10b981" }}>
+                                    <span className="px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(16, 185, 129, 0.08)", color: "#10b981" }}>
                                       Peso: {task.weight}%
                                     </span>
                                   )}
                                   {task.theme && (
-                                    <span className="px-1.5 py-0.5 rounded-full font-medium" style={{ background: "rgba(37, 99, 235, 0.08)", color: "var(--primary-color)" }}>
+                                    <span className="px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(37, 99, 235, 0.08)", color: "var(--primary-color)" }}>
                                       {task.theme}
                                     </span>
                                   )}
                                 </div>
                               </div>
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-1.5">
                                 <Link 
                                   href={`/docente/tareas/${task.id}`}
-                                  className="p-1.5 rounded hover:bg-gray-100 text-muted hover:text-primary transition-colors text-xs font-semibold px-2"
+                                  className="py-1.5 px-3 rounded-lg hover:bg-gray-100 text-muted hover:text-primary transition-colors text-xs font-bold"
                                 >
                                   Ver/Calificar
                                 </Link>
+                                <Link 
+                                  href={`/docente/tareas/${task.id}/editar`}
+                                  className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 text-muted hover:text-blue-600 transition-colors"
+                                  title="Editar tarea"
+                                >
+                                  <Pencil size={14} />
+                                </Link>
                                 <button 
                                   onClick={() => handleDeleteTask(task.id)}
-                                  className="p-1.5 rounded hover:bg-red-50 text-muted hover:text-red-600 transition-colors"
+                                  className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-muted hover:text-red-600 transition-colors"
                                   title="Eliminar"
                                 >
                                   <Trash2 size={14} />
@@ -384,37 +449,39 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
         </div>
       )}
 
-      {/* Resource Upload Modal */}
+      {/* Resource Upload / Edit Modal */}
       {showResourceModal && selectedCourse && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "1rem" }}
           onClick={e => e.target === e.currentTarget && setShowResourceModal(false)}>
-          <form onSubmit={handleSaveResource} className="card" style={{ width: "100%", maxWidth: "500px" }}>
+          <form onSubmit={handleSaveResource} className="card animate-fade-in" style={{ width: "100%", maxWidth: "500px", borderRadius: "1.25rem", boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)" }}>
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Subir Recurso ({selectedCourse.name})</h2>
-              <button type="button" onClick={() => setShowResourceModal(false)} className="p-1 rounded hover:bg-gray-100"><X size={20} /></button>
+              <h2 className="text-xl font-bold">
+                {editingResource ? "Editar Recurso" : "Subir Recurso"} ({selectedCourse.name})
+              </h2>
+              <button type="button" onClick={() => setShowResourceModal(false)} className="p-1 rounded-lg hover:bg-gray-100"><X size={20} /></button>
             </div>
             {error && <div className="alert alert-danger mb-4">{error}</div>}
             
             <div className="input-group mb-3">
-              <label>Título *</label>
+              <label className="font-semibold text-xs mb-1 block">Título *</label>
               <input type="text" className="input-field" placeholder="Ej. Guía de estudio - Unidad 1"
                 value={resourceForm.title} onChange={e => setResourceForm({ ...resourceForm, title: e.target.value })} required />
             </div>
             
             <div className="flex gap-4 mb-3">
               <div className="input-group flex-1">
-                <label>Tema *</label>
+                <label className="font-semibold text-xs mb-1 block">Tema *</label>
                 <input type="text" className="input-field" placeholder="Ej. Álgebra, Cinemática"
                   value={resourceForm.theme} onChange={e => setResourceForm({ ...resourceForm, theme: e.target.value })} required />
               </div>
               <div className="input-group flex-1">
-                <label>Periodo</label>
-                <input type="text" className="input-field bg-gray-100" value={selectedPeriod} disabled />
+                <label className="font-semibold text-xs mb-1 block">Periodo</label>
+                <input type="text" className="input-field bg-gray-100 dark:bg-gray-800" value={selectedPeriod} disabled />
               </div>
             </div>
 
             <div className="input-group mb-4">
-              <label>Tipo de Recurso *</label>
+              <label className="font-semibold text-xs mb-1 block">Tipo de Recurso *</label>
               <select className="input-field" value={resourceForm.type} onChange={e => setResourceForm({ ...resourceForm, type: e.target.value })}>
                 <option value="PDF">📄 PDF</option>
                 <option value="WORD">📝 Word / Documento</option>
@@ -427,13 +494,15 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
 
             {resourceForm.type === "LINK" ? (
               <div className="input-group mb-4">
-                <label>URL del enlace *</label>
+                <label className="font-semibold text-xs mb-1 block">URL del enlace *</label>
                 <input type="url" className="input-field" placeholder="https://…"
                   value={resourceForm.link} onChange={e => setResourceForm({ ...resourceForm, link: e.target.value })} required />
               </div>
             ) : (
               <div className="mb-4">
-                <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>Archivo *</label>
+                <label className="block text-sm font-semibold text-xs mb-2" style={{ color: "var(--text-secondary)" }}>
+                  {editingResource ? "Archivo (Opcional - dejar vacío para mantener el actual)" : "Archivo *"}
+                </label>
                 <label htmlFor="resource-file" style={{ display: "block", border: "2px dashed var(--border-color)", borderRadius: "var(--radius-md)", padding: "1.5rem", textAlign: "center", cursor: "pointer", transition: "border-color 0.2s" }}
                   onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--primary-color)")}
                   onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border-color)")}>
@@ -448,8 +517,8 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
             <div className="flex justify-end gap-3 border-t pt-4" style={{ borderColor: "var(--border-color)" }}>
               <button type="button" className="btn btn-secondary" onClick={() => setShowResourceModal(false)}>Cancelar</button>
               <button type="submit" className="btn btn-primary" disabled={uploadingResource}>
-                {uploadingResource ? <Loader2 className="animate-spin" size={18} /> : <UploadCloud size={18} />}
-                Subir Recurso
+                {uploadingResource ? <Loader2 className="animate-spin" size={18} /> : (editingResource ? <Save size={18} /> : <UploadCloud size={18} />)}
+                {editingResource ? "Guardar Cambios" : "Subir Recurso"}
               </button>
             </div>
           </form>
