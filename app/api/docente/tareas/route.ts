@@ -28,9 +28,11 @@ export async function POST(request: Request) {
     const file = formData.get('file') as File | null;
     const theme = formData.get('theme') as string | null;
     const period = formData.get('period') as string | null;
+    const weightRaw = formData.get('weight') as string | null;
+    const weight = weightRaw ? parseInt(weightRaw, 10) : 0;
 
-    if (!title || !dueDate || !courseId) {
-      return NextResponse.json({ error: 'Faltan datos obligatorios' }, { status: 400 });
+    if (!title || !dueDate || !courseId || !theme || !period) {
+      return NextResponse.json({ error: 'Faltan datos obligatorios (título, fecha límite, curso, tema y periodo)' }, { status: 400 });
     }
 
     // Verify course belongs to teacher
@@ -77,7 +79,8 @@ export async function POST(request: Request) {
         attachmentUrl,
         courseId,
         theme,
-        period
+        period,
+        weight: isNaN(weight) ? 0 : weight
       }
     });
 
