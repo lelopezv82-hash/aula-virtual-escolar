@@ -1,18 +1,22 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Loader2, Save, UploadCloud } from "lucide-react";
 import Link from "next/link";
 
 export default function NuevaTareaPage() {
+  const searchParams = useSearchParams();
+  const initialPeriod = searchParams.get("periodo") || "";
+  const initialCourseId = searchParams.get("courseId") || "";
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
-  const [courseId, setCourseId] = useState("");
+  const [courseId, setCourseId] = useState(initialCourseId);
   const [file, setFile] = useState<File | null>(null);
   const [theme, setTheme] = useState("");
-  const [period, setPeriod] = useState("");
+  const [period, setPeriod] = useState(initialPeriod);
   const [weight, setWeight] = useState("0");
   const [courses, setCourses] = useState<{id: string, name: string}[]>([]);
   const [loading, setLoading] = useState(false);
@@ -26,10 +30,12 @@ export default function NuevaTareaPage() {
       .then(res => res.json())
       .then(data => {
         if (data.courses) setCourses(data.courses);
-        if (data.courses?.length > 0) setCourseId(data.courses[0].id);
+        if (!initialCourseId && data.courses?.length > 0) {
+          setCourseId(data.courses[0].id);
+        }
       })
       .catch(() => console.error("Failed to load courses"));
-  }, []);
+  }, [initialCourseId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
