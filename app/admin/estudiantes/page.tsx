@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
+import { useConfirm } from "@/components/ConfirmProvider";
 
 interface Student {
   id: string;
@@ -24,6 +25,7 @@ interface NewCredentials {
 }
 
 export default function EstudiantesPage() {
+  const confirm = useConfirm();
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -133,7 +135,13 @@ export default function EstudiantesPage() {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`¿Estás seguro de que deseas eliminar a ${name}? Esta acción es irreversible.`)) return;
+    const ok = await confirm({
+      title: "Eliminar Estudiante",
+      message: `¿Estás seguro de que deseas eliminar a ${name}? Esta acción es irreversible.`,
+      confirmText: "Eliminar",
+      type: "danger"
+    });
+    if (!ok) return;
     try {
       const res = await fetch("/api/admin/estudiantes", {
         method: "DELETE",
