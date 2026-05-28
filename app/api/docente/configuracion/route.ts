@@ -7,6 +7,57 @@ import bcrypt from 'bcryptjs';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
+export async function GET(request: Request) {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth_token")?.value;
+    if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    if (payload.role !== "TEACHER") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+
+    const teacher = await prisma.user.findUnique({
+      where: { id: payload.id as string },
+      select: {
+        googleRefreshToken: true,
+        googleDriveFolderId: true,
+      }
+    });
+
+    return NextResponse.json({
+      isConnected: !!teacher?.googleRefreshToken,
+      hasFolder: !!teacher?.googleDriveFolderId
+    });
+  } catch (error) {
+    console.error("Error fetching config:", error);
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth_token")?.value;
+    if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    if (payload.role !== "TEACHER") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+
+    await prisma.user.update({
+      where: { id: payload.id as string },
+      data: {
+        googleAccessToken: null,
+        googleRefreshToken: null,
+        googleTokenExpiry: null,
+        googleDriveFolderId: null
+      }
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error disconnecting Google Drive:", error);
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+  }
+}
+
 export async function PATCH(request: Request) {
   try {
     const cookieStore = await cookies();
