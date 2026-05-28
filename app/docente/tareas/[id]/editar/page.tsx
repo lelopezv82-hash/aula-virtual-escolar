@@ -15,6 +15,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
   const [dueDate, setDueDate] = useState("");
   const [theme, setTheme] = useState("");
   const [period, setPeriod] = useState("");
+  const [weight, setWeight] = useState("0");
   const [file, setFile] = useState<File | null>(null);
   const [existingAttachment, setExistingAttachment] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -30,6 +31,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
           setDescription(data.task.description || "");
           setTheme(data.task.theme || "");
           setPeriod(data.task.period || "");
+          setWeight(data.task.weight !== undefined ? String(data.task.weight) : "0");
           // Convert date to local string for datetime-local input (yyyy-MM-ddThh:mm)
           const date = new Date(data.task.dueDate);
           const localDateTime = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
@@ -56,6 +58,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
     formData.append("dueDate", dueDate);
     if (theme) formData.append("theme", theme);
     if (period) formData.append("period", period);
+    formData.append("weight", weight);
     if (file) {
       formData.append("file", file);
     }
@@ -114,6 +117,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
               placeholder="Ej. Cinemática, Álgebra"
               value={theme}
               onChange={(e) => setTheme(e.target.value)}
+              required
             />
           </div>
           <div className="input-group flex-1">
@@ -125,6 +129,21 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
               placeholder="Ej. Periodo 1"
               value={period}
               onChange={(e) => setPeriod(e.target.value)}
+              required
+            />
+          </div>
+          <div className="input-group flex-initial w-32">
+            <label htmlFor="weight">Porcentaje (%)</label>
+            <input
+              id="weight"
+              type="number"
+              min="0"
+              max="100"
+              className="input-field"
+              placeholder="0-100"
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+              required
             />
           </div>
         </div>
