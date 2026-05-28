@@ -26,6 +26,8 @@ export async function POST(request: Request) {
     const dueDate = formData.get('dueDate') as string;
     const courseId = formData.get('courseId') as string;
     const file = formData.get('file') as File | null;
+    const theme = formData.get('theme') as string | null;
+    const period = formData.get('period') as string | null;
 
     if (!title || !dueDate || !courseId) {
       return NextResponse.json({ error: 'Faltan datos obligatorios' }, { status: 400 });
@@ -73,7 +75,9 @@ export async function POST(request: Request) {
         description,
         dueDate: new Date(dueDate),
         attachmentUrl,
-        courseId
+        courseId,
+        theme,
+        period
       }
     });
 
