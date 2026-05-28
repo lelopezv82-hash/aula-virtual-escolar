@@ -43,11 +43,6 @@ export default async function DocenteLayout({ children }: { children: React.Reac
       icon: <BookOpen size={20} />,
     },
     {
-      href: "/docente/tareas",
-      label: "Tareas",
-      icon: <ClipboardList size={20} />,
-    },
-    {
       href: "/docente/periodos",
       label: "Periodos",
       icon: <Calendar size={20} />,
