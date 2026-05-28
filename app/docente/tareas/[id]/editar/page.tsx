@@ -121,16 +121,20 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
             />
           </div>
           <div className="input-group flex-1">
-            <label htmlFor="period">Periodo</label>
-            <input
+            <label htmlFor="period">Periodo *</label>
+            <select
               id="period"
-              type="text"
               className="input-field"
-              placeholder="Ej. Periodo 1"
               value={period}
               onChange={(e) => setPeriod(e.target.value)}
               required
-            />
+            >
+              <option value="" disabled>Selecciona periodo</option>
+              <option value="Periodo 1">Periodo 1</option>
+              <option value="Periodo 2">Periodo 2</option>
+              <option value="Periodo 3">Periodo 3</option>
+              <option value="Periodo 4">Periodo 4</option>
+            </select>
           </div>
           <div className="input-group flex-initial w-32">
             <label htmlFor="weight">Porcentaje (%)</label>
