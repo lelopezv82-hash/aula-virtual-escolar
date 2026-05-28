@@ -4,15 +4,21 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Edit2, Trash2, Eye, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useConfirm } from "@/components/ConfirmProvider";
 
 export default function TaskActions({ taskId }: { taskId: string }) {
+  const confirm = useConfirm();
   const [deleting, setDeleting] = useState(false);
   const router = useRouter();
 
   const handleDelete = async () => {
-    if (!confirm("¿Estás seguro de que deseas eliminar esta tarea? Esta acción eliminará permanentemente la tarea y todas las entregas de los estudiantes.")) {
-      return;
-    }
+    const ok = await confirm({
+      title: "Eliminar Tarea",
+      message: "¿Estás seguro de que deseas eliminar esta tarea? Esta acción eliminará permanentemente la tarea y todas las entregas de los estudiantes.",
+      confirmText: "Eliminar",
+      type: "danger"
+    });
+    if (!ok) return;
 
     setDeleting(true);
     try {
