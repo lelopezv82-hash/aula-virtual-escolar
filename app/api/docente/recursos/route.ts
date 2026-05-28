@@ -40,6 +40,8 @@ export async function POST(request: Request) {
     const type = formData.get('type') as string;
     const link = formData.get('link') as string | null;
     const file = formData.get('file') as File | null;
+    const theme = formData.get('theme') as string | null;
+    const period = formData.get('period') as string | null;
 
     if (!courseId || !title || !type) {
       return NextResponse.json({ error: 'Faltan datos' }, { status: 400 });
@@ -75,7 +77,7 @@ export async function POST(request: Request) {
     if (!url) return NextResponse.json({ error: 'Debes adjuntar un archivo o un enlace' }, { status: 400 });
 
     const resource = await prisma.resource.create({
-      data: { title, type, url, courseId }
+      data: { title, type, url, courseId, theme, period }
     });
 
     return NextResponse.json({ success: true, resource });
