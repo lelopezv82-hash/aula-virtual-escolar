@@ -104,6 +104,94 @@ export async function POST(request: Request) {
   }
 }
 
+// PATCH update resource
+export async function PATCH(request: Request) {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth_token")?.value;
+    if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    if (payload.role !== "TEACHER") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+
+    const teacherId = payload.id as string;
+
+    const formData = await request.formData();
+    const id = formData.get('id') as string;
+    const title = formData.get('title') as string;
+    const type = formData.get('type') as string;
+    const link = formData.get('link') as string | null;
+    const file = formData.get('file') as File | null;
+    const theme = formData.get('theme') as string | null;
+    const period = formData.get('period') as string | null;
+
+    if (!id || !title || !type || !theme || !period) {
+      return NextResponse.json({ error: 'Faltan datos obligatorios (id, título, tipo, tema y periodo)' }, { status: 400 });
+    }
+
+    const existingResource = await prisma.resource.findUnique({
+      where: { id }
+    });
+
+    if (!existingResource) {
+      return NextResponse.json({ error: 'Recurso no encontrado' }, { status: 404 });
+    }
+
+    let url = existingResource.url;
+
+    if (type === "LINK") {
+      if (link) {
+        url = link;
+      }
+    } else if (file && file.size > 0) {
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+
+      const gAccessToken = await getGoogleAccessToken(teacherId);
+      if (gAccessToken) {
+        try {
+          url = await uploadToGoogleDrive(buffer, file.name, file.type, teacherId, "Recursos");
+        } catch (driveError) {
+          console.error("Google Drive upload error, falling back to Supabase:", driveError);
+        }
+      }
+
+      if (url === existingResource.url) {
+        const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        const uniqueName = `recursos/${Date.now()}_${safeName}`;
+        
+        const { data, error } = await supabase.storage
+          .from('aula-virtual')
+          .upload(uniqueName, buffer, {
+            contentType: file.type,
+            duplex: 'half'
+          });
+
+        if (error) {
+          console.error("Supabase upload error:", error);
+          return NextResponse.json({ error: 'Error al subir el archivo a almacenamiento en la nube' }, { status: 500 });
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('aula-virtual')
+          .getPublicUrl(uniqueName);
+
+        url = publicUrl;
+      }
+    }
+
+    const updatedResource = await prisma.resource.update({
+      where: { id },
+      data: { title, type, url, theme, period }
+    });
+
+    return NextResponse.json({ success: true, resource: updatedResource });
+  } catch (error) {
+    console.error("Error updating resource:", error);
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+  }
+}
+
+
 // DELETE resource
 export async function DELETE(request: Request) {
   try {
