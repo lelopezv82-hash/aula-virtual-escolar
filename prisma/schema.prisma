@@ -17,6 +17,10 @@ model User {
   profilePic    String?
   grade         String?  // e.g., "10"
   groupName     String?  // e.g., "A", "B"
+  googleAccessToken   String?
+  googleRefreshToken  String?
+  googleTokenExpiry   DateTime?
+  googleDriveFolderId String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
