@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
 
-interface Course { id: string; name: string; description: string | null; _count: { tasks: number; resources: number } }
+interface Course { id: string; name: string; description: string | null; period1Active: boolean; period2Active: boolean; period3Active: boolean; period4Active: boolean; _count: { tasks: number; resources: number } }
 interface Resource { id: string; title: string; type: string; url: string; theme?: string | null; period?: string | null }
 
 const TYPE_ICONS: Record<string, string> = {
@@ -216,6 +216,42 @@ export default function CursosPage() {
               </div>
             </div>
 
+            {/* Period Activation Controls */}
+            <div className="mb-6 p-4 rounded-lg border bg-gray-50 flex flex-col gap-2" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}>
+              <h4 className="font-semibold text-sm mb-1 text-gray-700" style={{ color: 'var(--text-primary)' }}>Configuración de Periodos Académicos</h4>
+              <p className="text-xs text-muted mb-2">Activa o desactiva los periodos para este curso. Los periodos desactivados estarán completamente ocultos para los estudiantes.</p>
+              <div className="flex flex-wrap gap-4">
+                {[1, 2, 3, 4].map(pNum => {
+                  const key = `period${pNum}Active` as keyof Course;
+                  const isActive = selectedCourse[key] as boolean;
+                  return (
+                    <label key={pNum} className="flex items-center gap-2 text-sm font-medium cursor-pointer" style={{ color: 'var(--text-primary)' }}>
+                      <input
+                        type="checkbox"
+                        checked={isActive !== false} // default to true if undefined
+                        onChange={async (e) => {
+                          const updatedVal = e.target.checked;
+                          // Update UI state locally
+                          const updatedCourse = { ...selectedCourse, [key]: updatedVal };
+                          setSelectedCourse(updatedCourse);
+                          setCourses(prev => prev.map(c => c.id === selectedCourse.id ? updatedCourse : c));
+                          
+                          // Save to API
+                          await fetch("/api/docente/cursos", {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ id: selectedCourse.id, [key]: updatedVal })
+                          });
+                        }}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4"
+                      />
+                      <span>Periodo {pNum}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
             {resources.length > 0 && (uniqueThemes.length > 0 || uniquePeriods.length > 0) && (
               <div className="flex gap-3 mb-4 p-3 rounded-lg" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
                 {uniqueThemes.length > 0 && (
@@ -261,11 +297,22 @@ export default function CursosPage() {
 
                   if (periodResources.length === 0) return null;
 
+                  const isPeriodActive = periodName === "Otros" || (() => {
+                    if (periodName === "Periodo 1") return selectedCourse.period1Active !== false;
+                    if (periodName === "Periodo 2") return selectedCourse.period2Active !== false;
+                    if (periodName === "Periodo 3") return selectedCourse.period3Active !== false;
+                    if (periodName === "Periodo 4") return selectedCourse.period4Active !== false;
+                    return true;
+                  })();
+
                   return (
-                    <div key={periodName} className="p-3 rounded-lg border" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
-                      <h4 className="font-bold text-xs uppercase tracking-wider mb-3 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
-                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                        {periodName}
+                    <div key={periodName} className="p-3 rounded-lg border" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', opacity: isPeriodActive ? 1 : 0.6 }}>
+                      <h4 className="font-bold text-xs uppercase tracking-wider mb-3 flex items-center justify-between" style={{ color: 'var(--text-secondary)' }}>
+                        <span className="flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full ${isPeriodActive ? 'bg-blue-500' : 'bg-gray-400'}`}></span>
+                          {periodName}
+                        </span>
+                        {!isPeriodActive && <span className="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded uppercase font-semibold">Oculto para Alumnos</span>}
                       </h4>
                       <div className="flex flex-col gap-2">
                         {periodResources.map(r => (
@@ -355,10 +402,10 @@ export default function CursosPage() {
                 <select className="input-field" value={resourceForm.period}
                   onChange={e => setResourceForm({ ...resourceForm, period: e.target.value })} required>
                   <option value="" disabled>Selecciona periodo</option>
-                  <option value="Periodo 1">Periodo 1</option>
-                  <option value="Periodo 2">Periodo 2</option>
-                  <option value="Periodo 3">Periodo 3</option>
-                  <option value="Periodo 4">Periodo 4</option>
+                  <option value="Periodo 1">Periodo 1 {selectedCourse && selectedCourse.period1Active === false && "(Inactivo)"}</option>
+                  <option value="Periodo 2">Periodo 2 {selectedCourse && selectedCourse.period2Active === false && "(Inactivo)"}</option>
+                  <option value="Periodo 3">Periodo 3 {selectedCourse && selectedCourse.period3Active === false && "(Inactivo)"}</option>
+                  <option value="Periodo 4">Periodo 4 {selectedCourse && selectedCourse.period4Active === false && "(Inactivo)"}</option>
                 </select>
               </div>
             </div>
