@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ClipboardList } from "lucide-react";
+import { ClipboardList, Plus } from "lucide-react";
 import TaskActions from "./TaskActions";
+import Link from "next/link";
 
 interface Task {
   id: string;
@@ -90,40 +91,45 @@ export default function TareasDocenteClient({ courses }: { courses: Course[] }) 
                 {course.name}
               </h2>
               
-              {course.tasks.length === 0 ? (
-                <p className="text-muted">No hay tareas asignadas en este curso.</p>
-              ) : filteredTasks.length === 0 ? (
-                <p className="text-muted text-sm italic">Ninguna tarea coincide con los filtros aplicados en este curso.</p>
-              ) : (
-                <div className="flex flex-col gap-5">
-                  {["Periodo 1", "Periodo 2", "Periodo 3", "Periodo 4", "Otros"].map(periodName => {
-                    const periodTasks = filteredTasks.filter(t => {
-                      if (periodName === "Otros") {
-                        return !t.period || !["Periodo 1", "Periodo 2", "Periodo 3", "Periodo 4"].includes(t.period);
-                      }
-                      return t.period === periodName;
-                    });
+              <div className="flex flex-col gap-5">
+                {["Periodo 1", "Periodo 2", "Periodo 3", "Periodo 4", "Otros"].map(periodName => {
+                  const periodTasks = filteredTasks.filter(t => {
+                    if (periodName === "Otros") {
+                      return !t.period || !["Periodo 1", "Periodo 2", "Periodo 3", "Periodo 4"].includes(t.period);
+                    }
+                    return t.period === periodName;
+                  });
 
-                    if (periodTasks.length === 0) return null;
+                  if (periodName === "Otros" && periodTasks.length === 0) return null;
 
-                    const isPeriodActive = periodName === "Otros" || (() => {
-                      if (periodName === "Periodo 1") return course.period1Active !== false;
-                      if (periodName === "Periodo 2") return course.period2Active !== false;
-                      if (periodName === "Periodo 3") return course.period3Active !== false;
-                      if (periodName === "Periodo 4") return course.period4Active !== false;
-                      return true;
-                    })();
+                  const isPeriodActive = periodName === "Otros" || (() => {
+                    if (periodName === "Periodo 1") return course.period1Active !== false;
+                    if (periodName === "Periodo 2") return course.period2Active !== false;
+                    if (periodName === "Periodo 3") return course.period3Active !== false;
+                    if (periodName === "Periodo 4") return course.period4Active !== false;
+                    return true;
+                  })();
 
-                    return (
-                      <div key={periodName} className="p-3 rounded-lg border" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', opacity: isPeriodActive ? 1 : 0.6 }}>
-                        <h4 className="font-bold text-xs uppercase tracking-wider mb-3 flex items-center justify-between" style={{ color: 'var(--text-secondary)' }}>
-                          <span className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${isPeriodActive ? 'bg-blue-500' : 'bg-gray-400'}`}></span>
-                            {periodName}
-                          </span>
+                  return (
+                    <div key={periodName} className="p-3 rounded-lg border" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', opacity: isPeriodActive ? 1 : 0.6 }}>
+                      <h4 className="font-bold text-xs uppercase tracking-wider mb-3 flex items-center justify-between" style={{ color: 'var(--text-secondary)' }}>
+                        <span className="flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full ${isPeriodActive ? 'bg-blue-500' : 'bg-gray-400'}`}></span>
+                          {periodName}
+                        </span>
+                        <div className="flex items-center gap-2">
                           {!isPeriodActive && <span className="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded uppercase font-semibold">Oculto para Alumnos</span>}
-                        </h4>
-                        
+                          {periodName !== "Otros" && (
+                            <Link href={`/docente/tareas/nueva?courseId=${course.id}&periodo=${encodeURIComponent(periodName)}`} className="btn btn-primary py-1 px-2.5 text-[11px] h-auto flex items-center gap-1">
+                              <Plus size={12} /> Crear Tarea
+                            </Link>
+                          )}
+                        </div>
+                      </h4>
+                      
+                      {periodTasks.length === 0 ? (
+                        <p className="text-muted text-xs italic p-2">No hay tareas creadas en este periodo.</p>
+                      ) : (
                         <div className="overflow-x-auto">
                           <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
                             <thead>
@@ -164,11 +170,11 @@ export default function TareasDocenteClient({ courses }: { courses: Course[] }) 
                             </tbody>
                           </table>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           );
         })}
