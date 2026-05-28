@@ -330,14 +330,14 @@ export default function CursosPage() {
             </div>
             <div className="flex gap-4 mb-3">
               <div className="input-group flex-1">
-                <label>Tema</label>
+                <label>Tema *</label>
                 <input type="text" className="input-field" placeholder="Ej. Álgebra, Cinemática"
-                  value={resourceForm.theme} onChange={e => setResourceForm({ ...resourceForm, theme: e.target.value })} />
+                  value={resourceForm.theme} onChange={e => setResourceForm({ ...resourceForm, theme: e.target.value })} required />
               </div>
               <div className="input-group flex-1">
-                <label>Periodo</label>
+                <label>Periodo *</label>
                 <input type="text" className="input-field" placeholder="Ej. Periodo 1, Q2"
-                  value={resourceForm.period} onChange={e => setResourceForm({ ...resourceForm, period: e.target.value })} />
+                  value={resourceForm.period} onChange={e => setResourceForm({ ...resourceForm, period: e.target.value })} required />
               </div>
             </div>
             <div className="input-group mb-4">
