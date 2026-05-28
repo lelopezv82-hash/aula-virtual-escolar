@@ -13,6 +13,7 @@ export default function NuevaTareaPage() {
   const [file, setFile] = useState<File | null>(null);
   const [theme, setTheme] = useState("");
   const [period, setPeriod] = useState("");
+  const [weight, setWeight] = useState("0");
   const [courses, setCourses] = useState<{id: string, name: string}[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -42,6 +43,7 @@ export default function NuevaTareaPage() {
     formData.append("courseId", courseId);
     if (theme) formData.append("theme", theme);
     if (period) formData.append("period", period);
+    formData.append("weight", weight);
     if (file) {
       formData.append("file", file);
     }
@@ -112,6 +114,7 @@ export default function NuevaTareaPage() {
               placeholder="Ej. Cinemática, Álgebra"
               value={theme}
               onChange={(e) => setTheme(e.target.value)}
+              required
             />
           </div>
           <div className="input-group flex-1">
@@ -123,6 +126,21 @@ export default function NuevaTareaPage() {
               placeholder="Ej. Periodo 1"
               value={period}
               onChange={(e) => setPeriod(e.target.value)}
+              required
+            />
+          </div>
+          <div className="input-group flex-initial w-32">
+            <label htmlFor="weight">Porcentaje (%)</label>
+            <input
+              id="weight"
+              type="number"
+              min="0"
+              max="100"
+              className="input-field"
+              placeholder="0-100"
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+              required
             />
           </div>
         </div>
