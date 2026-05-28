@@ -336,8 +336,14 @@ export default function CursosPage() {
               </div>
               <div className="input-group flex-1">
                 <label>Periodo *</label>
-                <input type="text" className="input-field" placeholder="Ej. Periodo 1, Q2"
-                  value={resourceForm.period} onChange={e => setResourceForm({ ...resourceForm, period: e.target.value })} required />
+                <select className="input-field" value={resourceForm.period}
+                  onChange={e => setResourceForm({ ...resourceForm, period: e.target.value })} required>
+                  <option value="" disabled>Selecciona periodo</option>
+                  <option value="Periodo 1">Periodo 1</option>
+                  <option value="Periodo 2">Periodo 2</option>
+                  <option value="Periodo 3">Periodo 3</option>
+                  <option value="Periodo 4">Periodo 4</option>
+                </select>
               </div>
             </div>
             <div className="input-group mb-4">
