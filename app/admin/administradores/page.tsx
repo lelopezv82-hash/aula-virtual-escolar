@@ -5,6 +5,7 @@ import {
   UserPlus, Search, Edit2, Trash2, KeyRound, Copy, Check,
   X, Save, Loader2, Eye, EyeOff
 } from "lucide-react";
+import ConfirmModal from "@/components/ConfirmModal";
 
 interface AdminUser {
   id: string;
@@ -33,6 +34,18 @@ export default function AdministradoresPage() {
   const [error, setError] = useState("");
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
   const [showModalPassword, setShowModalPassword] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type?: 'danger' | 'warning' | 'info';
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
 
   const fetchAdmins = useCallback(async () => {
     setLoading(true);
@@ -120,8 +133,7 @@ export default function AdministradoresPage() {
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`¿Estás seguro de que deseas eliminar al administrador ${name}? Esta acción es irreversible.`)) return;
+  const handleDelete = async (id: string) => {
     try {
       const res = await fetch("/api/admin/administradores", {
         method: "DELETE",
@@ -277,7 +289,13 @@ export default function AdministradoresPage() {
                               className="p-2 rounded-md hover:bg-yellow-50 transition-colors" style={{ color: "var(--warning)" }}>
                               <KeyRound size={16} />
                             </button>
-                            <button title="Eliminar" onClick={() => handleDelete(admin.id, admin.name)}
+                             <button title="Eliminar" onClick={() => setConfirmModal({
+                              isOpen: true,
+                              title: "Eliminar Administrador",
+                              message: `¿Estás seguro de que deseas eliminar al administrador ${admin.name}? Esta acción es irreversible.`,
+                              onConfirm: () => handleDelete(admin.id),
+                              type: "danger"
+                            })}
                               className="p-2 rounded-md hover:bg-red-50 transition-colors" style={{ color: "var(--danger)" }}>
                               <Trash2 size={16} />
                             </button>
@@ -406,6 +424,11 @@ export default function AdministradoresPage() {
           </div>
         </div>
       )}
+        {/* Custom Confirm Modal */}
+      <ConfirmModal
+        {...confirmModal}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 }
