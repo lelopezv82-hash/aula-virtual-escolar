@@ -48,7 +48,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }
-
 // PATCH edit course
 export async function PATCH(request: Request) {
   try {
@@ -58,15 +57,24 @@ export async function PATCH(request: Request) {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     if (payload.role !== "TEACHER") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    const { id, name, description } = await request.json();
-    if (!id || !name) return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 });
+    const { id, name, description, period1Active, period2Active, period3Active, period4Active } = await request.json();
+    if (!id) return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 });
 
-    const course = await prisma.course.updateMany({
+    const updateData: any = {};
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (period1Active !== undefined) updateData.period1Active = period1Active;
+    if (period2Active !== undefined) updateData.period2Active = period2Active;
+    if (period3Active !== undefined) updateData.period3Active = period3Active;
+    if (period4Active !== undefined) updateData.period4Active = period4Active;
+
+    await prisma.course.updateMany({
       where: { id, teacherId: payload.id as string },
-      data: { name, description }
+      data: updateData
     });
     return NextResponse.json({ success: true });
-  } catch {
+  } catch (error) {
+    console.error("Error updating course:", error);
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }
