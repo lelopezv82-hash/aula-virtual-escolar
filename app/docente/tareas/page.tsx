@@ -1,10 +1,9 @@
 import prisma from '@/lib/prisma';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
-import { ClipboardList, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import Link from "next/link";
-import TaskActions from "./TaskActions";
-
+import TareasDocenteClient from "./TareasDocenteClient";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
@@ -18,8 +17,23 @@ export default async function TareasDocentePage() {
 
   const courses = await prisma.course.findMany({
     where: { teacherId },
-    include: { tasks: true }
+    include: { 
+      tasks: {
+        orderBy: { dueDate: 'asc' }
+      } 
+    }
   });
+
+  // Convert Date objects to string for client rendering serialization safety
+  const serializedCourses = courses.map(c => ({
+    ...c,
+    tasks: c.tasks.map(t => ({
+      ...t,
+      dueDate: t.dueDate.toISOString(),
+      createdAt: t.createdAt.toISOString(),
+      updatedAt: t.updatedAt.toISOString(),
+    }))
+  }));
 
   return (
     <div className="animate-fade-in">
@@ -33,45 +47,7 @@ export default async function TareasDocentePage() {
         </Link>
       </div>
 
-      <div className="flex flex-col gap-6">
-        {courses.map(course => (
-          <div key={course.id} className="card w-full">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <ClipboardList className="text-blue-600" />
-              {course.name}
-            </h2>
-            
-            {course.tasks.length === 0 ? (
-              <p className="text-muted">No hay tareas asignadas en este curso.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
-                      <th className="py-2 px-4 font-medium">Título</th>
-                      <th className="py-2 px-4 font-medium">Fecha Límite</th>
-                      <th className="py-2 px-4 font-medium text-right">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {course.tasks.map(task => (
-                      <tr key={task.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                        <td className="py-3 px-4">{task.title}</td>
-                        <td className="py-3 px-4 text-muted">
-                          {new Date(task.dueDate).toLocaleDateString()}
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <TaskActions taskId={task.id} />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+      <TareasDocenteClient courses={serializedCourses} />
     </div>
   );
 }
