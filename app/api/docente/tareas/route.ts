@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import prisma from '@/lib/prisma';
 import { supabase } from '@/lib/supabase';
+import { getGoogleAccessToken, uploadToGoogleDrive } from '@/lib/gdrive';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
@@ -19,6 +20,8 @@ export async function POST(request: Request) {
     if (payload.role !== "TEACHER") {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
+
+    const teacherId = payload.id as string;
 
     const formData = await request.formData();
     const title = formData.get('title') as string;
@@ -37,7 +40,7 @@ export async function POST(request: Request) {
 
     // Verify course belongs to teacher
     const course = await prisma.course.findFirst({
-      where: { id: courseId, teacherId: payload.id as string }
+      where: { id: courseId, teacherId }
     });
 
     if (!course) {
@@ -49,26 +52,40 @@ export async function POST(request: Request) {
     if (file && file.size > 0) {
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
-      const safeFilename = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-      const uniqueFilename = `tareas/${courseId}_${Date.now()}_${safeFilename}`;
 
-      const { data, error: uploadError } = await supabase.storage
-        .from('aula-virtual')
-        .upload(uniqueFilename, buffer, {
-          contentType: file.type,
-          duplex: 'half'
-        });
-
-      if (uploadError) {
-        console.error("Supabase task upload error:", uploadError);
-        return NextResponse.json({ error: 'Error al subir el archivo adjunto a almacenamiento en la nube' }, { status: 500 });
+      // Try uploading to Google Drive first if teacher has it connected
+      const gAccessToken = await getGoogleAccessToken(teacherId);
+      if (gAccessToken) {
+        try {
+          attachmentUrl = await uploadToGoogleDrive(buffer, file.name, file.type, teacherId, "Tareas");
+        } catch (driveError) {
+          console.error("Google Drive task upload error, falling back to Supabase:", driveError);
+        }
       }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('aula-virtual')
-        .getPublicUrl(uniqueFilename);
+      // Fallback to Supabase if not uploaded to Drive
+      if (!attachmentUrl) {
+        const safeFilename = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        const uniqueFilename = `tareas/${courseId}_${Date.now()}_${safeFilename}`;
 
-      attachmentUrl = publicUrl;
+        const { data, error: uploadError } = await supabase.storage
+          .from('aula-virtual')
+          .upload(uniqueFilename, buffer, {
+            contentType: file.type,
+            duplex: 'half'
+          });
+
+        if (uploadError) {
+          console.error("Supabase task upload error:", uploadError);
+          return NextResponse.json({ error: 'Error al subir el archivo adjunto a almacenamiento en la nube' }, { status: 500 });
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('aula-virtual')
+          .getPublicUrl(uniqueFilename);
+
+        attachmentUrl = publicUrl;
+      }
     }
 
     const task = await prisma.task.create({
