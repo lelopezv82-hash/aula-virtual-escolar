@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { ConfirmProvider } from "@/components/ConfirmProvider";
 
 export const metadata: Metadata = {
   title: "Aula Virtual",
@@ -14,9 +15,11 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body>
-        <main className="app-container">
-          {children}
-        </main>
+        <ConfirmProvider>
+          <main className="app-container">
+            {children}
+          </main>
+        </ConfirmProvider>
       </body>
     </html>
   );
