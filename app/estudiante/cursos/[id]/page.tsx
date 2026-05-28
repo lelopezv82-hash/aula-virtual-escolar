@@ -165,33 +165,54 @@ export default async function EstudianteCursoDetallePage({ params }: { params: P
               <p>El docente no ha subido material de estudio aún.</p>
             </div>
           ) : (
-            <div className="flex flex-col gap-3">
-              {course.resources.map(resource => (
-                <div
-                  key={resource.id}
-                  className="p-3 rounded-lg flex items-center gap-3"
-                  style={{
-                    background: "var(--bg-primary)",
-                    border: "1px solid var(--border-color)"
-                  }}
-                >
-                  <span style={{ fontSize: "1.5rem" }}>{TYPE_ICONS[resource.type] || "📁"}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm truncate" title={resource.title}>{resource.title}</p>
-                    <p className="text-xs text-muted">{resource.type}</p>
+            <div className="flex flex-col gap-4">
+              {["Periodo 1", "Periodo 2", "Periodo 3", "Periodo 4", "Otros"].map(periodName => {
+                const periodResources = course.resources.filter(resource => {
+                  if (periodName === "Otros") {
+                    return !resource.period || !["Periodo 1", "Periodo 2", "Periodo 3", "Periodo 4"].includes(resource.period);
+                  }
+                  return resource.period === periodName;
+                });
+
+                if (periodResources.length === 0) return null;
+
+                return (
+                  <div key={periodName} className="p-3 rounded-lg border" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
+                    <h3 className="font-bold text-xs uppercase tracking-wider mb-2 flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                      {periodName}
+                    </h3>
+                    <div className="flex flex-col gap-2">
+                      {periodResources.map(resource => (
+                        <div
+                          key={resource.id}
+                          className="p-2.5 rounded-md flex items-center gap-3 border"
+                          style={{
+                            background: "var(--bg-primary)",
+                            borderColor: "var(--border-color)"
+                          }}
+                        >
+                          <span style={{ fontSize: "1.25rem" }}>{TYPE_ICONS[resource.type] || "📁"}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-xs truncate" title={resource.title}>{resource.title}</p>
+                            <p className="text-[10px] text-muted">{resource.type}</p>
+                          </div>
+                          <a
+                            href={resource.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="p-1.5 rounded hover:bg-gray-200 transition-colors"
+                            style={{ color: "var(--primary-color)" }}
+                            title={resource.type === "LINK" ? "Abrir enlace" : "Descargar recurso"}
+                          >
+                            {resource.type === "LINK" ? <LinkIcon size={14} /> : <Download size={14} />}
+                          </a>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <a
-                    href={resource.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-2 rounded hover:bg-gray-200 transition-colors"
-                    style={{ color: "var(--primary-color)" }}
-                    title={resource.type === "LINK" ? "Abrir enlace" : "Descargar recurso"}
-                  >
-                    {resource.type === "LINK" ? <LinkIcon size={16} /> : <Download size={16} />}
-                  </a>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
