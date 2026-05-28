@@ -5,15 +5,17 @@ import {
   BookOpen, Plus, Edit2, Trash2, X, Save, Loader2,
   FileText, Link as LinkIcon, UploadCloud, Trash
 } from "lucide-react";
+import { useConfirm } from "@/components/ConfirmProvider";
 
 interface Course { id: string; name: string; description: string | null; _count: { tasks: number; resources: number } }
-interface Resource { id: string; title: string; type: string; url: string }
+interface Resource { id: string; title: string; type: string; url: string; theme?: string | null; period?: string | null }
 
 const TYPE_ICONS: Record<string, string> = {
   PDF: "📄", WORD: "📝", PPT: "📊", IMAGE: "🖼️", VIDEO: "🎬", LINK: "🔗"
 };
 
 export default function CursosPage() {
+  const confirm = useConfirm();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCourseModal, setShowCourseModal] = useState(false);
@@ -26,9 +28,11 @@ export default function CursosPage() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [resources, setResources] = useState<Resource[]>([]);
   const [showResourceModal, setShowResourceModal] = useState(false);
-  const [resourceForm, setResourceForm] = useState({ title: "", type: "PDF", link: "" });
+  const [resourceForm, setResourceForm] = useState({ title: "", type: "PDF", link: "", theme: "", period: "" });
   const [resourceFile, setResourceFile] = useState<File | null>(null);
   const [uploadingResource, setUploadingResource] = useState(false);
+  const [selectedTheme, setSelectedTheme] = useState("");
+  const [selectedPeriod, setSelectedPeriod] = useState("");
 
   const fetchCourses = useCallback(async () => {
     setLoading(true);
@@ -48,6 +52,8 @@ export default function CursosPage() {
 
   const openSelectCourse = async (course: Course) => {
     setSelectedCourse(course);
+    setSelectedTheme("");
+    setSelectedPeriod("");
     await fetchResources(course.id);
   };
 
@@ -80,7 +86,13 @@ export default function CursosPage() {
   };
 
   const deleteCourse = async (id: string, name: string) => {
-    if (!confirm(`¿Eliminar el curso "${name}"? Se eliminarán todas sus tareas y recursos.`)) return;
+    const ok = await confirm({
+      title: "Eliminar Curso",
+      message: `¿Eliminar el curso "${name}"? Se eliminarán todas sus tareas y recursos.`,
+      confirmText: "Eliminar",
+      type: "danger"
+    });
+    if (!ok) return;
     await fetch("/api/docente/cursos", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     if (selectedCourse?.id === id) setSelectedCourse(null);
     fetchCourses();
@@ -94,6 +106,8 @@ export default function CursosPage() {
     fd.append("courseId", selectedCourse.id);
     fd.append("title", resourceForm.title);
     fd.append("type", resourceForm.type);
+    if (resourceForm.theme) fd.append("theme", resourceForm.theme);
+    if (resourceForm.period) fd.append("period", resourceForm.period);
     if (resourceFile) fd.append("file", resourceFile);
     if (resourceForm.link) fd.append("link", resourceForm.link);
 
@@ -102,7 +116,7 @@ export default function CursosPage() {
     setUploadingResource(false);
     if (res.ok) {
       setShowResourceModal(false);
-      setResourceForm({ title: "", type: "PDF", link: "" });
+      setResourceForm({ title: "", type: "PDF", link: "", theme: "", period: "" });
       setResourceFile(null);
       fetchResources(selectedCourse.id);
       fetchCourses();
@@ -110,10 +124,25 @@ export default function CursosPage() {
   };
 
   const deleteResource = async (id: string) => {
-    if (!confirm("¿Eliminar este recurso?")) return;
+    const ok = await confirm({
+      title: "Eliminar Recurso",
+      message: "¿Eliminar este recurso?",
+      confirmText: "Eliminar",
+      type: "danger"
+    });
+    if (!ok) return;
     await fetch("/api/docente/recursos", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     if (selectedCourse) fetchResources(selectedCourse.id);
   };
+  const uniqueThemes = Array.from(new Set(resources.map(r => r.theme).filter(Boolean))) as string[];
+  const uniquePeriods = Array.from(new Set(resources.map(r => r.period).filter(Boolean))) as string[];
+
+  const filteredResources = resources.filter(r => {
+    const matchTheme = !selectedTheme || r.theme === selectedTheme;
+    const matchPeriod = !selectedPeriod || r.period === selectedPeriod;
+    return matchTheme && matchPeriod;
+  });
+
 
   return (
     <div className="animate-fade-in">
@@ -178,7 +207,7 @@ export default function CursosPage() {
                 <p className="text-muted text-sm">Material educativo del curso</p>
               </div>
               <div className="flex gap-2">
-                <button className="btn btn-primary text-sm" onClick={() => { setError(""); setResourceForm({ title: "", type: "PDF", link: "" }); setResourceFile(null); setShowResourceModal(true); }}>
+                <button className="btn btn-primary text-sm" onClick={() => { setError(""); setResourceForm({ title: "", type: "PDF", link: "", theme: "", period: "" }); setResourceFile(null); setShowResourceModal(true); }}>
                   <Plus size={16} /> Subir Recurso
                 </button>
                 <button className="p-2 rounded hover:bg-gray-100" onClick={() => setSelectedCourse(null)}>
@@ -187,19 +216,59 @@ export default function CursosPage() {
               </div>
             </div>
 
+            {resources.length > 0 && (uniqueThemes.length > 0 || uniquePeriods.length > 0) && (
+              <div className="flex gap-3 mb-4 p-3 rounded-lg" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+                {uniqueThemes.length > 0 && (
+                  <div className="flex-1">
+                    <label className="block text-xs font-semibold mb-1 text-muted">Filtrar por Tema</label>
+                    <select className="input-field py-1 px-2 text-xs h-auto w-full" value={selectedTheme} onChange={e => setSelectedTheme(e.target.value)}>
+                      <option value="">Todos los temas</option>
+                      {uniqueThemes.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                )}
+                {uniquePeriods.length > 0 && (
+                  <div className="flex-1">
+                    <label className="block text-xs font-semibold mb-1 text-muted">Filtrar por Periodo</label>
+                    <select className="input-field py-1 px-2 text-xs h-auto w-full" value={selectedPeriod} onChange={e => setSelectedPeriod(e.target.value)}>
+                      <option value="">Todos los periodos</option>
+                      {uniquePeriods.map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                  </div>
+                )}
+              </div>
+            )}
+
             {resources.length === 0 ? (
               <div className="text-center py-10 text-muted">
                 <FileText size={40} className="mx-auto mb-3 opacity-40" />
                 <p>Aún no hay recursos en este curso.</p>
               </div>
+            ) : filteredResources.length === 0 ? (
+              <div className="text-center py-10 text-muted">
+                <FileText size={40} className="mx-auto mb-3 opacity-40" />
+                <p>Ningún recurso coincide con los filtros seleccionados.</p>
+              </div>
             ) : (
               <div className="flex flex-col gap-3">
-                {resources.map(r => (
+                {filteredResources.map(r => (
                   <div key={r.id} className="flex items-center gap-3 p-3 rounded-lg" style={{ background: "var(--bg-primary)", border: "1px solid var(--border-color)" }}>
                     <span style={{ fontSize: "1.5rem" }}>{TYPE_ICONS[r.type] || "📁"}</span>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{r.title}</p>
-                      <p className="text-xs text-muted">{r.type}</p>
+                      <div className="flex flex-wrap gap-2 items-center mt-1">
+                        <span className="text-xs text-muted">{r.type}</span>
+                        {r.theme && (
+                          <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(37, 99, 235, 0.1)', color: 'var(--primary-color)' }}>
+                            Tema: {r.theme}
+                          </span>
+                        )}
+                        {r.period && (
+                          <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(107, 114, 128, 0.1)', color: 'var(--text-secondary)' }}>
+                            {r.period}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <a href={r.url} target="_blank" rel="noreferrer" className="btn btn-secondary text-sm px-3 py-1.5">Ver</a>
                     <button onClick={() => deleteResource(r.id)} className="p-2 rounded hover:bg-red-50 transition-colors" style={{ color: "var(--danger)" }}>
@@ -258,6 +327,18 @@ export default function CursosPage() {
               <label>Título *</label>
               <input type="text" className="input-field" placeholder="Ej. Guía de estudio - Unidad 1"
                 value={resourceForm.title} onChange={e => setResourceForm({ ...resourceForm, title: e.target.value })} required />
+            </div>
+            <div className="flex gap-4 mb-3">
+              <div className="input-group flex-1">
+                <label>Tema</label>
+                <input type="text" className="input-field" placeholder="Ej. Álgebra, Cinemática"
+                  value={resourceForm.theme} onChange={e => setResourceForm({ ...resourceForm, theme: e.target.value })} />
+              </div>
+              <div className="input-group flex-1">
+                <label>Periodo</label>
+                <input type="text" className="input-field" placeholder="Ej. Periodo 1, Q2"
+                  value={resourceForm.period} onChange={e => setResourceForm({ ...resourceForm, period: e.target.value })} />
+              </div>
             </div>
             <div className="input-group mb-4">
               <label>Tipo de Recurso *</label>
