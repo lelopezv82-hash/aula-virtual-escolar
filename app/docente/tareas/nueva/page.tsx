@@ -11,6 +11,8 @@ export default function NuevaTareaPage() {
   const [dueDate, setDueDate] = useState("");
   const [courseId, setCourseId] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [theme, setTheme] = useState("");
+  const [period, setPeriod] = useState("");
   const [courses, setCourses] = useState<{id: string, name: string}[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -38,6 +40,8 @@ export default function NuevaTareaPage() {
     formData.append("description", description);
     formData.append("dueDate", dueDate);
     formData.append("courseId", courseId);
+    if (theme) formData.append("theme", theme);
+    if (period) formData.append("period", period);
     if (file) {
       formData.append("file", file);
     }
@@ -96,6 +100,31 @@ export default function NuevaTareaPage() {
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
+        </div>
+
+        <div className="flex gap-4">
+          <div className="input-group flex-1">
+            <label htmlFor="theme">Tema</label>
+            <input
+              id="theme"
+              type="text"
+              className="input-field"
+              placeholder="Ej. Cinemática, Álgebra"
+              value={theme}
+              onChange={(e) => setTheme(e.target.value)}
+            />
+          </div>
+          <div className="input-group flex-1">
+            <label htmlFor="period">Periodo</label>
+            <input
+              id="period"
+              type="text"
+              className="input-field"
+              placeholder="Ej. Periodo 1"
+              value={period}
+              onChange={(e) => setPeriod(e.target.value)}
+            />
+          </div>
         </div>
 
         <div className="input-group">
