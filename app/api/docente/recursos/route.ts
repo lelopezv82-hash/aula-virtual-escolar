@@ -43,8 +43,8 @@ export async function POST(request: Request) {
     const theme = formData.get('theme') as string | null;
     const period = formData.get('period') as string | null;
 
-    if (!courseId || !title || !type) {
-      return NextResponse.json({ error: 'Faltan datos' }, { status: 400 });
+    if (!courseId || !title || !type || !theme || !period) {
+      return NextResponse.json({ error: 'Faltan datos obligatorios (título, tipo, tema y periodo)' }, { status: 400 });
     }
 
     let url = link || '';
