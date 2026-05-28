@@ -250,32 +250,48 @@ export default function CursosPage() {
                 <p>Ningún recurso coincide con los filtros seleccionados.</p>
               </div>
             ) : (
-              <div className="flex flex-col gap-3">
-                {filteredResources.map(r => (
-                  <div key={r.id} className="flex items-center gap-3 p-3 rounded-lg" style={{ background: "var(--bg-primary)", border: "1px solid var(--border-color)" }}>
-                    <span style={{ fontSize: "1.5rem" }}>{TYPE_ICONS[r.type] || "📁"}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{r.title}</p>
-                      <div className="flex flex-wrap gap-2 items-center mt-1">
-                        <span className="text-xs text-muted">{r.type}</span>
-                        {r.theme && (
-                          <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(37, 99, 235, 0.1)', color: 'var(--primary-color)' }}>
-                            Tema: {r.theme}
-                          </span>
-                        )}
-                        {r.period && (
-                          <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(107, 114, 128, 0.1)', color: 'var(--text-secondary)' }}>
-                            {r.period}
-                          </span>
-                        )}
+              <div className="flex flex-col gap-5">
+                {["Periodo 1", "Periodo 2", "Periodo 3", "Periodo 4", "Otros"].map(periodName => {
+                  const periodResources = filteredResources.filter(r => {
+                    if (periodName === "Otros") {
+                      return !r.period || !["Periodo 1", "Periodo 2", "Periodo 3", "Periodo 4"].includes(r.period);
+                    }
+                    return r.period === periodName;
+                  });
+
+                  if (periodResources.length === 0) return null;
+
+                  return (
+                    <div key={periodName} className="p-3 rounded-lg border" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
+                      <h4 className="font-bold text-xs uppercase tracking-wider mb-3 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                        {periodName}
+                      </h4>
+                      <div className="flex flex-col gap-2">
+                        {periodResources.map(r => (
+                          <div key={r.id} className="flex items-center gap-3 p-2.5 rounded-md border" style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)" }}>
+                            <span style={{ fontSize: "1.25rem" }}>{TYPE_ICONS[r.type] || "📁"}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate text-sm">{r.title}</p>
+                              <div className="flex flex-wrap gap-2 items-center mt-0.5">
+                                <span className="text-xs text-muted">{r.type}</span>
+                                {r.theme && (
+                                  <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(37, 99, 235, 0.1)', color: 'var(--primary-color)' }}>
+                                    Tema: {r.theme}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <a href={r.url} target="_blank" rel="noreferrer" className="btn btn-secondary text-xs px-2.5 py-1">Ver</a>
+                            <button onClick={() => deleteResource(r.id)} className="p-1.5 rounded hover:bg-red-50 transition-colors" style={{ color: "var(--danger)" }}>
+                              <Trash size={14} />
+                            </button>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                    <a href={r.url} target="_blank" rel="noreferrer" className="btn btn-secondary text-sm px-3 py-1.5">Ver</a>
-                    <button onClick={() => deleteResource(r.id)} className="p-2 rounded hover:bg-red-50 transition-colors" style={{ color: "var(--danger)" }}>
-                      <Trash size={15} />
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
