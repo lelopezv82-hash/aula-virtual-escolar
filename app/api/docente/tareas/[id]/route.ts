@@ -71,6 +71,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const description = formData.get('description') as string | null;
     const dueDate = formData.get('dueDate') as string;
     const file = formData.get('file') as File | null;
+    const theme = formData.get('theme') as string | null;
+    const period = formData.get('period') as string | null;
 
     if (!title || !dueDate) {
       return NextResponse.json({ error: 'Faltan datos obligatorios' }, { status: 400 });
@@ -109,7 +111,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         title,
         description,
         dueDate: new Date(dueDate),
-        attachmentUrl
+        attachmentUrl,
+        theme,
+        period
       }
     });
 
