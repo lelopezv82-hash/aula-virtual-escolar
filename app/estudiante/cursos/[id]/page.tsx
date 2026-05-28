@@ -129,6 +129,11 @@ export default async function EstudianteCursoDetallePage({ params }: { params: P
                           <span className="text-xs text-muted">
                             Vence: {new Date(task.dueDate).toLocaleDateString()}
                           </span>
+                          {task.weight !== undefined && task.weight !== null && task.weight > 0 && (
+                            <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+                              Peso: {task.weight}%
+                            </span>
+                          )}
                         </div>
                         <h3 className="font-bold text-base">{task.title}</h3>
                         <p className="text-sm text-muted truncate mt-0.5">{task.description || "Sin descripción"}</p>
