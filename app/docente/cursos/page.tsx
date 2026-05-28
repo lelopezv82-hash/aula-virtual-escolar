@@ -207,9 +207,6 @@ export default function CursosPage() {
                 <p className="text-muted text-sm">Material educativo del curso</p>
               </div>
               <div className="flex gap-2">
-                <button className="btn btn-primary text-sm" onClick={() => { setError(""); setResourceForm({ title: "", type: "PDF", link: "", theme: "", period: "" }); setResourceFile(null); setShowResourceModal(true); }}>
-                  <Plus size={16} /> Subir Recurso
-                </button>
                 <button className="p-2 rounded hover:bg-gray-100" onClick={() => setSelectedCourse(null)}>
                   <X size={20} />
                 </button>
@@ -275,45 +272,54 @@ export default function CursosPage() {
               </div>
             )}
 
-            {resources.length === 0 ? (
-              <div className="text-center py-10 text-muted">
-                <FileText size={40} className="mx-auto mb-3 opacity-40" />
-                <p>Aún no hay recursos en este curso.</p>
-              </div>
-            ) : filteredResources.length === 0 ? (
-              <div className="text-center py-10 text-muted">
-                <FileText size={40} className="mx-auto mb-3 opacity-40" />
-                <p>Ningún recurso coincide con los filtros seleccionados.</p>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-5">
-                {["Periodo 1", "Periodo 2", "Periodo 3", "Periodo 4", "Otros"].map(periodName => {
-                  const periodResources = filteredResources.filter(r => {
-                    if (periodName === "Otros") {
-                      return !r.period || !["Periodo 1", "Periodo 2", "Periodo 3", "Periodo 4"].includes(r.period);
-                    }
-                    return r.period === periodName;
-                  });
+            <div className="flex flex-col gap-5">
+              {["Periodo 1", "Periodo 2", "Periodo 3", "Periodo 4", "Otros"].map(periodName => {
+                const periodResources = filteredResources.filter(r => {
+                  if (periodName === "Otros") {
+                    return !r.period || !["Periodo 1", "Periodo 2", "Periodo 3", "Periodo 4"].includes(r.period);
+                  }
+                  return r.period === periodName;
+                });
 
-                  if (periodResources.length === 0) return null;
+                if (periodName === "Otros" && periodResources.length === 0) return null;
 
-                  const isPeriodActive = periodName === "Otros" || (() => {
-                    if (periodName === "Periodo 1") return selectedCourse.period1Active !== false;
-                    if (periodName === "Periodo 2") return selectedCourse.period2Active !== false;
-                    if (periodName === "Periodo 3") return selectedCourse.period3Active !== false;
-                    if (periodName === "Periodo 4") return selectedCourse.period4Active !== false;
-                    return true;
-                  })();
+                const isPeriodActive = periodName === "Otros" || (() => {
+                  if (periodName === "Periodo 1") return selectedCourse.period1Active !== false;
+                  if (periodName === "Periodo 2") return selectedCourse.period2Active !== false;
+                  if (periodName === "Periodo 3") return selectedCourse.period3Active !== false;
+                  if (periodName === "Periodo 4") return selectedCourse.period4Active !== false;
+                  return true;
+                })();
 
-                  return (
-                    <div key={periodName} className="p-3 rounded-lg border" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', opacity: isPeriodActive ? 1 : 0.6 }}>
-                      <h4 className="font-bold text-xs uppercase tracking-wider mb-3 flex items-center justify-between" style={{ color: 'var(--text-secondary)' }}>
-                        <span className="flex items-center gap-2">
-                          <span className={`w-2 h-2 rounded-full ${isPeriodActive ? 'bg-blue-500' : 'bg-gray-400'}`}></span>
-                          {periodName}
-                        </span>
+                return (
+                  <div key={periodName} className="p-3 rounded-lg border" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', opacity: isPeriodActive ? 1 : 0.6 }}>
+                    <h4 className="font-bold text-xs uppercase tracking-wider mb-3 flex items-center justify-between" style={{ color: 'var(--text-secondary)' }}>
+                      <span className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${isPeriodActive ? 'bg-blue-500' : 'bg-gray-400'}`}></span>
+                        {periodName}
+                      </span>
+                      <div className="flex items-center gap-2">
                         {!isPeriodActive && <span className="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded uppercase font-semibold">Oculto para Alumnos</span>}
-                      </h4>
+                        {periodName !== "Otros" && (
+                          <button 
+                            type="button"
+                            className="btn btn-primary py-1 px-2.5 text-[11px] h-auto flex items-center gap-1"
+                            onClick={() => {
+                              setError("");
+                              setResourceForm({ title: "", type: "PDF", link: "", theme: "", period: periodName });
+                              setResourceFile(null);
+                              setShowResourceModal(true);
+                            }}
+                          >
+                            <Plus size={12} /> Subir Recurso
+                          </button>
+                        )}
+                      </div>
+                    </h4>
+                    
+                    {periodResources.length === 0 ? (
+                      <p className="text-muted text-xs italic p-2">No hay recursos subidos en este periodo.</p>
+                    ) : (
                       <div className="flex flex-col gap-2">
                         {periodResources.map(r => (
                           <div key={r.id} className="flex items-center gap-3 p-2.5 rounded-md border" style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)" }}>
@@ -336,11 +342,11 @@ export default function CursosPage() {
                           </div>
                         ))}
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
