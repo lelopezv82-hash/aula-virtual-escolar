@@ -10,10 +10,22 @@ import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { useConfirm } from "@/components/ConfirmProvider";
 
+interface Group {
+  id: string;
+  name: string;
+}
+
+interface Grade {
+  id: string;
+  name: string;
+  groups: Group[];
+}
+
 interface Student {
   id: string;
   name: string;
   username: string;
+  groupId: string | null;
   grade: string | null;
   groupName: string | null;
   passwordPlain?: string | null;
@@ -27,13 +39,14 @@ interface NewCredentials {
 export default function EstudiantesPage() {
   const confirm = useConfirm();
   const [students, setStudents] = useState<Student[]>([]);
+  const [grades, setGrades] = useState<Grade[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editStudent, setEditStudent] = useState<Student | null>(null);
   const [newCredentials, setNewCredentials] = useState<NewCredentials | null>(null);
   const [copied, setCopied] = useState(false);
-  const [formData, setFormData] = useState({ name: "", grade: "", groupName: "", password: "" });
+  const [formData, setFormData] = useState({ name: "", groupId: "", password: "" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
@@ -61,20 +74,31 @@ export default function EstudiantesPage() {
     }
   }, []);
 
+  const fetchGrades = useCallback(async () => {
+    try {
+      const res = await fetch("/api/grados");
+      const data = await res.json();
+      if (data.grades) setGrades(data.grades);
+    } catch (err) {
+      console.error("Error fetching grades:", err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchStudents();
-  }, [fetchStudents]);
+    fetchGrades();
+  }, [fetchStudents, fetchGrades]);
 
   const filtered = students.filter(s =>
     s.name.toLowerCase().includes(search.toLowerCase()) ||
     s.username.toLowerCase().includes(search.toLowerCase()) ||
-    (s.grade || "").includes(search) ||
+    (s.grade || "").toLowerCase().includes(search.toLowerCase()) ||
     (s.groupName || "").toLowerCase().includes(search.toLowerCase())
   );
 
   const openCreate = () => {
     setEditStudent(null);
-    setFormData({ name: "", grade: "", groupName: "", password: "" });
+    setFormData({ name: "", groupId: "", password: "" });
     setError("");
     setNewCredentials(null);
     setShowModalPassword(false);
@@ -85,8 +109,7 @@ export default function EstudiantesPage() {
     setEditStudent(student);
     setFormData({
       name: student.name,
-      grade: student.grade || "",
-      groupName: student.groupName || "",
+      groupId: student.groupId || "",
       password: student.passwordPlain || ""
     });
     setError("");
@@ -485,17 +508,23 @@ export default function EstudiantesPage() {
                     value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required />
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                  <div className="input-group">
-                    <label>Grado</label>
-                    <input type="text" className="input-field" placeholder="Ej. 10"
-                      value={formData.grade} onChange={e => setFormData({ ...formData, grade: e.target.value })} />
-                  </div>
-                  <div className="input-group">
-                    <label>Grupo</label>
-                    <input type="text" className="input-field" placeholder="Ej. A"
-                      value={formData.groupName} onChange={e => setFormData({ ...formData, groupName: e.target.value })} />
-                  </div>
+                <div className="input-group">
+                  <label>Grado y Curso / Grupo *</label>
+                  <select
+                    className="input-field"
+                    value={formData.groupId}
+                    onChange={e => setFormData({ ...formData, groupId: e.target.value })}
+                    required
+                  >
+                    <option value="" disabled>Selecciona un Grado y Curso</option>
+                    {grades.map(g => (
+                      <optgroup key={g.id} label={g.name}>
+                        {g.groups.map(gr => (
+                          <option key={gr.id} value={gr.id}>{gr.name}</option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="input-group">
