@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { 
   FileText, Plus, ExternalLink, Trash2, Loader2, 
-  UploadCloud, X, Save, ClipboardList, BookOpen, ToggleLeft, ToggleRight
+  UploadCloud, X, Save, ClipboardList, BookOpen, ToggleLeft, ToggleRight,
+  Eye, EyeOff, Pencil
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -16,6 +17,7 @@ interface Resource {
   url: string;
   theme?: string | null;
   period?: string | null;
+  active?: boolean;
 }
 
 interface Task {
@@ -25,6 +27,7 @@ interface Task {
   weight?: number | null;
   dueDate: string;
   period?: string | null;
+  active?: boolean;
 }
 
 interface Course {
@@ -55,6 +58,7 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
   // Resource Modal State
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [showResourceModal, setShowResourceModal] = useState(false);
+  const [editingResource, setEditingResource] = useState<Resource | null>(null);
   const [resourceForm, setResourceForm] = useState({ title: "", type: "PDF", link: "", theme: "" });
   const [resourceFile, setResourceFile] = useState<File | null>(null);
   const [uploadingResource, setUploadingResource] = useState(false);
@@ -62,7 +66,22 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
 
   const openUploadModal = (course: Course) => {
     setSelectedCourse(course);
+    setEditingResource(null);
     setResourceForm({ title: "", type: "PDF", link: "", theme: "" });
+    setResourceFile(null);
+    setError("");
+    setShowResourceModal(true);
+  };
+
+  const openEditModal = (resource: Resource, course: Course) => {
+    setSelectedCourse(course);
+    setEditingResource(resource);
+    setResourceForm({
+      title: resource.title,
+      type: resource.type,
+      link: resource.type === "LINK" ? resource.url : "",
+      theme: resource.theme || "",
+    });
     setResourceFile(null);
     setError("");
     setShowResourceModal(true);
@@ -76,7 +95,11 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
     setError("");
     
     const fd = new FormData();
-    fd.append("courseId", selectedCourse.id);
+    if (editingResource) {
+      fd.append("id", editingResource.id);
+    } else {
+      fd.append("courseId", selectedCourse.id);
+    }
     fd.append("title", resourceForm.title);
     fd.append("type", resourceForm.type);
     fd.append("period", periodName);
@@ -85,16 +108,19 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
     if (resourceForm.link) fd.append("link", resourceForm.link);
 
     try {
-      const res = await fetch("/api/docente/recursos", { method: "POST", body: fd });
+      const url = "/api/docente/recursos";
+      const method = editingResource ? "PATCH" : "POST";
+      const res = await fetch(url, { method, body: fd });
       const data = await res.json();
       if (res.ok) {
         setShowResourceModal(false);
+        setEditingResource(null);
         router.refresh();
       } else {
-        setError(data.error || "Error al subir recurso");
+        setError(data.error || "Error al guardar recurso");
       }
     } catch {
-      setError("Error de conexión al subir el recurso");
+      setError("Error de conexión al guardar el recurso");
     } finally {
       setUploadingResource(false);
     }
@@ -166,6 +192,38 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
     }
   };
 
+  const toggleResourceActive = async (resource: Resource) => {
+    const newVal = resource.active !== false ? false : true;
+    try {
+      const res = await fetch("/api/docente/recursos", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: resource.id, active: newVal })
+      });
+      if (res.ok) {
+        router.refresh();
+      }
+    } catch {
+      console.error("Failed to toggle resource status");
+    }
+  };
+
+  const toggleTaskActive = async (task: Task) => {
+    const newVal = task.active !== false ? false : true;
+    try {
+      const res = await fetch(`/api/docente/tareas/${task.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ active: newVal })
+      });
+      if (res.ok) {
+        router.refresh();
+      }
+    } catch {
+      console.error("Failed to toggle task status");
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6">
       {courses.length === 0 ? (
@@ -205,22 +263,25 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
                   <div className="flex items-center gap-4">
                     <button 
                       onClick={() => togglePeriodActive(course)}
-                      className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full border hover:bg-gray-50 transition-colors"
+                      className={`flex items-center gap-2.5 text-sm font-bold px-5 py-2.5 rounded-full border transition-all duration-200 ${
+                        isPeriodActive 
+                          ? "bg-green-50/70 hover:bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400" 
+                          : "bg-gray-50/70 hover:bg-gray-50 text-muted dark:bg-gray-800/30"
+                      }`}
                       style={{ 
-                        borderColor: "var(--border-color)", 
-                        color: isPeriodActive ? "var(--primary-color)" : "var(--text-muted)"
+                        borderColor: isPeriodActive ? "rgba(16, 185, 129, 0.3)" : "var(--border-color)", 
                       }}
                       title="Activar o desactivar este periodo para los estudiantes"
                     >
                       {isPeriodActive ? (
                         <>
-                          <ToggleRight className="text-green-500" size={18} />
-                          <span>Periodo Visible</span>
+                          <ToggleRight className="text-green-500" size={28} />
+                          <span>Visible para todos los alumnos</span>
                         </>
                       ) : (
                         <>
-                          <ToggleLeft className="text-gray-400" size={18} />
-                          <span className="text-gray-500">Periodo Oculto</span>
+                          <ToggleLeft className="text-gray-400" size={28} />
+                          <span>Oculto para todos los alumnos</span>
                         </>
                       )}
                     </button>
@@ -249,43 +310,75 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
                       {course.resources.length === 0 ? (
                         <p className="text-muted text-xs text-center italic py-6">No hay materiales de clase en este periodo.</p>
                       ) : (
-                        <div className="flex flex-col gap-2 w-full">
-                          {course.resources.map((resource) => (
-                            <div key={resource.id} className="flex items-center justify-between p-2.5 rounded-md border" style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)" }}>
-                              <div className="flex items-center gap-2 min-w-0">
-                                <span style={{ fontSize: "1.25rem" }}>{TYPE_ICONS[resource.type] || "📁"}</span>
-                                <div className="min-w-0">
-                                  <p className="font-medium truncate text-sm">{resource.title}</p>
-                                  <div className="flex gap-2 items-center text-[10px] text-muted mt-0.5">
-                                    <span>{resource.type}</span>
-                                    {resource.theme && (
-                                      <span className="px-1.5 py-0.5 rounded-full font-medium" style={{ background: "rgba(37, 99, 235, 0.08)", color: "var(--primary-color)" }}>
-                                        {resource.theme}
-                                      </span>
-                                    )}
+                        <div className="flex flex-col gap-2.5 w-full">
+                          {course.resources.map((resource) => {
+                            const isResActive = resource.active !== false;
+                            return (
+                              <div 
+                                key={resource.id} 
+                                className="flex items-center justify-between p-3.5 rounded-xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm" 
+                                style={{ 
+                                  background: "var(--bg-primary)", 
+                                  borderColor: "var(--border-color)",
+                                  opacity: isResActive ? 1 : 0.65
+                                }}
+                              >
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <span className="p-2 rounded-lg bg-gray-50 dark:bg-gray-800" style={{ fontSize: "1.25rem" }}>
+                                    {TYPE_ICONS[resource.type] || "📁"}
+                                  </span>
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <p className="font-semibold truncate text-sm">{resource.title}</p>
+                                      {!isResActive && (
+                                        <span className="px-1.5 py-0.5 text-[8px] font-bold uppercase rounded bg-gray-100 text-gray-500">Oculto</span>
+                                      )}
+                                    </div>
+                                    <div className="flex gap-2 items-center text-[10px] text-muted mt-1">
+                                      <span className="font-semibold">{resource.type}</span>
+                                      {resource.theme && (
+                                        <span className="px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(37, 99, 235, 0.08)", color: "var(--primary-color)" }}>
+                                          {resource.theme}
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
+                                <div className="flex items-center gap-1">
+                                  <a 
+                                    href={resource.url} 
+                                    target="_blank" 
+                                    rel="noreferrer" 
+                                    className="p-1.5 rounded-lg hover:bg-gray-100 text-muted hover:text-primary transition-colors"
+                                    title="Ver archivo"
+                                  >
+                                    <ExternalLink size={14} />
+                                  </a>
+                                  <button 
+                                    onClick={() => toggleResourceActive(resource)}
+                                    className={`p-1.5 rounded-lg transition-colors ${isResActive ? "text-green-600 hover:bg-green-50 dark:hover:bg-green-950/20" : "text-gray-400 hover:bg-gray-100"}`}
+                                    title={isResActive ? "Ocultar material a alumnos" : "Mostrar material a alumnos"}
+                                  >
+                                    {isResActive ? <Eye size={14} /> : <EyeOff size={14} />}
+                                  </button>
+                                  <button 
+                                    onClick={() => openEditModal(resource, course)}
+                                    className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 text-muted hover:text-blue-600 transition-colors"
+                                    title="Editar material"
+                                  >
+                                    <Pencil size={14} />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDeleteResource(resource.id)}
+                                    className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-muted hover:text-red-600 transition-colors"
+                                    title="Eliminar"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-1">
-                                <a 
-                                  href={resource.url} 
-                                  target="_blank" 
-                                  rel="noreferrer" 
-                                  className="p-1.5 rounded hover:bg-gray-100 text-muted hover:text-primary transition-colors"
-                                  title="Ver archivo"
-                                >
-                                  <ExternalLink size={14} />
-                                </a>
-                                <button 
-                                  onClick={() => handleDeleteResource(resource.id)}
-                                  className="p-1.5 rounded hover:bg-red-50 text-muted hover:text-red-600 transition-colors"
-                                  title="Eliminar"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -310,42 +403,72 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
                       {course.tasks.length === 0 ? (
                         <p className="text-muted text-xs text-center italic py-6">No hay tareas asignadas en este periodo.</p>
                       ) : (
-                        <div className="flex flex-col gap-2 w-full">
-                          {course.tasks.map((task) => (
-                            <div key={task.id} className="flex items-center justify-between p-2.5 rounded-md border" style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)" }}>
-                              <div className="min-w-0">
-                                <p className="font-medium truncate text-sm">{task.title}</p>
-                                <div className="flex flex-wrap gap-2 items-center text-[10px] text-muted mt-0.5">
-                                  <span>Vence: {new Date(task.dueDate).toLocaleDateString()}</span>
-                                  {task.weight !== undefined && task.weight !== null && (
-                                    <span className="px-1.5 py-0.5 rounded-full font-medium" style={{ background: "rgba(16, 185, 129, 0.08)", color: "#10b981" }}>
-                                      Peso: {task.weight}%
-                                    </span>
-                                  )}
-                                  {task.theme && (
-                                    <span className="px-1.5 py-0.5 rounded-full font-medium" style={{ background: "rgba(37, 99, 235, 0.08)", color: "var(--primary-color)" }}>
-                                      {task.theme}
-                                    </span>
-                                  )}
+                        <div className="flex flex-col gap-2.5 w-full">
+                          {course.tasks.map((task) => {
+                            const isTskActive = task.active !== false;
+                            return (
+                              <div 
+                                key={task.id} 
+                                className="flex items-center justify-between p-3.5 rounded-xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm" 
+                                style={{ 
+                                  background: "var(--bg-primary)", 
+                                  borderColor: "var(--border-color)",
+                                  opacity: isTskActive ? 1 : 0.65
+                                }}
+                              >
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-semibold truncate text-sm">{task.title}</p>
+                                    {!isTskActive && (
+                                      <span className="px-1.5 py-0.5 text-[8px] font-bold uppercase rounded bg-gray-100 text-gray-500">Oculto</span>
+                                    )}
+                                  </div>
+                                  <div className="flex flex-wrap gap-2 items-center text-[10px] text-muted mt-1">
+                                    <span className="font-medium">Vence: {new Date(task.dueDate).toLocaleDateString()}</span>
+                                    {task.weight !== undefined && task.weight !== null && (
+                                      <span className="px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(16, 185, 129, 0.08)", color: "#10b981" }}>
+                                        Peso: {task.weight}%
+                                      </span>
+                                    )}
+                                    {task.theme && (
+                                      <span className="px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(37, 99, 235, 0.08)", color: "var(--primary-color)" }}>
+                                        {task.theme}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <Link 
+                                    href={`/docente/tareas/${task.id}`}
+                                    className="py-1.5 px-3 rounded-lg hover:bg-gray-100 text-muted hover:text-primary transition-colors text-xs font-bold"
+                                  >
+                                    Ver/Calificar
+                                  </Link>
+                                  <button 
+                                    onClick={() => toggleTaskActive(task)}
+                                    className={`p-1.5 rounded-lg transition-colors ${isTskActive ? "text-green-600 hover:bg-green-50 dark:hover:bg-green-950/20" : "text-gray-400 hover:bg-gray-100"}`}
+                                    title={isTskActive ? "Ocultar tarea a alumnos" : "Mostrar tarea a alumnos"}
+                                  >
+                                    {isTskActive ? <Eye size={14} /> : <EyeOff size={14} />}
+                                  </button>
+                                  <Link 
+                                    href={`/docente/tareas/${task.id}/editar`}
+                                    className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 text-muted hover:text-blue-600 transition-colors"
+                                    title="Editar tarea"
+                                  >
+                                    <Pencil size={14} />
+                                  </Link>
+                                  <button 
+                                    onClick={() => handleDeleteTask(task.id)}
+                                    className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-muted hover:text-red-600 transition-colors"
+                                    title="Eliminar"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-1">
-                                <Link 
-                                  href={`/docente/tareas/${task.id}`}
-                                  className="p-1.5 rounded hover:bg-gray-100 text-muted hover:text-primary transition-colors text-xs font-semibold px-2"
-                                >
-                                  Ver/Calificar
-                                </Link>
-                                <button 
-                                  onClick={() => handleDeleteTask(task.id)}
-                                  className="p-1.5 rounded hover:bg-red-50 text-muted hover:text-red-600 transition-colors"
-                                  title="Eliminar"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -364,7 +487,7 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
           onClick={e => e.target === e.currentTarget && setShowResourceModal(false)}>
           <form onSubmit={handleSaveResource} className="card" style={{ width: "100%", maxWidth: "500px" }}>
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Subir Recurso ({selectedCourse.name})</h2>
+              <h2 className="text-xl font-bold">{editingResource ? "Editar Recurso" : "Subir Recurso"} ({selectedCourse.name})</h2>
               <button type="button" onClick={() => setShowResourceModal(false)} className="p-1 rounded hover:bg-gray-100"><X size={20} /></button>
             </div>
             {error && <div className="alert alert-danger mb-4">{error}</div>}
@@ -407,7 +530,7 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
               </div>
             ) : (
               <div className="mb-4">
-                <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>Archivo *</label>
+                <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>{editingResource ? "Nuevo Archivo (Opcional)" : "Archivo *"}</label>
                 <label htmlFor="resource-file" style={{ display: "block", border: "2px dashed var(--border-color)", borderRadius: "var(--radius-md)", padding: "1.5rem", textAlign: "center", cursor: "pointer", transition: "border-color 0.2s" }}
                   onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--primary-color)")}
                   onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border-color)")}>
@@ -423,7 +546,7 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
               <button type="button" className="btn btn-secondary" onClick={() => setShowResourceModal(false)}>Cancelar</button>
               <button type="submit" className="btn btn-primary" disabled={uploadingResource}>
                 {uploadingResource ? <Loader2 className="animate-spin" size={18} /> : <UploadCloud size={18} />}
-                Subir Recurso
+                {editingResource ? "Guardar Cambios" : "Subir Recurso"}
               </button>
             </div>
           </form>
