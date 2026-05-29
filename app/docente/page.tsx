@@ -21,6 +21,7 @@ export default async function DocenteDashboard() {
     where: { teacherId },
     include: {
       tasks: {
+        where: { active: true },
         include: {
           submissions: true
         }
@@ -62,7 +63,7 @@ export default async function DocenteDashboard() {
 
   // 3. Task Submission Rates (Recent 4 tasks)
   const allTasks = await prisma.task.findMany({
-    where: { course: { teacherId } },
+    where: { course: { teacherId }, active: true },
     include: {
       submissions: true,
       course: true
