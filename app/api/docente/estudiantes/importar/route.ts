@@ -45,6 +45,27 @@ export async function POST(request: Request) {
 
       if (!name) continue; // Skip empty rows
 
+      // Resolve Grade and Group dynamically
+      let resolvedGroupId = null;
+      if (grade) {
+        let gradeRecord = await prisma.grade.findUnique({ where: { name: grade } });
+        if (!gradeRecord) {
+          gradeRecord = await prisma.grade.create({ data: { name: grade } });
+        }
+        
+        if (groupName) {
+          let groupRecord = await prisma.gradeGroup.findUnique({
+            where: { gradeId_name: { gradeId: gradeRecord.id, name: groupName } }
+          });
+          if (!groupRecord) {
+            groupRecord = await prisma.gradeGroup.create({
+              data: { name: groupName, gradeId: gradeRecord.id }
+            });
+          }
+          resolvedGroupId = groupRecord.id;
+        }
+      }
+
       // Generate unique username
       const baseUsername = generateUsername(name);
       let username = baseUsername;
@@ -66,7 +87,8 @@ export async function POST(request: Request) {
           passwordPlain: plainPassword,
           role: "STUDENT",
           grade,
-          groupName
+          groupName,
+          groupId: resolvedGroupId
         }
       });
 
@@ -74,8 +96,8 @@ export async function POST(request: Request) {
         name: student.name,
         username: student.username,
         plainPassword,
-        grade: student.grade,
-        groupName: student.groupName
+        grade: grade,
+        groupName: groupName
       });
     }
 
