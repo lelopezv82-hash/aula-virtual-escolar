@@ -54,6 +54,7 @@ model Resource {
   course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   theme       String?
   period      String?
+  active      Boolean  @default(true)
   createdAt   DateTime @default(now())
 }
 
@@ -68,6 +69,7 @@ model Task {
   theme         String?
   period        String?
   weight        Int      @default(0)
+  active      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
