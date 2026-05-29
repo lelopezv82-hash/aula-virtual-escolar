@@ -63,7 +63,7 @@ export default function NuevaTareaPage() {
       const data = await res.json();
 
       if (res.ok) {
-        router.push("/docente/tareas");
+        router.push("/docente/periodos");
         router.refresh();
       } else {
         setError(data.error || "Error al crear la tarea");
@@ -75,10 +75,17 @@ export default function NuevaTareaPage() {
     }
   };
 
+  useEffect(() => {
+    const p = searchParams.get("periodo");
+    if (p) setPeriod(p);
+    const c = searchParams.get("courseId");
+    if (c) setCourseId(c);
+  }, [searchParams]);
+
   return (
     <div className="animate-fade-in max-w-2xl mx-auto">
       <div className="flex items-center gap-4 mb-6">
-        <Link href="/docente/tareas" className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+        <Link href="/docente/periodos" className="p-2 rounded-full hover:bg-gray-100 transition-colors">
           <ArrowLeft size={24} />
         </Link>
         <div>
@@ -206,7 +213,7 @@ export default function NuevaTareaPage() {
         </div>
 
         <div className="flex justify-end gap-3 mt-2 border-t pt-4" style={{ borderColor: 'var(--border-color)' }}>
-          <Link href="/docente/tareas" className="btn btn-secondary">
+          <Link href="/docente/periodos" className="btn btn-secondary">
             Cancelar
           </Link>
           <button type="submit" className="btn btn-primary" disabled={loading}>
