@@ -54,12 +54,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   links.push({
-    href: "/admin/almacenamiento",
-    label: "Almacenamiento",
-    icon: <Database size={20} />,
-  });
-
-  links.push({
     href: "/admin/configuracion",
     label: "Configuración",
     icon: <Settings size={20} />,
