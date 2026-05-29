@@ -18,11 +18,24 @@ export async function GET() {
     const courses = await prisma.course.findMany({
       where: { teacherId: payload.id as string },
       include: {
-        _count: { select: { tasks: true, resources: true } }
+        tasks: { where: { active: true } },
+        resources: { where: { active: true } }
       },
       orderBy: { createdAt: 'desc' }
     });
-    return NextResponse.json({ courses });
+
+    const coursesWithCount = courses.map(c => {
+      const { tasks, resources, ...courseData } = c;
+      return {
+        ...courseData,
+        _count: {
+          tasks: tasks.length,
+          resources: resources.length
+        }
+      };
+    });
+
+    return NextResponse.json({ courses: coursesWithCount });
   } catch {
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
