@@ -42,7 +42,8 @@ export default async function PeriodosDocentePage() {
       type: r.type,
       url: r.url,
       theme: r.theme,
-      period: r.period
+      period: r.period,
+      active: r.active
     })),
     tasks: course.tasks.map(t => ({
       id: t.id,
@@ -50,7 +51,8 @@ export default async function PeriodosDocentePage() {
       theme: t.theme,
       weight: t.weight,
       dueDate: t.dueDate.toISOString(),
-      period: t.period
+      period: t.period,
+      active: t.active
     }))
   }));
 
