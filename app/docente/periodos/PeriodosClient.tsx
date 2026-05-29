@@ -225,6 +225,32 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
     }
   };
 
+  const handleToggleAllCoursesPeriod = async (active: boolean) => {
+    const key = `period${periodNum}Active`;
+    const ok = await confirm({
+      title: active ? `Activar ${selectedPeriod}` : `Desactivar ${selectedPeriod}`,
+      message: active 
+        ? `¿Estás seguro de que deseas activar el ${selectedPeriod} para todas tus asignaturas?`
+        : `¿Estás seguro de que deseas desactivar el ${selectedPeriod} para todas tus asignaturas? Se ocultará el contenido a todos los estudiantes.`,
+      confirmText: active ? "Activar Todo" : "Desactivar Todo",
+      type: active ? "primary" : "danger"
+    });
+    if (!ok) return;
+
+    try {
+      const res = await fetch("/api/docente/cursos", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ all: true, [key]: active })
+      });
+      if (res.ok) {
+        router.refresh();
+      }
+    } catch {
+      console.error("Failed to toggle global period status");
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6 animate-fade-in">
       
@@ -256,11 +282,30 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
         })}
       </div>
 
+      {courses.length > 0 && (
+        <div className="flex justify-center gap-3 -mt-2">
+          <button
+            onClick={() => handleToggleAllCoursesPeriod(true)}
+            className="btn btn-secondary py-1.5 px-4 text-xs font-bold rounded-full hover:bg-green-50/50 hover:text-green-700 hover:border-green-300/30 transition-all shadow-sm"
+            style={{ color: "#10b981", borderColor: "rgba(16, 185, 129, 0.15)" }}
+          >
+            ✓ Activar {selectedPeriod} Global
+          </button>
+          <button
+            onClick={() => handleToggleAllCoursesPeriod(false)}
+            className="btn btn-secondary py-1.5 px-4 text-xs font-bold rounded-full hover:bg-red-50/50 hover:text-red-700 hover:border-red-300/30 transition-all shadow-sm"
+            style={{ color: "#ef4444", borderColor: "rgba(239, 68, 68, 0.15)" }}
+          >
+            ✕ Desactivar {selectedPeriod} Global
+          </button>
+        </div>
+      )}
+
       {courses.length === 0 ? (
         <div className="card text-center py-12 text-muted">
           <BookOpen size={48} className="mx-auto mb-4 opacity-40 animate-pulse" />
-          <p className="text-lg font-medium">No tienes cursos activos.</p>
-          <p className="text-sm mt-1">Crea un curso en la pestaña "Mis Cursos" para empezar.</p>
+          <p className="text-lg font-medium">No tienes asignaturas activas.</p>
+          <p className="text-sm mt-1">Crea una asignatura en la pestaña "Mis Asignaturas" para empezar.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-8">
