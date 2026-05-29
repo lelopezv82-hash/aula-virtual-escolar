@@ -939,8 +939,8 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                       <p className="text-xs text-muted mt-1">Registra tu primer estudiante haciendo clic en el botón superior.</p>
                     </div>
                   ) : (
-                    <div className="border rounded-xl overflow-hidden" style={{ borderColor: "var(--border-color)" }}>
-                      <table className="w-full text-left border-collapse">
+                    <div className="border rounded-xl overflow-x-auto" style={{ borderColor: "var(--border-color)" }}>
+                      <table className="w-full text-left border-collapse min-w-[550px]">
                         <thead>
                           <tr className="bg-gray-50 dark:bg-gray-900/60 text-xs font-bold text-muted border-b" style={{ borderColor: "var(--border-color)" }}>
                             <th className="p-3">Nombre</th>
