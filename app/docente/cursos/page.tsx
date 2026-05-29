@@ -107,11 +107,11 @@ export default function CursosPage() {
     <div className="flex flex-col gap-6 animate-fade-in">
       <div className="flex justify-between items-center border-b pb-4" style={{ borderColor: "var(--border-color)" }}>
         <div>
-          <h1 className="text-2xl font-bold">Mis Cursos</h1>
+          <h1 className="text-2xl font-bold">Mis Asignaturas</h1>
           <p className="text-muted text-sm mt-1">Crea y edita tus asignaturas académicas.</p>
         </div>
         <button className="btn btn-primary shadow-sm" onClick={openCreateCourse}>
-          <Plus size={18} /> Nuevo Curso
+          <Plus size={18} /> Nueva Asignatura
         </button>
       </div>
 
@@ -122,7 +122,7 @@ export default function CursosPage() {
       ) : courses.length === 0 ? (
         <div className="card text-center py-16 text-muted">
           <BookOpen size={48} className="mx-auto mb-4 opacity-40 animate-pulse" />
-          <p className="text-lg font-medium">No tienes cursos creados.</p>
+          <p className="text-lg font-medium">No tienes asignaturas creadas.</p>
           <p className="text-sm mt-1">Comienza creando tu primera asignatura para subir recursos y programar tareas.</p>
         </div>
       ) : (
@@ -144,14 +144,14 @@ export default function CursosPage() {
                   </div>
                   <div className="flex gap-1">
                     <button
-                      title="Editar curso"
+                      title="Editar asignatura"
                       onClick={() => openEditCourse(course)}
                       className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 text-muted hover:text-blue-600 transition-colors"
                     >
                       <Edit2 size={16} />
                     </button>
                     <button
-                      title="Eliminar curso"
+                      title="Eliminar asignatura"
                       onClick={() => deleteCourse(course.id, course.name)}
                       className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-muted hover:text-red-600 transition-colors"
                     >
@@ -186,7 +186,7 @@ export default function CursosPage() {
         >
           <form onSubmit={saveCourse} className="card animate-fade-in" style={{ width: "100%", maxWidth: "480px", borderRadius: "1.25rem" }}>
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">{editCourse ? "Editar Curso" : "Nuevo Curso"}</h2>
+              <h2 className="text-xl font-bold">{editCourse ? "Editar Asignatura" : "Nueva Asignatura"}</h2>
               <button type="button" onClick={() => setShowCourseModal(false)} className="p-1 rounded-lg hover:bg-gray-100">
                 <X size={20} />
               </button>
@@ -194,7 +194,7 @@ export default function CursosPage() {
             {error && <div className="alert alert-danger mb-4">{error}</div>}
             
             <div className="input-group mb-4">
-              <label className="font-semibold text-xs mb-1 block">Nombre del Curso *</label>
+              <label className="font-semibold text-xs mb-1 block">Nombre de la Asignatura *</label>
               <input
                 type="text"
                 className="input-field"
@@ -210,7 +210,7 @@ export default function CursosPage() {
               <textarea
                 className="input-field"
                 rows={3}
-                placeholder="Descripción del curso…"
+                placeholder="Descripción de la asignatura…"
                 value={courseForm.description}
                 onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })}
               />
@@ -222,7 +222,7 @@ export default function CursosPage() {
               </button>
               <button type="submit" className="btn btn-primary" disabled={saving}>
                 {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                {editCourse ? "Guardar Cambios" : "Crear Curso"}
+                {editCourse ? "Guardar Cambios" : "Crear Asignatura"}
               </button>
             </div>
           </form>
