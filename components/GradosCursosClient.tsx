@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Trash2, BookOpen, Layers, Users, Loader2, Save, X, KeyRound, Copy, Check, UserPlus, Eye, EyeOff } from "lucide-react";
+import { Plus, Trash2, BookOpen, Layers, Users, Loader2, Save, X, KeyRound, Copy, Check, UserPlus, Eye, EyeOff, Edit2 } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
 
 interface Group {
@@ -45,6 +45,17 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
   const [selectedGrade, setSelectedGrade] = useState<Grade | null>(null);
   const [groupName, setGroupName] = useState("");
 
+  // Edit states for Grades & Groups
+  const [showEditGradeModal, setShowEditGradeModal] = useState(false);
+  const [editingGrade, setEditingGrade] = useState<Grade | null>(null);
+  const [editGradeName, setEditGradeName] = useState("");
+  const [savingEditGrade, setSavingEditGrade] = useState(false);
+
+  const [showEditGroupModal, setShowEditGroupModal] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<Group | null>(null);
+  const [editGroupName, setEditGroupName] = useState("");
+  const [savingEditGroup, setSavingEditGroup] = useState(false);
+
   // Student management state
   const [selectedGroupForStudents, setSelectedGroupForStudents] = useState<Group | null>(null);
   const [parentGradeOfSelectedGroup, setParentGradeOfSelectedGroup] = useState<Grade | null>(null);
@@ -61,6 +72,13 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
   const [newStudentCredentials, setNewStudentCredentials] = useState<{ username: string; plainPassword: string } | null>(null);
   const [copiedStudent, setCopiedStudent] = useState(false);
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
+
+  // Edit student states
+  const [showEditStudentModal, setShowEditStudentModal] = useState(false);
+  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  const [editStudentName, setEditStudentName] = useState("");
+  const [editStudentPassword, setEditStudentPassword] = useState("");
+  const [savingEditStudent, setSavingEditStudent] = useState(false);
 
   const [error, setError] = useState("");
 
@@ -219,6 +237,95 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
     }
   };
 
+  const handleEditGrade = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editGradeName.trim() || !editingGrade) return;
+    setSavingEditGrade(true);
+    setError("");
+    try {
+      const res = await fetch("/api/grados", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "grade", id: editingGrade.id, name: editGradeName.trim() })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setShowEditGradeModal(false);
+        setEditingGrade(null);
+        setEditGradeName("");
+        fetchGrades();
+      } else {
+        setError(data.error || "Error al actualizar el grado");
+      }
+    } catch {
+      setError("Error de conexión");
+    } finally {
+      setSavingEditGrade(false);
+    }
+  };
+
+  const handleEditGroup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editGroupName.trim() || !editingGroup) return;
+    setSavingEditGroup(true);
+    setError("");
+    try {
+      const res = await fetch("/api/grados", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "group", id: editingGroup.id, name: editGroupName.trim() })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setShowEditGroupModal(false);
+        setEditingGroup(null);
+        setEditGroupName("");
+        fetchGrades();
+      } else {
+        setError(data.error || "Error al actualizar el curso");
+      }
+    } catch {
+      setError("Error de conexión");
+    } finally {
+      setSavingEditGroup(false);
+    }
+  };
+
+  const handleEditStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editStudentName.trim() || !editingStudent || !selectedGroupForStudents) return;
+    setSavingEditStudent(true);
+    setStudentError("");
+    try {
+      const endpoint = role === "admin" ? "/api/admin/estudiantes" : "/api/docente/estudiantes";
+      const res = await fetch(endpoint, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingStudent.id,
+          name: editStudentName.trim(),
+          groupId: selectedGroupForStudents.id,
+          password: editStudentPassword.trim() || undefined
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setShowEditStudentModal(false);
+        setEditingStudent(null);
+        setEditStudentName("");
+        setEditStudentPassword("");
+        fetchStudents();
+        fetchGrades();
+      } else {
+        setStudentError(data.error || "Error al actualizar el estudiante");
+      }
+    } catch {
+      setStudentError("Error de conexión");
+    } finally {
+      setSavingEditStudent(false);
+    }
+  };
+
   const openAddGroup = (grade: Grade) => {
     setSelectedGrade(grade);
     setGroupName("");
@@ -270,13 +377,26 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                     </div>
                     <h3 className="font-extrabold text-lg">{grade.name}</h3>
                   </div>
-                  <button
-                    title="Eliminar grado"
-                    onClick={() => handleDeleteGrade(grade)}
-                    className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-muted hover:text-red-600 transition-colors"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      title="Editar grado"
+                      onClick={() => {
+                        setEditingGrade(grade);
+                        setEditGradeName(grade.name);
+                        setShowEditGradeModal(true);
+                      }}
+                      className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 text-muted hover:text-blue-600 transition-colors"
+                    >
+                      <Edit2 size={15} />
+                    </button>
+                    <button
+                      title="Eliminar grado"
+                      onClick={() => handleDeleteGrade(grade)}
+                      className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-muted hover:text-red-600 transition-colors"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-2.5 mt-4 min-h-[120px]">
@@ -296,7 +416,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                           </span>
                           <span className="font-semibold text-sm truncate">{group.name}</span>
                         </div>
-                        <div className="flex items-center gap-2.5">
+                        <div className="flex items-center gap-2">
                           <button
                             title="Gestionar estudiantes"
                             onClick={() => {
@@ -311,6 +431,17 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                             className="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 px-2 py-1 rounded-lg flex items-center gap-1.5 transition-colors font-medium cursor-pointer"
                           >
                             <Users size={13} /> {group._count.students}
+                          </button>
+                          <button
+                            title="Editar curso"
+                            onClick={() => {
+                              setEditingGroup(group);
+                              setEditGroupName(group.name);
+                              setShowEditGroupModal(true);
+                            }}
+                            className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-950/30 text-muted hover:text-blue-600 transition-colors"
+                          >
+                            <Edit2 size={13} />
                           </button>
                           <button
                             title="Eliminar curso"
@@ -642,7 +773,6 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                                     <button
                                       onClick={() => {
                                         navigator.clipboard.writeText(`Usuario: ${student.username}\nContraseña: ${student.passwordPlain}`);
-                                        // Simple alert/feedback using an interactive flow could be here, but standard Clipboard copy works great.
                                       }}
                                       className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600"
                                       title="Copiar credenciales"
@@ -650,6 +780,19 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                                       <Copy size={14} />
                                     </button>
                                   )}
+                                  <button
+                                    onClick={() => {
+                                      setEditingStudent(student);
+                                      setEditStudentName(student.name);
+                                      setEditStudentPassword(student.passwordPlain || "");
+                                      setStudentError("");
+                                      setShowEditStudentModal(true);
+                                    }}
+                                    className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600"
+                                    title="Editar estudiante"
+                                  >
+                                    <Edit2 size={14} />
+                                  </button>
                                   <button
                                     onClick={async () => {
                                       const ok = await confirm({
@@ -712,6 +855,137 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Edit Grade Modal */}
+      {showEditGradeModal && editingGrade && (
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "1rem" }}
+          onClick={(e) => e.target === e.currentTarget && setShowEditGradeModal(false)}
+        >
+          <form onSubmit={handleEditGrade} className="card animate-fade-in" style={{ width: "100%", maxWidth: "440px", borderRadius: "1.25rem" }}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Editar Grado</h2>
+              <button type="button" onClick={() => setShowEditGradeModal(false)} className="p-1 rounded-lg hover:bg-gray-100">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="input-group mb-5">
+              <label className="font-semibold text-xs mb-1 block">Nombre del Grado *</label>
+              <input
+                type="text"
+                className="input-field"
+                placeholder="Ej. Décimo, Once, 10°"
+                value={editGradeName}
+                onChange={(e) => setEditGradeName(e.target.value)}
+                required
+              />
+            </div>
+            
+            <div className="flex justify-end gap-3 border-t pt-4" style={{ borderColor: "var(--border-color)" }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setShowEditGradeModal(false)}>
+                Cancelar
+              </button>
+              <button type="submit" className="btn btn-primary" disabled={savingEditGrade}>
+                {savingEditGrade ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                Guardar Cambios
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Edit Group Modal */}
+      {showEditGroupModal && editingGroup && (
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "1rem" }}
+          onClick={(e) => e.target === e.currentTarget && setShowEditGroupModal(false)}
+        >
+          <form onSubmit={handleEditGroup} className="card animate-fade-in" style={{ width: "100%", maxWidth: "440px", borderRadius: "1.25rem" }}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Editar Curso / Grupo</h2>
+              <button type="button" onClick={() => setShowEditGroupModal(false)} className="p-1 rounded-lg hover:bg-gray-100">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="input-group mb-5">
+              <label className="font-semibold text-xs mb-1 block">Nombre del Curso / Grupo *</label>
+              <input
+                type="text"
+                className="input-field"
+                placeholder="Ej. A, B, 10-A, 10-B"
+                value={editGroupName}
+                onChange={(e) => setEditGroupName(e.target.value)}
+                required
+              />
+            </div>
+            
+            <div className="flex justify-end gap-3 border-t pt-4" style={{ borderColor: "var(--border-color)" }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setShowEditGroupModal(false)}>
+                Cancelar
+              </button>
+              <button type="submit" className="btn btn-primary" disabled={savingEditGroup}>
+                {savingEditGroup ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                Guardar Cambios
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Edit Student Modal */}
+      {showEditStudentModal && editingStudent && selectedGroupForStudents && (
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 110, padding: "1rem" }}
+          onClick={(e) => e.target === e.currentTarget && setShowEditStudentModal(false)}
+        >
+          <form onSubmit={handleEditStudent} className="card animate-fade-in" style={{ width: "100%", maxWidth: "440px", borderRadius: "1.25rem", background: "var(--bg-primary)" }}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Edit2 className="text-blue-500" size={20} />
+                Editar Estudiante
+              </h2>
+              <button type="button" onClick={() => setShowEditStudentModal(false)} className="p-1 rounded-lg hover:bg-gray-100">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="input-group">
+                <label className="font-semibold text-xs mb-1 block">Nombre Completo *</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={editStudentName}
+                  onChange={(e) => setEditStudentName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="input-group">
+                <label className="font-semibold text-xs mb-1 block">Contraseña (Dejar vacío para no cambiar)</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="Nueva contraseña"
+                  value={editStudentPassword}
+                  onChange={(e) => setEditStudentPassword(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-3 border-t pt-4 mt-5" style={{ borderColor: "var(--border-color)" }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setShowEditStudentModal(false)}>
+                Cancelar
+              </button>
+              <button type="submit" className="btn btn-primary" disabled={savingEditStudent}>
+                {savingEditStudent ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                Guardar Cambios
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>
