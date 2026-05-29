@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Trash2, BookOpen, Layers, Users, Loader2, Save, X, KeyRound, Copy, Check, UserPlus, Eye, EyeOff, Edit2 } from "lucide-react";
+import { Plus, Trash2, BookOpen, Layers, Users, Loader2, Save, X, KeyRound, Copy, Check, UserPlus, Eye, EyeOff, Edit2, FileSpreadsheet, Upload } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
+import * as XLSX from "xlsx";
+import mammoth from "mammoth";
 
 interface Group {
   id: string;
@@ -79,6 +81,13 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
   const [editStudentName, setEditStudentName] = useState("");
   const [editStudentPassword, setEditStudentPassword] = useState("");
   const [savingEditStudent, setSavingEditStudent] = useState(false);
+
+  // Bulk import states
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [detectedNames, setDetectedNames] = useState<string[]>([]);
+  const [importingStudents, setImportingStudents] = useState(false);
+  const [importError, setImportError] = useState("");
 
   const [error, setError] = useState("");
 
@@ -323,6 +332,188 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
       setStudentError("Error de conexión");
     } finally {
       setSavingEditStudent(false);
+    }
+  };
+
+  const loadPdfJs = (): Promise<any> => {
+    return new Promise((resolve) => {
+      if (typeof window === "undefined") return resolve(null);
+      if ((window as any).pdfjsLib) {
+        resolve((window as any).pdfjsLib);
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js";
+      script.onload = () => {
+        const pdfjs = (window as any).pdfjsLib;
+        pdfjs.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js";
+        resolve(pdfjs);
+      };
+      document.head.appendChild(script);
+    });
+  };
+
+  const cleanExtractedText = (text: string): string[] => {
+    const lines = text.split(/\r?\n/);
+    const names: string[] = [];
+    const blacklist = [
+      "estudiante", "lista", "fecha", "grado", "curso", "materia", "nombre", "profesor", 
+      "alumno", "docente", "institucion", "colegio", "escuela", "modulo", "periodo",
+      "apellido", "correo", "email", "usuario", "contraseña", "password"
+    ];
+
+    for (let line of lines) {
+      line = line.trim();
+      if (!line) continue;
+      
+      // Basic formatting cleanup (remove numeric bullets or symbols like "1. ", "- ", etc.)
+      line = line.replace(/^[\d+.\-\s*_•)]+/, "").trim();
+      if (line.length < 5 || line.length > 60) continue;
+      if (!line.includes(" ")) continue; // Needs to be at least a first name and a last name
+      
+      const lower = line.toLowerCase();
+      const hasBlacklisted = blacklist.some(term => lower.includes(term));
+      if (hasBlacklisted) continue;
+
+      names.push(line);
+    }
+    return Array.from(new Set(names)); // deduplicate
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportFile(file);
+    setImportError("");
+    setDetectedNames([]);
+
+    const reader = new FileReader();
+
+    try {
+      if (file.name.endsWith(".xlsx") || file.name.endsWith(".xls")) {
+        reader.onload = (evt) => {
+          try {
+            const data = evt.target?.result;
+            const workbook = XLSX.read(data, { type: "array" });
+            let extractedText = "";
+            workbook.SheetNames.forEach((sheetName) => {
+              const worksheet = workbook.Sheets[sheetName];
+              const json: any[] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+              json.forEach((row) => {
+                row.forEach((cell: any) => {
+                  if (typeof cell === "string") {
+                    extractedText += cell + "\n";
+                  }
+                });
+              });
+            });
+            const names = cleanExtractedText(extractedText);
+            if (names.length === 0) {
+              setImportError("No se encontraron nombres de estudiantes en el archivo. Verifica el formato.");
+            } else {
+              setDetectedNames(names);
+            }
+          } catch {
+            setImportError("Error al procesar el archivo Excel.");
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      } else if (file.name.endsWith(".docx")) {
+        reader.onload = async (evt) => {
+          try {
+            const arrayBuffer = evt.target?.result as ArrayBuffer;
+            const result = await mammoth.extractRawText({ arrayBuffer });
+            const names = cleanExtractedText(result.value);
+            if (names.length === 0) {
+              setImportError("No se encontraron nombres de estudiantes en el archivo Word.");
+            } else {
+              setDetectedNames(names);
+            }
+          } catch {
+            setImportError("Error al procesar el archivo Word.");
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      } else if (file.name.endsWith(".pdf")) {
+        reader.onload = async (evt) => {
+          try {
+            const arrayBuffer = evt.target?.result as ArrayBuffer;
+            const pdfjs = await loadPdfJs();
+            const loadingTask = pdfjs.getDocument({ data: new Uint8Array(arrayBuffer) });
+            const pdf = await loadingTask.promise;
+            let text = "";
+            for (let i = 1; i <= pdf.numPages; i++) {
+              const page = await pdf.getPage(i);
+              const textContent = await page.getTextContent();
+              const pageText = textContent.items.map((item: any) => item.str).join(" ");
+              text += pageText + "\n";
+            }
+            const names = cleanExtractedText(text);
+            if (names.length === 0) {
+              setImportError("No se encontraron nombres en el PDF.");
+            } else {
+              setDetectedNames(names);
+            }
+          } catch (err: any) {
+            console.error("PDF parsing error:", err);
+            setImportError("Error al procesar el archivo PDF.");
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      } else {
+        setImportError("Formato de archivo no soportado. Usa Excel (.xlsx/.xls), Word (.docx) o PDF (.pdf).");
+      }
+    } catch {
+      setImportError("Error al abrir el archivo.");
+    }
+  };
+
+  const handleBulkImportStudents = async () => {
+    if (detectedNames.length === 0 || !selectedGroupForStudents) return;
+    setImportingStudents(true);
+    setImportError("");
+
+    try {
+      const endpoint = role === "admin" ? "/api/admin/estudiantes" : "/api/docente/estudiantes";
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const name of detectedNames) {
+        try {
+          const res = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: name,
+              groupId: selectedGroupForStudents.id
+            })
+          });
+          if (res.ok) {
+            successCount++;
+          } else {
+            failCount++;
+          }
+        } catch {
+          failCount++;
+        }
+      }
+
+      await confirm({
+        title: "Importación Finalizada",
+        message: `Se importaron ${successCount} estudiantes con éxito. ${failCount > 0 ? `Fallaron ${failCount} registros.` : ""}`,
+        confirmText: "Aceptar",
+        type: "info"
+      });
+
+      setShowImportModal(false);
+      setImportFile(null);
+      setDetectedNames([]);
+      fetchStudents();
+      fetchGrades();
+    } catch {
+      setImportError("Error al realizar la importación masiva.");
+    } finally {
+      setImportingStudents(false);
     }
   };
 
@@ -707,20 +898,34 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                 </form>
               ) : (
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center gap-2">
                     <span className="text-sm font-semibold text-muted">
                       {students.length} {students.length === 1 ? "estudiante inscrito" : "estudiantes inscritos"}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setNewStudentCredentials(null);
-                        setShowCreateStudentInGroupModal(true);
-                      }}
-                      className="btn btn-primary py-1.5 px-3 text-xs flex items-center gap-1"
-                    >
-                      <Plus size={14} /> Registrar Estudiante
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setImportFile(null);
+                          setDetectedNames([]);
+                          setImportError("");
+                          setShowImportModal(true);
+                        }}
+                        className="btn btn-secondary py-1.5 px-3 text-xs flex items-center gap-1"
+                      >
+                        <Upload size={14} /> Importar (Excel/Word/PDF)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewStudentCredentials(null);
+                          setShowCreateStudentInGroupModal(true);
+                        }}
+                        className="btn btn-primary py-1.5 px-3 text-xs flex items-center gap-1"
+                      >
+                        <Plus size={14} /> Registrar Estudiante
+                      </button>
+                    </div>
                   </div>
 
                   {loadingStudents ? (
@@ -986,6 +1191,92 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Bulk Import Modal */}
+      {showImportModal && selectedGroupForStudents && (
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 120, padding: "1rem" }}
+          onClick={(e) => e.target === e.currentTarget && !importingStudents && setShowImportModal(false)}
+        >
+          <div className="card animate-fade-in flex flex-col max-h-[85vh]" style={{ width: "100%", maxWidth: "550px", borderRadius: "1.25rem", background: "var(--bg-primary)" }}>
+            <div className="flex justify-between items-center border-b pb-4 mb-4" style={{ borderColor: "var(--border-color)" }}>
+              <div>
+                <h2 className="text-xl font-bold flex items-center gap-2">
+                  <Upload className="text-blue-500" size={22} />
+                  Importar Estudiantes
+                </h2>
+                <p className="text-xs text-muted mt-1">Sube un archivo Excel (.xlsx/.xls), Word (.docx) o PDF (.pdf) para registrar estudiantes.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowImportModal(false)}
+                className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                disabled={importingStudents}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {importError && <div className="alert alert-danger mb-4 py-2 px-3 text-sm">{importError}</div>}
+
+            <div className="flex-1 overflow-y-auto pr-1 space-y-4">
+              <div className="border-2 border-dashed rounded-xl p-6 text-center cursor-pointer hover:bg-gray-50/40 dark:hover:bg-gray-900/10 transition-colors relative" style={{ borderColor: "var(--border-color)" }}>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,.docx,.pdf"
+                  onChange={handleFileChange}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  disabled={importingStudents}
+                />
+                <FileSpreadsheet className="mx-auto text-muted mb-2 opacity-60" size={40} />
+                <p className="text-sm font-semibold">Seleccionar o arrastrar archivo</p>
+                <p className="text-xs text-muted mt-1">Formatos soportados: Excel (.xlsx/.xls), Word (.docx) o PDF (.pdf)</p>
+                {importFile && (
+                  <p className="mt-3 text-xs font-bold text-green-600 bg-green-50 dark:bg-green-950/20 py-1 px-3.5 rounded-full inline-block">
+                    Archivo seleccionado: {importFile.name}
+                  </p>
+                )}
+              </div>
+
+              {detectedNames.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted">
+                    Estudiantes Detectados ({detectedNames.length})
+                  </p>
+                  <div className="max-h-[200px] overflow-y-auto border rounded-xl p-2.5 bg-gray-50/50 dark:bg-gray-900/20 text-sm font-medium space-y-1.5 divide-y" style={{ borderColor: "var(--border-color)" }}>
+                    {detectedNames.map((name, idx) => (
+                      <div key={idx} className="pt-1.5 first:pt-0 flex items-center justify-between text-xs">
+                        <span className="font-semibold text-gray-800 dark:text-gray-200">{name}</span>
+                        <span className="text-muted font-mono">{idx + 1}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 border-t pt-4 mt-4" style={{ borderColor: "var(--border-color)" }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setShowImportModal(false)}
+                disabled={importingStudents}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleBulkImportStudents}
+                disabled={importingStudents || detectedNames.length === 0}
+              >
+                {importingStudents ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
+                Confirmar Importación ({detectedNames.length})
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
