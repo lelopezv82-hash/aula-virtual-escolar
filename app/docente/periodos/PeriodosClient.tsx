@@ -301,25 +301,25 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
                   <div className="flex items-center gap-4">
                     <button 
                       onClick={() => togglePeriodActive(course)}
-                      className={`flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-full border transition-all duration-200 ${
+                      className={`flex items-center gap-2.5 text-sm font-bold px-5 py-2.5 rounded-full border transition-all duration-200 ${
                         isPeriodActive 
-                          ? "bg-green-50/50 hover:bg-green-50 text-green-700 dark:bg-green-950/20 dark:text-green-400" 
-                          : "bg-gray-50/50 hover:bg-gray-50 text-muted dark:bg-gray-800/20"
+                          ? "bg-green-50/70 hover:bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400" 
+                          : "bg-gray-50/70 hover:bg-gray-50 text-muted dark:bg-gray-800/30"
                       }`}
                       style={{ 
-                        borderColor: isPeriodActive ? "rgba(16, 185, 129, 0.2)" : "var(--border-color)", 
+                        borderColor: isPeriodActive ? "rgba(16, 185, 129, 0.3)" : "var(--border-color)", 
                       }}
                       title="Activar o desactivar este periodo para los estudiantes"
                     >
                       {isPeriodActive ? (
                         <>
-                          <ToggleRight className="text-green-500" size={18} />
-                          <span>Visible para Alumnos</span>
+                          <ToggleRight className="text-green-500" size={28} />
+                          <span>Visible para todos los alumnos</span>
                         </>
                       ) : (
                         <>
-                          <ToggleLeft className="text-gray-400" size={18} />
-                          <span>Oculto para Alumnos</span>
+                          <ToggleLeft className="text-gray-400" size={28} />
+                          <span>Oculto para todos los alumnos</span>
                         </>
                       )}
                     </button>
