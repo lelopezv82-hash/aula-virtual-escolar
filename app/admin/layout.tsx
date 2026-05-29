@@ -39,11 +39,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       icon: <GraduationCap size={20} />,
     },
     {
-      href: "/admin/estudiantes",
-      label: "Estudiantes",
-      icon: <Users size={20} />,
-    },
-    {
       href: "/admin/grados",
       label: "Grados y Cursos",
       icon: <Layers size={20} />,
