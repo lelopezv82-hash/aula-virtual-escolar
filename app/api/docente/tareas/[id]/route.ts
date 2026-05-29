@@ -66,6 +66,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
+    const contentType = request.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      const { active } = await request.json();
+      const updatedTask = await prisma.task.update({
+        where: { id: resolvedParams.id },
+        data: { active: !!active }
+      });
+      return NextResponse.json({ success: true, task: updatedTask });
+    }
+
     const formData = await request.formData();
     const title = formData.get('title') as string;
     const description = formData.get('description') as string | null;
