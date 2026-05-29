@@ -7,20 +7,21 @@ import Link from "next/link";
 
 export default function NuevaTareaPage() {
   const searchParams = useSearchParams();
-  const initialPeriod = searchParams.get("periodo") || "";
-  const initialCourseId = searchParams.get("courseId") || "";
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
-  const [courseId, setCourseId] = useState(initialCourseId);
+  const [courseId, setCourseId] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [theme, setTheme] = useState("");
-  const [period, setPeriod] = useState(initialPeriod);
+  const [period, setPeriod] = useState("");
   const [weight, setWeight] = useState("0");
   const [courses, setCourses] = useState<{id: string, name: string}[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const [isPeriodLocked, setIsPeriodLocked] = useState(false);
+  const [isCourseLocked, setIsCourseLocked] = useState(false);
   
   const router = useRouter();
 
@@ -30,12 +31,24 @@ export default function NuevaTareaPage() {
       .then(res => res.json())
       .then(data => {
         if (data.courses) setCourses(data.courses);
-        if (!initialCourseId && data.courses?.length > 0) {
+        const c = searchParams.get("courseId");
+        if (c) {
+          setCourseId(c);
+          setIsCourseLocked(true);
+        } else if (data.courses?.length > 0) {
           setCourseId(data.courses[0].id);
         }
       })
       .catch(() => console.error("Failed to load courses"));
-  }, [initialCourseId]);
+  }, [searchParams]);
+
+  useEffect(() => {
+    const p = searchParams.get("periodo");
+    if (p) {
+      setPeriod(p);
+      setIsPeriodLocked(true);
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,13 +88,6 @@ export default function NuevaTareaPage() {
     }
   };
 
-  useEffect(() => {
-    const p = searchParams.get("periodo");
-    if (p) setPeriod(p);
-    const c = searchParams.get("courseId");
-    if (c) setCourseId(c);
-  }, [searchParams]);
-
   return (
     <div className="animate-fade-in max-w-2xl mx-auto">
       <div className="flex items-center gap-4 mb-6">
@@ -103,18 +109,31 @@ export default function NuevaTareaPage() {
 
         <div className="input-group">
           <label htmlFor="courseId">Curso</label>
-          <select 
-            id="courseId" 
-            className="input-field"
-            value={courseId}
-            onChange={(e) => setCourseId(e.target.value)}
-            required
-          >
-            <option value="" disabled>Selecciona un curso</option>
-            {courses.map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
+          {isCourseLocked ? (
+            <select
+              id="courseId"
+              className="input-field bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
+              value={courseId}
+              disabled
+            >
+              {courses.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          ) : (
+            <select 
+              id="courseId" 
+              className="input-field"
+              value={courseId}
+              onChange={(e) => setCourseId(e.target.value)}
+              required
+            >
+              <option value="" disabled>Selecciona un curso</option>
+              {courses.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          )}
         </div>
 
         <div className="flex gap-4">
@@ -132,19 +151,29 @@ export default function NuevaTareaPage() {
           </div>
           <div className="input-group flex-1">
             <label htmlFor="period">Periodo *</label>
-            <select
-              id="period"
-              className="input-field"
-              value={period}
-              onChange={(e) => setPeriod(e.target.value)}
-              required
-            >
-              <option value="" disabled>Selecciona periodo</option>
-              <option value="Periodo 1">Periodo 1</option>
-              <option value="Periodo 2">Periodo 2</option>
-              <option value="Periodo 3">Periodo 3</option>
-              <option value="Periodo 4">Periodo 4</option>
-            </select>
+            {isPeriodLocked ? (
+              <input
+                id="period"
+                type="text"
+                className="input-field bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
+                value={period}
+                disabled
+              />
+            ) : (
+              <select
+                id="period"
+                className="input-field"
+                value={period}
+                onChange={(e) => setPeriod(e.target.value)}
+                required
+              >
+                <option value="" disabled>Selecciona periodo</option>
+                <option value="Periodo 1">Periodo 1</option>
+                <option value="Periodo 2">Periodo 2</option>
+                <option value="Periodo 3">Periodo 3</option>
+                <option value="Periodo 4">Periodo 4</option>
+              </select>
+            )}
           </div>
           <div className="input-group flex-initial w-32">
             <label htmlFor="weight">Porcentaje (%)</label>
