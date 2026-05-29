@@ -15,8 +15,10 @@ model User {
   role          String   @default("STUDENT") // ADMIN, TEACHER, STUDENT
   name          String
   profilePic    String?
-  grade         String?  // e.g., "10"
-  groupName     String?  // e.g., "A", "B"
+  grade         String?  // e.g., "10" (deprecated)
+  groupName     String?  // e.g., "A", "B" (deprecated)
+  groupId       String?
+  group         GradeGroup? @relation("GroupStudents", fields: [groupId], references: [id], onDelete: SetNull)
   googleAccessToken   String?
   googleRefreshToken  String?
   googleTokenExpiry   DateTime?
@@ -91,4 +93,22 @@ model Submission {
   updatedAt   DateTime @updatedAt
 
   @@unique([taskId, studentId])
+}
+
+model Grade {
+  id        String       @id @default(uuid())
+  name      String       @unique
+  groups    GradeGroup[]
+  createdAt DateTime     @default(now())
+}
+
+model GradeGroup {
+  id        String   @id @default(uuid())
+  name      String   // e.g., "A", "B", "10-A"
+  gradeId   String
+  grade     Grade    @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  students  User[]   @relation("GroupStudents")
+  createdAt DateTime @default(now())
+
+  @@unique([gradeId, name])
 }
