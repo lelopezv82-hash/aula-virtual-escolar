@@ -57,8 +57,8 @@ export async function PATCH(request: Request) {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     if (payload.role !== "TEACHER") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    const { id, name, description, period1Active, period2Active, period3Active, period4Active } = await request.json();
-    if (!id) return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 });
+    const { id, all, name, description, period1Active, period2Active, period3Active, period4Active } = await request.json();
+    if (!id && !all) return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 });
 
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
@@ -68,10 +68,17 @@ export async function PATCH(request: Request) {
     if (period3Active !== undefined) updateData.period3Active = period3Active;
     if (period4Active !== undefined) updateData.period4Active = period4Active;
 
-    await prisma.course.updateMany({
-      where: { id, teacherId: payload.id as string },
-      data: updateData
-    });
+    if (all) {
+      await prisma.course.updateMany({
+        where: { teacherId: payload.id as string },
+        data: updateData
+      });
+    } else {
+      await prisma.course.updateMany({
+        where: { id, teacherId: payload.id as string },
+        data: updateData
+      });
+    }
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error updating course:", error);
