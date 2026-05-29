@@ -95,3 +95,40 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }
+
+export async function PATCH(request: Request) {
+  try {
+    const payload = await checkAuth();
+    if (!payload || !["ADMIN", "SUPER_ADMIN", "TEACHER"].includes(payload.role as string)) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
+    const { type, id, name } = await request.json();
+
+    if (!id || !name) {
+      return NextResponse.json({ error: 'ID y Nombre son obligatorios' }, { status: 400 });
+    }
+
+    if (type === 'grade') {
+      const grade = await prisma.grade.update({
+        where: { id },
+        data: { name: name.trim() }
+      });
+      return NextResponse.json({ success: true, grade });
+    } else if (type === 'group') {
+      const group = await prisma.gradeGroup.update({
+        where: { id },
+        data: { name: name.trim() }
+      });
+      return NextResponse.json({ success: true, group });
+    }
+
+    return NextResponse.json({ error: 'Tipo inválido' }, { status: 400 });
+  } catch (error: any) {
+    console.error("Error updating grade/group:", error);
+    if (error.code === 'P2002') {
+      return NextResponse.json({ error: 'El nombre ya existe' }, { status: 400 });
+    }
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+  }
+}
