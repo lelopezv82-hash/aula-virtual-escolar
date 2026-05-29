@@ -45,8 +45,44 @@ async function main() {
   });
   console.log('Created course:', course.name);
 
+  // Create Grades and Groups
+  console.log('Creating grades and groups...');
+  const grade10 = await prisma.grade.upsert({
+    where: { name: '10°' },
+    update: {},
+    create: { name: '10°' }
+  });
+
+  const grade11 = await prisma.grade.upsert({
+    where: { name: '11°' },
+    update: {},
+    create: { name: '11°' }
+  });
+
+  const group10A = await prisma.gradeGroup.upsert({
+    where: { gradeId_name: { gradeId: grade10.id, name: '10-A' } },
+    update: {},
+    create: { name: '10-A', gradeId: grade10.id }
+  });
+
+  await prisma.gradeGroup.upsert({
+    where: { gradeId_name: { gradeId: grade10.id, name: '10-B' } },
+    update: {},
+    create: { name: '10-B', gradeId: grade10.id }
+  });
+
+  await prisma.gradeGroup.upsert({
+    where: { gradeId_name: { gradeId: grade11.id, name: '11-A' } },
+    update: {},
+    create: { name: '11-A', gradeId: grade11.id }
+  });
+
   // Create Students
   const studentPassword = await bcrypt.hash('estudiante123', 10);
+  
+  await prisma.user.deleteMany({
+    where: { username: { in: ['juan.perez', 'maria.gomez'] } }
+  });
   
   const student1 = await prisma.user.create({
     data: {
@@ -55,7 +91,8 @@ async function main() {
       name: 'Juan Pérez',
       role: 'STUDENT',
       grade: '10',
-      groupName: 'A'
+      groupName: 'A',
+      groupId: group10A.id
     }
   });
   
@@ -66,10 +103,11 @@ async function main() {
       name: 'María Gómez',
       role: 'STUDENT',
       grade: '10',
-      groupName: 'A'
+      groupName: 'A',
+      groupId: group10A.id
     }
   });
-  console.log('Created students: juan.perez, maria.gomez');
+  console.log('Created students: juan.perez, maria.gomez associated with 10-A');
 
   // Create a Task
   await prisma.task.create({
