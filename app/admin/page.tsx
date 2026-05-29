@@ -17,7 +17,7 @@ export default async function AdminDashboard() {
   const teachersCount = await prisma.user.count({ where: { role: "TEACHER" } });
   const studentsCount = await prisma.user.count({ where: { role: "STUDENT" } });
   const coursesCount = await prisma.course.count();
-  const tasksCount = await prisma.task.count();
+  const tasksCount = await prisma.task.count({ where: { active: true } });
 
   // Recent Users created
   const recentUsers = await prisma.user.findMany({
