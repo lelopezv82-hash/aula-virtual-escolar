@@ -20,10 +20,20 @@ export default async function EstudianteDashboard() {
   const courses = await prisma.course.findMany({
     include: {
       teacher: true,
-      _count: {
-        select: { tasks: true, resources: true }
-      }
+      tasks: { where: { active: true } },
+      resources: { where: { active: true } }
     }
+  });
+
+  const coursesWithCount = courses.map(c => {
+    const { tasks, resources, ...courseData } = c;
+    return {
+      ...courseData,
+      _count: {
+        tasks: tasks.length,
+        resources: resources.length
+      }
+    };
   });
 
   return (
@@ -34,7 +44,7 @@ export default async function EstudianteDashboard() {
       </div>
 
       <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-        {courses.map(course => (
+        {coursesWithCount.map(course => (
           <div key={course.id} className="card">
             <div className="flex items-center gap-4 mb-4">
               <div className="p-3 rounded-lg" style={{ background: "rgba(37, 99, 235, 0.1)", color: "var(--primary-color)" }}>
