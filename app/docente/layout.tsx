@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { jwtVerify } from "jose";
-import { BookOpen, Users, LayoutDashboard, Settings, ClipboardList, Calendar } from "lucide-react";
+import { BookOpen, Users, LayoutDashboard, Settings, ClipboardList, Calendar, Layers } from "lucide-react";
 import DashboardShell from "@/components/DashboardShell";
 import "./docente.css";
 
@@ -33,13 +33,18 @@ export default async function DocenteLayout({ children }: { children: React.Reac
       icon: <LayoutDashboard size={20} />,
     },
     {
+      href: "/docente/grados",
+      label: "Grados y Cursos",
+      icon: <Layers size={20} />,
+    },
+    {
       href: "/docente/estudiantes",
       label: "Estudiantes",
       icon: <Users size={20} />,
     },
     {
       href: "/docente/cursos",
-      label: "Mis Cursos",
+      label: "Mis Asignaturas",
       icon: <BookOpen size={20} />,
     },
     {
