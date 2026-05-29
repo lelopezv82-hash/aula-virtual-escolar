@@ -77,9 +77,9 @@ export default async function EstudianteCursoDetallePage({
     ? (selectedPeriodParam as string)
     : (activePeriods[0] || "");
 
-  // Filter tasks & resources by selected period
-  const filteredTasks = course.tasks.filter(t => t.period === currentPeriod);
-  const filteredResources = course.resources.filter(r => r.period === currentPeriod);
+  // Filter tasks & resources by selected period and active status
+  const filteredTasks = course.tasks.filter(t => t.period === currentPeriod && t.active !== false);
+  const filteredResources = course.resources.filter(r => r.period === currentPeriod && r.active !== false);
 
   return (
     <div className="animate-fade-in">
