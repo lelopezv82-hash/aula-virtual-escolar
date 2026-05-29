@@ -33,10 +33,43 @@ export async function GET() {
 
     const students = await prisma.user.findMany({
       where: { role: "STUDENT" },
-      select: { id: true, name: true, username: true, grade: true, groupName: true, passwordPlain: true, createdAt: true },
+      select: { 
+        id: true, 
+        name: true, 
+        username: true, 
+        grade: true, 
+        groupName: true, 
+        groupId: true,
+        group: {
+          select: {
+            id: true,
+            name: true,
+            grade: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
+          }
+        },
+        passwordPlain: true, 
+        createdAt: true 
+      },
       orderBy: { name: "asc" }
     });
-    return NextResponse.json({ students });
+
+    const formattedStudents = students.map(s => ({
+      id: s.id,
+      name: s.name,
+      username: s.username,
+      groupId: s.groupId,
+      grade: s.group?.grade?.name || s.grade,
+      groupName: s.group?.name || s.groupName,
+      passwordPlain: s.passwordPlain,
+      createdAt: s.createdAt
+    }));
+
+    return NextResponse.json({ students: formattedStudents });
   } catch (error) {
     console.error("Error fetching students:", error);
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
@@ -52,7 +85,7 @@ export async function POST(request: Request) {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     if (payload.role !== "ADMIN" && payload.role !== "SUPER_ADMIN") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    const { name, grade, groupName, password: customPassword } = await request.json();
+    const { name, groupId, password: customPassword } = await request.json();
     if (!name) return NextResponse.json({ error: 'El nombre es obligatorio' }, { status: 400 });
 
     // Generate username (ensure uniqueness)
@@ -68,12 +101,12 @@ export async function POST(request: Request) {
     const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
     const student = await prisma.user.create({
-      data: { name, username, password: hashedPassword, passwordPlain: plainPassword, role: "STUDENT", grade, groupName }
+      data: { name, username, password: hashedPassword, passwordPlain: plainPassword, role: "STUDENT", groupId }
     });
 
     return NextResponse.json({
       success: true,
-      student: { id: student.id, name: student.name, username: student.username, grade: student.grade, groupName: student.groupName, passwordPlain: student.passwordPlain },
+      student: { id: student.id, name: student.name, username: student.username, groupId: student.groupId, passwordPlain: student.passwordPlain },
       plainPassword
     });
   } catch (error) {
@@ -91,10 +124,10 @@ export async function PATCH(request: Request) {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     if (payload.role !== "ADMIN" && payload.role !== "SUPER_ADMIN") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    const { id, name, grade, groupName, password: newPassword } = await request.json();
+    const { id, name, groupId, password: newPassword } = await request.json();
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
 
-    const updateData: Record<string, unknown> = { name, grade, groupName };
+    const updateData: Record<string, unknown> = { name, groupId };
     if (newPassword) {
       updateData.password = await bcrypt.hash(newPassword, 10);
       updateData.passwordPlain = newPassword;
@@ -103,7 +136,7 @@ export async function PATCH(request: Request) {
     const student = await prisma.user.update({
       where: { id },
       data: updateData,
-      select: { id: true, name: true, username: true, grade: true, groupName: true, passwordPlain: true }
+      select: { id: true, name: true, username: true, groupId: true, passwordPlain: true }
     });
 
     return NextResponse.json({ success: true, student });
