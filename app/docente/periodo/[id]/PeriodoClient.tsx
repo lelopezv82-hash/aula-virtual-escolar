@@ -159,10 +159,8 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
     if (!ok) return;
 
     try {
-      const res = await fetch("/api/docente/tareas", { 
-        method: "DELETE", 
-        headers: { "Content-Type": "application/json" }, 
-        body: JSON.stringify({ id }) 
+      const res = await fetch(`/api/docente/tareas/${id}`, { 
+        method: "DELETE"
       });
       if (res.ok) {
         router.refresh();
