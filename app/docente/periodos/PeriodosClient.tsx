@@ -4,7 +4,7 @@ import { useState } from "react";
 import { 
   FileText, Plus, ExternalLink, Trash2, Loader2, 
   UploadCloud, X, Save, ClipboardList, BookOpen, ToggleLeft, ToggleRight,
-  Pencil
+  Pencil, Eye, EyeOff
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -17,6 +17,7 @@ interface Resource {
   url: string;
   theme?: string | null;
   period?: string | null;
+  active?: boolean;
 }
 
 interface Task {
@@ -26,6 +27,7 @@ interface Task {
   weight?: number | null;
   dueDate: string;
   period?: string | null;
+  active?: boolean;
 }
 
 interface Course {
@@ -191,15 +193,48 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
     }
   };
 
+  const toggleResourceActive = async (resource: Resource) => {
+    const newVal = resource.active !== false ? false : true;
+    try {
+      const res = await fetch("/api/docente/recursos", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: resource.id, active: newVal })
+      });
+      if (res.ok) {
+        router.refresh();
+      }
+    } catch {
+      console.error("Failed to toggle resource status");
+    }
+  };
+
+  const toggleTaskActive = async (task: Task) => {
+    const newVal = task.active !== false ? false : true;
+    try {
+      const res = await fetch(`/api/docente/tareas/${task.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ active: newVal })
+      });
+      if (res.ok) {
+        router.refresh();
+      }
+    } catch {
+      console.error("Failed to toggle task status");
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6 animate-fade-in">
       
       {/* Periods Tabs Selector */}
       <div 
-        className="flex gap-2 p-1.5 rounded-xl self-start transition-all duration-300 shadow-sm" 
+        className="flex w-full max-w-xl gap-2 p-1.5 rounded-full transition-all duration-300 self-center" 
         style={{ 
           background: "var(--bg-secondary)", 
-          border: "1px solid var(--border-color)" 
+          border: "1px solid var(--border-color)",
+          boxShadow: "0 10px 25px -10px rgba(0, 0, 0, 0.05)"
         }}
       >
         {["Periodo 1", "Periodo 2", "Periodo 3", "Periodo 4"].map((pName) => {
@@ -208,12 +243,12 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
             <button
               key={pName}
               onClick={() => setSelectedPeriod(pName)}
-              className={`px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${
+              className={`flex-1 py-2 text-sm font-bold rounded-full transition-all duration-200 ${
                 isActive 
-                  ? "shadow-md bg-white text-blue-600 dark:bg-gray-700 font-bold" 
-                  : "text-muted hover:text-primary hover:bg-white/40 dark:hover:bg-gray-800/40"
+                  ? "text-white shadow-sm font-extrabold scale-[1.02]" 
+                  : "text-muted hover:text-primary hover:bg-gray-50 dark:hover:bg-gray-800"
               }`}
-              style={isActive ? { background: "var(--bg-primary)", color: "var(--primary-color)" } : {}}
+              style={isActive ? { background: "var(--primary-color)", color: "white" } : {}}
             >
               {pName}
             </button>
@@ -244,7 +279,8 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
                   borderLeft: isPeriodActive ? "6px solid var(--primary-color)" : "6px solid var(--text-muted)",
                   borderColor: "var(--border-color)",
                   background: "var(--bg-primary)",
-                  boxShadow: "0 10px 30px -10px rgba(0, 0, 0, 0.04)"
+                  boxShadow: "0 10px 30px -10px rgba(0, 0, 0, 0.04)",
+                  opacity: isPeriodActive ? 1 : 0.8
                 }}
               >
                 {/* Course Header */}
@@ -315,55 +351,74 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
                         </div>
                       ) : (
                         <div className="flex flex-col gap-2.5 w-full">
-                          {periodResources.map((resource) => (
-                            <div 
-                              key={resource.id} 
-                              className="flex items-center justify-between p-3.5 rounded-xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm" 
-                              style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)" }}
-                            >
-                              <div className="flex items-center gap-3 min-w-0">
-                                <span className="p-2 rounded-lg bg-gray-50 dark:bg-gray-800" style={{ fontSize: "1.25rem" }}>
-                                  {TYPE_ICONS[resource.type] || "📁"}
-                                </span>
-                                <div className="min-w-0">
-                                  <p className="font-semibold truncate text-sm">{resource.title}</p>
-                                  <div className="flex gap-2 items-center text-[10px] text-muted mt-1">
-                                    <span className="font-semibold">{resource.type}</span>
-                                    {resource.theme && (
-                                      <span className="px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(37, 99, 235, 0.08)", color: "var(--primary-color)" }}>
-                                        {resource.theme}
-                                      </span>
-                                    )}
+                          {periodResources.map((resource) => {
+                            const isResActive = resource.active !== false;
+                            return (
+                              <div 
+                                key={resource.id} 
+                                className="flex items-center justify-between p-3.5 rounded-xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm" 
+                                style={{ 
+                                  background: "var(--bg-primary)", 
+                                  borderColor: "var(--border-color)",
+                                  opacity: isResActive ? 1 : 0.65
+                                }}
+                              >
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <span className="p-2 rounded-lg bg-gray-50 dark:bg-gray-800" style={{ fontSize: "1.25rem" }}>
+                                    {TYPE_ICONS[resource.type] || "📁"}
+                                  </span>
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <p className="font-semibold truncate text-sm">{resource.title}</p>
+                                      {!isResActive && (
+                                        <span className="px-1.5 py-0.5 text-[8px] font-bold uppercase rounded bg-gray-100 text-gray-500">Oculto</span>
+                                      )}
+                                    </div>
+                                    <div className="flex gap-2 items-center text-[10px] text-muted mt-1">
+                                      <span className="font-semibold">{resource.type}</span>
+                                      {resource.theme && (
+                                        <span className="px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(37, 99, 235, 0.08)", color: "var(--primary-color)" }}>
+                                          {resource.theme}
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
+                                <div className="flex items-center gap-1">
+                                  <a 
+                                    href={resource.url} 
+                                    target="_blank" 
+                                    rel="noreferrer" 
+                                    className="p-1.5 rounded-lg hover:bg-gray-100 text-muted hover:text-primary transition-colors"
+                                    title="Ver archivo"
+                                  >
+                                    <ExternalLink size={14} />
+                                  </a>
+                                  <button 
+                                    onClick={() => toggleResourceActive(resource)}
+                                    className={`p-1.5 rounded-lg transition-colors ${isResActive ? "text-green-600 hover:bg-green-50 dark:hover:bg-green-950/20" : "text-gray-400 hover:bg-gray-100"}`}
+                                    title={isResActive ? "Ocultar material a alumnos" : "Mostrar material a alumnos"}
+                                  >
+                                    {isResActive ? <Eye size={14} /> : <EyeOff size={14} />}
+                                  </button>
+                                  <button 
+                                    onClick={() => openEditModal(resource, course)}
+                                    className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 text-muted hover:text-blue-600 transition-colors"
+                                    title="Editar material"
+                                  >
+                                    <Pencil size={14} />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDeleteResource(resource.id)}
+                                    className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-muted hover:text-red-600 transition-colors"
+                                    title="Eliminar"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-1">
-                                <a 
-                                  href={resource.url} 
-                                  target="_blank" 
-                                  rel="noreferrer" 
-                                  className="p-1.5 rounded-lg hover:bg-gray-100 text-muted hover:text-primary transition-colors"
-                                  title="Ver archivo"
-                                >
-                                  <ExternalLink size={14} />
-                                </a>
-                                <button 
-                                  onClick={() => openEditModal(resource, course)}
-                                  className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 text-muted hover:text-blue-600 transition-colors"
-                                  title="Editar material"
-                                >
-                                  <Pencil size={14} />
-                                </button>
-                                <button 
-                                  onClick={() => handleDeleteResource(resource.id)}
-                                  className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-muted hover:text-red-600 transition-colors"
-                                  title="Eliminar"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -391,52 +446,71 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
                         </div>
                       ) : (
                         <div className="flex flex-col gap-2.5 w-full">
-                          {periodTasks.map((task) => (
-                            <div 
-                              key={task.id} 
-                              className="flex items-center justify-between p-3.5 rounded-xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm" 
-                              style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)" }}
-                            >
-                              <div className="min-w-0">
-                                <p className="font-semibold truncate text-sm">{task.title}</p>
-                                <div className="flex flex-wrap gap-2 items-center text-[10px] text-muted mt-1">
-                                  <span className="font-medium">Vence: {new Date(task.dueDate).toLocaleDateString()}</span>
-                                  {task.weight !== undefined && task.weight !== null && (
-                                    <span className="px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(16, 185, 129, 0.08)", color: "#10b981" }}>
-                                      Peso: {task.weight}%
-                                    </span>
-                                  )}
-                                  {task.theme && (
-                                    <span className="px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(37, 99, 235, 0.08)", color: "var(--primary-color)" }}>
-                                      {task.theme}
-                                    </span>
-                                  )}
+                          {periodTasks.map((task) => {
+                            const isTskActive = task.active !== false;
+                            return (
+                              <div 
+                                key={task.id} 
+                                className="flex items-center justify-between p-3.5 rounded-xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm" 
+                                style={{ 
+                                  background: "var(--bg-primary)", 
+                                  borderColor: "var(--border-color)",
+                                  opacity: isTskActive ? 1 : 0.65
+                                }}
+                              >
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-semibold truncate text-sm">{task.title}</p>
+                                    {!isTskActive && (
+                                      <span className="px-1.5 py-0.5 text-[8px] font-bold uppercase rounded bg-gray-100 text-gray-500">Oculto</span>
+                                    )}
+                                  </div>
+                                  <div className="flex flex-wrap gap-2 items-center text-[10px] text-muted mt-1">
+                                    <span className="font-medium">Vence: {new Date(task.dueDate).toLocaleDateString()}</span>
+                                    {task.weight !== undefined && task.weight !== null && (
+                                      <span className="px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(16, 185, 129, 0.08)", color: "#10b981" }}>
+                                        Peso: {task.weight}%
+                                      </span>
+                                    )}
+                                    {task.theme && (
+                                      <span className="px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(37, 99, 235, 0.08)", color: "var(--primary-color)" }}>
+                                        {task.theme}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <Link 
+                                    href={`/docente/tareas/${task.id}`}
+                                    className="py-1.5 px-3 rounded-lg hover:bg-gray-100 text-muted hover:text-primary transition-colors text-xs font-bold"
+                                  >
+                                    Ver/Calificar
+                                  </Link>
+                                  <button 
+                                    onClick={() => toggleTaskActive(task)}
+                                    className={`p-1.5 rounded-lg transition-colors ${isTskActive ? "text-green-600 hover:bg-green-50 dark:hover:bg-green-950/20" : "text-gray-400 hover:bg-gray-100"}`}
+                                    title={isTskActive ? "Ocultar tarea a alumnos" : "Mostrar tarea a alumnos"}
+                                  >
+                                    {isTskActive ? <Eye size={14} /> : <EyeOff size={14} />}
+                                  </button>
+                                  <Link 
+                                    href={`/docente/tareas/${task.id}/editar`}
+                                    className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 text-muted hover:text-blue-600 transition-colors"
+                                    title="Editar tarea"
+                                  >
+                                    <Pencil size={14} />
+                                  </Link>
+                                  <button 
+                                    onClick={() => handleDeleteTask(task.id)}
+                                    className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-muted hover:text-red-600 transition-colors"
+                                    title="Eliminar"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-1.5">
-                                <Link 
-                                  href={`/docente/tareas/${task.id}`}
-                                  className="py-1.5 px-3 rounded-lg hover:bg-gray-100 text-muted hover:text-primary transition-colors text-xs font-bold"
-                                >
-                                  Ver/Calificar
-                                </Link>
-                                <Link 
-                                  href={`/docente/tareas/${task.id}/editar`}
-                                  className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 text-muted hover:text-blue-600 transition-colors"
-                                  title="Editar tarea"
-                                >
-                                  <Pencil size={14} />
-                                </Link>
-                                <button 
-                                  onClick={() => handleDeleteTask(task.id)}
-                                  className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-muted hover:text-red-600 transition-colors"
-                                  title="Eliminar"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>
