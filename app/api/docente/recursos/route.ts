@@ -115,6 +115,17 @@ export async function PATCH(request: Request) {
 
     const teacherId = payload.id as string;
 
+    const contentType = request.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      const { id, active } = await request.json();
+      if (!id) return NextResponse.json({ error: 'Falta el id del recurso' }, { status: 400 });
+      const updated = await prisma.resource.update({
+        where: { id },
+        data: { active }
+      });
+      return NextResponse.json({ success: true, resource: updated });
+    }
+
     const formData = await request.formData();
     const id = formData.get('id') as string;
     const title = formData.get('title') as string;
