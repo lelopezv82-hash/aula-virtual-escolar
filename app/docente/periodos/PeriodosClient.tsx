@@ -233,7 +233,7 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
         ? `¿Estás seguro de que deseas activar el ${selectedPeriod} para todas tus asignaturas?`
         : `¿Estás seguro de que deseas desactivar el ${selectedPeriod} para todas tus asignaturas? Se ocultará el contenido a todos los estudiantes.`,
       confirmText: active ? "Activar Todo" : "Desactivar Todo",
-      type: active ? "primary" : "danger"
+      type: active ? "info" : "danger"
     });
     if (!ok) return;
 
