@@ -29,11 +29,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const isSuperAdmin = user.role === "SUPER_ADMIN";
   const links = [
     {
-      href: "/admin",
-      label: "Panel General",
-      icon: <LayoutDashboard size={20} />,
-    },
-    {
       href: "/admin/docentes",
       label: "Docentes",
       icon: <GraduationCap size={20} />,
