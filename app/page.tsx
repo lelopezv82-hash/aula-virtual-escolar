@@ -19,6 +19,9 @@ export default function Home() {
             Iniciar Sesión
           </Link>
         </div>
+        <div className="mt-4 text-xs opacity-50">
+          v1.0.0
+        </div>
       </div>
       
       <div className="background-decorations">
