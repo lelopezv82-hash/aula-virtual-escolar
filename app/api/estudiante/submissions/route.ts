@@ -41,7 +41,8 @@ export async function POST(request: Request) {
       include: {
         course: {
           select: {
-            teacherId: true
+            teacherId: true,
+            name: true
           }
         }
       }
@@ -76,7 +77,8 @@ export async function POST(request: Request) {
       const gAccessToken = await getGoogleAccessToken(teacherId);
       if (gAccessToken) {
         try {
-          fileUrl = await uploadToGoogleDrive(buffer, file.name, file.type, teacherId, "Entregas");
+          const folderPath = `${task.course.name}/Tareas/${task.title}/Entregas`;
+          fileUrl = await uploadToGoogleDrive(buffer, file.name, file.type, teacherId, folderPath);
         } catch (driveError) {
           console.error("Google Drive upload error for student submission, falling back to Supabase:", driveError);
         }
