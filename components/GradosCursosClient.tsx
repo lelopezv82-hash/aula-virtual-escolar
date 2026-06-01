@@ -517,6 +517,51 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
     }
   };
 
+  const exportStudentList = () => {
+    if (students.length === 0 || !selectedGroupForStudents) return;
+    try {
+      const headers = ["Nombre", "Usuario", "Contraseña"];
+      const rows = students.map(s => [
+        s.name,
+        s.username,
+        s.passwordPlain || "********"
+      ]);
+
+      const csvContent = [
+        headers,
+        ...rows
+      ].map(e => e.map(val => `"${val.replace(/"/g, '""')}"`).join(",")).join("\n");
+
+      const filename = `lista_estudiantes_${selectedGroupForStudents.name.toLowerCase().replace(/[^a-z0-9]/g, "_")}.csv`;
+
+      // Download file locally
+      const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Back up to Google Drive (silently)
+      fetch("/api/docente/gdrive/reportes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          csvContent,
+          groupName: selectedGroupForStudents.name,
+          groupId: selectedGroupForStudents.id,
+          type: "students",
+          filename
+        })
+      }).catch(err => console.error("Error backing up student list to Google Drive:", err));
+
+    } catch (err) {
+      console.error("Error exporting student list:", err);
+    }
+  };
+
   const openAddGroup = (grade: Grade) => {
     setSelectedGrade(grade);
     setGroupName("");
@@ -888,7 +933,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                         >
                           Cancelar
                         </button>
-                        <button type="submit" className="btn btn-primary py-1.5 text-xs" disabled={savingStudent}>
+                <button type="submit" className="btn btn-primary py-1.5 text-xs" disabled={savingStudent}>
                           {savingStudent ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
                           Crear Estudiante
                         </button>
@@ -903,6 +948,15 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                       {students.length} {students.length === 1 ? "estudiante inscrito" : "estudiantes inscritos"}
                     </span>
                     <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={exportStudentList}
+                        className="btn btn-secondary py-1.5 px-3 text-xs flex items-center gap-1.5"
+                        disabled={students.length === 0}
+                        title="Exportar listado a Excel y respaldar en Google Drive"
+                      >
+                        <FileSpreadsheet size={14} /> Exportar Lista
+                      </button>
                       <button
                         type="button"
                         onClick={() => {
