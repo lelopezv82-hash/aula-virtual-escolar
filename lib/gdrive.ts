@@ -151,25 +151,31 @@ export async function uploadToGoogleDrive(
 
   // If a subfolder name (like "Recursos" or "Entregas") is requested, we can create or find it
   if (subfolderName) {
-    // Simple way: check if subfolder exists by searching or just create a new one/cache it.
-    // For simplicity, we search for a folder with that name inside mainFolder
-    const searchRes = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=name='${subfolderName}' and '${mainFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-      {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      }
-    );
+    const parts = subfolderName.split('/').filter(Boolean);
+    let currentParentId = mainFolderId;
 
-    if (searchRes.ok) {
-      const searchData = await searchRes.json();
-      if (searchData.files && searchData.files.length > 0) {
-        uploadFolderId = searchData.files[0].id;
+    for (const part of parts) {
+      // Find or create "part" inside "currentParentId"
+      const escapedPart = part.replace(/'/g, "\\'");
+      const searchRes = await fetch(
+        `https://www.googleapis.com/drive/v3/files?q=name='${escapedPart}' and '${currentParentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+
+      if (searchRes.ok) {
+        const searchData = await searchRes.json();
+        if (searchData.files && searchData.files.length > 0) {
+          currentParentId = searchData.files[0].id;
+        } else {
+          currentParentId = await createDriveFolder(accessToken, part, currentParentId);
+        }
       } else {
-        uploadFolderId = await createDriveFolder(accessToken, subfolderName, mainFolderId);
+        currentParentId = await createDriveFolder(accessToken, part, currentParentId);
       }
-    } else {
-      uploadFolderId = await createDriveFolder(accessToken, subfolderName, mainFolderId);
     }
+    uploadFolderId = currentParentId;
   }
 
   // Upload file via multipart/related
