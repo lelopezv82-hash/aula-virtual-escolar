@@ -33,10 +33,19 @@ export async function POST(request: Request) {
     const period = formData.get('period') as string | null;
     const weightRaw = formData.get('weight') as string | null;
     const weight = weightRaw ? parseInt(weightRaw, 10) : 0;
-    const groupId = formData.get('groupId') as string | null;
+    const groupIdsJson = formData.get('groupIds') as string | null;
 
-    if (!title || !dueDate || !courseId || !theme || !period || !groupId) {
-      return NextResponse.json({ error: 'Faltan datos obligatorios (título, fecha límite, curso, tema, periodo y grupo)' }, { status: 400 });
+    let groupIds: string[] = [];
+    if (groupIdsJson) {
+      try {
+        groupIds = JSON.parse(groupIdsJson);
+      } catch {
+        groupIds = [groupIdsJson];
+      }
+    }
+
+    if (!title || !dueDate || !courseId || !theme || !period || !groupIds || groupIds.length === 0) {
+      return NextResponse.json({ error: 'Faltan datos obligatorios (título, fecha límite, curso, tema, periodo y al menos un grupo)' }, { status: 400 });
     }
 
     // Verify course belongs to teacher
@@ -99,7 +108,9 @@ export async function POST(request: Request) {
         courseId,
         theme,
         period,
-        groupId: groupId || null,
+        groups: {
+          connect: groupIds.map(id => ({ id }))
+        },
         weight: isNaN(weight) ? 0 : weight
       }
     });
