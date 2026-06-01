@@ -80,10 +80,16 @@ export async function POST(request: Request) {
           const student = await prisma.user.findUnique({
             where: { id: studentId },
             include: {
-              group: true
+              group: {
+                include: {
+                  grade: true
+                }
+              }
             }
           });
-          const groupName = student?.group?.name || "Sin Grupo";
+          const gradeName = student?.group?.grade?.name || "";
+          const groupNameOnly = student?.group?.name || "Sin Grupo";
+          const groupName = gradeName ? `${gradeName} - ${groupNameOnly}` : groupNameOnly;
           const studentName = student?.name || "Estudiante";
           const driveFileName = `${studentName} - ${file.name}`;
           const folderPath = `${task.course.name}/Tareas/${task.title}/Entregas/${groupName}`;
