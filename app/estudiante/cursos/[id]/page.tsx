@@ -37,6 +37,12 @@ export default async function EstudianteCursoDetallePage({
 
   const studentId = user.id as string;
 
+  const studentRecord = await prisma.user.findUnique({
+    where: { id: studentId },
+    select: { groupId: true }
+  });
+  const studentGroupId = studentRecord?.groupId || null;
+
   const course = await prisma.course.findUnique({
     where: { id: resolvedParams.id },
     include: {
@@ -77,9 +83,17 @@ export default async function EstudianteCursoDetallePage({
     ? (selectedPeriodParam as string)
     : (activePeriods[0] || "");
 
-  // Filter tasks & resources by selected period and active status
-  const filteredTasks = course.tasks.filter(t => t.period === currentPeriod && t.active !== false);
-  const filteredResources = course.resources.filter(r => r.period === currentPeriod && r.active !== false);
+  // Filter tasks & resources by selected period, active status, and group assignment
+  const filteredTasks = course.tasks.filter(t => 
+    t.period === currentPeriod && 
+    t.active !== false && 
+    (t.groupId === null || t.groupId === studentGroupId)
+  );
+  const filteredResources = course.resources.filter(r => 
+    r.period === currentPeriod && 
+    r.active !== false && 
+    (r.groupId === null || r.groupId === studentGroupId)
+  );
 
   return (
     <div className="animate-fade-in">
