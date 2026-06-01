@@ -28,7 +28,7 @@ export default async function TareasEstudiantePage() {
         some: {
           id: studentGroupId
         }
-      } : { id: "none" }
+      } : { none: {} }
     },
     include: {
       course: true,
