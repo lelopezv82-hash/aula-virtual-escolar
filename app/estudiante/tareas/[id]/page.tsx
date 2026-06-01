@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, UploadCloud, Loader2, CheckCircle, FileText } from "lucide-react";
+import { ArrowLeft, UploadCloud, Loader2, CheckCircle, FileText, Clock } from "lucide-react";
 import Link from "next/link";
 
 export default function TareaDetallePage({ params }: { params: Promise<{ id: string }> }) {
