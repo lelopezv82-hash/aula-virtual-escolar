@@ -22,7 +22,13 @@ export default async function EstudianteDashboard() {
   const studentGroupId = studentRecord?.groupId || null;
 
   const courses = await prisma.course.findMany({
-    where: studentGroupId ? { groupId: studentGroupId } : { id: "none" },
+    where: studentGroupId ? {
+      groups: {
+        some: {
+          id: studentGroupId
+        }
+      }
+    } : { id: "none" },
     include: {
       teacher: true,
       tasks: { where: { active: true } },
