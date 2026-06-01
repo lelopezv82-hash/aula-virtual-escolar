@@ -47,12 +47,15 @@ export default async function EstudianteCursoDetallePage({
     where: { id: resolvedParams.id },
     include: {
       teacher: true,
+      groups: true,
       resources: {
-        orderBy: { createdAt: "desc" }
+        orderBy: { createdAt: "desc" },
+        include: { groups: true }
       },
       tasks: {
         orderBy: { dueDate: "asc" },
         include: {
+          groups: true,
           submissions: {
             where: { studentId }
           }
@@ -61,7 +64,7 @@ export default async function EstudianteCursoDetallePage({
     }
   });
 
-  if (!course || (course.groupId && course.groupId !== studentGroupId)) {
+  if (!course || !course.groups.some(g => g.id === studentGroupId)) {
     return (
       <div className="animate-fade-in">
         <div className="alert alert-danger">El curso no existe o no tienes acceso a él.</div>
@@ -87,12 +90,12 @@ export default async function EstudianteCursoDetallePage({
   const filteredTasks = course.tasks.filter(t => 
     t.period === currentPeriod && 
     t.active !== false && 
-    (t.groupId === null || t.groupId === studentGroupId)
+    (t.groups.length === 0 || t.groups.some(g => g.id === studentGroupId))
   );
   const filteredResources = course.resources.filter(r => 
     r.period === currentPeriod && 
     r.active !== false && 
-    (r.groupId === null || r.groupId === studentGroupId)
+    (r.groups.length === 0 || r.groups.some(g => g.id === studentGroupId))
   );
 
   return (
