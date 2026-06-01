@@ -56,6 +56,8 @@ model Resource {
   course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   theme       String?
   period      String?
+  groupId     String?
+  group       GradeGroup? @relation("GroupResources", fields: [groupId], references: [id], onDelete: SetNull)
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
 }
@@ -70,8 +72,11 @@ model Task {
   course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   theme         String?
   period        String?
+  groupId       String?
+  group         GradeGroup? @relation("GroupTasks", fields: [groupId], references: [id], onDelete: SetNull)
   weight        Int      @default(0)
   active      Boolean  @default(true)
+  allowLateSubmission Boolean @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -89,6 +94,7 @@ model Submission {
   feedback    String?
   fileUrl     String?
   submittedAt DateTime?
+  allowLateSubmission Boolean @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -108,6 +114,8 @@ model GradeGroup {
   gradeId   String
   grade     Grade    @relation(fields: [gradeId], references: [id], onDelete: Cascade)
   students  User[]   @relation("GroupStudents")
+  tasks     Task[]   @relation("GroupTasks")
+  resources Resource[] @relation("GroupResources")
   createdAt DateTime @default(now())
 
   @@unique([gradeId, name])
