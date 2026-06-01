@@ -77,8 +77,17 @@ export async function POST(request: Request) {
       const gAccessToken = await getGoogleAccessToken(teacherId);
       if (gAccessToken) {
         try {
-          const folderPath = `${task.course.name}/Tareas/${task.title}/Entregas`;
-          fileUrl = await uploadToGoogleDrive(buffer, file.name, file.type, teacherId, folderPath);
+          const student = await prisma.user.findUnique({
+            where: { id: studentId },
+            include: {
+              group: true
+            }
+          });
+          const groupName = student?.group?.name || "Sin Grupo";
+          const studentName = student?.name || "Estudiante";
+          const driveFileName = `${studentName} - ${file.name}`;
+          const folderPath = `${task.course.name}/Tareas/${task.title}/Entregas/${groupName}`;
+          fileUrl = await uploadToGoogleDrive(buffer, driveFileName, file.type, teacherId, folderPath);
         } catch (driveError) {
           console.error("Google Drive upload error for student submission, falling back to Supabase:", driveError);
         }
