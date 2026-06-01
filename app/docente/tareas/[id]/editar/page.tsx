@@ -16,6 +16,8 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
   const [theme, setTheme] = useState("");
   const [period, setPeriod] = useState("");
   const [weight, setWeight] = useState("0");
+  const [groupId, setGroupId] = useState("");
+  const [gradeGroups, setGradeGroups] = useState<{id: string, name: string}[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [existingAttachment, setExistingAttachment] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -23,6 +25,25 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
   const [error, setError] = useState("");
 
   useEffect(() => {
+    // Fetch grade groups
+    fetch("/api/grados")
+      .then(res => res.json())
+      .then(data => {
+        if (data.grades) {
+          const flatGroups: any[] = [];
+          data.grades.forEach((g: any) => {
+            g.groups.forEach((gp: any) => {
+              flatGroups.push({
+                id: gp.id,
+                name: `${g.name} - ${gp.name}`
+              });
+            });
+          });
+          setGradeGroups(flatGroups);
+        }
+      })
+      .catch(() => console.error("Failed to load grade groups"));
+
     fetch(`/api/docente/tareas/${taskId}`)
       .then(res => res.json())
       .then(data => {
@@ -32,6 +53,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
           setTheme(data.task.theme || "");
           setPeriod(data.task.period || "");
           setWeight(data.task.weight !== undefined ? String(data.task.weight) : "0");
+          setGroupId(data.task.groupId || "");
           // Convert date to local string for datetime-local input (yyyy-MM-ddThh:mm)
           const date = new Date(data.task.dueDate);
           const localDateTime = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
@@ -59,6 +81,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
     if (theme) formData.append("theme", theme);
     if (period) formData.append("period", period);
     formData.append("weight", weight);
+    formData.append("groupId", groupId);
     if (file) {
       formData.append("file", file);
     }
@@ -107,6 +130,21 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
             {error}
           </div>
         )}
+
+        <div className="input-group">
+          <label htmlFor="groupId">Asignar a Grupo Específico (Opcional)</label>
+          <select 
+            id="groupId" 
+            className="input-field"
+            value={groupId}
+            onChange={(e) => setGroupId(e.target.value)}
+          >
+            <option value="">Todos los grupos (Toda la asignatura)</option>
+            {gradeGroups.map(g => (
+              <option key={g.id} value={g.id}>{g.name}</option>
+            ))}
+          </select>
+        </div>
 
         <div className="flex gap-4">
           <div className="input-group flex-1">
