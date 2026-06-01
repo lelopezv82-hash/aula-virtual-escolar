@@ -59,15 +59,36 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [showResourceModal, setShowResourceModal] = useState(false);
   const [editingResource, setEditingResource] = useState<Resource | null>(null);
-  const [resourceForm, setResourceForm] = useState({ title: "", type: "PDF", link: "", theme: "" });
+  const [resourceForm, setResourceForm] = useState({ title: "", type: "PDF", link: "", theme: "", groupId: "" });
+  const [gradeGroups, setGradeGroups] = useState<{ id: string, name: string }[]>([]);
   const [resourceFile, setResourceFile] = useState<File | null>(null);
   const [uploadingResource, setUploadingResource] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    fetch("/api/grados")
+      .then(res => res.json())
+      .then(data => {
+        if (data.grades) {
+          const flat: any[] = [];
+          data.grades.forEach((g: any) => {
+            g.groups.forEach((gp: any) => {
+              flat.push({
+                id: gp.id,
+                name: `${g.name} - ${gp.name}`
+              });
+            });
+          });
+          setGradeGroups(flat);
+        }
+      })
+      .catch(() => console.error("Failed to load grade groups"));
+  }, []);
+
   const openUploadModal = (course: Course) => {
     setSelectedCourse(course);
     setEditingResource(null);
-    setResourceForm({ title: "", type: "PDF", link: "", theme: "" });
+    setResourceForm({ title: "", type: "PDF", link: "", theme: "", groupId: "" });
     setResourceFile(null);
     setError("");
     setShowResourceModal(true);
@@ -81,6 +102,7 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
       type: resource.type,
       link: resource.type === "LINK" ? resource.url : "",
       theme: resource.theme || "",
+      groupId: resource.groupId || ""
     });
     setResourceFile(null);
     setError("");
@@ -106,6 +128,7 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
     if (resourceForm.theme) fd.append("theme", resourceForm.theme);
     if (resourceFile) fd.append("file", resourceFile);
     if (resourceForm.link) fd.append("link", resourceForm.link);
+    if (resourceForm.groupId) fd.append("groupId", resourceForm.groupId);
 
     try {
       const url = "/api/docente/recursos";
