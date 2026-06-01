@@ -2,33 +2,15 @@
   min-height: 100vh;
   position: relative;
   overflow: hidden;
-  padding: 2rem;
-  background: radial-gradient(circle at 50% 50%, var(--bg-primary) 0%, rgba(var(--primary-rgb), 0.03) 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: 1rem;
 }
 
 .login-card {
   width: 100%;
-  max-width: 430px;
-  padding: 3rem 2.5rem;
+  max-width: 420px;
+  padding: 2.5rem;
   z-index: 10;
-  border-radius: var(--radius-xl);
-  box-shadow: 
-    0 20px 40px -15px rgba(0, 0, 0, 0.1),
-    0 0 0 1px var(--border-color),
-    inset 0 1px 2px rgba(255, 255, 255, 0.2);
-  animation: floatCard 6s ease-in-out infinite, fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@media (prefers-color-scheme: dark) {
-  .login-card {
-    box-shadow: 
-      0 20px 45px -10px rgba(0, 0, 0, 0.4),
-      0 0 0 1px var(--border-color),
-      inset 0 1px 1px rgba(255, 255, 255, 0.05);
-  }
+  background: var(--bg-glass);
 }
 
 .input-group {
@@ -38,10 +20,8 @@
 }
 
 .input-group label {
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-size: 0.875rem;
+  font-weight: 500;
   color: var(--text-secondary);
 }
 
@@ -55,33 +35,23 @@
   position: absolute;
   left: 1rem;
   color: var(--text-muted);
-  transition: color var(--transition-normal);
-  pointer-events: none;
 }
 
 .input-field.with-icon {
   padding-left: 2.75rem;
 }
 
-.input-field:focus + .input-icon {
-  color: var(--primary-color);
-}
-
 .alert {
   padding: 1rem;
   border-radius: var(--radius-md);
   font-size: 0.875rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  border: 1px solid transparent;
+  font-weight: 500;
 }
 
 .alert-danger {
-  background-color: rgba(var(--danger-rgb), 0.08);
+  background-color: rgba(239, 68, 68, 0.1);
   color: var(--danger);
-  border-color: rgba(var(--danger-rgb), 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
 .animate-spin {
