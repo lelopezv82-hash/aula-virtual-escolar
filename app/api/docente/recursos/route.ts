@@ -51,6 +51,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Faltan datos obligatorios (título, tipo, tema y periodo)' }, { status: 400 });
     }
 
+    const course = await prisma.course.findFirst({
+      where: { id: courseId, teacherId }
+    });
+
+    if (!course) {
+      return NextResponse.json({ error: 'Curso no encontrado o no te pertenece' }, { status: 403 });
+    }
+
     let url = link || '';
 
     if (file && file.size > 0) {
@@ -61,7 +69,8 @@ export async function POST(request: Request) {
       const gAccessToken = await getGoogleAccessToken(teacherId);
       if (gAccessToken) {
         try {
-          url = await uploadToGoogleDrive(buffer, file.name, file.type, teacherId, "Recursos");
+          const folderPath = `${course.name}/Recursos`;
+          url = await uploadToGoogleDrive(buffer, file.name, file.type, teacherId, folderPath);
         } catch (driveError) {
           console.error("Google Drive upload error, falling back to Supabase:", driveError);
         }
@@ -142,7 +151,8 @@ export async function PATCH(request: Request) {
     }
 
     const existingResource = await prisma.resource.findUnique({
-      where: { id }
+      where: { id },
+      include: { course: true }
     });
 
     if (!existingResource) {
@@ -162,7 +172,8 @@ export async function PATCH(request: Request) {
       const gAccessToken = await getGoogleAccessToken(teacherId);
       if (gAccessToken) {
         try {
-          url = await uploadToGoogleDrive(buffer, file.name, file.type, teacherId, "Recursos");
+          const folderPath = `${existingResource.course.name}/Recursos`;
+          url = await uploadToGoogleDrive(buffer, file.name, file.type, teacherId, folderPath);
         } catch (driveError) {
           console.error("Google Drive upload error, falling back to Supabase:", driveError);
         }
