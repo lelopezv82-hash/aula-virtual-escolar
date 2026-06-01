@@ -76,6 +76,7 @@ model Task {
   weight        Int      @default(0)
   active      Boolean  @default(true)
   allowLateSubmission Boolean @default(false)
+  lateSubmissionUntil DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -94,6 +95,7 @@ model Submission {
   fileUrl     String?
   submittedAt DateTime?
   allowLateSubmission Boolean @default(false)
+  lateSubmissionUntil DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

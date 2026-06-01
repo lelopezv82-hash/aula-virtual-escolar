@@ -18,7 +18,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { submissionId, taskId, studentId, grade, feedback, allowLateSubmission } = await request.json();
+    const { submissionId, taskId, studentId, grade, feedback, allowLateSubmission, lateSubmissionUntil } = await request.json();
 
     if (!submissionId && (!taskId || !studentId)) {
       return NextResponse.json({ error: 'Falta el id de la entrega o par taskId/studentId' }, { status: 400 });
@@ -28,6 +28,10 @@ export async function PATCH(request: Request) {
     
     if (allowLateSubmission !== undefined) {
       updateData.allowLateSubmission = !!allowLateSubmission;
+    }
+
+    if (lateSubmissionUntil !== undefined) {
+      updateData.lateSubmissionUntil = lateSubmissionUntil ? new Date(lateSubmissionUntil) : null;
     }
 
     if (grade !== undefined && grade !== null) {

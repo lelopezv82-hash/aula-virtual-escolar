@@ -55,18 +55,29 @@ export async function POST(request: Request) {
     const now = new Date();
     const isLate = now > new Date(task.dueDate);
 
-    if (isLate && !task.allowLateSubmission) {
-      const existingSubmission = await prisma.submission.findUnique({
-        where: {
-          taskId_studentId: {
-            taskId,
-            studentId
-          }
-        }
-      });
+    if (isLate) {
+      // Comprobar si la entrega tardía general está permitida (indefinidamente o plazo de fecha no vencido)
+      const isGeneralLateAllowed = task.allowLateSubmission || (task.lateSubmissionUntil && new Date(task.lateSubmissionUntil) > now);
 
-      if (!existingSubmission || !existingSubmission.allowLateSubmission) {
-        return NextResponse.json({ error: 'El plazo de entrega ha vencido para esta tarea.' }, { status: 400 });
+      if (!isGeneralLateAllowed) {
+        // Comprobar si hay un permiso individual extemporáneo para este estudiante
+        const existingSubmission = await prisma.submission.findUnique({
+          where: {
+            taskId_studentId: {
+              taskId,
+              studentId
+            }
+          }
+        });
+
+        const isStudentLateAllowed = existingSubmission && (
+          existingSubmission.allowLateSubmission || 
+          (existingSubmission.lateSubmissionUntil && new Date(existingSubmission.lateSubmissionUntil) > now)
+        );
+
+        if (!isStudentLateAllowed) {
+          return NextResponse.json({ error: 'El plazo de entrega ha vencido para esta tarea.' }, { status: 400 });
+        }
       }
     }
 

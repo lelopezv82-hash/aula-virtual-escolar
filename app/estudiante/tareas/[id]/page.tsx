@@ -84,9 +84,23 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const isGraded = submission?.status === "GRADED";
   const isSubmitted = submission?.status === "SUBMITTED" || isGraded;
   
-  const isOverdue = task ? new Date(task.dueDate) < new Date() : false;
-  const isLateSubmissionAllowed = task ? (task.allowLateSubmission || !!submission?.allowLateSubmission) : false;
+  const now = new Date();
+  const isOverdue = task ? new Date(task.dueDate) < now : false;
+  
+  // Prórroga activa general o individual
+  const generalLateUntil = task?.lateSubmissionUntil ? new Date(task.lateSubmissionUntil) : null;
+  const studentLateUntil = submission?.lateSubmissionUntil ? new Date(submission.lateSubmissionUntil) : null;
+  
+  const hasGeneralExtension = task?.allowLateSubmission || (generalLateUntil && generalLateUntil > now);
+  const hasStudentExtension = submission?.allowLateSubmission || (studentLateUntil && studentLateUntil > now);
+  
+  const isLateSubmissionAllowed = task ? (hasGeneralExtension || hasStudentExtension) : false;
   const isSubmissionBlocked = isOverdue && !isLateSubmissionAllowed;
+  
+  // Determinar la fecha límite de la prórroga si existe y no ha expirado
+  const activeExtensionDate = studentLateUntil && studentLateUntil > now 
+    ? studentLateUntil 
+    : (generalLateUntil && generalLateUntil > now ? generalLateUntil : null);
 
   return (
     <div className="animate-fade-in max-w-3xl mx-auto">
@@ -173,6 +187,18 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
             </div>
           ) : (
             <form onSubmit={handleUpload} className="flex flex-col gap-4">
+              {isOverdue && (
+                <div className="bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/50 rounded-lg p-4 text-indigo-900 dark:text-indigo-200 flex flex-col gap-1">
+                  <h3 className="font-bold flex items-center gap-2 text-sm">
+                    <Clock size={16} className="text-indigo-600 dark:text-indigo-400" />
+                    Plazo Extemporáneo Activo
+                  </h3>
+                  <p className="text-xs">
+                    El plazo de entrega original ha vencido, pero tienes permiso para entregar tu tarea tarde
+                    {activeExtensionDate ? ` hasta el ${activeExtensionDate.toLocaleString()}.` : " sin límite de tiempo definido."}
+                  </p>
+                </div>
+              )}
               {error && <div className="alert alert-danger">{error}</div>}
               
               <div className="border-2 border-dashed rounded-lg p-8 text-center hover:bg-gray-50 transition-colors" style={{ borderColor: 'var(--primary-color)' }}>

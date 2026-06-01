@@ -99,12 +99,14 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
       <LateSubmissionManager
         taskId={task.id}
         initialTaskAllowLate={task.allowLateSubmission}
+        initialTaskLateUntil={task.lateSubmissionUntil ? new Date(task.lateSubmissionUntil).toISOString() : null}
         students={allStudents.map(s => {
           const sub = task.submissions.find(sub => sub.studentId === s.id);
           return {
             id: s.id,
             name: s.name,
-            allowLateSubmission: sub ? sub.allowLateSubmission : false
+            allowLateSubmission: sub ? sub.allowLateSubmission : false,
+            lateSubmissionUntil: sub && sub.lateSubmissionUntil ? new Date(sub.lateSubmissionUntil).toISOString() : null
           };
         })}
       />
@@ -146,7 +148,9 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
                       <StudentLateSubmissionToggle
                         taskId={task.id}
                         studentId={student.id}
-                        initialValue={allowLate}
+                        studentName={student.name}
+                        initialAllowLate={allowLate}
+                        initialLateUntil={submission?.lateSubmissionUntil ? new Date(submission.lateSubmissionUntil).toISOString() : null}
                         disabled={task.allowLateSubmission}
                       />
                     </td>

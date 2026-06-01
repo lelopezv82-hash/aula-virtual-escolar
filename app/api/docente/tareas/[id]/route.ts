@@ -72,10 +72,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     const contentType = request.headers.get("content-type") || "";
     if (contentType.includes("application/json")) {
-      const { active, allowLateSubmission } = await request.json();
+      const { active, allowLateSubmission, lateSubmissionUntil } = await request.json();
       const dataToUpdate: any = {};
       if (active !== undefined) dataToUpdate.active = !!active;
       if (allowLateSubmission !== undefined) dataToUpdate.allowLateSubmission = !!allowLateSubmission;
+      if (lateSubmissionUntil !== undefined) {
+        dataToUpdate.lateSubmissionUntil = lateSubmissionUntil ? new Date(lateSubmissionUntil) : null;
+      }
       
       const updatedTask = await prisma.task.update({
         where: { id: resolvedParams.id },
