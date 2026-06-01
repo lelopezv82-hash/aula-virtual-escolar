@@ -23,7 +23,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     const task = await prisma.task.findUnique({
       where: { id: resolvedParams.id },
-      include: { course: true }
+      include: { 
+        course: true,
+        groups: true
+      }
     });
 
     if (!task) {
@@ -90,10 +93,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const period = formData.get('period') as string | null;
     const weightRaw = formData.get('weight') as string | null;
     const weight = weightRaw ? parseInt(weightRaw, 10) : 0;
-    const groupId = formData.get('groupId') as string | null;
+    const groupIdsJson = formData.get('groupIds') as string | null;
 
-    if (!title || !dueDate || !theme || !period || !groupId) {
-      return NextResponse.json({ error: 'Faltan datos obligatorios (título, fecha límite, tema, periodo y grupo)' }, { status: 400 });
+    let groupIds: string[] = [];
+    if (groupIdsJson) {
+      try {
+        groupIds = JSON.parse(groupIdsJson);
+      } catch {
+        groupIds = [groupIdsJson];
+      }
+    }
+
+    if (!title || !dueDate || !theme || !period || !groupIds || groupIds.length === 0) {
+      return NextResponse.json({ error: 'Faltan datos obligatorios (título, fecha límite, tema, periodo y al menos un grupo)' }, { status: 400 });
     }
 
     let attachmentUrl = task.attachmentUrl;
@@ -146,7 +158,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         attachmentUrl,
         theme,
         period,
-        groupId: groupId || null,
+        groups: {
+          set: groupIds.map(id => ({ id }))
+        },
         weight: isNaN(weight) ? 0 : weight
       }
     });
