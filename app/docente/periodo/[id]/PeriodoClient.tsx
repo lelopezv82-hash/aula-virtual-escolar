@@ -534,6 +534,22 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
             </div>
 
             <div className="input-group mb-4">
+              <label htmlFor="groupId">Asignar a Grupo Específico *</label>
+              <select 
+                id="groupId" 
+                className="input-field"
+                value={resourceForm.groupId}
+                onChange={e => setResourceForm({ ...resourceForm, groupId: e.target.value })}
+                required
+              >
+                <option value="" disabled>Selecciona un grupo</option>
+                {gradeGroups.map(g => (
+                  <option key={g.id} value={g.id}>{g.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="input-group mb-4">
               <label>Tipo de Recurso *</label>
               <select className="input-field" value={resourceForm.type} onChange={e => setResourceForm({ ...resourceForm, type: e.target.value })}>
                 <option value="PDF">📄 PDF</option>
