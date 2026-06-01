@@ -8,6 +8,14 @@ interface Course {
   id: string;
   name: string;
   description: string | null;
+  groupId: string | null;
+  group?: {
+    id: string;
+    name: string;
+    grade?: {
+      name: string;
+    };
+  } | null;
   period1Active: boolean;
   period2Active: boolean;
   period3Active: boolean;
@@ -18,12 +26,33 @@ interface Course {
 export default function CursosPage() {
   const confirm = useConfirm();
   const [courses, setCourses] = useState<Course[]>([]);
+  const [gradeGroups, setGradeGroups] = useState<{ id: string, name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCourseModal, setShowCourseModal] = useState(false);
   const [editCourse, setEditCourse] = useState<Course | null>(null);
-  const [courseForm, setCourseForm] = useState({ name: "", description: "" });
+  const [courseForm, setCourseForm] = useState({ name: "", description: "", groupId: "" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/grados")
+      .then(res => res.json())
+      .then(data => {
+        if (data.grades) {
+          const flatGroups: any[] = [];
+          data.grades.forEach((g: any) => {
+            g.groups.forEach((gp: any) => {
+              flatGroups.push({
+                id: gp.id,
+                name: `${g.name} - ${gp.name}`
+              });
+            });
+          });
+          setGradeGroups(flatGroups);
+        }
+      })
+      .catch(() => console.error("Failed to load grade groups"));
+  }, []);
 
   const fetchCourses = useCallback(async () => {
     setLoading(true);
@@ -44,14 +73,14 @@ export default function CursosPage() {
 
   const openCreateCourse = () => {
     setEditCourse(null);
-    setCourseForm({ name: "", description: "" });
+    setCourseForm({ name: "", description: "", groupId: "" });
     setError("");
     setShowCourseModal(true);
   };
 
   const openEditCourse = (c: Course) => {
     setEditCourse(c);
-    setCourseForm({ name: c.name, description: c.description || "" });
+    setCourseForm({ name: c.name, description: c.description || "", groupId: c.groupId || "" });
     setError("");
     setShowCourseModal(true);
   };
@@ -160,6 +189,11 @@ export default function CursosPage() {
                   </div>
                 </div>
                 <h3 className="font-bold text-lg mt-4">{course.name}</h3>
+                {course.group && (
+                  <span className="inline-block px-2.5 py-1 rounded-full text-xs font-semibold mt-1" style={{ background: "rgba(37, 99, 235, 0.08)", color: "var(--primary-color)" }}>
+                    Grupo: {course.group.grade?.name ? `${course.group.grade.name} - ${course.group.name}` : course.group.name}
+                  </span>
+                )}
                 <p className="text-muted text-sm mt-2 line-clamp-2">
                   {course.description || "Sin descripción"}
                 </p>
@@ -203,6 +237,21 @@ export default function CursosPage() {
                 onChange={(e) => setCourseForm({ ...courseForm, name: e.target.value })}
                 required
               />
+            </div>
+            
+            <div className="input-group mb-4">
+              <label className="font-semibold text-xs mb-1 block">Asignar a Grupo Específico *</label>
+              <select
+                className="input-field"
+                value={courseForm.groupId}
+                onChange={(e) => setCourseForm({ ...courseForm, groupId: e.target.value })}
+                required
+              >
+                <option value="" disabled>Selecciona un grupo</option>
+                {gradeGroups.map(g => (
+                  <option key={g.id} value={g.id}>{g.name}</option>
+                ))}
+              </select>
             </div>
             
             <div className="input-group mb-5">
