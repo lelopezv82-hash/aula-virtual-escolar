@@ -28,6 +28,11 @@ export default async function DocenteLayout({ children }: { children: React.Reac
 
   const links = [
     {
+      href: "/docente",
+      label: "Panel General",
+      icon: <LayoutDashboard size={20} />,
+    },
+    {
       href: "/docente/grados",
       label: "Grados y Cursos",
       icon: <Layers size={20} />,
