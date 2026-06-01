@@ -51,7 +51,7 @@ export default async function EstudianteDashboard() {
     <div className="animate-fade-in">
       <div className="dashboard-header">
         <h1>¡Bienvenido, {payload.name}!</h1>
-        <p>Tus cursos y materiales de estudio</p>
+        <p>Tus asignaturas y materiales de estudio</p>
       </div>
 
       <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
@@ -63,7 +63,10 @@ export default async function EstudianteDashboard() {
               </div>
               <div>
                 <h3 className="font-bold text-lg">{course.name}</h3>
-                <p className="text-sm text-muted">Prof. {course.teacher.name}</p>
+                <p className="text-sm text-muted">
+                  {course.teacher.name.toLowerCase().startsWith("prof.") ? "" : "Prof. "}
+                  {course.teacher.name}
+                </p>
               </div>
             </div>
             
@@ -77,7 +80,7 @@ export default async function EstudianteDashboard() {
                 <span className="flex items-center gap-1"><Clock size={16}/> {course._count.tasks} tareas</span>
               </div>
               <Link href={`/estudiante/cursos/${course.id}`} className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.875rem' }}>
-                Ver Curso
+                Ver Asignatura
               </Link>
             </div>
           </div>
