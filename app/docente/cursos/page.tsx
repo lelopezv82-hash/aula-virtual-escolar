@@ -8,14 +8,13 @@ interface Course {
   id: string;
   name: string;
   description: string | null;
-  groupId: string | null;
-  group?: {
+  groups?: {
     id: string;
     name: string;
     grade?: {
       name: string;
     };
-  } | null;
+  }[];
   period1Active: boolean;
   period2Active: boolean;
   period3Active: boolean;
@@ -30,7 +29,7 @@ export default function CursosPage() {
   const [loading, setLoading] = useState(true);
   const [showCourseModal, setShowCourseModal] = useState(false);
   const [editCourse, setEditCourse] = useState<Course | null>(null);
-  const [courseForm, setCourseForm] = useState({ name: "", description: "", groupId: "" });
+  const [courseForm, setCourseForm] = useState({ name: "", description: "", groupIds: [] as string[] });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -73,14 +72,18 @@ export default function CursosPage() {
 
   const openCreateCourse = () => {
     setEditCourse(null);
-    setCourseForm({ name: "", description: "", groupId: "" });
+    setCourseForm({ name: "", description: "", groupIds: [] });
     setError("");
     setShowCourseModal(true);
   };
 
   const openEditCourse = (c: Course) => {
     setEditCourse(c);
-    setCourseForm({ name: c.name, description: c.description || "", groupId: c.groupId || "" });
+    setCourseForm({ 
+      name: c.name, 
+      description: c.description || "", 
+      groupIds: c.groups ? c.groups.map(g => g.id) : [] 
+    });
     setError("");
     setShowCourseModal(true);
   };
@@ -189,10 +192,14 @@ export default function CursosPage() {
                   </div>
                 </div>
                 <h3 className="font-bold text-lg mt-4">{course.name}</h3>
-                {course.group && (
-                  <span className="inline-block px-2.5 py-1 rounded-full text-xs font-semibold mt-1" style={{ background: "rgba(37, 99, 235, 0.08)", color: "var(--primary-color)" }}>
-                    Grupo: {course.group.grade?.name ? `${course.group.grade.name} - ${course.group.name}` : course.group.name}
-                  </span>
+                {course.groups && course.groups.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                    {course.groups.map(group => (
+                      <span key={group.id} className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 dark:bg-blue-900/30 text-[10px] font-semibold border border-blue-200/50">
+                        {group.grade?.name ? `${group.grade.name} - ${group.name}` : group.name}
+                      </span>
+                    ))}
+                  </div>
                 )}
                 <p className="text-muted text-sm mt-2 line-clamp-2">
                   {course.description || "Sin descripción"}
@@ -240,18 +247,51 @@ export default function CursosPage() {
             </div>
             
             <div className="input-group mb-4">
-              <label className="font-semibold text-xs mb-1 block">Asignar a Grupo Específico *</label>
-              <select
-                className="input-field"
-                value={courseForm.groupId}
-                onChange={(e) => setCourseForm({ ...courseForm, groupId: e.target.value })}
-                required
-              >
-                <option value="" disabled>Selecciona un grupo</option>
-                {gradeGroups.map(g => (
-                  <option key={g.id} value={g.id}>{g.name}</option>
-                ))}
-              </select>
+              <label className="font-semibold text-xs mb-1.5 block">Asignar a Grupos (Múltiple) *</label>
+              
+              <div className="flex justify-between items-center mb-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const allIds = gradeGroups.map(g => g.id);
+                    const allSelected = allIds.every(id => courseForm.groupIds.includes(id));
+                    setCourseForm({
+                      ...courseForm,
+                      groupIds: allSelected ? [] : allIds
+                    });
+                  }}
+                  className="text-xs font-bold text-blue-600 hover:underline"
+                >
+                  {gradeGroups.map(g => g.id).every(id => courseForm.groupIds.includes(id)) 
+                    ? "Desmarcar todos" 
+                    : "Seleccionar todos"}
+                </button>
+                <span className="text-[10px] text-muted font-medium">
+                  {courseForm.groupIds.length} seleccionado(s)
+                </span>
+              </div>
+
+              <div className="border rounded-lg p-3 max-h-[160px] overflow-y-auto flex flex-col gap-2 bg-slate-50 dark:bg-slate-900" style={{ borderColor: 'var(--border-color)' }}>
+                {gradeGroups.map(g => {
+                  const isChecked = courseForm.groupIds.includes(g.id);
+                  return (
+                    <label key={g.id} className="flex items-center gap-2 text-sm font-medium cursor-pointer hover:text-primary">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          const newIds = isChecked
+                            ? courseForm.groupIds.filter(id => id !== g.id)
+                            : [...courseForm.groupIds, g.id];
+                          setCourseForm({ ...courseForm, groupIds: newIds });
+                        }}
+                        className="rounded text-blue-600 focus:ring-blue-500"
+                      />
+                      <span>{g.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
             
             <div className="input-group mb-5">
