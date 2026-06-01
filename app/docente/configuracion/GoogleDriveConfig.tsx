@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Cloud, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
+import { Cloud, CheckCircle, AlertTriangle, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 
 function GoogleDriveConfigContent() {
   const router = useRouter();
@@ -12,6 +12,7 @@ function GoogleDriveConfigContent() {
   const [isConnected, setIsConnected] = useState(false);
   const [hasFolder, setHasFolder] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "danger"; text: string } | null>(null);
+  const [showConfig, setShowConfig] = useState(false);
 
   useEffect(() => {
     fetchStatus();
@@ -98,46 +99,60 @@ function GoogleDriveConfigContent() {
         </div>
       )}
 
-      <div className="p-4 rounded-lg border" style={{ borderColor: isConnected ? "var(--success)" : "var(--border-color)", background: "var(--bg-secondary)" }}>
-        <div className="flex items-start gap-3">
-          <div className="p-2 rounded-full mt-1" style={{ background: isConnected ? "rgba(16, 185, 129, 0.1)" : "rgba(245, 158, 11, 0.1)" }}>
-            <Cloud size={24} style={{ color: isConnected ? "var(--success)" : "var(--warning)" }} />
-          </div>
-          <div className="flex-1">
-            <h4 className="font-bold text-sm">
-              Almacenamiento: {isConnected ? "Google Drive Vinculado" : "Nube Local Activa"}
-            </h4>
-            <p className="text-xs text-muted mt-1 leading-relaxed">
-              {isConnected
-                ? "Tus archivos y las entregas de tus estudiantes se guardarán automáticamente en tu Google Drive personal (en la carpeta 'Aula Virtual Escolar')."
-                : "Vincula tu Google Drive para que los archivos subidos al sistema por ti o por tus estudiantes se guarden directamente en tu cuenta y no consuman espacio de la base de datos."}
-            </p>
+      <button
+        type="button"
+        onClick={() => setShowConfig(!showConfig)}
+        className="w-full flex items-center justify-between text-left focus:outline-none p-3 rounded-lg border border-gray-150 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/30"
+      >
+        <span className="text-sm font-semibold flex items-center gap-2">
+          <Cloud size={18} className={isConnected ? "text-emerald-500" : "text-amber-500"} />
+          Estado: {isConnected ? "Google Drive Vinculado" : "Nube Local Activa"}
+        </span>
+        {showConfig ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+      </button>
 
-            <div className="mt-4 flex items-center gap-3">
-              {isConnected ? (
-                <button
-                  type="button"
-                  className="btn btn-secondary text-xs py-1 px-3"
-                  onClick={handleDisconnect}
-                  disabled={disconnecting}
-                  style={{ color: "var(--danger)", borderColor: "var(--danger)" }}
-                >
-                  {disconnecting ? <Loader2 className="animate-spin" size={12} /> : null}
-                  Desvincular Cuenta
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="btn btn-primary text-xs py-1 px-3"
-                  onClick={handleConnect}
-                >
-                  Vincular Google Drive
-                </button>
-              )}
+      {showConfig && (
+        <div className="p-4 rounded-lg border animate-fade-in" style={{ borderColor: isConnected ? "var(--success)" : "var(--border-color)", background: "var(--bg-secondary)" }}>
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-full mt-1" style={{ background: isConnected ? "rgba(16, 185, 129, 0.1)" : "rgba(245, 158, 11, 0.1)" }}>
+              <Cloud size={24} style={{ color: isConnected ? "var(--success)" : "var(--warning)" }} />
+            </div>
+            <div className="flex-1">
+              <h4 className="font-bold text-sm">
+                Configuración de Google Drive
+              </h4>
+              <p className="text-xs text-muted mt-1 leading-relaxed">
+                {isConnected
+                  ? "Tus archivos y las entregas de tus estudiantes se guardarán automáticamente en tu Google Drive personal (en la carpeta 'Aula Virtual Escolar')."
+                  : "Vincula tu Google Drive para que los archivos subidos al sistema por ti o por tus estudiantes se guarden directamente en tu cuenta y no consuman espacio de la base de datos."}
+              </p>
+
+              <div className="mt-4 flex items-center gap-3">
+                {isConnected ? (
+                  <button
+                    type="button"
+                    className="btn btn-secondary text-xs py-1 px-3"
+                    onClick={handleDisconnect}
+                    disabled={disconnecting}
+                    style={{ color: "var(--danger)", borderColor: "var(--danger)" }}
+                  >
+                    {disconnecting ? <Loader2 className="animate-spin" size={12} /> : null}
+                    Desvincular Cuenta
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn-primary text-xs py-1 px-3"
+                    onClick={handleConnect}
+                  >
+                    Vincular Google Drive
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
