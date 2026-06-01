@@ -58,7 +58,8 @@ export async function POST(request: Request) {
       const gAccessToken = await getGoogleAccessToken(teacherId);
       if (gAccessToken) {
         try {
-          attachmentUrl = await uploadToGoogleDrive(buffer, file.name, file.type, teacherId, "Tareas");
+          const folderPath = `${course.name}/Tareas/${title}`;
+          attachmentUrl = await uploadToGoogleDrive(buffer, file.name, file.type, teacherId, folderPath);
         } catch (driveError) {
           console.error("Google Drive task upload error, falling back to Supabase:", driveError);
         }
