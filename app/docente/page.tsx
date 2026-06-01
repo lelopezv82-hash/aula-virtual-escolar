@@ -255,12 +255,9 @@ export default async function DocenteDashboard() {
             {recentSubmissions.map(sub => {
               const isGraded = sub.status === "GRADED";
               return (
-                <div key={sub.id} className="flex justify-between items-center p-3 rounded-lg border-l-4" style={{
+                <div key={sub.id} className="flex justify-between items-center p-3 rounded-lg border" style={{
                   background: "var(--bg-primary)",
-                  borderColor: isGraded ? "var(--success)" : "var(--info)",
-                  borderTop: "1px solid var(--border-color)",
-                  borderRight: "1px solid var(--border-color)",
-                  borderBottom: "1px solid var(--border-color)"
+                  borderColor: "var(--border-color)"
                 }}>
                   <div>
                     <div className="flex items-center gap-2 mb-0.5">
