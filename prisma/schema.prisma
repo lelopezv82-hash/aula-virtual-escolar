@@ -36,6 +36,8 @@ model Course {
   description String?
   teacherId   String
   teacher     User     @relation("TeacherCourses", fields: [teacherId], references: [id], onDelete: Cascade)
+  groupId     String?
+  group       GradeGroup? @relation("GroupCourses", fields: [groupId], references: [id], onDelete: SetNull)
   period1Active Boolean  @default(true)
   period2Active Boolean  @default(true)
   period3Active Boolean  @default(true)
@@ -116,6 +118,7 @@ model GradeGroup {
   students  User[]   @relation("GroupStudents")
   tasks     Task[]   @relation("GroupTasks")
   resources Resource[] @relation("GroupResources")
+  courses   Course[]   @relation("GroupCourses")
   createdAt DateTime @default(now())
 
   @@unique([gradeId, name])
