@@ -14,14 +14,36 @@ export default async function NotificacionesPage() {
   const { payload } = await jwtVerify(token, JWT_SECRET);
   const studentId = payload.id as string;
 
+  const studentRecord = await prisma.user.findUnique({
+    where: { id: studentId },
+    select: { groupId: true }
+  });
+  const studentGroupId = studentRecord?.groupId || null;
+
   // Build notifications from recent activity
   const recentTasks = await prisma.task.findMany({
+    where: {
+      active: true,
+      groups: studentGroupId ? {
+        some: {
+          id: studentGroupId
+        }
+      } : { id: "none" }
+    },
     orderBy: { createdAt: "desc" },
     take: 10,
     include: { course: true }
   });
 
   const recentResources = await prisma.resource.findMany({
+    where: {
+      active: true,
+      groups: studentGroupId ? {
+        some: {
+          id: studentGroupId
+        }
+      } : { id: "none" }
+    },
     orderBy: { createdAt: "desc" },
     take: 10,
     include: { course: true }
