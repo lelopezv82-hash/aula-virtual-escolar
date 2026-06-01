@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 
     let fileUrl = "";
 
-    // Find the teacher ID for this task
+    // Find the task and the teacher ID
     const task = await prisma.task.findUnique({
       where: { id: taskId },
       include: {
@@ -47,7 +47,29 @@ export async function POST(request: Request) {
       }
     });
 
-    const teacherId = task?.course.teacherId;
+    if (!task) {
+      return NextResponse.json({ error: 'Tarea no encontrada' }, { status: 404 });
+    }
+
+    const now = new Date();
+    const isLate = now > new Date(task.dueDate);
+
+    if (isLate && !task.allowLateSubmission) {
+      const existingSubmission = await prisma.submission.findUnique({
+        where: {
+          taskId_studentId: {
+            taskId,
+            studentId
+          }
+        }
+      });
+
+      if (!existingSubmission || !existingSubmission.allowLateSubmission) {
+        return NextResponse.json({ error: 'El plazo de entrega ha vencido para esta tarea.' }, { status: 400 });
+      }
+    }
+
+    const teacherId = task.course.teacherId;
 
     if (teacherId) {
       // Try uploading to Google Drive first if teacher has it connected
