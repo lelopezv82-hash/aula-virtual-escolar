@@ -47,8 +47,8 @@ export async function POST(request: Request) {
     const period = formData.get('period') as string | null;
     const groupId = formData.get('groupId') as string | null;
 
-    if (!courseId || !title || !type || !theme || !period) {
-      return NextResponse.json({ error: 'Faltan datos obligatorios (título, tipo, tema y periodo)' }, { status: 400 });
+    if (!courseId || !title || !type || !theme || !period || !groupId) {
+      return NextResponse.json({ error: 'Faltan datos obligatorios (título, tipo, tema, periodo y grupo)' }, { status: 400 });
     }
 
     const course = await prisma.course.findFirst({
@@ -146,8 +146,8 @@ export async function PATCH(request: Request) {
     const period = formData.get('period') as string | null;
     const groupId = formData.get('groupId') as string | null;
 
-    if (!id || !title || !type || !theme || !period) {
-      return NextResponse.json({ error: 'Faltan datos obligatorios (id, título, tipo, tema y periodo)' }, { status: 400 });
+    if (!id || !title || !type || !theme || !period || !groupId) {
+      return NextResponse.json({ error: 'Faltan datos obligatorios (id, título, tipo, tema, periodo y grupo)' }, { status: 400 });
     }
 
     const existingResource = await prisma.resource.findUnique({
