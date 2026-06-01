@@ -16,7 +16,9 @@ export default function NuevaTareaPage() {
   const [theme, setTheme] = useState("");
   const [period, setPeriod] = useState("");
   const [weight, setWeight] = useState("0");
+  const [groupId, setGroupId] = useState("");
   const [courses, setCourses] = useState<{id: string, name: string}[]>([]);
+  const [gradeGroups, setGradeGroups] = useState<{id: string, name: string}[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -40,6 +42,25 @@ export default function NuevaTareaPage() {
         }
       })
       .catch(() => console.error("Failed to load courses"));
+
+    // Fetch grade groups
+    fetch("/api/grados")
+      .then(res => res.json())
+      .then(data => {
+        if (data.grades) {
+          const flatGroups: any[] = [];
+          data.grades.forEach((g: any) => {
+            g.groups.forEach((gp: any) => {
+              flatGroups.push({
+                id: gp.id,
+                name: `${g.name} - ${gp.name}`
+              });
+            });
+          });
+          setGradeGroups(flatGroups);
+        }
+      })
+      .catch(() => console.error("Failed to load grade groups"));
   }, [searchParams]);
 
   useEffect(() => {
@@ -63,6 +84,7 @@ export default function NuevaTareaPage() {
     if (theme) formData.append("theme", theme);
     if (period) formData.append("period", period);
     formData.append("weight", weight);
+    if (groupId) formData.append("groupId", groupId);
     if (file) {
       formData.append("file", file);
     }
@@ -134,6 +156,21 @@ export default function NuevaTareaPage() {
               ))}
             </select>
           )}
+        </div>
+
+        <div className="input-group">
+          <label htmlFor="groupId">Asignar a Grupo Específico (Opcional)</label>
+          <select 
+            id="groupId" 
+            className="input-field"
+            value={groupId}
+            onChange={(e) => setGroupId(e.target.value)}
+          >
+            <option value="">Todos los grupos (Toda la asignatura)</option>
+            {gradeGroups.map(g => (
+              <option key={g.id} value={g.id}>{g.name}</option>
+            ))}
+          </select>
         </div>
 
         <div className="flex gap-4">
