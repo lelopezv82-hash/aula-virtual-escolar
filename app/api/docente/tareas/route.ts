@@ -33,6 +33,7 @@ export async function POST(request: Request) {
     const period = formData.get('period') as string | null;
     const weightRaw = formData.get('weight') as string | null;
     const weight = weightRaw ? parseInt(weightRaw, 10) : 0;
+    const groupId = formData.get('groupId') as string | null;
 
     if (!title || !dueDate || !courseId || !theme || !period) {
       return NextResponse.json({ error: 'Faltan datos obligatorios (título, fecha límite, curso, tema y periodo)' }, { status: 400 });
@@ -97,6 +98,7 @@ export async function POST(request: Request) {
         courseId,
         theme,
         period,
+        groupId: groupId || null,
         weight: isNaN(weight) ? 0 : weight
       }
     });
