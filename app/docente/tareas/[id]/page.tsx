@@ -22,6 +22,7 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
     where: { id: resolvedParams.id },
     include: {
       course: true,
+      groups: true,
       submissions: {
         include: { student: true }
       }
@@ -32,10 +33,12 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
     return <div className="alert alert-danger">No tienes acceso a esta tarea.</div>;
   }
 
-  // Get students in this course's group if task.groupId is set
+  // Get students who belong to any of the task's groups
   const studentWhereClause: any = { role: "STUDENT" };
-  if (task.groupId) {
-    studentWhereClause.groupId = task.groupId;
+  if (task.groups && task.groups.length > 0) {
+    studentWhereClause.groupId = {
+      in: task.groups.map(g => g.id)
+    };
   }
   const allStudents = await prisma.user.findMany({ 
     where: studentWhereClause,
