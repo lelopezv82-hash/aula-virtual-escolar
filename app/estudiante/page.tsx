@@ -15,9 +15,14 @@ export default async function EstudianteDashboard() {
   const payload = (await jwtVerify(token, JWT_SECRET)).payload as any;
   const studentId = payload.id as string;
 
-  // Fetch all courses (for this MVP, students see all courses or courses they are enrolled in)
-  // We'll just fetch all courses for simplicity in this MVP
+  const studentRecord = await prisma.user.findUnique({
+    where: { id: studentId },
+    select: { groupId: true }
+  });
+  const studentGroupId = studentRecord?.groupId || null;
+
   const courses = await prisma.course.findMany({
+    where: studentGroupId ? { groupId: studentGroupId } : { id: "none" },
     include: {
       teacher: true,
       tasks: { where: { active: true } },
