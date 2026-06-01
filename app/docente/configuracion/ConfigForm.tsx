@@ -84,42 +84,71 @@ export default function ConfigForm({ initialName }: ConfigFormProps) {
       </div>
 
       <div className="border-t pt-5 mt-2" style={{ borderColor: "var(--border-color)" }}>
-        <button
-          type="button"
-          onClick={() => setShowPasswordSection(!showPasswordSection)}
-          className="w-full flex items-center justify-between text-left focus:outline-none mb-3"
-        >
-          <h3 className="text-base font-bold flex items-center gap-2">
-            <KeyRound size={18} className="text-amber-500" />
-            Cambiar Contraseña
-          </h3>
-          {showPasswordSection ? <ChevronUp size={20} className="text-gray-500" /> : <ChevronDown size={20} className="text-gray-500" />}
-        </button>
+        <h3 className="text-base font-bold mb-3 flex items-center gap-2">
+          <KeyRound size={18} className="text-amber-500" />
+          Cambiar Contraseña
+        </h3>
+        
+        <div className="flex flex-col gap-4">
+          <p className="text-muted text-xs mb-1">
+            Completa estos campos únicamente si deseas actualizar tu contraseña de acceso.
+          </p>
 
-        {showPasswordSection && (
-          <div className="animate-fade-in flex flex-col gap-4">
-            <p className="text-muted text-xs mb-1">
-              Completa estos campos únicamente si deseas actualizar tu contraseña de acceso.
-            </p>
+          <div className="input-group">
+            <label className="font-semibold text-xs mb-1 block" style={{ color: "var(--text-secondary)" }}>
+              Contraseña Actual
+            </label>
+            <div style={{ position: "relative" }}>
+              <input
+                type={showCurrent ? "text" : "password"}
+                className="input-field"
+                style={{ paddingRight: "2.5rem" }}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="••••••••"
+              />
+              {currentPassword && (
+                <button
+                  type="button"
+                  onClick={() => setShowCurrent(!showCurrent)}
+                  style={{
+                    position: "absolute",
+                    right: "0.75rem",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "var(--text-muted)",
+                    display: "flex",
+                    alignItems: "center"
+                  }}
+                  title={showCurrent ? "Ocultar" : "Mostrar"}
+                >
+                  {showCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              )}
+            </div>
+          </div>
 
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }} className="flex-col sm:grid">
             <div className="input-group">
               <label className="font-semibold text-xs mb-1 block" style={{ color: "var(--text-secondary)" }}>
-                Contraseña Actual
+                Nueva Contraseña
               </label>
               <div style={{ position: "relative" }}>
                 <input
-                  type={showCurrent ? "text" : "password"}
+                  type={showNew ? "text" : "password"}
                   className="input-field"
                   style={{ paddingRight: "2.5rem" }}
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required={showPasswordSection}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Mínimo 6 caracteres"
                 />
-                {currentPassword && (
+                {newPassword && (
                   <button
                     type="button"
-                    onClick={() => setShowCurrent(!showCurrent)}
+                    onClick={() => setShowNew(!showNew)}
                     style={{
                       position: "absolute",
                       right: "0.75rem",
@@ -132,93 +161,52 @@ export default function ConfigForm({ initialName }: ConfigFormProps) {
                       display: "flex",
                       alignItems: "center"
                     }}
-                    title={showCurrent ? "Ocultar" : "Mostrar"}
+                    title={showNew ? "Ocultar" : "Mostrar"}
                   >
-                    {showCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 )}
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }} className="flex-col sm:grid">
-              <div className="input-group">
-                <label className="font-semibold text-xs mb-1 block" style={{ color: "var(--text-secondary)" }}>
-                  Nueva Contraseña
-                </label>
-                <div style={{ position: "relative" }}>
-                  <input
-                    type={showNew ? "text" : "password"}
-                    className="input-field"
-                    style={{ paddingRight: "2.5rem" }}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Mínimo 6 caracteres"
-                    required={showPasswordSection}
-                  />
-                  {newPassword && (
-                    <button
-                      type="button"
-                      onClick={() => setShowNew(!showNew)}
-                      style={{
-                        position: "absolute",
-                        right: "0.75rem",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        color: "var(--text-muted)",
-                        display: "flex",
-                        alignItems: "center"
-                      }}
-                      title={showNew ? "Ocultar" : "Mostrar"}
-                    >
-                      {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="input-group">
-                <label className="font-semibold text-xs mb-1 block" style={{ color: "var(--text-secondary)" }}>
-                  Confirmar Nueva Contraseña
-                </label>
-                <div style={{ position: "relative" }}>
-                  <input
-                    type={showConfirm ? "text" : "password"}
-                    className="input-field"
-                    style={{ paddingRight: "2.5rem" }}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Repite la contraseña"
-                    required={showPasswordSection}
-                  />
-                  {confirmPassword && (
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirm(!showConfirm)}
-                      style={{
-                        position: "absolute",
-                        right: "0.75rem",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        color: "var(--text-muted)",
-                        display: "flex",
-                        alignItems: "center"
-                      }}
-                      title={showConfirm ? "Ocultar" : "Mostrar"}
-                    >
-                      {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  )}
-                </div>
+            <div className="input-group">
+              <label className="font-semibold text-xs mb-1 block" style={{ color: "var(--text-secondary)" }}>
+                Confirmar Nueva Contraseña
+              </label>
+              <div style={{ position: "relative" }}>
+                <input
+                  type={showConfirm ? "text" : "password"}
+                  className="input-field"
+                  style={{ paddingRight: "2.5rem" }}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Repite la contraseña"
+                />
+                {confirmPassword && (
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm(!showConfirm)}
+                    style={{
+                      position: "absolute",
+                      right: "0.75rem",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "var(--text-muted)",
+                      display: "flex",
+                      alignItems: "center"
+                    }}
+                    title={showConfirm ? "Ocultar" : "Mostrar"}
+                  >
+                    {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                )}
               </div>
             </div>
           </div>
-        )}
+        </div>
       </div>
 
       <div className="pt-4 border-t" style={{ borderColor: "var(--border-color)" }}>
