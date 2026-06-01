@@ -16,7 +16,7 @@ export default function NuevaTareaPage() {
   const [theme, setTheme] = useState("");
   const [period, setPeriod] = useState("");
   const [weight, setWeight] = useState("0");
-  const [groupId, setGroupId] = useState("");
+  const [groupIds, setGroupIds] = useState<string[]>([]);
   const [courses, setCourses] = useState<{id: string, name: string}[]>([]);
   const [gradeGroups, setGradeGroups] = useState<{id: string, name: string}[]>([]);
   const [loading, setLoading] = useState(false);
@@ -84,7 +84,7 @@ export default function NuevaTareaPage() {
     if (theme) formData.append("theme", theme);
     if (period) formData.append("period", period);
     formData.append("weight", weight);
-    if (groupId) formData.append("groupId", groupId);
+    formData.append("groupIds", JSON.stringify(groupIds));
     if (file) {
       formData.append("file", file);
     }
@@ -159,19 +159,48 @@ export default function NuevaTareaPage() {
         </div>
 
         <div className="input-group">
-          <label htmlFor="groupId">Asignar a Grupo Específico *</label>
-          <select 
-            id="groupId" 
-            className="input-field"
-            value={groupId}
-            onChange={(e) => setGroupId(e.target.value)}
-            required
-          >
-            <option value="" disabled>Selecciona un grupo</option>
-            {gradeGroups.map(g => (
-              <option key={g.id} value={g.id}>{g.name}</option>
-            ))}
-          </select>
+          <label className="font-semibold text-xs mb-1.5 block">Asignar a Grupos (Múltiple) *</label>
+          
+          <div className="flex justify-between items-center mb-2">
+            <button
+              type="button"
+              onClick={() => {
+                const allIds = gradeGroups.map(g => g.id);
+                const allSelected = allIds.every(id => groupIds.includes(id));
+                setGroupIds(allSelected ? [] : allIds);
+              }}
+              className="text-xs font-bold text-blue-600 hover:underline"
+            >
+              {gradeGroups.map(g => g.id).every(id => groupIds.includes(id)) 
+                ? "Desmarcar todos" 
+                : "Seleccionar todos"}
+            </button>
+            <span className="text-[10px] text-muted font-medium">
+              {groupIds.length} seleccionado(s)
+            </span>
+          </div>
+
+          <div className="border rounded-lg p-3 max-h-[160px] overflow-y-auto flex flex-col gap-2 bg-slate-50 dark:bg-slate-900" style={{ borderColor: 'var(--border-color)' }}>
+            {gradeGroups.map(g => {
+              const isChecked = groupIds.includes(g.id);
+              return (
+                <label key={g.id} className="flex items-center gap-2 text-sm font-medium cursor-pointer hover:text-primary">
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => {
+                      const newIds = isChecked
+                        ? groupIds.filter(id => id !== g.id)
+                        : [...groupIds, g.id];
+                      setGroupIds(newIds);
+                    }}
+                    className="rounded text-blue-600 focus:ring-blue-500"
+                  />
+                  <span>{g.name}</span>
+                </label>
+              );
+            })}
+          </div>
         </div>
 
         <div className="flex gap-4">
