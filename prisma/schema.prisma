@@ -36,8 +36,7 @@ model Course {
   description String?
   teacherId   String
   teacher     User     @relation("TeacherCourses", fields: [teacherId], references: [id], onDelete: Cascade)
-  groupId     String?
-  group       GradeGroup? @relation("GroupCourses", fields: [groupId], references: [id], onDelete: SetNull)
+  groups      GradeGroup[] @relation("GroupCourses")
   period1Active Boolean  @default(true)
   period2Active Boolean  @default(true)
   period3Active Boolean  @default(true)
@@ -58,8 +57,7 @@ model Resource {
   course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   theme       String?
   period      String?
-  groupId     String?
-  group       GradeGroup? @relation("GroupResources", fields: [groupId], references: [id], onDelete: SetNull)
+  groups      GradeGroup[] @relation("GroupResources")
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
 }
@@ -74,8 +72,7 @@ model Task {
   course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   theme         String?
   period        String?
-  groupId       String?
-  group         GradeGroup? @relation("GroupTasks", fields: [groupId], references: [id], onDelete: SetNull)
+  groups        GradeGroup[] @relation("GroupTasks")
   weight        Int      @default(0)
   active      Boolean  @default(true)
   allowLateSubmission Boolean @default(false)
