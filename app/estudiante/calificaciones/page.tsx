@@ -15,7 +15,12 @@ export default async function CalificacionesEstudiantePage() {
   const studentId = payload.id as string;
 
   const submissions = await prisma.submission.findMany({
-    where: { studentId },
+    where: {
+      studentId,
+      task: {
+        active: true
+      }
+    },
     include: { task: { include: { course: true } } },
     orderBy: { updatedAt: "desc" }
   });
