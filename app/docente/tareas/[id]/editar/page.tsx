@@ -132,14 +132,15 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
         )}
 
         <div className="input-group">
-          <label htmlFor="groupId">Asignar a Grupo Específico (Opcional)</label>
+          <label htmlFor="groupId">Asignar a Grupo Específico *</label>
           <select 
             id="groupId" 
             className="input-field"
             value={groupId}
             onChange={(e) => setGroupId(e.target.value)}
+            required
           >
-            <option value="">Todos los grupos (Toda la asignatura)</option>
+            <option value="" disabled>Selecciona un grupo</option>
             {gradeGroups.map(g => (
               <option key={g.id} value={g.id}>{g.name}</option>
             ))}
