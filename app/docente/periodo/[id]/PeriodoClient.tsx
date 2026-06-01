@@ -18,7 +18,7 @@ interface Resource {
   theme?: string | null;
   period?: string | null;
   active?: boolean;
-  groupId?: string | null;
+  groups?: { id: string; name: string }[];
 }
 
 interface Task {
@@ -29,7 +29,7 @@ interface Task {
   dueDate: string;
   period?: string | null;
   active?: boolean;
-  groupId?: string | null;
+  groups?: { id: string; name: string }[];
 }
 
 interface Course {
@@ -61,7 +61,7 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [showResourceModal, setShowResourceModal] = useState(false);
   const [editingResource, setEditingResource] = useState<Resource | null>(null);
-  const [resourceForm, setResourceForm] = useState({ title: "", type: "PDF", link: "", theme: "", groupId: "" });
+  const [resourceForm, setResourceForm] = useState({ title: "", type: "PDF", link: "", theme: "", groupIds: [] as string[] });
   const [gradeGroups, setGradeGroups] = useState<{ id: string, name: string }[]>([]);
   const [resourceFile, setResourceFile] = useState<File | null>(null);
   const [uploadingResource, setUploadingResource] = useState(false);
@@ -90,7 +90,7 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
   const openUploadModal = (course: Course) => {
     setSelectedCourse(course);
     setEditingResource(null);
-    setResourceForm({ title: "", type: "PDF", link: "", theme: "", groupId: "" });
+    setResourceForm({ title: "", type: "PDF", link: "", theme: "", groupIds: [] });
     setResourceFile(null);
     setError("");
     setShowResourceModal(true);
@@ -104,7 +104,7 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
       type: resource.type,
       link: resource.type === "LINK" ? resource.url : "",
       theme: resource.theme || "",
-      groupId: resource.groupId || ""
+      groupIds: resource.groups ? resource.groups.map(g => g.id) : []
     });
     setResourceFile(null);
     setError("");
@@ -130,7 +130,7 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
     if (resourceForm.theme) fd.append("theme", resourceForm.theme);
     if (resourceFile) fd.append("file", resourceFile);
     if (resourceForm.link) fd.append("link", resourceForm.link);
-    if (resourceForm.groupId) fd.append("groupId", resourceForm.groupId);
+    fd.append("groupIds", JSON.stringify(resourceForm.groupIds));
 
     try {
       const url = "/api/docente/recursos";
@@ -534,19 +534,51 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
             </div>
 
             <div className="input-group mb-4">
-              <label htmlFor="groupId">Asignar a Grupo Específico *</label>
-              <select 
-                id="groupId" 
-                className="input-field"
-                value={resourceForm.groupId}
-                onChange={e => setResourceForm({ ...resourceForm, groupId: e.target.value })}
-                required
-              >
-                <option value="" disabled>Selecciona un grupo</option>
-                {gradeGroups.map(g => (
-                  <option key={g.id} value={g.id}>{g.name}</option>
-                ))}
-              </select>
+              <label className="font-semibold text-xs mb-1.5 block">Asignar a Grupos (Múltiple) *</label>
+              
+              <div className="flex justify-between items-center mb-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const allIds = gradeGroups.map(g => g.id);
+                    const allSelected = allIds.every(id => resourceForm.groupIds.includes(id));
+                    setResourceForm({
+                      ...resourceForm,
+                      groupIds: allSelected ? [] : allIds
+                    });
+                  }}
+                  className="text-xs font-bold text-blue-600 hover:underline"
+                >
+                  {gradeGroups.map(g => g.id).every(id => resourceForm.groupIds.includes(id)) 
+                    ? "Desmarcar todos" 
+                    : "Seleccionar todos"}
+                </button>
+                <span className="text-[10px] text-muted font-medium">
+                  {resourceForm.groupIds.length} seleccionado(s)
+                </span>
+              </div>
+
+              <div className="border rounded-lg p-3 max-h-[160px] overflow-y-auto flex flex-col gap-2 bg-slate-50 dark:bg-slate-900" style={{ borderColor: 'var(--border-color)' }}>
+                {gradeGroups.map(g => {
+                  const isChecked = resourceForm.groupIds.includes(g.id);
+                  return (
+                    <label key={g.id} className="flex items-center gap-2 text-sm font-medium cursor-pointer hover:text-primary">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          const newIds = isChecked
+                            ? resourceForm.groupIds.filter(id => id !== g.id)
+                            : [...resourceForm.groupIds, g.id];
+                          setResourceForm({ ...resourceForm, groupIds: newIds });
+                        }}
+                        className="rounded text-blue-600 focus:ring-blue-500"
+                      />
+                      <span>{g.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="input-group mb-4">
