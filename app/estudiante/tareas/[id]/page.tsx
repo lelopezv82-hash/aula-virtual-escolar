@@ -83,6 +83,10 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
 
   const isGraded = submission?.status === "GRADED";
   const isSubmitted = submission?.status === "SUBMITTED" || isGraded;
+  
+  const isOverdue = task ? new Date(task.dueDate) < new Date() : false;
+  const isLateSubmissionAllowed = task ? (task.allowLateSubmission || !!submission?.allowLateSubmission) : false;
+  const isSubmissionBlocked = isOverdue && !isLateSubmissionAllowed;
 
   return (
     <div className="animate-fade-in max-w-3xl mx-auto">
@@ -158,29 +162,40 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
         )}
 
         {!isGraded && (
-          <form onSubmit={handleUpload} className="flex flex-col gap-4">
-            {error && <div className="alert alert-danger">{error}</div>}
-            
-            <div className="border-2 border-dashed rounded-lg p-8 text-center hover:bg-gray-50 transition-colors" style={{ borderColor: 'var(--primary-color)' }}>
-              <UploadCloud size={48} className="mx-auto mb-4" style={{ color: 'var(--primary-color)' }} />
-              <label htmlFor="file-upload" className="cursor-pointer">
-                <span className="btn btn-secondary mx-auto mb-2 inline-flex">Seleccionar Archivo</span>
-                <input 
-                  id="file-upload" 
-                  type="file" 
-                  className="hidden" 
-                  onChange={handleFileChange} 
-                />
-              </label>
-              <p className="text-sm text-muted mt-2">
-                {file ? file.name : "Soporta PDF, DOCX, Imágenes y archivos comprimidos."}
+          isSubmissionBlocked ? (
+            <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-lg p-4 text-red-800 dark:text-red-350 flex flex-col gap-2">
+              <h3 className="font-bold flex items-center gap-2">
+                <Clock size={18} /> Plazo de Entrega Vencido
+              </h3>
+              <p className="text-sm">
+                El plazo para subir esta tarea ha vencido y la entrega ha sido desactivada. Comunícate con tu docente si necesitas habilitar la entrega extemporánea.
               </p>
             </div>
+          ) : (
+            <form onSubmit={handleUpload} className="flex flex-col gap-4">
+              {error && <div className="alert alert-danger">{error}</div>}
+              
+              <div className="border-2 border-dashed rounded-lg p-8 text-center hover:bg-gray-50 transition-colors" style={{ borderColor: 'var(--primary-color)' }}>
+                <UploadCloud size={48} className="mx-auto mb-4" style={{ color: 'var(--primary-color)' }} />
+                <label htmlFor="file-upload" className="cursor-pointer">
+                  <span className="btn btn-secondary mx-auto mb-2 inline-flex">Seleccionar Archivo</span>
+                  <input 
+                    id="file-upload" 
+                    type="file" 
+                    className="hidden" 
+                    onChange={handleFileChange} 
+                  />
+                </label>
+                <p className="text-sm text-muted mt-2">
+                  {file ? file.name : "Soporta PDF, DOCX, Imágenes y archivos comprimidos."}
+                </p>
+              </div>
 
-            <button type="submit" className="btn btn-primary mt-2" disabled={!file || loading}>
-              {loading ? <Loader2 className="animate-spin" size={20} /> : (isSubmitted ? "Reemplazar Entrega" : "Enviar Tarea")}
-            </button>
-          </form>
+              <button type="submit" className="btn btn-primary mt-2" disabled={!file || loading}>
+                {loading ? <Loader2 className="animate-spin" size={20} /> : (isSubmitted ? "Reemplazar Entrega" : "Enviar Tarea")}
+              </button>
+            </form>
+          )
         )}
       </div>
     </div>
