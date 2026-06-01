@@ -943,7 +943,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                       <table className="w-full text-left border-collapse" style={{ minWidth: "600px" }}>
                         <thead>
                           <tr className="bg-gray-50 dark:bg-gray-900/60 text-xs font-bold text-muted border-b" style={{ borderColor: "var(--border-color)" }}>
-                            <th className="p-3">Nombre</th>
+                            <th className="p-3" style={{ paddingLeft: "16px" }}>Nombre</th>
                             <th className="p-3">Usuario</th>
                             <th className="p-3">Contraseña</th>
                             <th className="p-3 text-center">Acciones</th>
@@ -952,7 +952,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                         <tbody className="divide-y text-sm" style={{ borderColor: "var(--border-color)" }}>
                           {students.map((student) => (
                             <tr key={student.id} className="hover:bg-gray-50/55 dark:hover:bg-gray-900/20">
-                              <td className="p-3 font-semibold">{student.name}</td>
+                              <td className="p-3 font-semibold" style={{ paddingLeft: "16px" }}>{student.name}</td>
                               <td className="p-3 font-mono text-xs">{student.username}</td>
                               <td className="p-3">
                                 <div className="flex items-center gap-1.5">
