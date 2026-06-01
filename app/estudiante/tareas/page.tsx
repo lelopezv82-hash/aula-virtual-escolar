@@ -24,7 +24,7 @@ export default async function TareasEstudiantePage() {
         where: { studentId }
       }
     },
-    orderBy: { dueDate: "asc" }
+    orderBy: { createdAt: "desc" }
   });
 
   return (
