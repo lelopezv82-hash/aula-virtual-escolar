@@ -18,24 +18,54 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { submissionId, grade, feedback } = await request.json();
+    const { submissionId, taskId, studentId, grade, feedback, allowLateSubmission } = await request.json();
 
-    if (!submissionId || grade === undefined) {
-      return NextResponse.json({ error: 'Faltan datos' }, { status: 400 });
+    if (!submissionId && (!taskId || !studentId)) {
+      return NextResponse.json({ error: 'Falta el id de la entrega o par taskId/studentId' }, { status: 400 });
     }
 
-    if (grade < 0 || grade > 5) {
-      return NextResponse.json({ error: 'La calificación debe estar entre 0 y 5' }, { status: 400 });
+    const updateData: any = {};
+    
+    if (allowLateSubmission !== undefined) {
+      updateData.allowLateSubmission = !!allowLateSubmission;
     }
 
-    const submission = await prisma.submission.update({
-      where: { id: submissionId },
-      data: {
-        grade: parseFloat(grade),
-        feedback,
-        status: "GRADED"
+    if (grade !== undefined && grade !== null) {
+      const parsedGrade = parseFloat(grade);
+      if (isNaN(parsedGrade) || parsedGrade < 0 || parsedGrade > 5) {
+        return NextResponse.json({ error: 'La calificación debe estar entre 0 y 5' }, { status: 400 });
       }
-    });
+      updateData.grade = parsedGrade;
+      updateData.status = "GRADED";
+    }
+
+    if (feedback !== undefined) {
+      updateData.feedback = feedback;
+    }
+
+    let submission;
+    if (submissionId) {
+      submission = await prisma.submission.update({
+        where: { id: submissionId },
+        data: updateData
+      });
+    } else {
+      submission = await prisma.submission.upsert({
+        where: {
+          taskId_studentId: {
+            taskId,
+            studentId
+          }
+        },
+        update: updateData,
+        create: {
+          taskId,
+          studentId,
+          ...updateData,
+          status: "PENDING"
+        }
+      });
+    }
 
     return NextResponse.json({ success: true, submission });
   } catch (error) {
