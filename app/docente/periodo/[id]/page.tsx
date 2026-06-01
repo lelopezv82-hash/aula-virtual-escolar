@@ -32,10 +32,12 @@ export default async function PeriodoDocentePage({ params }: PageProps) {
     include: {
       resources: {
         where: { period: periodName },
+        include: { groups: true },
         orderBy: { createdAt: 'desc' }
       },
       tasks: {
         where: { period: periodName },
+        include: { groups: true },
         orderBy: { dueDate: 'asc' }
       }
     },
@@ -58,7 +60,8 @@ export default async function PeriodoDocentePage({ params }: PageProps) {
       url: r.url,
       theme: r.theme,
       period: r.period,
-      active: r.active
+      active: r.active,
+      groups: r.groups.map(g => ({ id: g.id, name: g.name }))
     })),
     tasks: course.tasks.map(t => ({
       id: t.id,
@@ -67,7 +70,8 @@ export default async function PeriodoDocentePage({ params }: PageProps) {
       weight: t.weight,
       dueDate: t.dueDate.toISOString(),
       period: t.period,
-      active: t.active
+      active: t.active,
+      groups: t.groups.map(g => ({ id: g.id, name: g.name }))
     }))
   }));
 
