@@ -12,7 +12,6 @@ function GoogleDriveConfigContent() {
   const [isConnected, setIsConnected] = useState(false);
   const [hasFolder, setHasFolder] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "danger"; text: string } | null>(null);
-  const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
     fetchStatus();
@@ -90,34 +89,6 @@ function GoogleDriveConfigContent() {
     );
   }
 
-  if (isCollapsed) {
-    return (
-      <div className="flex flex-col gap-2 max-w-[500px]">
-        {message && (
-          <div className={`alert alert-${message.type} animate-fade-in`}>
-            {message.type === "success" ? "✓ " : "✗ "}
-            {message.text}
-          </div>
-        )}
-        <div className="p-3 rounded-lg border flex items-center justify-between" style={{ borderColor: "var(--border-color)", background: "var(--bg-secondary)" }}>
-          <span className="flex items-center gap-2 text-sm">
-            <Cloud size={16} style={{ color: isConnected ? "var(--success)" : "var(--warning)" }} />
-            <strong className="font-semibold text-xs">
-              Almacenamiento: {isConnected ? "Google Drive" : "Local"}
-            </strong>
-          </span>
-          <button
-            type="button"
-            className="text-xs text-blue-500 hover:underline cursor-pointer border-none bg-transparent font-bold"
-            onClick={() => setIsCollapsed(false)}
-          >
-            Mostrar detalles
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col gap-4 max-w-[500px]">
       {message && (
@@ -127,26 +98,18 @@ function GoogleDriveConfigContent() {
         </div>
       )}
 
-      <div className="p-4 rounded-lg border relative" style={{ borderColor: isConnected ? "var(--success)" : "var(--border-color)", background: "var(--bg-secondary)" }}>
-        <button
-          type="button"
-          className="absolute top-3 right-3 text-xs text-muted hover:text-blue-500 transition-colors cursor-pointer border-none bg-transparent font-semibold"
-          onClick={() => setIsCollapsed(true)}
-          title="Ocultar detalles"
-        >
-          Ocultar
-        </button>
+      <div className="p-4 rounded-lg border" style={{ borderColor: isConnected ? "var(--success)" : "var(--border-color)", background: "var(--bg-secondary)" }}>
         <div className="flex items-start gap-3">
           <div className="p-2 rounded-full mt-1" style={{ background: isConnected ? "rgba(16, 185, 129, 0.1)" : "rgba(245, 158, 11, 0.1)" }}>
             <Cloud size={24} style={{ color: isConnected ? "var(--success)" : "var(--warning)" }} />
           </div>
-          <div className="flex-1 pr-12">
+          <div className="flex-1">
             <h4 className="font-bold text-sm">
               Almacenamiento: {isConnected ? "Google Drive Vinculado" : "Nube Local Activa"}
             </h4>
             <p className="text-xs text-muted mt-1 leading-relaxed">
               {isConnected
-                ? "Tus archivos y las entregas de tus estudiantes se guardarán automáticamente en tu Google Drive personal (en la carpeta 'Aula Virtual Escolar').."
+                ? "Tus archivos y las entregas de tus estudiantes se guardarán automáticamente en tu Google Drive personal (en la carpeta 'Aula Virtual Escolar')."
                 : "Vincula tu Google Drive para que los archivos subidos al sistema por ti o por tus estudiantes se guarden directamente en tu cuenta y no consuman espacio de la base de datos."}
             </p>
 
