@@ -15,9 +15,21 @@ export default async function TareasEstudiantePage() {
   const { payload } = await jwtVerify(token, JWT_SECRET);
   const studentId = payload.id as string;
 
-  // En un sistema completo, solo buscaría tareas de los cursos en los que está matriculado
-  // Aquí traemos todas las tareas para el MVP y vemos si ya tiene submission
+  const studentRecord = await prisma.user.findUnique({
+    where: { id: studentId },
+    select: { groupId: true }
+  });
+  const studentGroupId = studentRecord?.groupId || null;
+
   const tasks = await prisma.task.findMany({
+    where: {
+      active: true,
+      groups: studentGroupId ? {
+        some: {
+          id: studentGroupId
+        }
+      } : { id: "none" }
+    },
     include: {
       course: true,
       submissions: {
