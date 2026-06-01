@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   FileText, Plus, ExternalLink, Trash2, Loader2, 
   UploadCloud, X, Save, ClipboardList, BookOpen, ToggleLeft, ToggleRight,
@@ -18,6 +18,7 @@ interface Resource {
   theme?: string | null;
   period?: string | null;
   active?: boolean;
+  groups?: { id: string; name: string }[];
 }
 
 interface Task {
@@ -61,15 +62,36 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [showResourceModal, setShowResourceModal] = useState(false);
   const [editingResource, setEditingResource] = useState<Resource | null>(null);
-  const [resourceForm, setResourceForm] = useState({ title: "", type: "PDF", link: "", theme: "" });
+  const [resourceForm, setResourceForm] = useState({ title: "", type: "PDF", link: "", theme: "", groupIds: [] as string[] });
+  const [gradeGroups, setGradeGroups] = useState<{ id: string, name: string }[]>([]);
   const [resourceFile, setResourceFile] = useState<File | null>(null);
   const [uploadingResource, setUploadingResource] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    fetch("/api/grados")
+      .then(res => res.json())
+      .then(data => {
+        if (data.grades) {
+          const flat: any[] = [];
+          data.grades.forEach((g: any) => {
+            g.groups.forEach((gp: any) => {
+              flat.push({
+                id: gp.id,
+                name: `${g.name} - ${gp.name}`
+              });
+            });
+          });
+          setGradeGroups(flat);
+        }
+      })
+      .catch(() => console.error("Failed to load grade groups"));
+  }, []);
+
   const openUploadModal = (course: Course) => {
     setSelectedCourse(course);
     setEditingResource(null);
-    setResourceForm({ title: "", type: "PDF", link: "", theme: "" });
+    setResourceForm({ title: "", type: "PDF", link: "", theme: "", groupIds: [] });
     setResourceFile(null);
     setError("");
     setShowResourceModal(true);
@@ -83,6 +105,7 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
       type: resource.type,
       link: resource.type === "LINK" ? resource.url : "",
       theme: resource.theme || "",
+      groupIds: resource.groups ? resource.groups.map(g => g.id) : []
     });
     setResourceFile(null);
     setError("");
@@ -108,6 +131,7 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
     if (resourceForm.theme) fd.append("theme", resourceForm.theme);
     if (resourceFile) fd.append("file", resourceFile);
     if (resourceForm.link) fd.append("link", resourceForm.link);
+    fd.append("groupIds", JSON.stringify(resourceForm.groupIds));
 
     try {
       const url = "/api/docente/recursos";
@@ -377,7 +401,7 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
                     <div className="flex justify-between items-center">
                       <h3 className="text-sm font-bold uppercase tracking-wider text-muted flex items-center gap-2">
                         <FileText size={16} className="text-blue-500" />
-                        Materiales de Clase ({selectedPeriod})
+                        Materiales del {selectedPeriod}
                       </h3>
                       <button 
                         onClick={() => openUploadModal(course)}
@@ -472,7 +496,7 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
                     <div className="flex justify-between items-center">
                       <h3 className="text-sm font-bold uppercase tracking-wider text-muted flex items-center gap-2">
                         <ClipboardList size={16} className="text-green-500" />
-                        Tareas del Periodo ({selectedPeriod})
+                        Tareas del {selectedPeriod}
                       </h3>
                       <Link 
                         href={`/docente/tareas/nueva?courseId=${course.id}&periodo=${encodeURIComponent(selectedPeriod)}`}
@@ -594,6 +618,54 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
               <div className="input-group flex-1">
                 <label className="font-semibold text-xs mb-1 block">Periodo</label>
                 <input type="text" className="input-field bg-gray-100 dark:bg-gray-800" value={selectedPeriod} disabled />
+              </div>
+            </div>
+
+            <div className="input-group mb-4">
+              <label className="font-semibold text-xs mb-1.5 block">Asignar a Grupos (Múltiple) *</label>
+              
+              <div className="flex justify-between items-center mb-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const allIds = gradeGroups.map(g => g.id);
+                    const allSelected = allIds.every(id => resourceForm.groupIds.includes(id));
+                    setResourceForm({
+                      ...resourceForm,
+                      groupIds: allSelected ? [] : allIds
+                    });
+                  }}
+                  className="text-xs font-bold text-blue-600 hover:underline"
+                >
+                  {gradeGroups.map(g => g.id).every(id => resourceForm.groupIds.includes(id)) 
+                    ? "Desmarcar todos" 
+                    : "Seleccionar todos"}
+                </button>
+                <span className="text-[10px] text-muted font-medium">
+                  {resourceForm.groupIds.length} seleccionado(s)
+                </span>
+              </div>
+
+              <div className="border rounded-lg p-3 max-h-[160px] overflow-y-auto flex flex-col gap-2 bg-slate-50 dark:bg-slate-900" style={{ borderColor: 'var(--border-color)' }}>
+                {gradeGroups.map(g => {
+                  const isChecked = resourceForm.groupIds.includes(g.id);
+                  return (
+                    <label key={g.id} className="flex items-center gap-2 text-sm font-medium cursor-pointer hover:text-primary">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          const newIds = isChecked
+                            ? resourceForm.groupIds.filter(id => id !== g.id)
+                            : [...resourceForm.groupIds, g.id];
+                          setResourceForm({ ...resourceForm, groupIds: newIds });
+                        }}
+                        className="rounded text-blue-600 focus:ring-blue-500"
+                      />
+                      <span>{g.name}</span>
+                    </label>
+                  );
+                })}
               </div>
             </div>
 
