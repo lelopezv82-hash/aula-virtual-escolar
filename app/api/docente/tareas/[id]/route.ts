@@ -92,8 +92,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const weight = weightRaw ? parseInt(weightRaw, 10) : 0;
     const groupId = formData.get('groupId') as string | null;
 
-    if (!title || !dueDate || !theme || !period) {
-      return NextResponse.json({ error: 'Faltan datos obligatorios (título, fecha límite, tema y periodo)' }, { status: 400 });
+    if (!title || !dueDate || !theme || !period || !groupId) {
+      return NextResponse.json({ error: 'Faltan datos obligatorios (título, fecha límite, tema, periodo y grupo)' }, { status: 400 });
     }
 
     let attachmentUrl = task.attachmentUrl;
