@@ -20,7 +20,7 @@ export async function GET() {
       include: {
         tasks: { where: { active: true } },
         resources: { where: { active: true } },
-        group: { include: { grade: true } }
+        groups: { include: { grade: true } }
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -51,11 +51,20 @@ export async function POST(request: Request) {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     if (payload.role !== "TEACHER") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    const { name, description, groupId } = await request.json();
-    if (!name || !groupId) return NextResponse.json({ error: 'El nombre y el grupo son obligatorios' }, { status: 400 });
+    const { name, description, groupIds } = await request.json();
+    if (!name || !groupIds || !Array.isArray(groupIds) || groupIds.length === 0) {
+      return NextResponse.json({ error: 'El nombre y al menos un grupo son obligatorios' }, { status: 400 });
+    }
 
     const course = await prisma.course.create({
-      data: { name, description, groupId, teacherId: payload.id as string }
+      data: { 
+        name, 
+        description, 
+        teacherId: payload.id as string,
+        groups: {
+          connect: groupIds.map(id => ({ id }))
+        }
+      }
     });
     return NextResponse.json({ success: true, course });
   } catch {
@@ -71,20 +80,26 @@ export async function PATCH(request: Request) {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     if (payload.role !== "TEACHER") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    const { id, all, name, description, groupId, period1Active, period2Active, period3Active, period4Active } = await request.json();
+    const { id, all, name, description, groupIds, period1Active, period2Active, period3Active, period4Active } = await request.json();
     if (!id && !all) return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 });
 
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
-    if (groupId !== undefined) updateData.groupId = groupId || null;
     if (period1Active !== undefined) updateData.period1Active = period1Active;
     if (period2Active !== undefined) updateData.period2Active = period2Active;
     if (period3Active !== undefined) updateData.period3Active = period3Active;
     if (period4Active !== undefined) updateData.period4Active = period4Active;
 
-    if (groupId !== undefined && !groupId && !all) {
-      return NextResponse.json({ error: 'El grupo es obligatorio' }, { status: 400 });
+    if (groupIds !== undefined) {
+      if (!all && (!Array.isArray(groupIds) || groupIds.length === 0)) {
+        return NextResponse.json({ error: 'Al menos un grupo es obligatorio' }, { status: 400 });
+      }
+      if (Array.isArray(groupIds)) {
+        updateData.groups = {
+          set: groupIds.map(id => ({ id }))
+        };
+      }
     }
 
     if (all) {
@@ -93,8 +108,8 @@ export async function PATCH(request: Request) {
         data: updateData
       });
     } else {
-      await prisma.course.updateMany({
-        where: { id, teacherId: payload.id as string },
+      await prisma.course.update({
+        where: { id },
         data: updateData
       });
     }
