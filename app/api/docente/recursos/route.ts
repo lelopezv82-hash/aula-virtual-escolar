@@ -45,6 +45,7 @@ export async function POST(request: Request) {
     const file = formData.get('file') as File | null;
     const theme = formData.get('theme') as string | null;
     const period = formData.get('period') as string | null;
+    const groupId = formData.get('groupId') as string | null;
 
     if (!courseId || !title || !type || !theme || !period) {
       return NextResponse.json({ error: 'Faltan datos obligatorios (título, tipo, tema y periodo)' }, { status: 400 });
@@ -94,7 +95,7 @@ export async function POST(request: Request) {
     if (!url) return NextResponse.json({ error: 'Debes adjuntar un archivo o un enlace' }, { status: 400 });
 
     const resource = await prisma.resource.create({
-      data: { title, type, url, courseId, theme, period }
+      data: { title, type, url, courseId, theme, period, groupId: groupId || null }
     });
 
     return NextResponse.json({ success: true, resource });
@@ -134,6 +135,7 @@ export async function PATCH(request: Request) {
     const file = formData.get('file') as File | null;
     const theme = formData.get('theme') as string | null;
     const period = formData.get('period') as string | null;
+    const groupId = formData.get('groupId') as string | null;
 
     if (!id || !title || !type || !theme || !period) {
       return NextResponse.json({ error: 'Faltan datos obligatorios (id, título, tipo, tema y periodo)' }, { status: 400 });
@@ -192,7 +194,7 @@ export async function PATCH(request: Request) {
 
     const updatedResource = await prisma.resource.update({
       where: { id },
-      data: { title, type, url, theme, period }
+      data: { title, type, url, theme, period, groupId: groupId || null }
     });
 
     return NextResponse.json({ success: true, resource: updatedResource });
