@@ -78,7 +78,7 @@ export async function POST(request: Request) {
       const gAccessToken = await getGoogleAccessToken(teacherId);
       if (gAccessToken) {
         try {
-          const folderPath = `${course.name}/Recursos`;
+          const folderPath = `${course.name}/Materiales`;
           url = await uploadToGoogleDrive(buffer, file.name, file.type, teacherId, folderPath);
         } catch (driveError) {
           console.error("Google Drive upload error, falling back to Supabase:", driveError);
@@ -200,7 +200,7 @@ export async function PATCH(request: Request) {
       const gAccessToken = await getGoogleAccessToken(teacherId);
       if (gAccessToken) {
         try {
-          const folderPath = `${existingResource.course.name}/Recursos`;
+          const folderPath = `${existingResource.course.name}/Materiales`;
           url = await uploadToGoogleDrive(buffer, file.name, file.type, teacherId, folderPath);
         } catch (driveError) {
           console.error("Google Drive upload error, falling back to Supabase:", driveError);
