@@ -35,8 +35,8 @@ export async function POST(request: Request) {
     const weight = weightRaw ? parseInt(weightRaw, 10) : 0;
     const groupId = formData.get('groupId') as string | null;
 
-    if (!title || !dueDate || !courseId || !theme || !period) {
-      return NextResponse.json({ error: 'Faltan datos obligatorios (título, fecha límite, curso, tema y periodo)' }, { status: 400 });
+    if (!title || !dueDate || !courseId || !theme || !period || !groupId) {
+      return NextResponse.json({ error: 'Faltan datos obligatorios (título, fecha límite, curso, tema, periodo y grupo)' }, { status: 400 });
     }
 
     // Verify course belongs to teacher
