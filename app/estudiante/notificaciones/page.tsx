@@ -28,7 +28,7 @@ export default async function NotificacionesPage() {
         some: {
           id: studentGroupId
         }
-      } : { id: "none" }
+      } : { none: {} }
     },
     orderBy: { createdAt: "desc" },
     take: 10,
@@ -42,7 +42,7 @@ export default async function NotificacionesPage() {
         some: {
           id: studentGroupId
         }
-      } : { id: "none" }
+      } : { none: {} }
     },
     orderBy: { createdAt: "desc" },
     take: 10,
