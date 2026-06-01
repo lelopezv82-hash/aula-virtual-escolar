@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   FileText, Plus, ExternalLink, Trash2, Loader2, 
   UploadCloud, X, Save, ClipboardList, BookOpen, ToggleLeft, ToggleRight,
@@ -18,6 +18,7 @@ interface Resource {
   theme?: string | null;
   period?: string | null;
   active?: boolean;
+  groupId?: string | null;
 }
 
 interface Task {
@@ -28,6 +29,7 @@ interface Task {
   dueDate: string;
   period?: string | null;
   active?: boolean;
+  groupId?: string | null;
 }
 
 interface Course {
