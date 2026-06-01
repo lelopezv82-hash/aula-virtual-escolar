@@ -4,7 +4,8 @@ import { jwtVerify } from "jose";
 import { ArrowLeft, Download, CheckCircle, Clock } from "lucide-react";
 import Link from "next/link";
 import ExportButtons from "./ExportButtons";
-
+import LateSubmissionManager from "./LateSubmissionManager";
+import StudentLateSubmissionToggle from "./StudentLateSubmissionToggle";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
@@ -31,8 +32,15 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
     return <div className="alert alert-danger">No tienes acceso a esta tarea.</div>;
   }
 
-  // Get all students in this course (for MVP, we fetch all students since courses don't have explicit enrollment yet)
-  const allStudents = await prisma.user.findMany({ where: { role: "STUDENT" } });
+  // Get students in this course's group if task.groupId is set
+  const studentWhereClause: any = { role: "STUDENT" };
+  if (task.groupId) {
+    studentWhereClause.groupId = task.groupId;
+  }
+  const allStudents = await prisma.user.findMany({ 
+    where: studentWhereClause,
+    orderBy: { name: 'asc' }
+  });
 
   return (
     <div className="animate-fade-in printable-area">
@@ -85,6 +93,19 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
         />
       </div>
 
+      <LateSubmissionManager
+        taskId={task.id}
+        initialTaskAllowLate={task.allowLateSubmission}
+        students={allStudents.map(s => {
+          const sub = task.submissions.find(sub => sub.studentId === s.id);
+          return {
+            id: s.id,
+            name: s.name,
+            allowLateSubmission: sub ? sub.allowLateSubmission : false
+          };
+        })}
+      />
+
       <div className="card w-full">
         <h2 className="text-lg font-bold mb-4 no-print">Estado de las entregas</h2>
         
@@ -92,8 +113,9 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
           <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
-                <th className="py-2 px-4 font-medium">Estudiante</th>
+                <th className="py-2 px-4 font-medium" style={{ paddingLeft: '16px' }}>Estudiante</th>
                 <th className="py-2 px-4 font-medium">Estado</th>
+                <th className="py-2 px-4 font-medium text-center">Entrega Tardía</th>
                 <th className="py-2 px-4 font-medium">Fecha de Envío</th>
                 <th className="py-2 px-4 font-medium text-right no-print">Acciones</th>
               </tr>
@@ -103,10 +125,11 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
                 const submission = task.submissions.find(s => s.studentId === student.id);
                 const isSubmitted = submission && submission.status !== "PENDING";
                 const isGraded = submission && submission.status === "GRADED";
+                const allowLate = submission ? submission.allowLateSubmission : false;
                 
                 return (
                   <tr key={student.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                    <td className="py-3 px-4">{student.name}</td>
+                    <td className="py-3 px-4" style={{ paddingLeft: '16px' }}>{student.name}</td>
                     <td className="py-3 px-4">
                       {isGraded ? (
                         <span className="badge badge-success flex w-fit items-center gap-1"><CheckCircle size={12}/> Calificada: {submission.grade}</span>
@@ -115,6 +138,14 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
                       ) : (
                         <span className="badge badge-warning flex w-fit items-center gap-1"><Clock size={12}/> Pendiente</span>
                       )}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <StudentLateSubmissionToggle
+                        taskId={task.id}
+                        studentId={student.id}
+                        initialValue={allowLate}
+                        disabled={task.allowLateSubmission}
+                      />
                     </td>
                     <td className="py-3 px-4 text-muted">
                       {submission?.submittedAt ? new Date(submission.submittedAt).toLocaleString() : '-'}
