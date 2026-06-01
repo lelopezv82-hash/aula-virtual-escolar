@@ -63,16 +63,31 @@ export default function ExportButtons({ taskTitle, courseName, dueDate, students
         ...rows
       ].map(e => e.map(val => `"${val.replace(/"/g, '""')}"`).join(",")).join("\n");
 
+      const safeTitle = taskTitle.toLowerCase().replace(/[^a-z0-9]/g, "_");
+      const filename = `calificaciones_${safeTitle}.csv`;
+
       // Use BOM so Excel parses UTF-8 characters like accents and 'ñ' correctly
       const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.setAttribute("href", url);
-      const safeTitle = taskTitle.toLowerCase().replace(/[^a-z0-9]/g, "_");
-      link.setAttribute("download", `calificaciones_${safeTitle}.csv`);
+      link.setAttribute("download", filename);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+
+      // Back up to Google Drive (silently)
+      fetch("/api/docente/gdrive/reportes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          csvContent,
+          courseName,
+          taskTitle,
+          type: "grades",
+          filename
+        })
+      }).catch(err => console.error("Error backing up to Google Drive:", err));
 
       setExported(true);
       setTimeout(() => setExported(false), 2000);
