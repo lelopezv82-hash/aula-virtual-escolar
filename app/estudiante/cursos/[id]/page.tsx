@@ -61,7 +61,7 @@ export default async function EstudianteCursoDetallePage({
     }
   });
 
-  if (!course) {
+  if (!course || (course.groupId && course.groupId !== studentGroupId)) {
     return (
       <div className="animate-fade-in">
         <div className="alert alert-danger">El curso no existe o no tienes acceso a él.</div>
