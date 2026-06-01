@@ -532,7 +532,8 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
         ...rows
       ].map(e => e.map(val => `"${val.replace(/"/g, '""')}"`).join(",")).join("\n");
 
-      const filename = `lista_estudiantes_${selectedGroupForStudents.name.toLowerCase().replace(/[^a-z0-9]/g, "_")}.csv`;
+      const fullGroupName = parentGradeOfSelectedGroup ? `${parentGradeOfSelectedGroup.name} - ${selectedGroupForStudents.name}` : selectedGroupForStudents.name;
+      const filename = `lista_estudiantes_${fullGroupName.toLowerCase().replace(/[^a-z0-9]/g, "_")}.csv`;
 
       // Download file locally
       const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
@@ -550,7 +551,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           csvContent,
-          groupName: selectedGroupForStudents.name,
+          groupName: fullGroupName,
           groupId: selectedGroupForStudents.id,
           type: "students",
           filename
