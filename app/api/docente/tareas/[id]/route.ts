@@ -68,10 +68,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     const contentType = request.headers.get("content-type") || "";
     if (contentType.includes("application/json")) {
-      const { active } = await request.json();
+      const { active, allowLateSubmission } = await request.json();
+      const dataToUpdate: any = {};
+      if (active !== undefined) dataToUpdate.active = !!active;
+      if (allowLateSubmission !== undefined) dataToUpdate.allowLateSubmission = !!allowLateSubmission;
+      
       const updatedTask = await prisma.task.update({
         where: { id: resolvedParams.id },
-        data: { active: !!active }
+        data: dataToUpdate
       });
       return NextResponse.json({ success: true, task: updatedTask });
     }
@@ -85,6 +89,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const period = formData.get('period') as string | null;
     const weightRaw = formData.get('weight') as string | null;
     const weight = weightRaw ? parseInt(weightRaw, 10) : 0;
+    const groupId = formData.get('groupId') as string | null;
 
     if (!title || !dueDate || !theme || !period) {
       return NextResponse.json({ error: 'Faltan datos obligatorios (título, fecha límite, tema y periodo)' }, { status: 400 });
@@ -126,6 +131,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         attachmentUrl,
         theme,
         period,
+        groupId: groupId || null,
         weight: isNaN(weight) ? 0 : weight
       }
     });
