@@ -441,7 +441,7 @@ export default function ContenidoClient({ courses }: ContenidoClientProps) {
                           {course.tasks.map(task => (
                             <tr key={task.id} className="border-b hover:bg-slate-50/50" style={{ borderColor: "var(--border-color)" }}>
                               <td className="py-3 px-4 text-sm font-bold text-slate-800">{task.title}</td>
-                              <td className="py-3 px-4 text-xs font-semibold text-slate-500">{task.period}</td>
+                              <td className="py-3 px-4 text-xs font-semibold text-slate-500">{task.period?.replace(/periodo\s*/i, "")}</td>
                               <td className="py-3 px-4 text-xs font-semibold text-slate-500">{task.theme || "-"}</td>
                               <td className="py-3 px-4 text-xs font-bold text-slate-600">{task.weight}%</td>
                               <td className="py-3 px-4">
@@ -545,7 +545,7 @@ export default function ContenidoClient({ courses }: ContenidoClientProps) {
                               </td>
                               <td className="py-3 px-4 text-xs font-semibold text-slate-650">{res.type}</td>
                               <td className="py-3 px-4 text-xs text-slate-500 font-semibold">{res.theme || "-"}</td>
-                              <td className="py-3 px-4 text-xs text-slate-500 font-semibold">{res.period}</td>
+                              <td className="py-3 px-4 text-xs text-slate-500 font-semibold">{res.period?.replace(/periodo\s*/i, "")}</td>
                               <td className="py-3 px-4">
                                 <div className="flex flex-wrap gap-1">
                                   {res.groups.map(g => (

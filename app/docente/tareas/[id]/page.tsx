@@ -81,7 +81,7 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
           <div>
             <h1 className="text-2xl font-bold">Entregas: {task.title}</h1>
             <div className="flex flex-wrap gap-x-2.5 gap-y-1 text-xs mt-1.5 text-muted font-medium">
-              <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Periodo: {task.period || "Sin Periodo"}</span>
+              <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Periodo: {task.period?.replace(/periodo\s*/i, "") || "Sin Periodo"}</span>
               <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Grado: {Array.from(new Set(task.groups.map(g => g.grade?.name))).filter(Boolean).join(", ") || "Sin Grado"}</span>
               <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Grupo: {task.groups.map(g => `${g.grade?.name}-${g.name}`).join(", ") || "Sin Grupo"}</span>
               <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Asignatura: {task.course.name}</span>
@@ -104,7 +104,7 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
             feedback: s.feedback,
             submittedAt: s.submittedAt
           }))}
-          period={task.period}
+          period={task.period?.replace(/periodo\s*/i, "")}
           gradeName={task.groups[0]?.grade?.name}
           groupName={task.groups.map(g => g.name).join(", ")}
           theme={task.theme}
@@ -135,7 +135,7 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
               <div className="mb-4">
                 <h2 className="text-lg font-bold">Estado de las entregas: Grado {group.grade?.name || "Sin Grado"} - Grupo {group.name}</h2>
                 <div className="flex flex-wrap gap-x-2.5 gap-y-1 text-xs mt-1.5 text-muted font-medium no-print">
-                  <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Periodo: {task.period || "Sin Periodo"}</span>
+                  <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Periodo: {task.period?.replace(/periodo\s*/i, "") || "Sin Periodo"}</span>
                   <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Grado: {group.grade?.name || "Sin Grado"}</span>
                   <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Grupo: {group.name}</span>
                   <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Asignatura: {task.course.name}</span>
@@ -173,7 +173,7 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
                         
                         return (
                           <tr key={student.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                            <td className="py-3 px-4" style={{ paddingLeft: '16px' }}>{task.period || "Sin Periodo"}</td>
+                            <td className="py-3 px-4" style={{ paddingLeft: '16px' }}>{task.period?.replace(/periodo\s*/i, "") || "Sin Periodo"}</td>
                             <td className="py-3 px-4">{group.grade?.name || "Sin Grado"}</td>
                             <td className="py-3 px-4">{group.name}</td>
                             <td className="py-3 px-4">{task.course.name}</td>
@@ -231,7 +231,7 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
           <div className="mb-4 no-print">
             <h2 className="text-lg font-bold">Estado de las entregas</h2>
             <div className="flex flex-wrap gap-x-2.5 gap-y-1 text-xs mt-1.5 text-muted font-medium">
-              <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Periodo: {task.period || "Sin Periodo"}</span>
+              <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Periodo: {task.period?.replace(/periodo\s*/i, "") || "Sin Periodo"}</span>
               <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Grado: Sin Grado</span>
               <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Grupo: Sin Grupo</span>
               <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Asignatura: {task.course.name}</span>
@@ -266,7 +266,7 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
                   
                   return (
                     <tr key={student.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                      <td className="py-3 px-4" style={{ paddingLeft: '16px' }}>{task.period || "Sin Periodo"}</td>
+                      <td className="py-3 px-4" style={{ paddingLeft: '16px' }}>{task.period?.replace(/periodo\s*/i, "") || "Sin Periodo"}</td>
                       <td className="py-3 px-4">Sin Grado</td>
                       <td className="py-3 px-4">Sin Grupo</td>
                       <td className="py-3 px-4">{task.course.name}</td>
