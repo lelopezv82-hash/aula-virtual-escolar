@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Edit2, Trash2, Eye, Loader2 } from "lucide-react";
+import { Edit2, Trash2, Eye, Loader2, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useConfirm } from "@/components/ConfirmProvider";
 
-export default function TaskActions({ taskId }: { taskId: string }) {
+export default function TaskActions({ taskId, attachmentUrl }: { taskId: string; attachmentUrl?: string | null }) {
   const confirm = useConfirm();
   const [deleting, setDeleting] = useState(false);
   const router = useRouter();
@@ -41,6 +41,17 @@ export default function TaskActions({ taskId }: { taskId: string }) {
 
   return (
     <div className="flex justify-end gap-2">
+      {attachmentUrl && (
+        <a 
+          href={attachmentUrl} 
+          target="_blank" 
+          rel="noreferrer" 
+          className="btn btn-secondary text-sm flex items-center gap-1"
+          title="Ver enlace/archivo adjunto"
+        >
+          <ExternalLink size={14} /> Guía
+        </a>
+      )}
       <Link href={`/docente/tareas/${taskId}`} className="btn btn-secondary text-sm flex items-center gap-1">
         <Eye size={14} /> Ver Entregas
       </Link>

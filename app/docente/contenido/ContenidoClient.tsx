@@ -465,6 +465,17 @@ export default function ContenidoClient({ courses }: ContenidoClientProps) {
                               </td>
                               <td className="py-3 px-4 text-right">
                                 <div className="flex justify-end gap-2">
+                                  {task.attachmentUrl && (
+                                    <a
+                                      href={task.attachmentUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="p-1.5 rounded hover:bg-slate-100 text-slate-500 hover:text-blue-600"
+                                      title="Ver enlace/archivo adjunto"
+                                    >
+                                      <ExternalLink size={16} />
+                                    </a>
+                                  )}
                                   <button
                                     onClick={() => openEditTaskModal(task, course.id)}
                                     className="p-1.5 rounded hover:bg-blue-50 text-slate-500 hover:text-blue-600"

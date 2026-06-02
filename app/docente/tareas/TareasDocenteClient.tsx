@@ -12,6 +12,7 @@ interface Task {
   theme?: string | null;
   period?: string | null;
   weight?: number | null;
+  attachmentUrl?: string | null;
 }
 
 interface Course {
@@ -169,7 +170,7 @@ export default function TareasDocenteClient({ courses }: { courses: Course[] }) 
                                     {new Date(task.dueDate).toLocaleDateString()}
                                   </td>
                                   <td className="py-3 px-4 text-right">
-                                    <TaskActions taskId={task.id} />
+                                    <TaskActions taskId={task.id} attachmentUrl={task.attachmentUrl} />
                                   </td>
                                 </tr>
                               ))}
