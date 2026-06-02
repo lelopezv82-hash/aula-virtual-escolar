@@ -921,32 +921,45 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                         <tr key={period.id} className="hover:bg-slate-50/55 dark:hover:bg-slate-900/30 transition-colors">
                           <td className="p-4 font-semibold text-sm">{period.name}</td>
                           <td className="p-4">
-                            <span 
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
-                                period.active 
-                                  ? "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400" 
-                                  : "bg-gray-100 text-gray-500 dark:bg-gray-800"
-                              }`}
-                            >
-                              <span className={`w-1.5 h-1.5 rounded-full ${period.active ? "bg-green-500" : "bg-gray-400"}`}></span>
-                              {period.active ? "Activo" : "Inactivo"}
-                            </span>
-                          </td>
-                          <td className="p-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
+                            <div className="flex items-center gap-3">
                               <button
                                 type="button"
                                 onClick={() => handleTogglePeriodActive(period)}
-                                className={`p-1.5 rounded-lg border transition-all ${
-                                  period.active
-                                    ? "text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950/30"
-                                    : "text-gray-400 hover:bg-gray-50 dark:text-gray-500 dark:hover:bg-gray-800"
-                                }`}
-                                style={{ borderColor: "var(--border-color)" }}
+                                className="relative inline-flex items-center cursor-pointer transition-colors duration-200 ease-in-out focus:outline-none"
+                                style={{
+                                  width: "42px",
+                                  height: "22px",
+                                  borderRadius: "9999px",
+                                  background: period.active ? "var(--success, #10b981)" : "#cbd5e1",
+                                  border: "none",
+                                  padding: 0,
+                                  outline: "none"
+                                }}
                                 title={period.active ? "Desactivar Periodo" : "Activar Periodo"}
                               >
-                                {period.active ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
+                                <span
+                                  className="pointer-events-none inline-block rounded-full bg-white shadow-md transition-transform duration-200 ease-in-out"
+                                  style={{
+                                    width: "18px",
+                                    height: "18px",
+                                    transform: period.active ? "translateX(22px)" : "translateX(2px)",
+                                    boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
+                                  }}
+                                />
                               </button>
+                              <span 
+                                className={`text-xs font-semibold ${
+                                  period.active 
+                                    ? "text-green-600 dark:text-green-400 font-bold" 
+                                    : "text-gray-400"
+                                }`}
+                              >
+                                {period.active ? "Activo" : "Inactivo"}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="p-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
                               <button
                                 type="button"
                                 onClick={() => {
