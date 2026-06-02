@@ -51,6 +51,10 @@ export default async function ContenidoPage() {
     id: course.id,
     name: course.name,
     description: course.description,
+    period1Active: course.period1Active,
+    period2Active: course.period2Active,
+    period3Active: course.period3Active,
+    period4Active: course.period4Active,
     groups: course.groups.map(g => ({
       id: g.id,
       name: g.name,

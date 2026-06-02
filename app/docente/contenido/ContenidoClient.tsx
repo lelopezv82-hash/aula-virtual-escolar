@@ -7,6 +7,8 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useConfirm } from "@/components/ConfirmProvider";
+import Link from "next/link";
+
 
 interface Group {
   id: string;
@@ -46,6 +48,10 @@ interface Course {
   id: string;
   name: string;
   description: string | null;
+  period1Active?: boolean;
+  period2Active?: boolean;
+  period3Active?: boolean;
+  period4Active?: boolean;
   groups: Group[];
   resources: Resource[];
   tasks: Task[];
@@ -63,9 +69,66 @@ export default function ContenidoClient({ courses }: ContenidoClientProps) {
   const router = useRouter();
   const confirm = useConfirm();
   
-  const [activeTab, setActiveTab] = useState<"tareas" | "materiales">("tareas");
+  const [activeTab, setActiveTab] = useState<"tareas" | "materiales" | "periodos">("tareas");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const [activePeriodTab, setActivePeriodTab] = useState("Periodo 1");
+  const activePeriodTabNum = activePeriodTab.split(" ")[1]; // "1", "2", "3", "4"
+
+  const togglePeriodActive = async (course: Course) => {
+    const key = `period${activePeriodTabNum}Active`;
+    const currentVal = (course as any)[key] !== false;
+    const newVal = !currentVal;
+
+    try {
+      const res = await fetch("/api/docente/cursos", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: course.id, [key]: newVal })
+      });
+      if (res.ok) {
+        router.refresh();
+      }
+    } catch {
+      console.error("Failed to toggle period status");
+    }
+  };
+
+  const handleToggleAllCoursesPeriod = async (active: boolean) => {
+    const key = `period${activePeriodTabNum}Active`;
+    const ok = await confirm({
+      title: active ? `Activar ${activePeriodTab}` : `Desactivar ${activePeriodTab}`,
+      message: active 
+        ? `¿Estás seguro de que deseas activar el ${activePeriodTab} para todas tus asignaturas?`
+        : `¿Estás seguro de que deseas desactivar el ${activePeriodTab} para todas tus asignaturas? Se ocultará el contenido a todos los estudiantes.`,
+      confirmText: active ? "Activar Todo" : "Desactivar Todo",
+      type: active ? "info" : "danger"
+    });
+    if (!ok) return;
+
+    try {
+      const res = await fetch("/api/docente/cursos", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ all: true, [key]: active })
+      });
+      if (res.ok) {
+        router.refresh();
+      }
+    } catch {
+      console.error("Failed to toggle global period status");
+    }
+  };
+
+  const [selectedTheme, setSelectedTheme] = useState("");
+  const [selectedPeriod, setSelectedPeriod] = useState("");
+  const hasFiltersApplied = selectedTheme !== "" || selectedPeriod !== "";
+
+  // Extract all unique non-null themes and periods across all tasks in all courses
+  const allTasks = courses.flatMap(c => c.tasks);
+  const uniqueThemes = Array.from(new Set(allTasks.map(t => t.theme).filter(Boolean))) as string[];
+  const uniquePeriods = Array.from(new Set(allTasks.map(t => t.period).filter(Boolean))) as string[];
 
   // Modal states
   const [showTaskModal, setShowTaskModal] = useState(false);
@@ -112,16 +175,16 @@ export default function ContenidoClient({ courses }: ContenidoClientProps) {
   }, [taskForm.courseId, resourceForm.courseId, activeTab, courses]);
 
   // Tasks actions
-  const openNewTaskModal = () => {
+  const openNewTaskModal = (courseId?: string, periodName?: string) => {
     setError("");
     setEditingTask(null);
     setTaskForm({
-      courseId: courses[0]?.id || "",
+      courseId: courseId || courses[0]?.id || "",
       title: "",
       description: "",
       dueDate: "",
       theme: "",
-      period: "Periodo 1",
+      period: periodName || "Periodo 1",
       weight: 0,
       allowLateSubmission: false,
       lateSubmissionUntil: "",
@@ -383,6 +446,19 @@ export default function ContenidoClient({ courses }: ContenidoClientProps) {
             Gestión de Materiales
           </span>
         </button>
+        <button
+          onClick={() => setActiveTab("periodos")}
+          className={`pb-3 px-2 font-bold text-sm md:text-base border-b-2 transition-all ${
+            activeTab === "periodos" 
+              ? "border-blue-600 text-blue-600 font-extrabold" 
+              : "border-transparent text-muted hover:text-primary"
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <Layers size={18} />
+            Periodos Académicos
+          </span>
+        </button>
       </div>
 
       {courses.length === 0 ? (
@@ -395,107 +471,200 @@ export default function ContenidoClient({ courses }: ContenidoClientProps) {
         <div className="flex flex-col gap-6">
           
           {/* Header Action Row */}
-          <div className="flex justify-between items-center flex-wrap gap-4">
-            <h3 className="font-bold text-base md:text-lg">
-              {activeTab === "tareas" ? "Tareas y Evaluaciones Asignadas" : "Materiales de Clase Compartidos"}
-            </h3>
-            <button
-              onClick={activeTab === "tareas" ? openNewTaskModal : openNewResourceModal}
-              className="btn btn-primary px-4 py-2 text-sm flex items-center gap-2"
-            >
-              <Plus size={18} />
-              {activeTab === "tareas" ? "Nueva Tarea" : "Subir Material"}
-            </button>
-          </div>
+          {activeTab !== "periodos" && (
+            <div className="flex justify-between items-center flex-wrap gap-4">
+              <h3 className="font-bold text-base md:text-lg">
+                {activeTab === "tareas" ? "Tareas y Evaluaciones Asignadas" : "Materiales de Clase Compartidos"}
+              </h3>
+              <button
+                onClick={() => activeTab === "tareas" ? openNewTaskModal() : openNewResourceModal()}
+                className="btn btn-primary px-4 py-2 text-sm flex items-center gap-2"
+              >
+                <Plus size={18} />
+                {activeTab === "tareas" ? "Nueva Tarea" : "Subir Material"}
+              </button>
+            </div>
+          )}
 
           {/* List and Tables */}
-          {activeTab === "tareas" ? (
+          {activeTab === "tareas" && (
             <div className="flex flex-col gap-6">
-              {courses.map(course => {
-                if (course.tasks.length === 0) return null;
-                return (
-                  <div key={course.id} className="card p-0 overflow-hidden" style={{ border: "1px solid var(--border-color)" }}>
-                    <div className="p-4 bg-slate-50 border-b flex justify-between items-center" style={{ borderColor: "var(--border-color)" }}>
-                      <span className="font-bold text-sm uppercase tracking-wider text-slate-800 flex items-center gap-2">
-                        <BookOpen size={16} className="text-blue-600" />
-                        {course.name}
-                      </span>
-                      <span className="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-extrabold">{course.tasks.length} Tareas</span>
+              {/* Global Filter Toolbar */}
+              {allTasks.length > 0 && (uniqueThemes.length > 0 || uniquePeriods.length > 0) && (
+                <div className="card p-4 flex flex-wrap gap-4 items-center mb-2" style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-color)" }}>
+                  <span className="font-semibold text-sm text-muted">Filtrar Tareas:</span>
+                  {uniqueThemes.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-muted font-medium">Tema:</label>
+                      <select 
+                        className="input-field py-1 px-3 text-xs h-auto" 
+                        value={selectedTheme} 
+                        onChange={e => setSelectedTheme(e.target.value)}
+                        style={{ width: "160px" }}
+                      >
+                        <option value="">Todos los temas</option>
+                        {uniqueThemes.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
                     </div>
+                  )}
+                  {uniquePeriods.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-muted font-medium">Periodo:</label>
+                      <select 
+                        className="input-field py-1 px-3 text-xs h-auto" 
+                        value={selectedPeriod} 
+                        onChange={e => setSelectedPeriod(e.target.value)}
+                        style={{ width: "160px" }}
+                      >
+                        <option value="">Todos los periodos</option>
+                        {uniquePeriods.map(p => <option key={p} value={p}>{p}</option>)}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              )}
 
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="border-b text-xs text-muted" style={{ borderColor: "var(--border-color)" }}>
-                            <th className="py-2.5 px-4 font-bold">Título</th>
-                            <th className="py-2.5 px-4 font-bold">Periodo</th>
-                            <th className="py-2.5 px-4 font-bold">Tema</th>
-                            <th className="py-2.5 px-4 font-bold">Peso</th>
-                            <th className="py-2.5 px-4 font-bold">Grupos</th>
-                            <th className="py-2.5 px-4 font-bold">Fecha Límite</th>
-                            <th className="py-2.5 px-4 font-bold text-center">Estado</th>
-                            <th className="py-2.5 px-4 font-bold text-right">Acciones</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {course.tasks.map(task => (
-                            <tr key={task.id} className="border-b hover:bg-slate-50/50" style={{ borderColor: "var(--border-color)" }}>
-                              <td className="py-3 px-4 text-sm font-bold text-slate-800">{task.title}</td>
-                              <td className="py-3 px-4 text-xs font-semibold text-slate-500">{task.period?.replace(/periodo\s*/i, "")}</td>
-                              <td className="py-3 px-4 text-xs font-semibold text-slate-500">{task.theme || "-"}</td>
-                              <td className="py-3 px-4 text-xs font-bold text-slate-600">{task.weight}%</td>
-                              <td className="py-3 px-4">
-                                <div className="flex flex-wrap gap-1">
-                                  {task.groups.map(g => (
-                                    <span key={g.id} className="text-[10px] bg-blue-50 text-blue-700 border px-1.5 py-0.2 rounded font-bold">
-                                      {g.grade.name} - {g.name}
-                                    </span>
-                                  ))}
-                                </div>
-                              </td>
-                              <td className="py-3 px-4 text-xs text-muted font-medium">{new Date(task.dueDate).toLocaleString()}</td>
-                              <td className="py-3 px-4 text-center">
-                                <button
-                                  onClick={() => toggleTaskActive(task)}
-                                  className={`p-1.5 rounded-lg inline-flex ${task.active !== false ? "text-green-600 hover:bg-green-50" : "text-gray-400 hover:bg-gray-100"}`}
-                                  title={task.active !== false ? "Visible para alumnos (Click para ocultar)" : "Oculto para alumnos (Click para mostrar)"}
-                                >
-                                  {task.active !== false ? <Eye size={18} /> : <EyeOff size={18} />}
-                                </button>
-                              </td>
-                              <td className="py-3 px-4 text-right">
-                                <div className="flex justify-end gap-2">
-                                  {task.attachmentUrl && (
-                                    <a
-                                      href={task.attachmentUrl}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="p-1.5 rounded hover:bg-slate-100 text-slate-500 hover:text-blue-600"
-                                      title="Ver enlace/archivo adjunto"
-                                    >
-                                      <ExternalLink size={16} />
-                                    </a>
-                                  )}
+              {courses.map(course => {
+                // Filter tasks of the course client-side
+                const filteredTasks = course.tasks.filter(task => {
+                  const matchTheme = !selectedTheme || task.theme === selectedTheme;
+                  const matchPeriod = !selectedPeriod || task.period === selectedPeriod;
+                  return matchTheme && matchPeriod;
+                });
+
+                if (hasFiltersApplied && filteredTasks.length === 0) return null;
+
+                return (
+                  <div key={course.id} className="card w-full">
+                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                      <ClipboardList className="text-blue-600" />
+                      {course.name}
+                    </h2>
+                    
+                    <div className="flex flex-col gap-5">
+                      {["Periodo 1", "Periodo 2", "Periodo 3", "Periodo 4", "Otros"].map(periodName => {
+                        const periodTasks = filteredTasks.filter(t => {
+                          if (periodName === "Otros") {
+                            return !t.period || !["Periodo 1", "Periodo 2", "Periodo 3", "Periodo 4"].includes(t.period);
+                          }
+                          return t.period === periodName;
+                        });
+
+                        if (periodName === "Otros" && periodTasks.length === 0) return null;
+
+                        const isPeriodActive = periodName === "Otros" || (() => {
+                          if (periodName === "Periodo 1") return course.period1Active !== false;
+                          if (periodName === "Periodo 2") return course.period2Active !== false;
+                          if (periodName === "Periodo 3") return course.period3Active !== false;
+                          if (periodName === "Periodo 4") return course.period4Active !== false;
+                          return true;
+                        })();
+
+                        return (
+                          <div key={periodName} className="p-3 rounded-lg border" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', opacity: isPeriodActive ? 1 : 0.6 }}>
+                            <h4 className="font-bold text-xs uppercase tracking-wider mb-3 flex items-center justify-between" style={{ color: 'var(--text-secondary)' }}>
+                              <span className="flex items-center gap-2">
+                                <span className={`w-2 h-2 rounded-full ${isPeriodActive ? 'bg-blue-500' : 'bg-gray-400'}`}></span>
+                                {periodName}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                {!isPeriodActive && <span className="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded uppercase font-semibold">Oculto para Alumnos</span>}
+                                {periodName !== "Otros" && (
                                   <button
-                                    onClick={() => openEditTaskModal(task, course.id)}
-                                    className="p-1.5 rounded hover:bg-blue-50 text-slate-500 hover:text-blue-600"
-                                    title="Editar"
+                                    onClick={() => openNewTaskModal(course.id, periodName)}
+                                    className="btn btn-primary py-1 px-2.5 text-[11px] h-auto flex items-center gap-1"
                                   >
-                                    <Edit2 size={16} />
+                                    <Plus size={12} /> Crear Tarea
                                   </button>
-                                  <button
-                                    onClick={() => handleDeleteTask(task.id)}
-                                    className="p-1.5 rounded hover:bg-red-50 text-slate-500 hover:text-red-600"
-                                    title="Eliminar"
-                                  >
-                                    <Trash2 size={16} />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                                )}
+                              </div>
+                            </h4>
+                            
+                            {periodTasks.length === 0 ? (
+                              <p className="text-muted text-xs italic p-2">No hay tareas creadas en este periodo.</p>
+                            ) : (
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse" style={{ borderCollapse: 'collapse' }}>
+                                  <thead>
+                                    <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                                      <th className="py-2 px-4 font-medium text-xs">Título</th>
+                                      <th className="py-2 px-4 font-medium text-xs">Asignatura</th>
+                                      <th className="py-2 px-4 font-medium text-xs">Grado</th>
+                                      <th className="py-2 px-4 font-medium text-xs">Grupo</th>
+                                      <th className="py-2 px-4 font-medium text-xs">Tema</th>
+                                      <th className="py-2 px-4 font-medium text-xs">Porcentaje</th>
+                                      <th className="py-2 px-4 font-medium text-xs">Fecha Límite</th>
+                                      <th className="py-2 px-4 font-medium text-xs text-right">Acciones</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {periodTasks.map(task => (
+                                      <tr key={task.id} style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-primary)' }}>
+                                        <td className="py-3 px-4 font-semibold text-sm text-slate-800">{task.title}</td>
+                                        <td className="py-3 px-4 text-xs font-semibold text-slate-650">{course.name}</td>
+                                        <td className="py-3 px-4 text-xs text-slate-600 dark:text-slate-400">{task.groups?.[0]?.grade?.name || "Sin Grado"}</td>
+                                        <td className="py-3 px-4 text-xs text-slate-600 dark:text-slate-400">{task.groups?.map(g => g.name).join(", ") || "Sin Grupo"}</td>
+                                        <td className="py-3 px-4">
+                                          {task.theme ? (
+                                            <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: 'rgba(37, 99, 235, 0.1)', color: 'var(--primary-color)' }}>
+                                              {task.theme}
+                                            </span>
+                                          ) : (
+                                            <span className="text-xs text-muted italic">-</span>
+                                          )}
+                                        </td>
+                                        <td className="py-3 px-4">
+                                          <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+                                            {task.weight !== undefined && task.weight !== null ? task.weight : 0}%
+                                          </span>
+                                        </td>
+                                        <td className="py-3 px-4 text-muted text-sm">
+                                          {new Date(task.dueDate).toLocaleString()}
+                                        </td>
+                                        <td className="py-3 px-4 text-right">
+                                          <div className="flex justify-end gap-2">
+                                            {task.attachmentUrl && (
+                                              <a
+                                                href={task.attachmentUrl}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="btn btn-secondary py-1 px-2 text-xs flex items-center gap-1"
+                                                title="Ver enlace/archivo adjunto"
+                                              >
+                                                <ExternalLink size={12} /> Guía
+                                              </a>
+                                            )}
+                                            <Link
+                                              href={`/docente/tareas/${task.id}`}
+                                              className="btn btn-secondary py-1 px-2 text-xs flex items-center gap-1"
+                                            >
+                                              <Eye size={12} /> Ver/Calificar
+                                            </Link>
+                                            <button
+                                              onClick={() => openEditTaskModal(task, course.id)}
+                                              className="btn btn-secondary py-1 px-2 text-xs flex items-center gap-1"
+                                              style={{ color: "var(--primary-color)" }}
+                                            >
+                                              <Edit2 size={12} /> Editar
+                                            </button>
+                                            <button
+                                              onClick={() => handleDeleteTask(task.id)}
+                                              className="btn btn-secondary py-1 px-2 text-xs flex items-center gap-1"
+                                              style={{ color: "var(--danger)" }}
+                                            >
+                                              <Trash2 size={12} /> Eliminar
+                                            </button>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 );
@@ -507,7 +676,9 @@ export default function ContenidoClient({ courses }: ContenidoClientProps) {
                 </div>
               )}
             </div>
-          ) : (
+          )}
+
+          {activeTab === "materiales" && (
             <div className="flex flex-col gap-6">
               {courses.map(course => {
                 if (course.resources.length === 0) return null;
@@ -599,6 +770,129 @@ export default function ContenidoClient({ courses }: ContenidoClientProps) {
                   <p className="text-sm font-semibold">No has subido ningún material aún.</p>
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === "periodos" && (
+            <div className="flex flex-col gap-6 animate-fade-in">
+              {/* Periodos Académicos Heading */}
+              <div className="mb-2">
+                <h2 className="text-xl font-bold">Periodos Académicos</h2>
+                <p className="text-muted text-sm mt-1">Gestiona el material de clase, tareas y visibilidad de cada periodo académico en tus cursos.</p>
+              </div>
+
+              {/* Periods Tabs Selector */}
+              <div 
+                className="flex w-full max-w-xl gap-2 p-1.5 rounded-full transition-all duration-300 self-center" 
+                style={{ 
+                  background: "var(--bg-secondary)", 
+                  border: "1px solid var(--border-color)",
+                  boxShadow: "0 10px 25px -10px rgba(0, 0, 0, 0.05)"
+                }}
+              >
+                {["Periodo 1", "Periodo 2", "Periodo 3", "Periodo 4"].map((pName) => {
+                  const isActive = activePeriodTab === pName;
+                  return (
+                    <button
+                      key={pName}
+                      type="button"
+                      onClick={() => setActivePeriodTab(pName)}
+                      className={`flex-1 py-2 text-sm font-bold rounded-full transition-all duration-200 ${
+                        isActive 
+                          ? "text-white shadow-sm font-extrabold scale-[1.02]" 
+                          : "text-muted hover:text-primary hover:bg-gray-50 dark:hover:bg-gray-800"
+                      }`}
+                      style={isActive ? { background: "var(--primary-color)", color: "white" } : {}}
+                    >
+                      {pName}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {courses.length > 0 && (
+                <div className="flex justify-center gap-3 -mt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleAllCoursesPeriod(true)}
+                    className="btn btn-secondary py-1.5 px-4 text-xs font-bold rounded-full hover:bg-green-50/50 hover:text-green-700 hover:border-green-300/30 transition-all shadow-sm"
+                    style={{ color: "#10b981", borderColor: "rgba(16, 185, 129, 0.15)" }}
+                  >
+                    ✓ Activar {activePeriodTab} Global
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleAllCoursesPeriod(false)}
+                    className="btn btn-secondary py-1.5 px-4 text-xs font-bold rounded-full hover:bg-red-50/50 hover:text-red-700 hover:border-red-300/30 transition-all shadow-sm"
+                    style={{ color: "#ef4444", borderColor: "rgba(239, 68, 68, 0.15)" }}
+                  >
+                    ✕ Desactivar {activePeriodTab} Global
+                  </button>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-4 mt-2">
+                {courses.map((course) => {
+                  const isPeriodActive = (course as any)[`period${activePeriodTabNum}Active`] !== false;
+                  
+                  return (
+                    <div 
+                      key={course.id} 
+                      className="w-full rounded-2xl border p-6 transition-all duration-300 hover:shadow-lg hover:border-blue-400/20" 
+                      style={{ 
+                        borderLeft: isPeriodActive ? "6px solid var(--primary-color)" : "6px solid var(--text-muted)",
+                        borderColor: "var(--border-color)",
+                        background: "var(--bg-primary)",
+                        boxShadow: "0 10px 30px -10px rgba(0, 0, 0, 0.04)",
+                        opacity: isPeriodActive ? 1 : 0.8
+                      }}
+                    >
+                      <div className="flex flex-wrap justify-between items-center gap-4">
+                        <div>
+                          <h2 className="text-xl font-bold flex items-center gap-2.5">
+                            <div className={`p-2 rounded-lg ${isPeriodActive ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30" : "bg-gray-100 text-gray-500 dark:bg-gray-800"}`}>
+                              <BookOpen size={20} />
+                            </div>
+                            {course.name}
+                          </h2>
+                          {course.description && (
+                            <p className="text-muted text-sm mt-1.5 ml-1">{course.description}</p>
+                          )}
+                        </div>
+                        
+                        {/* Visibility controls */}
+                        <div className="flex items-center gap-4">
+                          <button 
+                            type="button"
+                            onClick={() => togglePeriodActive(course)}
+                            className={`flex items-center gap-2.5 text-sm font-bold px-5 py-2.5 rounded-full border transition-all duration-200 ${
+                              isPeriodActive 
+                                ? "bg-green-50/70 hover:bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400" 
+                                : "bg-gray-50/70 hover:bg-gray-50 text-muted dark:bg-gray-800/30"
+                            }`}
+                            style={{ 
+                              borderColor: isPeriodActive ? "rgba(16, 185, 129, 0.3)" : "var(--border-color)", 
+                            }}
+                            title="Activar o desactivar este periodo para los estudiantes"
+                          >
+                            {isPeriodActive ? (
+                              <>
+                                <ToggleRight className="text-green-500" size={28} />
+                                <span>Visible para todos los alumnos</span>
+                              </>
+                            ) : (
+                              <>
+                                <ToggleLeft className="text-gray-400" size={28} />
+                                <span>Oculto para todos los alumnos</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 
