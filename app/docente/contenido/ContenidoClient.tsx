@@ -26,6 +26,7 @@ interface Resource {
   theme?: string | null;
   period?: string | null;
   active?: boolean;
+  publishAt?: string | null;
   groups: Group[];
 }
 
@@ -39,6 +40,7 @@ interface Task {
   weight?: number | null;
   period?: string | null;
   active?: boolean;
+  publishAt?: string | null;
   allowLateSubmission?: boolean;
   lateSubmissionUntil?: string | null;
   groups: Group[];
@@ -210,7 +212,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     weight: 0,
     allowLateSubmission: false,
     lateSubmissionUntil: "",
-    groupIds: [] as string[]
+    groupIds: [] as string[],
+    publishAt: ""
   });
   const [taskFile, setTaskFile] = useState<File | null>(null);
 
@@ -223,7 +226,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     link: "",
     theme: "",
     period: periods[0]?.name || "Periodo 1",
-    groupIds: [] as string[]
+    groupIds: [] as string[],
+    publishAt: ""
   });
   const [resourceFile, setResourceFile] = useState<File | null>(null);
 
@@ -255,7 +259,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       weight: 0,
       allowLateSubmission: false,
       lateSubmissionUntil: "",
-      groupIds: []
+      groupIds: [],
+      publishAt: ""
     });
     setTaskFile(null);
     setShowTaskModal(true);
@@ -268,6 +273,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     // Format date for datetime-local input (YYYY-MM-DDTHH:MM)
     const formattedDueDate = task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 16) : "";
     const formattedLateUntil = task.lateSubmissionUntil ? new Date(task.lateSubmissionUntil).toISOString().slice(0, 16) : "";
+    const formattedPublishAt = task.publishAt ? new Date(task.publishAt).toISOString().slice(0, 16) : "";
 
     setTaskForm({
       courseId,
@@ -279,7 +285,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       weight: task.weight || 0,
       allowLateSubmission: task.allowLateSubmission || false,
       lateSubmissionUntil: formattedLateUntil,
-      groupIds: task.groups.map(g => g.id)
+      groupIds: task.groups.map(g => g.id),
+      publishAt: formattedPublishAt
     });
     setTaskFile(null);
     setShowTaskModal(true);
@@ -309,6 +316,11 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       fd.append("lateSubmissionUntil", new Date(taskForm.lateSubmissionUntil).toISOString());
     }
     fd.append("groupIds", JSON.stringify(taskForm.groupIds));
+    if (taskForm.publishAt) {
+      fd.append("publishAt", new Date(taskForm.publishAt).toISOString());
+    } else {
+      fd.append("publishAt", "");
+    }
     if (taskFile) fd.append("file", taskFile);
 
     try {
@@ -375,7 +387,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       link: "",
       theme: "",
       period: periodName || periods[0]?.name || "Periodo 1",
-      groupIds: []
+      groupIds: [],
+      publishAt: ""
     });
     setResourceFile(null);
     setShowResourceModal(true);
@@ -384,6 +397,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
   const openEditResourceModal = (resource: Resource, courseId: string) => {
     setError("");
     setEditingResource(resource);
+    const formattedPublishAt = resource.publishAt ? new Date(resource.publishAt).toISOString().slice(0, 16) : "";
     setResourceForm({
       courseId,
       title: resource.title,
@@ -391,7 +405,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       link: resource.type === "LINK" ? resource.url : "",
       theme: resource.theme || "",
       period: resource.period || "Periodo 1",
-      groupIds: resource.groups.map(g => g.id)
+      groupIds: resource.groups.map(g => g.id),
+      publishAt: formattedPublishAt
     });
     setResourceFile(null);
     setShowResourceModal(true);
@@ -424,6 +439,11 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       fd.append("file", resourceFile);
     }
     fd.append("groupIds", JSON.stringify(resourceForm.groupIds));
+    if (resourceForm.publishAt) {
+      fd.append("publishAt", new Date(resourceForm.publishAt).toISOString());
+    } else {
+      fd.append("publishAt", "");
+    }
 
     try {
       const url = "/api/docente/recursos";
@@ -1066,6 +1086,13 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
               </div>
             </div>
 
+            <div className="input-group mb-3">
+              <label className="text-xs font-bold mb-1">Programar Publicación Automática (Fecha y Hora - Opcional)</label>
+              <input type="datetime-local" className="input-field py-1.5 px-3 text-xs"
+                value={taskForm.publishAt} onChange={e => setTaskForm({ ...taskForm, publishAt: e.target.value })} />
+              <p className="text-[10px] text-muted mt-1">Dejar vacío para publicar inmediatamente. Si se define, la tarea se publicará automáticamente al llegar el momento.</p>
+            </div>
+
             <div className="border rounded-lg p-3 bg-slate-50 dark:bg-slate-900 mb-4 flex flex-col gap-2">
               <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
                 <input
@@ -1195,6 +1222,13 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                 <option value="VIDEO">🎬 Video</option>
                 <option value="LINK">🔗 Enlace Web</option>
               </select>
+            </div>
+
+            <div className="input-group mb-3">
+              <label className="text-xs font-bold mb-1">Programar Publicación Automática (Fecha y Hora - Opcional)</label>
+              <input type="datetime-local" className="input-field py-1.5 px-3 text-xs"
+                value={resourceForm.publishAt} onChange={e => setResourceForm({ ...resourceForm, publishAt: e.target.value })} />
+              <p className="text-[10px] text-muted mt-1">Dejar vacío para publicar inmediatamente. Si se define, el material se publicará automáticamente al llegar el momento.</p>
             </div>
 
             <div className="input-group mb-4">

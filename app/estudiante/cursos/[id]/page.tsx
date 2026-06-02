@@ -87,14 +87,17 @@ export default async function EstudianteCursoDetallePage({
     : (activePeriods[0] || "");
 
   // Filter tasks & resources by selected period, active status, and group assignment
+  const now = new Date();
   const filteredTasks = course.tasks.filter(t => 
     t.period === currentPeriod && 
     t.active !== false && 
+    (!t.publishAt || new Date(t.publishAt) <= now) &&
     (t.groups.length === 0 || t.groups.some(g => g.id === studentGroupId))
   );
   const filteredResources = course.resources.filter(r => 
     r.period === currentPeriod && 
     r.active !== false && 
+    (!r.publishAt || new Date(r.publishAt) <= now) &&
     (r.groups.length === 0 || r.groups.some(g => g.id === studentGroupId))
   );
 

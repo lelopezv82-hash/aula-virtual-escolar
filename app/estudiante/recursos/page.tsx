@@ -70,7 +70,11 @@ export default async function RecursosEstudiantePage() {
   activePeriodsFromDb.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
   const activePeriodNames = activePeriodsFromDb.map(p => p.name);
 
-  const activeResources = resources.filter(r => !r.period || activePeriodNames.includes(r.period));
+  const now = new Date();
+  const activeResources = resources.filter(r => 
+    (!r.period || activePeriodNames.includes(r.period)) && 
+    (!r.publishAt || new Date(r.publishAt) <= now)
+  );
 
   return (
     <div className="animate-fade-in">

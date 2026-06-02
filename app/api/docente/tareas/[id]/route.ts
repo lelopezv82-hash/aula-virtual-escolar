@@ -97,6 +97,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const weightRaw = formData.get('weight') as string | null;
     const weight = weightRaw ? parseInt(weightRaw, 10) : 0;
     const groupIdsJson = formData.get('groupIds') as string | null;
+    const publishAtRaw = formData.get('publishAt') as string | null;
+    const publishAt = publishAtRaw && publishAtRaw.trim() !== "" ? new Date(publishAtRaw) : null;
 
     let groupIds: string[] = [];
     if (groupIdsJson) {
@@ -167,6 +169,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         attachmentUrl,
         theme,
         period,
+        publishAt,
         groups: {
           set: groupIds.map(id => ({ id }))
         },

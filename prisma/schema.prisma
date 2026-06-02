@@ -64,6 +64,7 @@ model Resource {
   period      String?
   groups      GradeGroup[] @relation("GroupResources")
   active      Boolean  @default(true)
+  publishAt   DateTime?
   createdAt   DateTime @default(now())
 
   @@index([courseId])
@@ -83,6 +84,7 @@ model Task {
   groups        GradeGroup[] @relation("GroupTasks")
   weight        Int      @default(0)
   active      Boolean  @default(true)
+  publishAt   DateTime?
   allowLateSubmission Boolean @default(false)
   lateSubmissionUntil DateTime?
   createdAt     DateTime @default(now())

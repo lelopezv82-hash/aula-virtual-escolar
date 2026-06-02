@@ -32,7 +32,11 @@ export default async function CalificacionesEstudiantePage() {
   activePeriodsFromDb.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
   const activePeriodNames = activePeriodsFromDb.map(p => p.name);
 
-  const activeSubmissions = submissions.filter(sub => !sub.task.period || activePeriodNames.includes(sub.task.period));
+  const now = new Date();
+  const activeSubmissions = submissions.filter(sub => 
+    (!sub.task.period || activePeriodNames.includes(sub.task.period)) && 
+    (!sub.task.publishAt || new Date(sub.task.publishAt) <= now)
+  );
   const graded = activeSubmissions.filter(s => s.status === "GRADED");
   const avg = graded.length > 0
     ? graded.reduce((sum, s) => sum + (s.grade ?? 0), 0) / graded.length

@@ -34,6 +34,8 @@ export async function POST(request: Request) {
     const weightRaw = formData.get('weight') as string | null;
     const weight = weightRaw ? parseInt(weightRaw, 10) : 0;
     const groupIdsJson = formData.get('groupIds') as string | null;
+    const publishAtRaw = formData.get('publishAt') as string | null;
+    const publishAt = publishAtRaw && publishAtRaw.trim() !== "" ? new Date(publishAtRaw) : null;
 
     let groupIds: string[] = [];
     if (groupIdsJson) {
@@ -114,6 +116,7 @@ export async function POST(request: Request) {
         courseId,
         theme,
         period,
+        publishAt,
         groups: {
           connect: groupIds.map(id => ({ id }))
         },

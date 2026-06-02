@@ -46,6 +46,8 @@ export async function POST(request: Request) {
     const theme = formData.get('theme') as string | null;
     const period = formData.get('period') as string | null;
     const groupIdsJson = formData.get('groupIds') as string | null;
+    const publishAtRaw = formData.get('publishAt') as string | null;
+    const publishAt = publishAtRaw && publishAtRaw.trim() !== "" ? new Date(publishAtRaw) : null;
 
     let groupIds: string[] = [];
     if (groupIdsJson) {
@@ -126,6 +128,7 @@ export async function POST(request: Request) {
         courseId, 
         theme, 
         period,
+        publishAt,
         groups: {
           connect: groupIds.map(id => ({ id }))
         }
@@ -170,6 +173,8 @@ export async function PATCH(request: Request) {
     const theme = formData.get('theme') as string | null;
     const period = formData.get('period') as string | null;
     const groupIdsJson = formData.get('groupIds') as string | null;
+    const publishAtRaw = formData.get('publishAt') as string | null;
+    const publishAt = publishAtRaw && publishAtRaw.trim() !== "" ? new Date(publishAtRaw) : null;
 
     let groupIds: string[] = [];
     if (groupIdsJson) {
@@ -251,6 +256,7 @@ export async function PATCH(request: Request) {
         url, 
         theme, 
         period,
+        publishAt,
         groups: {
           set: groupIds.map(id => ({ id }))
         }
