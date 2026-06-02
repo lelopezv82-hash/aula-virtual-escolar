@@ -23,16 +23,30 @@ interface ExportButtonsProps {
   dueDate: string;
   students: Student[];
   submissions: Submission[];
+  period?: string | null;
+  gradeName?: string | null;
+  groupName?: string | null;
+  theme?: string | null;
 }
 
-export default function ExportButtons({ taskTitle, courseName, dueDate, students, submissions }: ExportButtonsProps) {
+export default function ExportButtons({ 
+  taskTitle, 
+  courseName, 
+  dueDate, 
+  students, 
+  submissions,
+  period,
+  gradeName,
+  groupName,
+  theme
+}: ExportButtonsProps) {
   const [exporting, setExporting] = useState(false);
   const [exported, setExported] = useState(false);
 
   const exportCSV = () => {
     setExporting(true);
     try {
-      const headers = ["Estudiante", "Estado", "Fecha de Envío", "Calificación", "Retroalimentación"];
+      const headers = ["Periodo", "Grado", "Grupo", "Asignatura", "Tema", "Título", "Estudiante", "Estado", "Fecha de Envío", "Calificación", "Retroalimentación"];
       const rows = students.map(student => {
         const sub = submissions.find(s => s.studentId === student.id);
         
@@ -49,6 +63,12 @@ export default function ExportButtons({ taskTitle, courseName, dueDate, students
         const feedback = sub?.feedback || "";
 
         return [
+          period || "Sin Periodo",
+          gradeName || "Sin Grado",
+          groupName || "Sin Grupo",
+          courseName,
+          theme || "Sin Tema",
+          taskTitle,
           student.name,
           statusText,
           date,

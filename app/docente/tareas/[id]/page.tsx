@@ -104,6 +104,10 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
             feedback: s.feedback,
             submittedAt: s.submittedAt
           }))}
+          period={task.period}
+          gradeName={task.groups[0]?.grade?.name}
+          groupName={task.groups.map(g => g.name).join(", ")}
+          theme={task.theme}
         />
       </div>
 
