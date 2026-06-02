@@ -126,95 +126,197 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
         })}
       />
 
-      <div className="card w-full">
-        <div className="mb-4 no-print">
-          <h2 className="text-lg font-bold">Estado de las entregas</h2>
-          <div className="flex flex-wrap gap-x-2.5 gap-y-1 text-xs mt-1.5 text-muted font-medium">
-            <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Periodo: {task.period || "Sin Periodo"}</span>
-            <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Grado: {task.groups[0]?.grade?.name || "Sin Grado"}</span>
-            <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Grupo: {task.groups.map(g => g.name).join(", ") || "Sin Grupo"}</span>
-            <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Asignatura: {task.course.name}</span>
-            <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Tema: {task.theme || "Sin Tema"}</span>
-            <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Título: {task.title}</span>
+      {task.groups && task.groups.length > 0 ? (
+        task.groups.map(group => {
+          const groupStudents = allStudents.filter(s => s.groupId === group.id);
+          
+          return (
+            <div key={group.id} className="card w-full mb-6">
+              <div className="mb-4">
+                <h2 className="text-lg font-bold">Estado de las entregas: Grado {group.grade?.name || "Sin Grado"} - Grupo {group.name}</h2>
+                <div className="flex flex-wrap gap-x-2.5 gap-y-1 text-xs mt-1.5 text-muted font-medium no-print">
+                  <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Periodo: {task.period || "Sin Periodo"}</span>
+                  <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Grado: {group.grade?.name || "Sin Grado"}</span>
+                  <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Grupo: {group.name}</span>
+                  <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Asignatura: {task.course.name}</span>
+                  <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Tema: {task.theme || "Sin Tema"}</span>
+                  <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Título: {task.title}</span>
+                </div>
+              </div>
+
+              {groupStudents.length === 0 ? (
+                <p className="text-muted text-sm italic p-4 text-center">No hay estudiantes registrados en este grupo.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                        <th className="py-2 px-4 font-medium" style={{ paddingLeft: '16px' }}>Periodo</th>
+                        <th className="py-2 px-4 font-medium">Grado</th>
+                        <th className="py-2 px-4 font-medium">Grupo</th>
+                        <th className="py-2 px-4 font-medium">Asignatura</th>
+                        <th className="py-2 px-4 font-medium">Tema</th>
+                        <th className="py-2 px-4 font-medium">Título</th>
+                        <th className="py-2 px-4 font-medium">Estudiante</th>
+                        <th className="py-2 px-4 font-medium">Estado</th>
+                        <th className="py-2 px-4 font-medium text-center">Entrega Tardía</th>
+                        <th className="py-2 px-4 font-medium">Fecha de Envío</th>
+                        <th className="py-2 px-4 font-medium text-right no-print">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {groupStudents.map(student => {
+                        const submission = task.submissions.find(s => s.studentId === student.id);
+                        const isSubmitted = submission && submission.status !== "PENDING";
+                        const isGraded = submission && submission.status === "GRADED";
+                        const allowLate = submission ? submission.allowLateSubmission : false;
+                        
+                        return (
+                          <tr key={student.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                            <td className="py-3 px-4" style={{ paddingLeft: '16px' }}>{task.period || "Sin Periodo"}</td>
+                            <td className="py-3 px-4">{group.grade?.name || "Sin Grado"}</td>
+                            <td className="py-3 px-4">{group.name}</td>
+                            <td className="py-3 px-4">{task.course.name}</td>
+                            <td className="py-3 px-4">{task.theme || "Sin Tema"}</td>
+                            <td className="py-3 px-4 font-semibold">{task.title}</td>
+                            <td className="py-3 px-4">{student.name}</td>
+                            <td className="py-3 px-4">
+                              {isGraded ? (
+                                <span className="badge badge-success flex w-fit items-center gap-1"><CheckCircle size={12}/> Calificada: {submission.grade}</span>
+                              ) : isSubmitted ? (
+                                <span className="badge badge-info">Entregada</span>
+                              ) : (
+                                <span className="badge badge-warning flex w-fit items-center gap-1"><Clock size={12}/> Pendiente</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <StudentLateSubmissionToggle
+                                taskId={task.id}
+                                studentId={student.id}
+                                studentName={student.name}
+                                initialAllowLate={allowLate}
+                                initialLateUntil={submission?.lateSubmissionUntil ? new Date(submission.lateSubmissionUntil).toISOString() : null}
+                                disabled={task.allowLateSubmission}
+                              />
+                            </td>
+                            <td className="py-3 px-4 text-muted">
+                              {submission?.submittedAt ? new Date(submission.submittedAt).toLocaleString() : '-'}
+                            </td>
+                            <td className="py-3 px-4 text-right no-print">
+                              {isSubmitted ? (
+                                <div className="flex justify-end gap-2">
+                                  <a href={submission.fileUrl || "#"} target="_blank" download className="btn btn-secondary text-sm px-2 py-1 flex items-center gap-1">
+                                    <Download size={14} /> Archivo
+                                  </a>
+                                  <Link href={`/docente/tareas/${task.id}/calificar/${student.id}`} className="btn btn-primary text-sm px-2 py-1">
+                                    Calificar
+                                  </Link>
+                                </div>
+                              ) : (
+                                <span className="text-muted text-sm">Sin entrega</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          );
+        })
+      ) : (
+        <div className="card w-full">
+          <div className="mb-4 no-print">
+            <h2 className="text-lg font-bold">Estado de las entregas</h2>
+            <div className="flex flex-wrap gap-x-2.5 gap-y-1 text-xs mt-1.5 text-muted font-medium">
+              <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Periodo: {task.period || "Sin Periodo"}</span>
+              <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Grado: Sin Grado</span>
+              <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Grupo: Sin Grupo</span>
+              <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Asignatura: {task.course.name}</span>
+              <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Tema: {task.theme || "Sin Tema"}</span>
+              <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Título: {task.title}</span>
+            </div>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                  <th className="py-2 px-4 font-medium" style={{ paddingLeft: '16px' }}>Periodo</th>
+                  <th className="py-2 px-4 font-medium">Grado</th>
+                  <th className="py-2 px-4 font-medium">Grupo</th>
+                  <th className="py-2 px-4 font-medium">Asignatura</th>
+                  <th className="py-2 px-4 font-medium">Tema</th>
+                  <th className="py-2 px-4 font-medium">Título</th>
+                  <th className="py-2 px-4 font-medium">Estudiante</th>
+                  <th className="py-2 px-4 font-medium">Estado</th>
+                  <th className="py-2 px-4 font-medium text-center">Entrega Tardía</th>
+                  <th className="py-2 px-4 font-medium">Fecha de Envío</th>
+                  <th className="py-2 px-4 font-medium text-right no-print">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allStudents.map(student => {
+                  const submission = task.submissions.find(s => s.studentId === student.id);
+                  const isSubmitted = submission && submission.status !== "PENDING";
+                  const isGraded = submission && submission.status === "GRADED";
+                  const allowLate = submission ? submission.allowLateSubmission : false;
+                  
+                  return (
+                    <tr key={student.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <td className="py-3 px-4" style={{ paddingLeft: '16px' }}>{task.period || "Sin Periodo"}</td>
+                      <td className="py-3 px-4">Sin Grado</td>
+                      <td className="py-3 px-4">Sin Grupo</td>
+                      <td className="py-3 px-4">{task.course.name}</td>
+                      <td className="py-3 px-4">{task.theme || "Sin Tema"}</td>
+                      <td className="py-3 px-4 font-semibold">{task.title}</td>
+                      <td className="py-3 px-4">{student.name}</td>
+                      <td className="py-3 px-4">
+                        {isGraded ? (
+                          <span className="badge badge-success flex w-fit items-center gap-1"><CheckCircle size={12}/> Calificada: {submission.grade}</span>
+                        ) : isSubmitted ? (
+                          <span className="badge badge-info">Entregada</span>
+                        ) : (
+                          <span className="badge badge-warning flex w-fit items-center gap-1"><Clock size={12}/> Pendiente</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <StudentLateSubmissionToggle
+                          taskId={task.id}
+                          studentId={student.id}
+                          studentName={student.name}
+                          initialAllowLate={allowLate}
+                          initialLateUntil={submission?.lateSubmissionUntil ? new Date(submission.lateSubmissionUntil).toISOString() : null}
+                          disabled={task.allowLateSubmission}
+                        />
+                      </td>
+                      <td className="py-3 px-4 text-muted">
+                        {submission?.submittedAt ? new Date(submission.submittedAt).toLocaleString() : '-'}
+                      </td>
+                      <td className="py-3 px-4 text-right no-print">
+                        {isSubmitted ? (
+                          <div className="flex justify-end gap-2">
+                            <a href={submission.fileUrl || "#"} target="_blank" download className="btn btn-secondary text-sm px-2 py-1 flex items-center gap-1">
+                              <Download size={14} /> Archivo
+                            </a>
+                            <Link href={`/docente/tareas/${task.id}/calificar/${student.id}`} className="btn btn-primary text-sm px-2 py-1">
+                              Calificar
+                            </Link>
+                          </div>
+                        ) : (
+                          <span className="text-muted text-sm">Sin entrega</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
-        
-        <div className="overflow-x-auto">
-          <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
-                <th className="py-2 px-4 font-medium" style={{ paddingLeft: '16px' }}>Periodo</th>
-                <th className="py-2 px-4 font-medium">Grado</th>
-                <th className="py-2 px-4 font-medium">Grupo</th>
-                <th className="py-2 px-4 font-medium">Asignatura</th>
-                <th className="py-2 px-4 font-medium">Tema</th>
-                <th className="py-2 px-4 font-medium">Título</th>
-                <th className="py-2 px-4 font-medium">Estudiante</th>
-                <th className="py-2 px-4 font-medium">Estado</th>
-                <th className="py-2 px-4 font-medium text-center">Entrega Tardía</th>
-                <th className="py-2 px-4 font-medium">Fecha de Envío</th>
-                <th className="py-2 px-4 font-medium text-right no-print">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {allStudents.map(student => {
-                const submission = task.submissions.find(s => s.studentId === student.id);
-                const isSubmitted = submission && submission.status !== "PENDING";
-                const isGraded = submission && submission.status === "GRADED";
-                const allowLate = submission ? submission.allowLateSubmission : false;
-                
-                return (
-                  <tr key={student.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                    <td className="py-3 px-4" style={{ paddingLeft: '16px' }}>{task.period || "Sin Periodo"}</td>
-                    <td className="py-3 px-4">{task.groups[0]?.grade?.name || "Sin Grado"}</td>
-                    <td className="py-3 px-4">{task.groups.map(g => g.name).join(", ") || "Sin Grupo"}</td>
-                    <td className="py-3 px-4">{task.course.name}</td>
-                    <td className="py-3 px-4">{task.theme || "Sin Tema"}</td>
-                    <td className="py-3 px-4 font-semibold">{task.title}</td>
-                    <td className="py-3 px-4">{student.name}</td>
-                    <td className="py-3 px-4">
-                      {isGraded ? (
-                        <span className="badge badge-success flex w-fit items-center gap-1"><CheckCircle size={12}/> Calificada: {submission.grade}</span>
-                      ) : isSubmitted ? (
-                        <span className="badge badge-info">Entregada</span>
-                      ) : (
-                        <span className="badge badge-warning flex w-fit items-center gap-1"><Clock size={12}/> Pendiente</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <StudentLateSubmissionToggle
-                        taskId={task.id}
-                        studentId={student.id}
-                        studentName={student.name}
-                        initialAllowLate={allowLate}
-                        initialLateUntil={submission?.lateSubmissionUntil ? new Date(submission.lateSubmissionUntil).toISOString() : null}
-                        disabled={task.allowLateSubmission}
-                      />
-                    </td>
-                    <td className="py-3 px-4 text-muted">
-                      {submission?.submittedAt ? new Date(submission.submittedAt).toLocaleString() : '-'}
-                    </td>
-                    <td className="py-3 px-4 text-right no-print">
-                      {isSubmitted ? (
-                        <div className="flex justify-end gap-2">
-                          <a href={submission.fileUrl || "#"} target="_blank" download className="btn btn-secondary text-sm px-2 py-1 flex items-center gap-1">
-                            <Download size={14} /> Archivo
-                          </a>
-                          <Link href={`/docente/tareas/${task.id}/calificar/${student.id}`} className="btn btn-primary text-sm px-2 py-1">
-                            Calificar
-                          </Link>
-                        </div>
-                      ) : (
-                        <span className="text-muted text-sm">Sin entrega</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
