@@ -75,12 +75,12 @@ export default async function EstudianteCursoDetallePage({
     );
   }
 
-  // Get active periods
-  const activePeriods: string[] = [];
-  if (course.period1Active !== false) activePeriods.push("Periodo 1");
-  if (course.period2Active !== false) activePeriods.push("Periodo 2");
-  if (course.period3Active !== false) activePeriods.push("Periodo 3");
-  if (course.period4Active !== false) activePeriods.push("Periodo 4");
+  // Get active periods from database
+  const periodsDb = await prisma.period.findMany({
+    where: { active: true },
+    orderBy: { createdAt: 'asc' }
+  });
+  const activePeriods = periodsDb.map(p => p.name);
 
   const currentPeriod = activePeriods.includes(selectedPeriodParam || "")
     ? (selectedPeriodParam as string)

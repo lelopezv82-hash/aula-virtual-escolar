@@ -136,3 +136,11 @@ model GradeGroup {
   @@unique([gradeId, name])
   @@index([gradeId])
 }
+
+model Period {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

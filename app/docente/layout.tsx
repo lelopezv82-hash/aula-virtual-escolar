@@ -42,11 +42,7 @@ export default async function DocenteLayout({ children }: { children: React.Reac
       label: "Mis Asignaturas",
       icon: <BookOpen size={20} />,
     },
-    {
-      href: "/docente/periodos",
-      label: "Periodos",
-      icon: <Calendar size={20} />,
-    },
+
     {
       href: "/docente/contenido",
       label: "Gestión de Contenido",

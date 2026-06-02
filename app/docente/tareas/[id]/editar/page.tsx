@@ -23,6 +23,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState("");
+  const [periods, setPeriods] = useState<{id: string, name: string, active: boolean}[]>([]);
 
   useEffect(() => {
     // Fetch grade groups
@@ -43,6 +44,14 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
         }
       })
       .catch(() => console.error("Failed to load grade groups"));
+
+    // Fetch active periods
+    fetch("/api/docente/periodos")
+      .then(res => res.json())
+      .then(data => {
+        if (data.periods) setPeriods(data.periods);
+      })
+      .catch(() => console.error("Failed to load periods"));
 
     fetch(`/api/docente/tareas/${taskId}`)
       .then(res => res.json())
@@ -95,7 +104,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
       const data = await res.json();
 
       if (res.ok) {
-        router.push("/docente/periodos");
+        router.push("/docente/contenido");
         router.refresh();
       } else {
         setError(data.error || "Error al actualizar la tarea");
@@ -114,7 +123,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
   return (
     <div className="animate-fade-in max-w-2xl mx-auto">
       <div className="flex items-center gap-4 mb-6">
-        <Link href="/docente/periodos" className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+        <Link href="/docente/contenido" className="p-2 rounded-full hover:bg-gray-100 transition-colors">
           <ArrowLeft size={24} />
         </Link>
         <div>
@@ -199,10 +208,9 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
               required
             >
               <option value="" disabled>Selecciona periodo</option>
-              <option value="Periodo 1">Periodo 1</option>
-              <option value="Periodo 2">Periodo 2</option>
-              <option value="Periodo 3">Periodo 3</option>
-              <option value="Periodo 4">Periodo 4</option>
+              {periods.filter(p => p.active || p.name === period).map(p => (
+                <option key={p.id} value={p.name}>{p.name}</option>
+              ))}
             </select>
           </div>
           <div className="input-group flex-initial w-32">
@@ -281,7 +289,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
         </div>
 
         <div className="flex justify-end gap-3 mt-2 border-t pt-4" style={{ borderColor: 'var(--border-color)' }}>
-          <Link href="/docente/periodos" className="btn btn-secondary">
+          <Link href="/docente/contenido" className="btn btn-secondary">
             Cancelar
           </Link>
 

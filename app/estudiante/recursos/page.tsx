@@ -63,16 +63,14 @@ export default async function RecursosEstudiantePage() {
     }
   });
 
-  const isPeriodActive = (period: string | null, course: any) => {
-    if (!period) return true;
-    if (period === "Periodo 1") return course.period1Active !== false;
-    if (period === "Periodo 2") return course.period2Active !== false;
-    if (period === "Periodo 3") return course.period3Active !== false;
-    if (period === "Periodo 4") return course.period4Active !== false;
-    return true;
-  };
+  // Fetch active periods from database
+  const activePeriodsFromDb = await prisma.period.findMany({
+    where: { active: true },
+    orderBy: { createdAt: 'asc' }
+  });
+  const activePeriodNames = activePeriodsFromDb.map(p => p.name);
 
-  const activeResources = resources.filter(r => isPeriodActive(r.period, r.course));
+  const activeResources = resources.filter(r => !r.period || activePeriodNames.includes(r.period));
 
   return (
     <div className="animate-fade-in">
@@ -88,10 +86,10 @@ export default async function RecursosEstudiantePage() {
         </div>
       ) : (
         <div className="flex flex-col gap-6">
-          {["Periodo 1", "Periodo 2", "Periodo 3", "Periodo 4", "Otros"].map(periodName => {
+          {[...activePeriodNames, "Otros"].map(periodName => {
             const periodResources = activeResources.filter(r => {
               if (periodName === "Otros") {
-                return !r.period || !["Periodo 1", "Periodo 2", "Periodo 3", "Periodo 4"].includes(r.period);
+                return !r.period || !activePeriodNames.includes(r.period);
               }
               return r.period === periodName;
             });

@@ -25,16 +25,14 @@ export default async function CalificacionesEstudiantePage() {
     orderBy: { updatedAt: "desc" }
   });
 
-  const isPeriodActive = (period: string | null, course: any) => {
-    if (!period) return true;
-    if (period === "Periodo 1") return course.period1Active !== false;
-    if (period === "Periodo 2") return course.period2Active !== false;
-    if (period === "Periodo 3") return course.period3Active !== false;
-    if (period === "Periodo 4") return course.period4Active !== false;
-    return true;
-  };
+  // Fetch active periods from database
+  const activePeriodsFromDb = await prisma.period.findMany({
+    where: { active: true },
+    orderBy: { createdAt: 'asc' }
+  });
+  const activePeriodNames = activePeriodsFromDb.map(p => p.name);
 
-  const activeSubmissions = submissions.filter(sub => isPeriodActive(sub.task.period, sub.task.course));
+  const activeSubmissions = submissions.filter(sub => !sub.task.period || activePeriodNames.includes(sub.task.period));
   const graded = activeSubmissions.filter(s => s.status === "GRADED");
   const avg = graded.length > 0
     ? graded.reduce((sum, s) => sum + (s.grade ?? 0), 0) / graded.length
@@ -70,10 +68,10 @@ export default async function CalificacionesEstudiantePage() {
         </div>
       ) : (
         <div className="flex flex-col gap-6">
-          {["Periodo 1", "Periodo 2", "Periodo 3", "Periodo 4", "Otros"].map(periodName => {
+          {[...activePeriodNames, "Otros"].map(periodName => {
             const periodSubs = activeSubmissions.filter(sub => {
               if (periodName === "Otros") {
-                return !sub.task.period || !["Periodo 1", "Periodo 2", "Periodo 3", "Periodo 4"].includes(sub.task.period);
+                return !sub.task.period || !activePeriodNames.includes(sub.task.period);
               }
               return sub.task.period === periodName;
             });

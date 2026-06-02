@@ -57,15 +57,22 @@ interface Course {
   tasks: Task[];
 }
 
+interface Period {
+  id: string;
+  name: string;
+  active: boolean;
+}
+
 interface ContenidoClientProps {
   courses: Course[];
+  initialPeriods: Period[];
 }
 
 const TYPE_ICONS: Record<string, string> = {
   PDF: "📄", WORD: "📝", PPT: "📊", IMAGE: "🖼️", VIDEO: "🎬", LINK: "🔗"
 };
 
-export default function ContenidoClient({ courses }: ContenidoClientProps) {
+export default function ContenidoClient({ courses, initialPeriods }: ContenidoClientProps) {
   const router = useRouter();
   const confirm = useConfirm();
   
@@ -73,21 +80,76 @@ export default function ContenidoClient({ courses }: ContenidoClientProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const [activePeriodTab, setActivePeriodTab] = useState("Periodo 1");
-  const activePeriodTabNum = activePeriodTab.split(" ")[1]; // "1", "2", "3", "4"
+  const [periods, setPeriods] = useState<Period[]>(initialPeriods);
+  const [activePeriodTab, setActivePeriodTab] = useState(initialPeriods[0]?.name || "Periodo 1");
 
-  const togglePeriodActive = async (course: Course) => {
-    const key = `period${activePeriodTabNum}Active`;
-    const currentVal = (course as any)[key] !== false;
-    const newVal = !currentVal;
+  // Periods CRUD modals state
+  const [showPeriodModal, setShowPeriodModal] = useState(false);
+  const [editingPeriod, setEditingPeriod] = useState<Period | null>(null);
+  const [periodForm, setPeriodForm] = useState({ name: "" });
+
+  const handleCreateOrUpdatePeriod = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    if (!periodForm.name || periodForm.name.trim() === "") {
+      setError("El nombre es obligatorio");
+      setLoading(false);
+      return;
+    }
 
     try {
-      const res = await fetch("/api/docente/cursos", {
+      const url = "/api/docente/periodos";
+      const method = editingPeriod ? "PATCH" : "POST";
+      const body = editingPeriod 
+        ? JSON.stringify({ id: editingPeriod.id, name: periodForm.name }) 
+        : JSON.stringify({ name: periodForm.name });
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setShowPeriodModal(false);
+        // Refresh periods list
+        const freshRes = await fetch("/api/docente/periodos");
+        const freshData = await freshRes.json();
+        if (freshData.periods) {
+          setPeriods(freshData.periods);
+          if (!editingPeriod) {
+            setActivePeriodTab(periodForm.name.trim());
+          } else if (activePeriodTab === editingPeriod.name) {
+            setActivePeriodTab(periodForm.name.trim());
+          }
+        }
+        router.refresh();
+      } else {
+        setError(data.error || "Error al guardar el periodo");
+      }
+    } catch {
+      setError("Error de conexión al guardar el periodo");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTogglePeriodActive = async (period: Period) => {
+    const newVal = !period.active;
+    try {
+      const res = await fetch("/api/docente/periodos", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: course.id, [key]: newVal })
+        body: JSON.stringify({ id: period.id, active: newVal })
       });
       if (res.ok) {
+        const freshRes = await fetch("/api/docente/periodos");
+        const freshData = await freshRes.json();
+        if (freshData.periods) {
+          setPeriods(freshData.periods);
+        }
         router.refresh();
       }
     } catch {
@@ -95,29 +157,34 @@ export default function ContenidoClient({ courses }: ContenidoClientProps) {
     }
   };
 
-  const handleToggleAllCoursesPeriod = async (active: boolean) => {
-    const key = `period${activePeriodTabNum}Active`;
+  const handleDeletePeriod = async (period: Period) => {
     const ok = await confirm({
-      title: active ? `Activar ${activePeriodTab}` : `Desactivar ${activePeriodTab}`,
-      message: active 
-        ? `¿Estás seguro de que deseas activar el ${activePeriodTab} para todas tus asignaturas?`
-        : `¿Estás seguro de que deseas desactivar el ${activePeriodTab} para todas tus asignaturas? Se ocultará el contenido a todos los estudiantes.`,
-      confirmText: active ? "Activar Todo" : "Desactivar Todo",
-      type: active ? "info" : "danger"
+      title: "Eliminar Periodo",
+      message: `¿Estás seguro de que deseas eliminar el "${period.name}"? Todas las tareas y recursos de este periodo perderán su asignación.`,
+      confirmText: "Eliminar",
+      type: "danger"
     });
     if (!ok) return;
 
     try {
-      const res = await fetch("/api/docente/cursos", {
-        method: "PATCH",
+      const res = await fetch("/api/docente/periodos", {
+        method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ all: true, [key]: active })
+        body: JSON.stringify({ id: period.id })
       });
       if (res.ok) {
+        const freshRes = await fetch("/api/docente/periodos");
+        const freshData = await freshRes.json();
+        if (freshData.periods) {
+          setPeriods(freshData.periods);
+          if (activePeriodTab === period.name) {
+            setActivePeriodTab(freshData.periods[0]?.name || "Periodo 1");
+          }
+        }
         router.refresh();
       }
     } catch {
-      console.error("Failed to toggle global period status");
+      console.error("Failed to delete period");
     }
   };
 
@@ -128,7 +195,7 @@ export default function ContenidoClient({ courses }: ContenidoClientProps) {
   // Extract all unique non-null themes and periods across all tasks in all courses
   const allTasks = courses.flatMap(c => c.tasks);
   const uniqueThemes = Array.from(new Set(allTasks.map(t => t.theme).filter(Boolean))) as string[];
-  const uniquePeriods = Array.from(new Set(allTasks.map(t => t.period).filter(Boolean))) as string[];
+  const uniquePeriods = periods.map(p => p.name);
 
   // Modal states
   const [showTaskModal, setShowTaskModal] = useState(false);
@@ -139,7 +206,7 @@ export default function ContenidoClient({ courses }: ContenidoClientProps) {
     description: "",
     dueDate: "",
     theme: "",
-    period: "Periodo 1",
+    period: periods[0]?.name || "Periodo 1",
     weight: 0,
     allowLateSubmission: false,
     lateSubmissionUntil: "",
@@ -155,7 +222,7 @@ export default function ContenidoClient({ courses }: ContenidoClientProps) {
     type: "PDF",
     link: "",
     theme: "",
-    period: "Periodo 1",
+    period: periods[0]?.name || "Periodo 1",
     groupIds: [] as string[]
   });
   const [resourceFile, setResourceFile] = useState<File | null>(null);
@@ -184,7 +251,7 @@ export default function ContenidoClient({ courses }: ContenidoClientProps) {
       description: "",
       dueDate: "",
       theme: "",
-      period: periodName || "Periodo 1",
+      period: periodName || periods[0]?.name || "Periodo 1",
       weight: 0,
       allowLateSubmission: false,
       lateSubmissionUntil: "",
@@ -298,16 +365,16 @@ export default function ContenidoClient({ courses }: ContenidoClientProps) {
   };
 
   // Resources actions
-  const openNewResourceModal = () => {
+  const openNewResourceModal = (courseId?: string, periodName?: string) => {
     setError("");
     setEditingResource(null);
     setResourceForm({
-      courseId: courses[0]?.id || "",
+      courseId: courseId || courses[0]?.id || "",
       title: "",
       type: "PDF",
       link: "",
       theme: "",
-      period: "Periodo 1",
+      period: periodName || periods[0]?.name || "Periodo 1",
       groupIds: []
     });
     setResourceFile(null);
@@ -456,7 +523,7 @@ export default function ContenidoClient({ courses }: ContenidoClientProps) {
         >
           <span className="flex items-center gap-2">
             <Layers size={18} />
-            Periodos Académicos
+            Gestión de Periodos Académicos
           </span>
         </button>
       </div>
@@ -681,85 +748,123 @@ export default function ContenidoClient({ courses }: ContenidoClientProps) {
           {activeTab === "materiales" && (
             <div className="flex flex-col gap-6">
               {courses.map(course => {
-                if (course.resources.length === 0) return null;
                 return (
-                  <div key={course.id} className="card p-0 overflow-hidden" style={{ border: "1px solid var(--border-color)" }}>
-                    <div className="p-4 bg-slate-50 border-b flex justify-between items-center" style={{ borderColor: "var(--border-color)" }}>
-                      <span className="font-bold text-sm uppercase tracking-wider text-slate-800 flex items-center gap-2">
-                        <BookOpen size={16} className="text-blue-600" />
-                        {course.name}
-                      </span>
-                      <span className="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-extrabold">{course.resources.length} Materiales</span>
-                    </div>
+                  <div key={course.id} className="card w-full">
+                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                      <BookOpen className="text-blue-600" />
+                      {course.name}
+                    </h2>
+                    
+                    <div className="flex flex-col gap-5">
+                      {[...periods.map(p => p.name), "Otros"].map(periodName => {
+                        const periodResources = course.resources.filter(r => {
+                          if (periodName === "Otros") {
+                            return !r.period || !periods.map(p => p.name).includes(r.period);
+                          }
+                          return r.period === periodName;
+                        });
 
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="border-b text-xs text-muted" style={{ borderColor: "var(--border-color)" }}>
-                            <th className="py-2.5 px-4 font-bold">Título</th>
-                            <th className="py-2.5 px-4 font-bold">Tipo</th>
-                            <th className="py-2.5 px-4 font-bold">Tema</th>
-                            <th className="py-2.5 px-4 font-bold">Periodo</th>
-                            <th className="py-2.5 px-4 font-bold">Grupos</th>
-                            <th className="py-2.5 px-4 font-bold text-center">Estado</th>
-                            <th className="py-2.5 px-4 font-bold text-right">Acciones</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {course.resources.map(res => (
-                            <tr key={res.id} className="border-b hover:bg-slate-50/50" style={{ borderColor: "var(--border-color)" }}>
-                              <td className="py-3 px-4 text-sm font-bold text-slate-800">
-                                <div className="flex items-center gap-2">
-                                  <span>{TYPE_ICONS[res.type] || "📁"}</span>
-                                  <span>{res.title}</span>
-                                </div>
-                              </td>
-                              <td className="py-3 px-4 text-xs font-semibold text-slate-650">{res.type}</td>
-                              <td className="py-3 px-4 text-xs text-slate-500 font-semibold">{res.theme || "-"}</td>
-                              <td className="py-3 px-4 text-xs text-slate-500 font-semibold">{res.period?.replace(/periodo\s*/i, "")}</td>
-                              <td className="py-3 px-4">
-                                <div className="flex flex-wrap gap-1">
-                                  {res.groups.map(g => (
-                                    <span key={g.id} className="text-[10px] bg-blue-50 text-blue-700 border px-1.5 py-0.2 rounded font-bold">
-                                      {g.grade.name} - {g.name}
-                                    </span>
-                                  ))}
-                                </div>
-                              </td>
-                              <td className="py-3 px-4 text-center">
-                                <button
-                                  onClick={() => toggleResourceActive(res)}
-                                  className={`p-1.5 rounded-lg inline-flex ${res.active !== false ? "text-green-600 hover:bg-green-50" : "text-gray-400 hover:bg-gray-100"}`}
-                                  title={res.active !== false ? "Visible para alumnos (Click para ocultar)" : "Oculto para alumnos (Click para mostrar)"}
-                                >
-                                  {res.active !== false ? <Eye size={18} /> : <EyeOff size={18} />}
-                                </button>
-                              </td>
-                              <td className="py-3 px-4 text-right">
-                                <div className="flex justify-end gap-2">
-                                  <a href={res.url} target="_blank" rel="noreferrer" className="p-1.5 rounded hover:bg-slate-100 text-slate-500" title="Ver enlace/archivo">
-                                    <ExternalLink size={16} />
-                                  </a>
+                        if (periodName === "Otros" && periodResources.length === 0) return null;
+
+                        const isPeriodActive = periodName === "Otros" || (() => {
+                          const p = periods.find(p => p.name === periodName);
+                          return p ? p.active : true;
+                        })();
+
+                        return (
+                          <div key={periodName} className="p-3 rounded-lg border" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', opacity: isPeriodActive ? 1 : 0.6 }}>
+                            <h4 className="font-bold text-xs uppercase tracking-wider mb-3 flex items-center justify-between" style={{ color: 'var(--text-secondary)' }}>
+                              <span className="flex items-center gap-2">
+                                <span className={`w-2 h-2 rounded-full ${isPeriodActive ? 'bg-blue-500' : 'bg-gray-400'}`}></span>
+                                {periodName}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                {!isPeriodActive && <span className="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded uppercase font-semibold">Oculto para Alumnos</span>}
+                                {periodName !== "Otros" && (
                                   <button
-                                    onClick={() => openEditResourceModal(res, course.id)}
-                                    className="p-1.5 rounded hover:bg-blue-50 text-slate-500 hover:text-blue-600"
-                                    title="Editar"
+                                    onClick={() => openNewResourceModal(course.id, periodName)}
+                                    className="btn btn-primary py-1 px-2.5 text-[11px] h-auto flex items-center gap-1"
                                   >
-                                    <Edit2 size={16} />
+                                    <Plus size={12} /> Subir Material
                                   </button>
-                                  <button
-                                    onClick={() => handleDeleteResource(res.id)}
-                                    className="p-1.5 rounded hover:bg-red-50 text-slate-500 hover:text-red-600"
-                                    title="Eliminar"
-                                  >
-                                    <Trash2 size={16} />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                                )}
+                              </div>
+                            </h4>
+                            
+                            {periodResources.length === 0 ? (
+                              <p className="text-muted text-xs italic p-2">No hay materiales de clase compartidos en este periodo.</p>
+                            ) : (
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse" style={{ borderCollapse: 'collapse' }}>
+                                  <thead>
+                                    <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                                      <th className="py-2 px-4 font-medium text-xs">Título</th>
+                                      <th className="py-2 px-4 font-medium text-xs">Tipo</th>
+                                      <th className="py-2 px-4 font-medium text-xs">Tema</th>
+                                      <th className="py-2 px-4 font-medium text-xs">Grupos</th>
+                                      <th className="py-2.5 px-4 font-bold text-center text-xs">Estado</th>
+                                      <th className="py-2 px-4 font-medium text-xs text-right">Acciones</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {periodResources.map(res => (
+                                      <tr key={res.id} style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-primary)' }}>
+                                        <td className="py-3 px-4 font-semibold text-sm text-slate-800">
+                                          <div className="flex items-center gap-2">
+                                            <span>{TYPE_ICONS[res.type] || "📁"}</span>
+                                            <span>{res.title}</span>
+                                          </div>
+                                        </td>
+                                        <td className="py-3 px-4 text-xs font-semibold text-slate-650">{res.type}</td>
+                                        <td className="py-3 px-4 text-xs text-slate-500 font-semibold">{res.theme || "-"}</td>
+                                        <td className="py-3 px-4">
+                                          <div className="flex flex-wrap gap-1">
+                                            {res.groups.map(g => (
+                                              <span key={g.id} className="text-[10px] bg-blue-50 text-blue-700 border px-1.5 py-0.2 rounded font-bold">
+                                                {g.grade.name} - {g.name}
+                                              </span>
+                                            ))}
+                                          </div>
+                                        </td>
+                                        <td className="py-3 px-4 text-center">
+                                          <button
+                                            onClick={() => toggleResourceActive(res)}
+                                            className={`p-1.5 rounded-lg inline-flex ${res.active !== false ? "text-green-600 hover:bg-green-50" : "text-gray-400 hover:bg-gray-100"}`}
+                                            title={res.active !== false ? "Visible para alumnos (Click para ocultar)" : "Oculto para alumnos (Click para mostrar)"}
+                                          >
+                                            {res.active !== false ? <Eye size={18} /> : <EyeOff size={18} />}
+                                          </button>
+                                        </td>
+                                        <td className="py-3 px-4 text-right">
+                                          <div className="flex justify-end gap-2">
+                                            <a href={res.url} target="_blank" rel="noreferrer" className="p-1.5 rounded hover:bg-slate-100 text-slate-500" title="Ver enlace/archivo">
+                                              <ExternalLink size={16} />
+                                            </a>
+                                            <button
+                                              onClick={() => openEditResourceModal(res, course.id)}
+                                              className="p-1.5 rounded hover:bg-blue-50 text-slate-500 hover:text-blue-600"
+                                              title="Editar"
+                                            >
+                                              <Edit2 size={16} />
+                                            </button>
+                                            <button
+                                              onClick={() => handleDeleteResource(res.id)}
+                                              className="p-1.5 rounded hover:bg-red-50 text-slate-500 hover:text-red-600"
+                                              title="Eliminar"
+                                            >
+                                              <Trash2 size={16} />
+                                            </button>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 );
@@ -775,123 +880,103 @@ export default function ContenidoClient({ courses }: ContenidoClientProps) {
 
           {activeTab === "periodos" && (
             <div className="flex flex-col gap-6 animate-fade-in">
-              {/* Periodos Académicos Heading */}
-              <div className="mb-2">
-                <h2 className="text-xl font-bold">Periodos Académicos</h2>
-                <p className="text-muted text-sm mt-1">Gestiona el material de clase, tareas y visibilidad de cada periodo académico en tus cursos.</p>
-              </div>
-
-              {/* Periods Tabs Selector */}
-              <div 
-                className="flex w-full max-w-xl gap-2 p-1.5 rounded-full transition-all duration-300 self-center" 
-                style={{ 
-                  background: "var(--bg-secondary)", 
-                  border: "1px solid var(--border-color)",
-                  boxShadow: "0 10px 25px -10px rgba(0, 0, 0, 0.05)"
-                }}
-              >
-                {["Periodo 1", "Periodo 2", "Periodo 3", "Periodo 4"].map((pName) => {
-                  const isActive = activePeriodTab === pName;
-                  return (
-                    <button
-                      key={pName}
-                      type="button"
-                      onClick={() => setActivePeriodTab(pName)}
-                      className={`flex-1 py-2 text-sm font-bold rounded-full transition-all duration-200 ${
-                        isActive 
-                          ? "text-white shadow-sm font-extrabold scale-[1.02]" 
-                          : "text-muted hover:text-primary hover:bg-gray-50 dark:hover:bg-gray-800"
-                      }`}
-                      style={isActive ? { background: "var(--primary-color)", color: "white" } : {}}
-                    >
-                      {pName}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {courses.length > 0 && (
-                <div className="flex justify-center gap-3 -mt-2">
-                  <button
-                    type="button"
-                    onClick={() => handleToggleAllCoursesPeriod(true)}
-                    className="btn btn-secondary py-1.5 px-4 text-xs font-bold rounded-full hover:bg-green-50/50 hover:text-green-700 hover:border-green-300/30 transition-all shadow-sm"
-                    style={{ color: "#10b981", borderColor: "rgba(16, 185, 129, 0.15)" }}
-                  >
-                    ✓ Activar {activePeriodTab} Global
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleToggleAllCoursesPeriod(false)}
-                    className="btn btn-secondary py-1.5 px-4 text-xs font-bold rounded-full hover:bg-red-50/50 hover:text-red-700 hover:border-red-300/30 transition-all shadow-sm"
-                    style={{ color: "#ef4444", borderColor: "rgba(239, 68, 68, 0.15)" }}
-                  >
-                    ✕ Desactivar {activePeriodTab} Global
-                  </button>
+              <div className="flex justify-between items-center flex-wrap gap-4">
+                <div>
+                  <h2 className="text-xl font-bold">Gestión de Periodos Académicos</h2>
+                  <p className="text-muted text-sm mt-1">Crea, edita y activa/desactiva los periodos lectivos globales para todas las asignaturas.</p>
                 </div>
-              )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingPeriod(null);
+                    setPeriodForm({ name: "" });
+                    setError("");
+                    setShowPeriodModal(true);
+                  }}
+                  className="btn btn-primary px-4 py-2 text-sm flex items-center gap-2"
+                >
+                  <Plus size={18} />
+                  Nuevo Periodo
+                </button>
+              </div>
 
-              <div className="flex flex-col gap-4 mt-2">
-                {courses.map((course) => {
-                  const isPeriodActive = (course as any)[`period${activePeriodTabNum}Active`] !== false;
-                  
-                  return (
-                    <div 
-                      key={course.id} 
-                      className="w-full rounded-2xl border p-6 transition-all duration-300 hover:shadow-lg hover:border-blue-400/20" 
-                      style={{ 
-                        borderLeft: isPeriodActive ? "6px solid var(--primary-color)" : "6px solid var(--text-muted)",
-                        borderColor: "var(--border-color)",
-                        background: "var(--bg-primary)",
-                        boxShadow: "0 10px 30px -10px rgba(0, 0, 0, 0.04)",
-                        opacity: isPeriodActive ? 1 : 0.8
-                      }}
-                    >
-                      <div className="flex flex-wrap justify-between items-center gap-4">
-                        <div>
-                          <h2 className="text-xl font-bold flex items-center gap-2.5">
-                            <div className={`p-2 rounded-lg ${isPeriodActive ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30" : "bg-gray-100 text-gray-500 dark:bg-gray-800"}`}>
-                              <BookOpen size={20} />
+              <div className="card overflow-hidden p-0" style={{ border: "1px solid var(--border-color)", background: "var(--bg-primary)" }}>
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr style={{ background: "var(--bg-secondary)", borderBottom: "1px solid var(--border-color)" }}>
+                      <th className="p-4 text-xs font-bold uppercase tracking-wider text-muted">Nombre del Periodo</th>
+                      <th className="p-4 text-xs font-bold uppercase tracking-wider text-muted">Estado</th>
+                      <th className="p-4 text-xs font-bold uppercase tracking-wider text-muted text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800" style={{ borderColor: "var(--border-color)" }}>
+                    {periods.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="p-8 text-center text-muted">
+                          No hay periodos creados. Haz clic en "Nuevo Periodo" para empezar.
+                        </td>
+                      </tr>
+                    ) : (
+                      periods.map((period) => (
+                        <tr key={period.id} className="hover:bg-slate-50/55 dark:hover:bg-slate-900/30 transition-colors">
+                          <td className="p-4 font-semibold text-sm">{period.name}</td>
+                          <td className="p-4">
+                            <span 
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                period.active 
+                                  ? "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400" 
+                                  : "bg-gray-100 text-gray-500 dark:bg-gray-800"
+                              }`}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full ${period.active ? "bg-green-500" : "bg-gray-400"}`}></span>
+                              {period.active ? "Activo" : "Inactivo"}
+                            </span>
+                          </td>
+                          <td className="p-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleTogglePeriodActive(period)}
+                                className={`p-1.5 rounded-lg border transition-all ${
+                                  period.active
+                                    ? "text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950/30"
+                                    : "text-gray-400 hover:bg-gray-50 dark:text-gray-500 dark:hover:bg-gray-800"
+                                }`}
+                                style={{ borderColor: "var(--border-color)" }}
+                                title={period.active ? "Desactivar Periodo" : "Activar Periodo"}
+                              >
+                                {period.active ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingPeriod(period);
+                                  setPeriodForm({ name: period.name });
+                                  setError("");
+                                  setShowPeriodModal(true);
+                                }}
+                                className="p-1.5 rounded-lg border hover:bg-slate-100 text-blue-600 dark:text-blue-400 dark:hover:bg-gray-800 transition-all"
+                                style={{ borderColor: "var(--border-color)" }}
+                                title="Editar Nombre"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeletePeriod(period)}
+                                className="p-1.5 rounded-lg border hover:bg-red-50 text-red-600 dark:text-red-400 dark:hover:bg-red-950/30 transition-all"
+                                style={{ borderColor: "var(--border-color)" }}
+                                title="Eliminar Periodo"
+                              >
+                                <Trash2 size={16} />
+                              </button>
                             </div>
-                            {course.name}
-                          </h2>
-                          {course.description && (
-                            <p className="text-muted text-sm mt-1.5 ml-1">{course.description}</p>
-                          )}
-                        </div>
-                        
-                        {/* Visibility controls */}
-                        <div className="flex items-center gap-4">
-                          <button 
-                            type="button"
-                            onClick={() => togglePeriodActive(course)}
-                            className={`flex items-center gap-2.5 text-sm font-bold px-5 py-2.5 rounded-full border transition-all duration-200 ${
-                              isPeriodActive 
-                                ? "bg-green-50/70 hover:bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400" 
-                                : "bg-gray-50/70 hover:bg-gray-50 text-muted dark:bg-gray-800/30"
-                            }`}
-                            style={{ 
-                              borderColor: isPeriodActive ? "rgba(16, 185, 129, 0.3)" : "var(--border-color)", 
-                            }}
-                            title="Activar o desactivar este periodo para los estudiantes"
-                          >
-                            {isPeriodActive ? (
-                              <>
-                                <ToggleRight className="text-green-500" size={28} />
-                                <span>Visible para todos los alumnos</span>
-                              </>
-                            ) : (
-                              <>
-                                <ToggleLeft className="text-gray-400" size={28} />
-                                <span>Oculto para todos los alumnos</span>
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
@@ -922,10 +1007,12 @@ export default function ContenidoClient({ courses }: ContenidoClientProps) {
                 <label className="text-xs font-bold mb-1">Periodo *</label>
                 <select className="input-field py-1.5 px-3 text-xs" value={taskForm.period} 
                   onChange={e => setTaskForm({ ...taskForm, period: e.target.value })} required>
-                  <option value="Periodo 1">Periodo 1</option>
-                  <option value="Periodo 2">Periodo 2</option>
-                  <option value="Periodo 3">Periodo 3</option>
-                  <option value="Periodo 4">Periodo 4</option>
+                  {periods.filter(p => p.active).map(p => (
+                    <option key={p.id} value={p.name}>{p.name}</option>
+                  ))}
+                  {taskForm.period && !periods.find(p => p.name === taskForm.period)?.active && (
+                    <option value={taskForm.period}>{taskForm.period}</option>
+                  )}
                 </select>
               </div>
             </div>
@@ -1051,10 +1138,12 @@ export default function ContenidoClient({ courses }: ContenidoClientProps) {
                 <label className="text-xs font-bold mb-1">Periodo *</label>
                 <select className="input-field py-1.5 px-3 text-xs" value={resourceForm.period} 
                   onChange={e => setResourceForm({ ...resourceForm, period: e.target.value })} required>
-                  <option value="Periodo 1">Periodo 1</option>
-                  <option value="Periodo 2">Periodo 2</option>
-                  <option value="Periodo 3">Periodo 3</option>
-                  <option value="Periodo 4">Periodo 4</option>
+                  {periods.filter(p => p.active).map(p => (
+                    <option key={p.id} value={p.name}>{p.name}</option>
+                  ))}
+                  {resourceForm.period && !periods.find(p => p.name === resourceForm.period)?.active && (
+                    <option value={resourceForm.period}>{resourceForm.period}</option>
+                  )}
                 </select>
               </div>
             </div>
@@ -1133,6 +1222,40 @@ export default function ContenidoClient({ courses }: ContenidoClientProps) {
               <button type="submit" className="btn btn-primary text-xs" disabled={loading}>
                 {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
                 {editingResource ? "Guardar Cambios" : "Subir Material"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Period Modal (Create & Edit) */}
+      {showPeriodModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "1rem" }}
+          onClick={e => e.target === e.currentTarget && setShowPeriodModal(false)}>
+          <form onSubmit={handleCreateOrUpdatePeriod} className="card w-full max-w-md animate-fade-in" style={{ borderRadius: "1rem" }}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold">{editingPeriod ? "Editar Periodo" : "Nuevo Periodo"}</h2>
+              <button type="button" onClick={() => setShowPeriodModal(false)} className="p-1 rounded hover:bg-slate-150"><X size={20} /></button>
+            </div>
+            {error && <div className="alert alert-danger mb-4 text-xs font-bold">{error}</div>}
+
+            <div className="input-group mb-4">
+              <label className="text-xs font-bold mb-1">Nombre del Periodo *</label>
+              <input 
+                type="text" 
+                className="input-field py-1.5 px-3 text-xs" 
+                placeholder="Ej. Periodo 5, Semestre 1"
+                value={periodForm.name} 
+                onChange={e => setPeriodForm({ name: e.target.value })} 
+                required 
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 border-t pt-4" style={{ borderColor: "var(--border-color)" }}>
+              <button type="button" className="btn btn-secondary text-xs" onClick={() => setShowPeriodModal(false)}>Cancelar</button>
+              <button type="submit" className="btn btn-primary text-xs" disabled={loading}>
+                {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                {editingPeriod ? "Guardar Cambios" : "Crear Periodo"}
               </button>
             </div>
           </form>

@@ -100,6 +100,30 @@ export default async function ContenidoPage() {
     }))
   }));
 
+  // Fetch and seed periods
+  let periods = await prisma.period.findMany({
+    orderBy: { createdAt: 'asc' }
+  });
+  if (periods.length === 0) {
+    await prisma.period.createMany({
+      data: [
+        { name: "Periodo 1", active: true },
+        { name: "Periodo 2", active: true },
+        { name: "Periodo 3", active: true },
+        { name: "Periodo 4", active: true }
+      ]
+    });
+    periods = await prisma.period.findMany({
+      orderBy: { createdAt: 'asc' }
+    });
+  }
+
+  const serializedPeriods = periods.map(p => ({
+    id: p.id,
+    name: p.name,
+    active: p.active
+  }));
+
   return (
     <div className="animate-fade-in">
       <div className="dashboard-header mb-6">
@@ -107,7 +131,7 @@ export default async function ContenidoPage() {
         <p className="text-muted">Crea, edita y elimina tus tareas y materiales de clase de manera centralizada.</p>
       </div>
 
-      <ContenidoClient courses={serializedCourses} />
+      <ContenidoClient courses={serializedCourses} initialPeriods={serializedPeriods} />
     </div>
   );
 }
