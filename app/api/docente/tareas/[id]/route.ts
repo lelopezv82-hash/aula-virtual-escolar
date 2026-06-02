@@ -121,7 +121,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       const gAccessToken = await getGoogleAccessToken(payload.id as string);
       if (gAccessToken) {
         try {
-          const folderPath = `${task.course.name}/Tareas/${title}`;
+          const selectedGroups = await prisma.gradeGroup.findMany({
+            where: { id: { in: groupIds } },
+            include: { grade: true }
+          });
+          const gradeName = selectedGroups[0]?.grade?.name || "Sin Grado";
+          const groupName = selectedGroups[0]?.name || "Sin Grupo";
+          const folderPath = `${period}/${task.course.name}/${gradeName}/${groupName}/Tareas/${title}`;
           attachmentUrl = await uploadToGoogleDrive(buffer, file.name, file.type, payload.id as string, folderPath);
         } catch (driveError) {
           console.error("Google Drive task update upload error, falling back to Supabase:", driveError);

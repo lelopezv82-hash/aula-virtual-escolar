@@ -22,7 +22,11 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
     where: { id: resolvedParams.id },
     include: {
       course: true,
-      groups: true,
+      groups: {
+        include: {
+          grade: true
+        }
+      },
       submissions: {
         include: { student: true }
       }
@@ -76,7 +80,12 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
           </Link>
           <div>
             <h1 className="text-2xl font-bold">Entregas: {task.title}</h1>
-            <p className="text-muted text-sm">{task.course.name} - Vence: {new Date(task.dueDate).toLocaleDateString()}</p>
+            <div className="flex flex-wrap gap-x-2.5 gap-y-1 text-xs mt-1.5 text-muted font-medium">
+              <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Periodo: {task.period || "Sin Periodo"}</span>
+              <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Asignatura: {task.course.name}</span>
+              <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Grado: {task.groups[0]?.grade?.name || "Sin Grado"}</span>
+              <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Grupo: {task.groups.map(g => g.name).join(", ") || "Sin Grupo"}</span>
+            </div>
           </div>
         </div>
         

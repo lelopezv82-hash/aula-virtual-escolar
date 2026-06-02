@@ -82,9 +82,18 @@
   white-space: nowrap;
 }
 
-.nav-item:hover, .nav-item.active {
-  background-color: rgba(37, 99, 235, 0.1);
+.nav-item:hover {
+  background-color: rgba(37, 99, 235, 0.05);
   color: var(--primary-color);
+  transform: translateX(2px);
+}
+
+.nav-item.active {
+  background: linear-gradient(90deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.01) 100%);
+  border-left: 4px solid var(--primary-color);
+  padding-left: calc(1rem - 4px);
+  color: var(--primary-color);
+  font-weight: 600;
 }
 
 .sidebar.collapsed .nav-label {

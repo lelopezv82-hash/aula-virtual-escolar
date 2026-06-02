@@ -19,6 +19,13 @@ export default async function TareasDocentePage() {
     where: { teacherId },
     include: { 
       tasks: {
+        include: {
+          groups: {
+            include: {
+              grade: true
+            }
+          }
+        },
         orderBy: { dueDate: 'asc' }
       } 
     }
@@ -32,6 +39,13 @@ export default async function TareasDocentePage() {
       dueDate: t.dueDate.toISOString(),
       createdAt: t.createdAt.toISOString(),
       updatedAt: t.updatedAt.toISOString(),
+      groups: t.groups.map(g => ({
+        id: g.id,
+        name: g.name,
+        grade: {
+          name: g.grade.name
+        }
+      }))
     }))
   }));
 

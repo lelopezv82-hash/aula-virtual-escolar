@@ -32,12 +32,40 @@ export default async function PeriodoDocentePage({ params }: PageProps) {
     include: {
       resources: {
         where: { period: periodName },
-        include: { groups: true },
+        include: { 
+          groups: {
+            include: {
+              grade: true
+            }
+          }
+        },
         orderBy: { createdAt: 'desc' }
       },
       tasks: {
         where: { period: periodName },
-        include: { groups: true },
+        include: {
+          groups: {
+            include: {
+              grade: true,
+              students: {
+                select: {
+                  id: true,
+                  name: true
+                }
+              }
+            }
+          },
+          submissions: {
+            include: {
+              student: {
+                select: {
+                  id: true,
+                  name: true
+                }
+              }
+            }
+          }
+        },
         orderBy: { dueDate: 'asc' }
       }
     },
@@ -61,7 +89,13 @@ export default async function PeriodoDocentePage({ params }: PageProps) {
       theme: r.theme,
       period: r.period,
       active: r.active,
-      groups: r.groups.map(g => ({ id: g.id, name: g.name }))
+      groups: r.groups.map(g => ({ 
+        id: g.id, 
+        name: g.name,
+        grade: {
+          name: g.grade.name
+        }
+      }))
     })),
     tasks: course.tasks.map(t => ({
       id: t.id,
@@ -71,7 +105,30 @@ export default async function PeriodoDocentePage({ params }: PageProps) {
       dueDate: t.dueDate.toISOString(),
       period: t.period,
       active: t.active,
-      groups: t.groups.map(g => ({ id: g.id, name: g.name }))
+      groups: t.groups.map(g => ({ 
+        id: g.id, 
+        name: g.name,
+        grade: {
+          name: g.grade.name
+        },
+        students: g.students.map(s => ({
+          id: s.id,
+          name: s.name
+        }))
+      })),
+      submissions: t.submissions.map(s => ({
+        id: s.id,
+        status: s.status,
+        grade: s.grade,
+        feedback: s.feedback,
+        fileUrl: s.fileUrl,
+        submittedAt: s.submittedAt ? s.submittedAt.toISOString() : null,
+        studentId: s.studentId,
+        student: {
+          id: s.student.id,
+          name: s.student.name
+        }
+      }))
     }))
   }));
 

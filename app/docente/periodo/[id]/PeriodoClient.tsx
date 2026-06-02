@@ -9,6 +9,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useConfirm } from "@/components/ConfirmProvider";
+import OrganizadorJerarquico from "@/components/OrganizadorJerarquico";
 
 interface Resource {
   id: string;
@@ -18,7 +19,7 @@ interface Resource {
   theme?: string | null;
   period?: string | null;
   active?: boolean;
-  groups?: { id: string; name: string }[];
+  groups?: { id: string; name: string; grade?: { name: string } }[];
 }
 
 interface Task {
@@ -29,7 +30,22 @@ interface Task {
   dueDate: string;
   period?: string | null;
   active?: boolean;
-  groups?: { id: string; name: string }[];
+  groups?: { 
+    id: string; 
+    name: string; 
+    grade?: { name: string };
+    students?: { id: string; name: string }[];
+  }[];
+  submissions?: {
+    id: string;
+    status: string;
+    grade?: number | null;
+    feedback?: string | null;
+    fileUrl?: string | null;
+    submittedAt?: string | null;
+    studentId: string;
+    student?: { id: string; name: string };
+  }[];
 }
 
 interface Course {
@@ -56,6 +72,7 @@ const TYPE_ICONS: Record<string, string> = {
 export default function PeriodoClient({ courses, periodName }: PeriodoClientProps) {
   const router = useRouter();
   const confirm = useConfirm();
+  const [viewMode, setViewMode] = useState<"classic" | "structured">("structured");
   
   // Resource Modal State
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
@@ -249,11 +266,39 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
 
   return (
     <div className="flex flex-col gap-6">
-      {courses.length === 0 ? (
+      {/* View Mode Toggle */}
+      {courses.length > 0 && (
+        <div className="flex justify-center gap-2 mb-2 bg-slate-100 dark:bg-slate-900 p-1 rounded-full self-center border" style={{ borderColor: "var(--border-color)", maxWidth: "fit-content" }}>
+          <button
+            onClick={() => setViewMode("structured")}
+            className={`py-1.5 px-4 text-xs font-bold rounded-full transition-all ${
+              viewMode === "structured" 
+                ? "bg-white text-blue-600 shadow-xs dark:bg-slate-800" 
+                : "text-muted hover:text-primary"
+            }`}
+          >
+            Organizador Jerárquico (Recomendado)
+          </button>
+          <button
+            onClick={() => setViewMode("classic")}
+            className={`py-1.5 px-4 text-xs font-bold rounded-full transition-all ${
+              viewMode === "classic" 
+                ? "bg-white text-blue-600 shadow-xs dark:bg-slate-800" 
+                : "text-muted hover:text-primary"
+            }`}
+          >
+            Vista por Asignaturas
+          </button>
+        </div>
+      )}
+
+      {viewMode === "structured" ? (
+        <OrganizadorJerarquico courses={courses} selectedPeriod={periodName} />
+      ) : courses.length === 0 ? (
         <div className="card text-center py-12 text-muted">
           <BookOpen size={48} className="mx-auto mb-4 opacity-40" />
           <p className="text-lg font-medium">No tienes cursos activos.</p>
-          <p className="text-sm mt-1">Crea un curso en la pestaña "Mis Cursos" para empezar.</p>
+          <p className="text-sm mt-1">Crea un curso en la pestaña &quot;Mis Cursos&quot; para empezar.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-6">
@@ -323,7 +368,7 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
                       </h3>
                       <button 
                         onClick={() => openUploadModal(course)}
-                        className="btn btn-primary py-1 px-3 text-xs h-auto flex items-center gap-1"
+                        className="btn btn-primary py-1.5 px-3 text-xs h-auto flex items-center gap-1"
                       >
                         <Plus size={14} /> Subir Material
                       </button>
@@ -357,13 +402,15 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
                                         <span className="px-1.5 py-0.5 text-[8px] font-bold uppercase rounded bg-gray-100 text-gray-500">Oculto</span>
                                       )}
                                     </div>
-                                    <div className="flex gap-2 items-center text-[10px] text-muted mt-1">
-                                      <span className="font-semibold">{resource.type}</span>
+                                    <div className="flex flex-wrap gap-1.5 items-center text-[9px] text-muted mt-1">
+                                      <span className="font-bold uppercase px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">{resource.type}</span>
                                       {resource.theme && (
-                                        <span className="px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(37, 99, 235, 0.08)", color: "var(--primary-color)" }}>
-                                          {resource.theme}
-                                        </span>
+                                        <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 dark:bg-blue-950/20 dark:text-blue-400 font-medium">Tema: {resource.theme}</span>
                                       )}
+                                      <span className="px-1.5 py-0.5 rounded bg-slate-50 text-slate-600 dark:bg-slate-800/40 dark:text-slate-400 font-medium">Periodo: {resource.period || periodName}</span>
+                                      <span className="px-1.5 py-0.5 rounded bg-slate-50 text-slate-600 dark:bg-slate-800/40 dark:text-slate-400 font-medium">Asignatura: {course.name}</span>
+                                      <span className="px-1.5 py-0.5 rounded bg-slate-50 text-slate-600 dark:bg-slate-800/40 dark:text-slate-400 font-medium">Grado: {resource.groups?.[0]?.grade?.name || "Sin Grado"}</span>
+                                      <span className="px-1.5 py-0.5 rounded bg-slate-50 text-slate-600 dark:bg-slate-800/40 dark:text-slate-400 font-medium">Grupo: {resource.groups?.map((g: any) => g.name).join(", ") || "Sin Grupo"}</span>
                                     </div>
                                   </div>
                                 </div>
@@ -416,7 +463,7 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
                       </h3>
                       <Link 
                         href={`/docente/tareas/nueva?courseId=${course.id}&periodo=${encodeURIComponent(periodName)}`}
-                        className="btn btn-primary py-1 px-3 text-xs h-auto flex items-center gap-1"
+                        className="btn btn-primary py-1.5 px-3 text-xs h-auto flex items-center gap-1"
                       >
                         <Plus size={14} /> Crear Tarea
                       </Link>

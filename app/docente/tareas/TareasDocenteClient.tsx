@@ -135,6 +135,9 @@ export default function TareasDocenteClient({ courses }: { courses: Course[] }) 
                             <thead>
                               <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
                                 <th className="py-2 px-4 font-medium text-xs">Título</th>
+                                <th className="py-2 px-4 font-medium text-xs">Asignatura</th>
+                                <th className="py-2 px-4 font-medium text-xs">Grado</th>
+                                <th className="py-2 px-4 font-medium text-xs">Grupo</th>
                                 <th className="py-2 px-4 font-medium text-xs">Tema</th>
                                 <th className="py-2 px-4 font-medium text-xs">Porcentaje</th>
                                 <th className="py-2 px-4 font-medium text-xs">Fecha Límite</th>
@@ -145,6 +148,9 @@ export default function TareasDocenteClient({ courses }: { courses: Course[] }) 
                               {periodTasks.map(task => (
                                 <tr key={task.id} style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-primary)' }}>
                                   <td className="py-3 px-4 font-medium text-sm">{task.title}</td>
+                                  <td className="py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400">{course.name}</td>
+                                  <td className="py-3 px-4 text-xs text-slate-600 dark:text-slate-400">{(task as any).groups?.[0]?.grade?.name || "Sin Grado"}</td>
+                                  <td className="py-3 px-4 text-xs text-slate-600 dark:text-slate-400">{(task as any).groups?.map((g: any) => g.name).join(", ") || "Sin Grupo"}</td>
                                   <td className="py-3 px-4">
                                     {task.theme ? (
                                       <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: 'rgba(37, 99, 235, 0.1)', color: 'var(--primary-color)' }}>

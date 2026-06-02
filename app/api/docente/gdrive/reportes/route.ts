@@ -37,8 +37,57 @@ export async function POST(request: Request) {
 
     if (type === "grades") {
       if (!courseName) return NextResponse.json({ error: 'Falta courseName' }, { status: 400 });
+      
+      // Try to find the task or course to fetch the grade and period
+      let gradeName = "Sin Grado";
+      let periodName = "General";
+      
+      if (taskTitle) {
+        const task = await prisma.task.findFirst({
+          where: {
+            title: taskTitle,
+            course: {
+              name: courseName,
+              teacherId
+            }
+          },
+          include: {
+            course: {
+              include: {
+                groups: {
+                  include: {
+                    grade: true
+                  }
+                }
+              }
+            }
+          }
+        });
+        if (task) {
+          gradeName = task.course.groups[0]?.grade?.name || "Sin Grado";
+          periodName = task.period || "Sin Periodo";
+        }
+      } else {
+        const course = await prisma.course.findFirst({
+          where: {
+            name: courseName,
+            teacherId
+          },
+          include: {
+            groups: {
+              include: {
+                grade: true
+              }
+            }
+          }
+        });
+        if (course) {
+          gradeName = course.groups[0]?.grade?.name || "Sin Grado";
+        }
+      }
+
       const taskFolder = taskTitle ? `/${taskTitle}` : "";
-      const folderPath = `${courseName}/Tareas${taskFolder}/Calificaciones`;
+      const folderPath = `${gradeName}/${courseName}/${periodName}/Tareas${taskFolder}/Calificaciones`;
       try {
         const webViewLink = await uploadToGoogleDrive(buffer, filename, 'text/csv', teacherId, folderPath);
         return NextResponse.json({ success: true, webViewLink });
@@ -59,6 +108,13 @@ export async function POST(request: Request) {
               id: groupId
             }
           }
+        },
+        include: {
+          groups: {
+            include: {
+              grade: true
+            }
+          }
         }
       });
 
@@ -74,7 +130,8 @@ export async function POST(request: Request) {
       }
 
       const uploadPromises = courses.map(async (course) => {
-        const folderPath = `${course.name}/Estudiantes`;
+        const gradeName = course.groups.find(g => g.id === groupId)?.grade?.name || "Sin Grado";
+        const folderPath = `${gradeName}/${course.name}/Estudiantes`;
         return uploadToGoogleDrive(buffer, filename, 'text/csv', teacherId, folderPath);
       });
 

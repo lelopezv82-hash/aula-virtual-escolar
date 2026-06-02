@@ -28,6 +28,9 @@ model User {
 
   coursesAsTeacher Course[]     @relation("TeacherCourses")
   submissions      Submission[]
+
+  @@index([groupId])
+  @@index([role])
 }
 
 model Course {
@@ -46,6 +49,8 @@ model Course {
 
   resources   Resource[]
   tasks       Task[]
+
+  @@index([teacherId])
 }
 
 model Resource {
@@ -60,6 +65,9 @@ model Resource {
   groups      GradeGroup[] @relation("GroupResources")
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
+
+  @@index([courseId])
+  @@index([active])
 }
 
 model Task {
@@ -81,6 +89,9 @@ model Task {
   updatedAt     DateTime @updatedAt
 
   submissions Submission[]
+
+  @@index([courseId])
+  @@index([active])
 }
 
 model Submission {
@@ -100,6 +111,8 @@ model Submission {
   updatedAt   DateTime @updatedAt
 
   @@unique([taskId, studentId])
+  @@index([studentId])
+  @@index([taskId])
 }
 
 model Grade {
@@ -121,4 +134,5 @@ model GradeGroup {
   createdAt DateTime @default(now())
 
   @@unique([gradeId, name])
+  @@index([gradeId])
 }

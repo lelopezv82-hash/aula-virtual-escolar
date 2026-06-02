@@ -78,7 +78,13 @@ export async function POST(request: Request) {
       const gAccessToken = await getGoogleAccessToken(teacherId);
       if (gAccessToken) {
         try {
-          const folderPath = `${course.name}/Materiales`;
+          const selectedGroups = await prisma.gradeGroup.findMany({
+            where: { id: { in: groupIds } },
+            include: { grade: true }
+          });
+          const gradeName = selectedGroups[0]?.grade?.name || "Sin Grado";
+          const groupName = selectedGroups[0]?.name || "Sin Grupo";
+          const folderPath = `${period}/${course.name}/${gradeName}/${groupName}/Materiales`;
           url = await uploadToGoogleDrive(buffer, file.name, file.type, teacherId, folderPath);
         } catch (driveError) {
           console.error("Google Drive upload error, falling back to Supabase:", driveError);
@@ -200,7 +206,13 @@ export async function PATCH(request: Request) {
       const gAccessToken = await getGoogleAccessToken(teacherId);
       if (gAccessToken) {
         try {
-          const folderPath = `${existingResource.course.name}/Materiales`;
+          const selectedGroups = await prisma.gradeGroup.findMany({
+            where: { id: { in: groupIds } },
+            include: { grade: true }
+          });
+          const gradeName = selectedGroups[0]?.grade?.name || "Sin Grado";
+          const groupName = selectedGroups[0]?.name || "Sin Grupo";
+          const folderPath = `${period}/${existingResource.course.name}/${gradeName}/${groupName}/Materiales`;
           url = await uploadToGoogleDrive(buffer, file.name, file.type, teacherId, folderPath);
         } catch (driveError) {
           console.error("Google Drive upload error, falling back to Supabase:", driveError);

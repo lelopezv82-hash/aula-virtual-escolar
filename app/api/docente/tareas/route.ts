@@ -67,7 +67,13 @@ export async function POST(request: Request) {
       const gAccessToken = await getGoogleAccessToken(teacherId);
       if (gAccessToken) {
         try {
-          const folderPath = `${course.name}/Tareas/${title}`;
+          const selectedGroups = await prisma.gradeGroup.findMany({
+            where: { id: { in: groupIds } },
+            include: { grade: true }
+          });
+          const gradeName = selectedGroups[0]?.grade?.name || "Sin Grado";
+          const groupName = selectedGroups[0]?.name || "Sin Grupo";
+          const folderPath = `${period}/${course.name}/${gradeName}/${groupName}/Tareas/${title}`;
           attachmentUrl = await uploadToGoogleDrive(buffer, file.name, file.type, teacherId, folderPath);
         } catch (driveError) {
           console.error("Google Drive task upload error, falling back to Supabase:", driveError);

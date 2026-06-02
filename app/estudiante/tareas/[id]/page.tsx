@@ -151,7 +151,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
             {submission.feedback && (
               <div className="mt-2 text-green-900">
                 <strong>Comentario del docente:</strong>
-                <p className="italic mt-1">"{submission.feedback}"</p>
+                <p className="italic mt-1">&quot;{submission.feedback}&quot;</p>
               </div>
             )}
           </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Cloud, CheckCircle, AlertTriangle, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 
@@ -13,6 +13,21 @@ function GoogleDriveConfigContent() {
   const [hasFolder, setHasFolder] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "danger"; text: string } | null>(null);
   const [showConfig, setShowConfig] = useState(false);
+
+  const fetchStatus = useCallback(async () => {
+    try {
+      const res = await fetch("/api/docente/configuracion");
+      const data = await res.json();
+      if (res.ok) {
+        setIsConnected(data.isConnected);
+        setHasFolder(data.hasFolder);
+      }
+    } catch (err) {
+      console.error("Error fetching Google Drive status:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchStatus();
@@ -34,22 +49,7 @@ function GoogleDriveConfigContent() {
       setMessage({ type: "danger", text: errorText });
       router.replace("/docente/configuracion");
     }
-  }, [searchParams]);
-
-  const fetchStatus = async () => {
-    try {
-      const res = await fetch("/api/docente/configuracion");
-      const data = await res.json();
-      if (res.ok) {
-        setIsConnected(data.isConnected);
-        setHasFolder(data.hasFolder);
-      }
-    } catch (err) {
-      console.error("Error fetching Google Drive status:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [searchParams, fetchStatus, router]);
 
   const handleConnect = () => {
     // Redirect to the API route that starts the Google auth flow

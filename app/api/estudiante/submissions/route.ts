@@ -98,12 +98,12 @@ export async function POST(request: Request) {
               }
             }
           });
-          const gradeName = student?.group?.grade?.name || "";
-          const groupNameOnly = student?.group?.name || "Sin Grupo";
-          const groupName = gradeName ? `${gradeName} - ${groupNameOnly}` : groupNameOnly;
+          const gradeName = student?.group?.grade?.name || "Sin Grado";
+          const groupName = student?.group?.name || "Sin Grupo";
           const studentName = student?.name || "Estudiante";
           const driveFileName = `${studentName} - ${file.name}`;
-          const folderPath = `${task.course.name}/Tareas/${task.title}/Entregas/${groupName}`;
+          const taskPeriod = task.period || "Sin Periodo";
+          const folderPath = `${taskPeriod}/${task.course.name}/${gradeName}/${groupName}/Tareas/${task.title}/Entregas/${studentName}`;
           fileUrl = await uploadToGoogleDrive(buffer, driveFileName, file.type, teacherId, folderPath);
         } catch (driveError) {
           console.error("Google Drive upload error for student submission, falling back to Supabase:", driveError);
