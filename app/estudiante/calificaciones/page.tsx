@@ -27,9 +27,9 @@ export default async function CalificacionesEstudiantePage() {
 
   // Fetch active periods from database
   const activePeriodsFromDb = await prisma.period.findMany({
-    where: { active: true },
-    orderBy: { createdAt: 'asc' }
+    where: { active: true }
   });
+  activePeriodsFromDb.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
   const activePeriodNames = activePeriodsFromDb.map(p => p.name);
 
   const activeSubmissions = submissions.filter(sub => !sub.task.period || activePeriodNames.includes(sub.task.period));

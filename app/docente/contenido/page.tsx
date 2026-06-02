@@ -101,9 +101,7 @@ export default async function ContenidoPage() {
   }));
 
   // Fetch and seed periods
-  let periods = await prisma.period.findMany({
-    orderBy: { createdAt: 'asc' }
-  });
+  let periods = await prisma.period.findMany();
   if (periods.length === 0) {
     await prisma.period.createMany({
       data: [
@@ -113,10 +111,9 @@ export default async function ContenidoPage() {
         { name: "Periodo 4", active: true }
       ]
     });
-    periods = await prisma.period.findMany({
-      orderBy: { createdAt: 'asc' }
-    });
+    periods = await prisma.period.findMany();
   }
+  periods.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
 
   const serializedPeriods = periods.map(p => ({
     id: p.id,

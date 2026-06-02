@@ -25,9 +25,8 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   try {
-    const periods = await prisma.period.findMany({
-      orderBy: { createdAt: 'asc' }
-    });
+    const periods = await prisma.period.findMany();
+    periods.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
     return NextResponse.json({ periods });
   } catch (error) {
     return NextResponse.json({ error: 'Error al obtener periodos' }, { status: 500 });
@@ -86,6 +85,15 @@ export async function PATCH(request: Request) {
     const updateData: any = {};
     if (active !== undefined) {
       updateData.active = active;
+      // Automatically toggle active status of all matching tasks and resources
+      await prisma.task.updateMany({
+        where: { period: oldPeriod.name },
+        data: { active: active }
+      });
+      await prisma.resource.updateMany({
+        where: { period: oldPeriod.name },
+        data: { active: active }
+      });
     }
 
     if (name !== undefined) {

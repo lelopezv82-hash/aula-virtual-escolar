@@ -65,9 +65,9 @@ export default async function RecursosEstudiantePage() {
 
   // Fetch active periods from database
   const activePeriodsFromDb = await prisma.period.findMany({
-    where: { active: true },
-    orderBy: { createdAt: 'asc' }
+    where: { active: true }
   });
+  activePeriodsFromDb.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
   const activePeriodNames = activePeriodsFromDb.map(p => p.name);
 
   const activeResources = resources.filter(r => !r.period || activePeriodNames.includes(r.period));

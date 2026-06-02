@@ -77,9 +77,9 @@ export default async function EstudianteCursoDetallePage({
 
   // Get active periods from database
   const periodsDb = await prisma.period.findMany({
-    where: { active: true },
-    orderBy: { createdAt: 'asc' }
+    where: { active: true }
   });
+  periodsDb.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
   const activePeriods = periodsDb.map(p => p.name);
 
   const currentPeriod = activePeriods.includes(selectedPeriodParam || "")
