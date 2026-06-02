@@ -661,6 +661,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                                       <th className="py-2 px-4 font-medium text-xs">Tema</th>
                                       <th className="py-2 px-4 font-medium text-xs">Porcentaje</th>
                                       <th className="py-2 px-4 font-medium text-xs">Fecha Límite</th>
+                                      <th className="py-2.5 px-4 font-bold text-center text-xs">Estado</th>
                                       <th className="py-2 px-4 font-medium text-xs text-right">Acciones</th>
                                     </tr>
                                   </thead>
@@ -687,6 +688,15 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                                         </td>
                                         <td className="py-3 px-4 text-muted text-sm">
                                           {new Date(task.dueDate).toLocaleString()}
+                                        </td>
+                                        <td className="py-3 px-4 text-center">
+                                          <button
+                                            onClick={() => toggleTaskActive(task)}
+                                            className={`p-1.5 rounded-lg inline-flex ${task.active !== false ? "text-green-600 hover:bg-green-50" : "text-gray-400 hover:bg-gray-100"}`}
+                                            title={task.active !== false ? "Visible para alumnos (Click para ocultar)" : "Oculto para alumnos (Click para mostrar)"}
+                                          >
+                                            {task.active !== false ? <Eye size={18} /> : <EyeOff size={18} />}
+                                          </button>
                                         </td>
                                         <td className="py-3 px-4 text-right">
                                           <div className="flex justify-end gap-2">
