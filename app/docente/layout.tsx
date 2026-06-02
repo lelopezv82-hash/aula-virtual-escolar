@@ -48,6 +48,11 @@ export default async function DocenteLayout({ children }: { children: React.Reac
       icon: <Calendar size={20} />,
     },
     {
+      href: "/docente/contenido",
+      label: "Gestión de Contenido",
+      icon: <ClipboardList size={20} />,
+    },
+    {
       href: "/docente/configuracion",
       label: "Configuración",
       icon: <Settings size={20} />,

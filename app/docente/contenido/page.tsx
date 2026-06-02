@@ -1,11 +1,11 @@
 import prisma from '@/lib/prisma';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
-import PeriodosClient from "./PeriodosClient";
+import ContenidoClient from "./ContenidoClient";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
-export default async function PeriodosDocentePage() {
+export default async function ContenidoPage() {
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
   if (!token) return null;
@@ -13,7 +13,7 @@ export default async function PeriodosDocentePage() {
   const { payload } = await jwtVerify(token, JWT_SECRET);
   const teacherId = payload.id as string;
 
-  // Fetch all courses including all resources and tasks
+  // Fetch all courses including all resources and tasks with their groups
   const courses = await prisma.course.findMany({
     where: { teacherId },
     include: {
@@ -36,23 +36,7 @@ export default async function PeriodosDocentePage() {
         include: {
           groups: {
             include: {
-              grade: true,
-              students: {
-                select: {
-                  id: true,
-                  name: true
-                }
-              }
-            }
-          },
-          submissions: {
-            include: {
-              student: {
-                select: {
-                  id: true,
-                  name: true
-                }
-              }
+              grade: true
             }
           }
         },
@@ -62,15 +46,11 @@ export default async function PeriodosDocentePage() {
     orderBy: { name: 'asc' }
   });
 
-  // Serialize dates safely
+  // Serialize dates safely for client rendering
   const serializedCourses = courses.map(course => ({
     id: course.id,
     name: course.name,
     description: course.description,
-    period1Active: course.period1Active,
-    period2Active: course.period2Active,
-    period3Active: course.period3Active,
-    period4Active: course.period4Active,
     groups: course.groups.map(g => ({
       id: g.id,
       name: g.name,
@@ -97,33 +77,20 @@ export default async function PeriodosDocentePage() {
     tasks: course.tasks.map(t => ({
       id: t.id,
       title: t.title,
+      description: t.description,
+      dueDate: t.dueDate.toISOString(),
+      attachmentUrl: t.attachmentUrl,
       theme: t.theme,
       weight: t.weight,
-      dueDate: t.dueDate.toISOString(),
       period: t.period,
       active: t.active,
+      allowLateSubmission: t.allowLateSubmission,
+      lateSubmissionUntil: t.lateSubmissionUntil ? t.lateSubmissionUntil.toISOString() : null,
       groups: t.groups.map(g => ({
         id: g.id,
         name: g.name,
         grade: {
           name: g.grade.name
-        },
-        students: g.students.map(s => ({
-          id: s.id,
-          name: s.name
-        }))
-      })),
-      submissions: t.submissions.map(s => ({
-        id: s.id,
-        status: s.status,
-        grade: s.grade,
-        feedback: s.feedback,
-        fileUrl: s.fileUrl,
-        submittedAt: s.submittedAt ? s.submittedAt.toISOString() : null,
-        studentId: s.studentId,
-        student: {
-          id: s.student.id,
-          name: s.student.name
         }
       }))
     }))
@@ -132,11 +99,11 @@ export default async function PeriodosDocentePage() {
   return (
     <div className="animate-fade-in">
       <div className="dashboard-header mb-6">
-        <h1>Periodos Académicos</h1>
-        <p className="text-muted">Gestiona el material de clase, tareas y visibilidad de cada periodo académico en tus cursos.</p>
+        <h1>Gestión de Contenido</h1>
+        <p className="text-muted">Crea, edita y elimina tus tareas y materiales de clase de manera centralizada.</p>
       </div>
 
-      <PeriodosClient courses={serializedCourses} />
+      <ContenidoClient courses={serializedCourses} />
     </div>
   );
 }

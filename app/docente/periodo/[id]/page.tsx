@@ -30,6 +30,11 @@ export default async function PeriodoDocentePage({ params }: PageProps) {
   const courses = await prisma.course.findMany({
     where: { teacherId },
     include: {
+      groups: {
+        include: {
+          grade: true
+        }
+      },
       resources: {
         where: { period: periodName },
         include: { 
@@ -81,6 +86,13 @@ export default async function PeriodoDocentePage({ params }: PageProps) {
     period2Active: course.period2Active,
     period3Active: course.period3Active,
     period4Active: course.period4Active,
+    groups: course.groups.map(g => ({
+      id: g.id,
+      name: g.name,
+      grade: {
+        name: g.grade.name
+      }
+    })),
     resources: course.resources.map(r => ({
       id: r.id,
       title: r.title,

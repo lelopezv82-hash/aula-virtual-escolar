@@ -449,12 +449,6 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
                         <FileText size={16} className="text-blue-500" />
                         Materiales del {selectedPeriod}
                       </h3>
-                      <button 
-                        onClick={() => openUploadModal(course)}
-                        className="btn btn-primary py-1.5 px-3 text-xs h-auto flex items-center gap-1.5 rounded-lg shadow-sm"
-                      >
-                        <Plus size={14} /> Subir Material
-                      </button>
                     </div>
 
                     <div className="flex flex-col gap-2 min-h-[140px] justify-center p-3 rounded-xl transition-all" style={{ background: "var(--bg-secondary)", border: "1px dashed var(--border-color)" }}>
@@ -516,20 +510,6 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
                                   >
                                     {isResActive ? <Eye size={14} /> : <EyeOff size={14} />}
                                   </button>
-                                  <button 
-                                    onClick={() => openEditModal(resource, course)}
-                                    className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 text-muted hover:text-blue-600 transition-colors"
-                                    title="Editar material"
-                                  >
-                                    <Pencil size={14} />
-                                  </button>
-                                  <button 
-                                    onClick={() => handleDeleteResource(resource.id)}
-                                    className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-muted hover:text-red-600 transition-colors"
-                                    title="Eliminar"
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
                                 </div>
                               </div>
                             );
@@ -546,12 +526,6 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
                         <ClipboardList size={16} className="text-green-500" />
                         Tareas del {selectedPeriod}
                       </h3>
-                      <Link 
-                        href={`/docente/tareas/nueva?courseId=${course.id}&periodo=${encodeURIComponent(selectedPeriod)}`}
-                        className="btn btn-primary py-1.5 px-3 text-xs h-auto flex items-center gap-1.5 rounded-lg shadow-sm"
-                      >
-                        <Plus size={14} /> Crear Tarea
-                      </Link>
                     </div>
 
                     <div className="flex flex-col gap-2 min-h-[140px] justify-center p-3 rounded-xl transition-all" style={{ background: "var(--bg-secondary)", border: "1px dashed var(--border-color)" }}>
@@ -607,20 +581,6 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
                                     title={isTskActive ? "Ocultar tarea a alumnos" : "Mostrar tarea a alumnos"}
                                   >
                                     {isTskActive ? <Eye size={14} /> : <EyeOff size={14} />}
-                                  </button>
-                                  <Link 
-                                    href={`/docente/tareas/${task.id}/editar`}
-                                    className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 text-muted hover:text-blue-600 transition-colors"
-                                    title="Editar tarea"
-                                  >
-                                    <Pencil size={14} />
-                                  </Link>
-                                  <button 
-                                    onClick={() => handleDeleteTask(task.id)}
-                                    className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-muted hover:text-red-600 transition-colors"
-                                    title="Eliminar"
-                                  >
-                                    <Trash2 size={14} />
                                   </button>
                                 </div>
                               </div>
