@@ -82,9 +82,11 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
             <h1 className="text-2xl font-bold">Entregas: {task.title}</h1>
             <div className="flex flex-wrap gap-x-2.5 gap-y-1 text-xs mt-1.5 text-muted font-medium">
               <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Periodo: {task.period || "Sin Periodo"}</span>
-              <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Asignatura: {task.course.name}</span>
               <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Grado: {task.groups[0]?.grade?.name || "Sin Grado"}</span>
               <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Grupo: {task.groups.map(g => g.name).join(", ") || "Sin Grupo"}</span>
+              <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Asignatura: {task.course.name}</span>
+              <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Tema: {task.theme || "Sin Tema"}</span>
+              <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Título: {task.title}</span>
             </div>
           </div>
         </div>
@@ -121,13 +123,29 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
       />
 
       <div className="card w-full">
-        <h2 className="text-lg font-bold mb-4 no-print">Estado de las entregas</h2>
+        <div className="mb-4 no-print">
+          <h2 className="text-lg font-bold">Estado de las entregas</h2>
+          <div className="flex flex-wrap gap-x-2.5 gap-y-1 text-xs mt-1.5 text-muted font-medium">
+            <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Periodo: {task.period || "Sin Periodo"}</span>
+            <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Grado: {task.groups[0]?.grade?.name || "Sin Grado"}</span>
+            <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Grupo: {task.groups.map(g => g.name).join(", ") || "Sin Grupo"}</span>
+            <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Asignatura: {task.course.name}</span>
+            <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Tema: {task.theme || "Sin Tema"}</span>
+            <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Título: {task.title}</span>
+          </div>
+        </div>
         
         <div className="overflow-x-auto">
           <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
-                <th className="py-2 px-4 font-medium" style={{ paddingLeft: '16px' }}>Estudiante</th>
+                <th className="py-2 px-4 font-medium" style={{ paddingLeft: '16px' }}>Periodo</th>
+                <th className="py-2 px-4 font-medium">Grado</th>
+                <th className="py-2 px-4 font-medium">Grupo</th>
+                <th className="py-2 px-4 font-medium">Asignatura</th>
+                <th className="py-2 px-4 font-medium">Tema</th>
+                <th className="py-2 px-4 font-medium">Título</th>
+                <th className="py-2 px-4 font-medium">Estudiante</th>
                 <th className="py-2 px-4 font-medium">Estado</th>
                 <th className="py-2 px-4 font-medium text-center">Entrega Tardía</th>
                 <th className="py-2 px-4 font-medium">Fecha de Envío</th>
@@ -143,7 +161,13 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
                 
                 return (
                   <tr key={student.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                    <td className="py-3 px-4" style={{ paddingLeft: '16px' }}>{student.name}</td>
+                    <td className="py-3 px-4" style={{ paddingLeft: '16px' }}>{task.period || "Sin Periodo"}</td>
+                    <td className="py-3 px-4">{task.groups[0]?.grade?.name || "Sin Grado"}</td>
+                    <td className="py-3 px-4">{task.groups.map(g => g.name).join(", ") || "Sin Grupo"}</td>
+                    <td className="py-3 px-4">{task.course.name}</td>
+                    <td className="py-3 px-4">{task.theme || "Sin Tema"}</td>
+                    <td className="py-3 px-4 font-semibold">{task.title}</td>
+                    <td className="py-3 px-4">{student.name}</td>
                     <td className="py-3 px-4">
                       {isGraded ? (
                         <span className="badge badge-success flex w-fit items-center gap-1"><CheckCircle size={12}/> Calificada: {submission.grade}</span>

@@ -9,7 +9,6 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useConfirm } from "@/components/ConfirmProvider";
-import OrganizadorJerarquico from "@/components/OrganizadorJerarquico";
 
 interface Resource {
   id: string;
@@ -72,7 +71,6 @@ const TYPE_ICONS: Record<string, string> = {
 export default function PeriodoClient({ courses, periodName }: PeriodoClientProps) {
   const router = useRouter();
   const confirm = useConfirm();
-  const [viewMode, setViewMode] = useState<"classic" | "structured">("structured");
   
   // Resource Modal State
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
@@ -266,35 +264,7 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
 
   return (
     <div className="flex flex-col gap-6">
-      {/* View Mode Toggle */}
-      {courses.length > 0 && (
-        <div className="flex justify-center gap-2 mb-2 bg-slate-100 dark:bg-slate-900 p-1 rounded-full self-center border" style={{ borderColor: "var(--border-color)", maxWidth: "fit-content" }}>
-          <button
-            onClick={() => setViewMode("structured")}
-            className={`py-1.5 px-4 text-xs font-bold rounded-full transition-all ${
-              viewMode === "structured" 
-                ? "bg-white text-blue-600 shadow-xs dark:bg-slate-800" 
-                : "text-muted hover:text-primary"
-            }`}
-          >
-            Organizador Jerárquico (Recomendado)
-          </button>
-          <button
-            onClick={() => setViewMode("classic")}
-            className={`py-1.5 px-4 text-xs font-bold rounded-full transition-all ${
-              viewMode === "classic" 
-                ? "bg-white text-blue-600 shadow-xs dark:bg-slate-800" 
-                : "text-muted hover:text-primary"
-            }`}
-          >
-            Vista por Asignaturas
-          </button>
-        </div>
-      )}
-
-      {viewMode === "structured" ? (
-        <OrganizadorJerarquico courses={courses} selectedPeriod={periodName} />
-      ) : courses.length === 0 ? (
+      {courses.length === 0 ? (
         <div className="card text-center py-12 text-muted">
           <BookOpen size={48} className="mx-auto mb-4 opacity-40" />
           <p className="text-lg font-medium">No tienes cursos activos.</p>
