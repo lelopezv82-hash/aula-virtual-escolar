@@ -82,8 +82,8 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
             <h1 className="text-2xl font-bold">Entregas: {task.title}</h1>
             <div className="flex flex-wrap gap-x-2.5 gap-y-1 text-xs mt-1.5 text-muted font-medium">
               <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Periodo: {task.period || "Sin Periodo"}</span>
-              <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Grado: {task.groups[0]?.grade?.name || "Sin Grado"}</span>
-              <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Grupo: {task.groups.map(g => g.name).join(", ") || "Sin Grupo"}</span>
+              <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Grado: {Array.from(new Set(task.groups.map(g => g.grade?.name))).filter(Boolean).join(", ") || "Sin Grado"}</span>
+              <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Grupo: {task.groups.map(g => `${g.grade?.name}-${g.name}`).join(", ") || "Sin Grupo"}</span>
               <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Asignatura: {task.course.name}</span>
               <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Tema: {task.theme || "Sin Tema"}</span>
               <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Título: {task.title}</span>
