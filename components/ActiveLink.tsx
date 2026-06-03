@@ -20,7 +20,7 @@ export default function ActiveLink({
   
   // Exact match for base dashboard paths, prefix match for sub-routes
   const isActive =
-    href === "/docente" || href === "/estudiante"
+    href === "/docente" || href === "/estudiante" || href === "/admin"
       ? pathname === href
       : pathname.startsWith(href);
 
