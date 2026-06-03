@@ -37,6 +37,8 @@ export default async function TareasDocentePage() {
     tasks: c.tasks.map(t => ({
       ...t,
       dueDate: t.dueDate.toISOString(),
+      publishAt: t.publishAt ? t.publishAt.toISOString() : null,
+      lateSubmissionUntil: t.lateSubmissionUntil ? t.lateSubmissionUntil.toISOString() : null,
       createdAt: t.createdAt.toISOString(),
       updatedAt: t.updatedAt.toISOString(),
       groups: t.groups.map(g => ({

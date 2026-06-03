@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ClipboardList, Plus } from "lucide-react";
 import TaskActions from "./TaskActions";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface Task {
   id: string;
@@ -13,6 +14,8 @@ interface Task {
   period?: string | null;
   weight?: number | null;
   attachmentUrl?: string | null;
+  active?: boolean;
+  publishAt?: string | null;
 }
 
 interface Course {
@@ -26,9 +29,24 @@ interface Course {
 }
 
 export default function TareasDocenteClient({ courses }: { courses: Course[] }) {
+  const router = useRouter();
   const [selectedTheme, setSelectedTheme] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState("");
   const hasFiltersApplied = selectedTheme !== "" || selectedPeriod !== "";
+
+  const toggleTaskActive = async (task: Task) => {
+    const newVal = task.active !== false ? false : true;
+    try {
+      await fetch(`/api/docente/tareas/${task.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ active: newVal })
+      });
+      router.refresh();
+    } catch {
+      console.error("Failed to toggle task status");
+    }
+  };
 
   // Extract all unique non-null themes and periods across all tasks in all courses
   const allTasks = courses.flatMap(c => c.tasks);
@@ -142,6 +160,7 @@ export default function TareasDocenteClient({ courses }: { courses: Course[] }) 
                                 <th className="py-2 px-4 font-medium text-xs">Tema</th>
                                 <th className="py-2 px-4 font-medium text-xs">Porcentaje</th>
                                 <th className="py-2 px-4 font-medium text-xs">Fecha Límite</th>
+                                <th className="py-2.5 px-4 font-bold text-center text-xs">Estado</th>
                                 <th className="py-2 px-4 font-medium text-xs text-right">Acciones</th>
                               </tr>
                             </thead>
@@ -168,6 +187,40 @@ export default function TareasDocenteClient({ courses }: { courses: Course[] }) 
                                   </td>
                                   <td className="py-3 px-4 text-muted text-sm">
                                     {new Date(task.dueDate).toLocaleDateString()}
+                                  </td>
+                                  <td className="py-3 px-4 text-center">
+                                    <div className="flex flex-col items-center justify-center gap-1">
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleTaskActive(task)}
+                                        className="relative inline-flex items-center cursor-pointer transition-colors duration-200 ease-in-out focus:outline-none"
+                                        style={{
+                                          width: "42px",
+                                          height: "22px",
+                                          borderRadius: "9999px",
+                                          background: task.active !== false ? "var(--success, #10b981)" : "#cbd5e1",
+                                          border: "none",
+                                          padding: 0,
+                                          outline: "none"
+                                        }}
+                                        title={task.active !== false ? "Visible para alumnos (Click para ocultar)" : "Oculto para alumnos (Click para mostrar)"}
+                                      >
+                                        <span
+                                          className="pointer-events-none inline-block rounded-full bg-white shadow-md transition-transform duration-200 ease-in-out"
+                                          style={{
+                                            width: "18px",
+                                            height: "18px",
+                                            transform: task.active !== false ? "translateX(22px)" : "translateX(2px)",
+                                            boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
+                                          }}
+                                        />
+                                      </button>
+                                      {task.active !== false && task.publishAt && new Date(task.publishAt) > new Date() && (
+                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50" title={`Se publicará el ${new Date(task.publishAt).toLocaleString()}`}>
+                                          Programada
+                                        </span>
+                                      )}
+                                    </div>
                                   </td>
                                   <td className="py-3 px-4 text-right">
                                     <TaskActions taskId={task.id} attachmentUrl={task.attachmentUrl} />

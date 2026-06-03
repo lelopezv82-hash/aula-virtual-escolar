@@ -712,11 +712,29 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                                         <td className="py-3 px-4 text-center">
                                            <div className="flex flex-col items-center justify-center gap-1">
                                              <button
+                                               type="button"
                                                onClick={() => toggleTaskActive(task)}
-                                               className={`p-1.5 rounded-lg inline-flex ${task.active !== false ? "text-green-600 hover:bg-green-50" : "text-gray-400 hover:bg-gray-100"}`}
+                                               className="relative inline-flex items-center cursor-pointer transition-colors duration-200 ease-in-out focus:outline-none"
+                                               style={{
+                                                 width: "42px",
+                                                 height: "22px",
+                                                 borderRadius: "9999px",
+                                                 background: task.active !== false ? "var(--success, #10b981)" : "#cbd5e1",
+                                                 border: "none",
+                                                 padding: 0,
+                                                 outline: "none"
+                                               }}
                                                title={task.active !== false ? "Visible para alumnos (Click para ocultar)" : "Oculto para alumnos (Click para mostrar)"}
                                              >
-                                               {task.active !== false ? <Eye size={18} /> : <EyeOff size={18} />}
+                                               <span
+                                                 className="pointer-events-none inline-block rounded-full bg-white shadow-md transition-transform duration-200 ease-in-out"
+                                                 style={{
+                                                   width: "18px",
+                                                   height: "18px",
+                                                   transform: task.active !== false ? "translateX(22px)" : "translateX(2px)",
+                                                   boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
+                                                 }}
+                                               />
                                              </button>
                                              {task.active !== false && task.publishAt && new Date(task.publishAt) > new Date() && (
                                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50" title={`Se publicará el ${new Date(task.publishAt).toLocaleString()}`}>
@@ -866,11 +884,29 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                                         <td className="py-3 px-4 text-center">
                                            <div className="flex flex-col items-center justify-center gap-1">
                                              <button
+                                               type="button"
                                                onClick={() => toggleResourceActive(res)}
-                                               className={`p-1.5 rounded-lg inline-flex ${res.active !== false ? "text-green-600 hover:bg-green-50" : "text-gray-400 hover:bg-gray-100"}`}
+                                               className="relative inline-flex items-center cursor-pointer transition-colors duration-200 ease-in-out focus:outline-none"
+                                               style={{
+                                                 width: "42px",
+                                                 height: "22px",
+                                                 borderRadius: "9999px",
+                                                 background: res.active !== false ? "var(--success, #10b981)" : "#cbd5e1",
+                                                 border: "none",
+                                                 padding: 0,
+                                                 outline: "none"
+                                               }}
                                                title={res.active !== false ? "Visible para alumnos (Click para ocultar)" : "Oculto para alumnos (Click para mostrar)"}
                                              >
-                                               {res.active !== false ? <Eye size={18} /> : <EyeOff size={18} />}
+                                               <span
+                                                 className="pointer-events-none inline-block rounded-full bg-white shadow-md transition-transform duration-200 ease-in-out"
+                                                 style={{
+                                                   width: "18px",
+                                                   height: "18px",
+                                                   transform: res.active !== false ? "translateX(22px)" : "translateX(2px)",
+                                                   boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
+                                                 }}
+                                               />
                                              </button>
                                              {res.active !== false && res.publishAt && new Date(res.publishAt) > new Date() && (
                                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50" title={`Se publicará el ${new Date(res.publishAt).toLocaleString()}`}>
