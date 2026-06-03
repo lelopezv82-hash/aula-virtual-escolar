@@ -35,7 +35,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     },
     {
       href: "/admin/docentes",
-      label: "Docentes",
+      label: "Gestión de Docentes",
       icon: <GraduationCap size={20} />,
     },
     {
