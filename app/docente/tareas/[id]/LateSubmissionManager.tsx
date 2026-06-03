@@ -52,7 +52,6 @@ export default function LateSubmissionManager({
       });
       if (res.ok) {
         router.refresh();
-        alert("Configuración de prórroga general guardada con éxito.");
       } else {
         alert("Error al actualizar la configuración de la tarea");
       }
