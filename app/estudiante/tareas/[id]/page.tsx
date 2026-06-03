@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, UploadCloud, Loader2, CheckCircle, FileText, Clock } from "lucide-react";
+import { ArrowLeft, UploadCloud, Loader2, CheckCircle, FileText, Clock, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 
 export default function TareaDetallePage({ params }: { params: Promise<{ id: string }> }) {
@@ -15,6 +15,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [errorType, setErrorType] = useState<"danger" | "warning">("danger");
   const [initialLoad, setInitialLoad] = useState(true);
 
   useEffect(() => {
@@ -36,13 +37,15 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
+      setError("");
     }
   };
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) {
-      setError("Por favor selecciona un archivo.");
+      setError("¡Ups! Falta el archivo. Por favor, selecciona el archivo de tu tarea antes de enviarla.");
+      setErrorType("warning");
       return;
     }
 
@@ -65,9 +68,11 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
         setFile(null);
       } else {
         setError(data.error || "Error al enviar la tarea.");
+        setErrorType("danger");
       }
     } catch (err) {
       setError("Error de conexión al servidor.");
+      setErrorType("danger");
     } finally {
       setLoading(false);
     }
@@ -199,7 +204,23 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                   </p>
                 </div>
               )}
-              {error && <div className="alert alert-danger">{error}</div>}
+              {error && (
+                errorType === "warning" ? (
+                  <div className="flex items-center gap-3 p-4 border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 rounded-xl text-amber-900 dark:text-amber-200 animate-scale-in">
+                    <AlertTriangle className="text-amber-600 dark:text-amber-400 flex-shrink-0" size={20} />
+                    <div className="flex-1 text-sm font-medium">
+                      {error}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 p-4 border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/20 rounded-xl text-red-900 dark:text-red-200 animate-scale-in">
+                    <AlertTriangle className="text-red-600 dark:text-red-400 flex-shrink-0" size={20} />
+                    <div className="flex-1 text-sm font-medium">
+                      {error}
+                    </div>
+                  </div>
+                )
+              )}
               
               <div className="border-2 border-dashed rounded-lg p-8 text-center hover:bg-gray-50 transition-colors" style={{ borderColor: 'var(--primary-color)' }}>
                 <UploadCloud size={48} className="mx-auto mb-4" style={{ color: 'var(--primary-color)' }} />
@@ -217,7 +238,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                 </p>
               </div>
 
-              <button type="submit" className="btn btn-primary mt-2" disabled={!file || loading}>
+              <button type="submit" className="btn btn-primary mt-2" disabled={loading}>
                 {loading ? <Loader2 className="animate-spin" size={20} /> : (isSubmitted ? "Reemplazar Entrega" : "Enviar Tarea")}
               </button>
             </form>
