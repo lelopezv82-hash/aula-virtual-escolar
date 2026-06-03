@@ -67,10 +67,8 @@ export default function LateSubmissionManager({
   const handleToggleSwitch = async () => {
     const nextState = !taskAllowLate;
     setTaskAllowLate(nextState);
-    if (!nextState) {
-      // Si se desactiva, guardar inmediatamente
-      await handleSaveConfig(false, "");
-    }
+    // Guardar inmediatamente al activar o desactivar
+    await handleSaveConfig(nextState, nextState ? lateUntil : "");
   };
 
   return (

@@ -640,11 +640,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                         if (periodName === "Otros" && periodTasks.length === 0) return null;
 
                         const isPeriodActive = periodName === "Otros" || (() => {
-                          if (periodName === "Periodo 1") return course.period1Active !== false;
-                          if (periodName === "Periodo 2") return course.period2Active !== false;
-                          if (periodName === "Periodo 3") return course.period3Active !== false;
-                          if (periodName === "Periodo 4") return course.period4Active !== false;
-                          return true;
+                          const p = periods.find(p => p.name === periodName);
+                          return p ? p.active : true;
                         })();
 
                         return (

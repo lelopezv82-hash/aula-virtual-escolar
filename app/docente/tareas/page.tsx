@@ -51,6 +51,14 @@ export default async function TareasDocentePage() {
     }))
   }));
 
+  const periods = await prisma.period.findMany();
+  periods.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+  const serializedPeriods = periods.map(p => ({
+    id: p.id,
+    name: p.name,
+    active: p.active
+  }));
+
   return (
     <div className="animate-fade-in">
       <div className="dashboard-header flex justify-between items-center">
@@ -63,7 +71,7 @@ export default async function TareasDocentePage() {
         </Link>
       </div>
 
-      <TareasDocenteClient courses={serializedCourses} />
+      <TareasDocenteClient courses={serializedCourses} periods={serializedPeriods} />
     </div>
   );
 }

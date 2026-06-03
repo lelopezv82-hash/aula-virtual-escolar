@@ -28,7 +28,13 @@ interface Course {
   tasks: Task[];
 }
 
-export default function TareasDocenteClient({ courses }: { courses: Course[] }) {
+interface Period {
+  id: string;
+  name: string;
+  active: boolean;
+}
+
+export default function TareasDocenteClient({ courses, periods }: { courses: Course[], periods: Period[] }) {
   const router = useRouter();
   const [selectedTheme, setSelectedTheme] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState("");
@@ -122,11 +128,8 @@ export default function TareasDocenteClient({ courses }: { courses: Course[] }) 
                   if (periodName === "Otros" && periodTasks.length === 0) return null;
 
                   const isPeriodActive = periodName === "Otros" || (() => {
-                    if (periodName === "Periodo 1") return course.period1Active !== false;
-                    if (periodName === "Periodo 2") return course.period2Active !== false;
-                    if (periodName === "Periodo 3") return course.period3Active !== false;
-                    if (periodName === "Periodo 4") return course.period4Active !== false;
-                    return true;
+                    const p = periods.find(p => p.name === periodName);
+                    return p ? p.active : true;
                   })();
 
                   return (
