@@ -34,7 +34,7 @@ export default async function DocenteLayout({ children }: { children: React.Reac
     },
     {
       href: "/docente/grados",
-      label: "Gestión de Estudiantes",
+      label: "Gestión Estudiantes",
       icon: <Layers size={20} />,
     },
     {
@@ -45,7 +45,7 @@ export default async function DocenteLayout({ children }: { children: React.Reac
 
     {
       href: "/docente/contenido",
-      label: "Gestión de Contenido",
+      label: "Gestión Contenido",
       icon: <ClipboardList size={20} />,
     },
     {
