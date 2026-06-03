@@ -34,7 +34,7 @@ export default async function DocenteLayout({ children }: { children: React.Reac
     },
     {
       href: "/docente/grados",
-      label: "Grados y Cursos",
+      label: "Gestión de Grados y Cursos",
       icon: <Layers size={20} />,
     },
     {

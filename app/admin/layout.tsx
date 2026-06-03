@@ -40,7 +40,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     },
     {
       href: "/admin/grados",
-      label: "Grados y Cursos",
+      label: "Gestión de Grados y Cursos",
       icon: <Layers size={20} />,
     },
   ];
