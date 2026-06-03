@@ -63,6 +63,20 @@ export default function LateSubmissionManager({
     }
   };
 
+  const handleDateBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    const initialFormatted = initialTaskLateUntil ? new Date(new Date(initialTaskLateUntil).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().substring(0, 16) : "";
+    if (val === initialFormatted) return;
+    
+    await handleSaveConfig(true, val);
+  };
+
+  const handleDateKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.currentTarget.blur();
+    }
+  };
+
   const handleToggleSwitch = async () => {
     const nextState = !taskAllowLate;
     setTaskAllowLate(nextState);
@@ -110,27 +124,23 @@ export default function LateSubmissionManager({
               <Calendar size={14} className="text-indigo-500" />
               Fecha y hora límite de prórroga general (Opcional):
             </label>
-            <div className="relative">
+            <div className="relative flex items-center gap-2.5">
               <input
                 type="datetime-local"
                 value={lateUntil}
                 onChange={(e) => setLateUntil(e.target.value)}
+                onBlur={handleDateBlur}
+                onKeyDown={handleDateKeyDown}
                 className="w-full max-w-md px-3.5 py-2.0 text-sm rounded-lg border border-gray-200 dark:border-zinc-800 dark:bg-zinc-950 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500"
               />
+              {loadingTask && (
+                <span className="text-xs text-indigo-600 dark:text-indigo-400 animate-pulse font-medium">Guardando...</span>
+              )}
             </div>
             <p className="text-[11px] text-indigo-700/80 dark:text-indigo-300/60 mt-1">
-              * Si no defines fecha/hora, la prórroga estará activa indefinidamente.
+              * Si no defines fecha/hora, la prórroga estará activa indefinidamente. Los cambios se guardan automáticamente al salir del campo.
             </p>
           </div>
-          
-          <button
-            onClick={() => handleSaveConfig(true, lateUntil)}
-            disabled={loadingTask}
-            className="btn btn-primary px-4 py-2 text-sm rounded-lg font-semibold flex items-center gap-1.5 self-start md:self-end bg-indigo-600 hover:bg-indigo-700 active:scale-95 transition-all text-white"
-          >
-            <Save size={16} />
-            {loadingTask ? "Guardando..." : "Guardar Configuración"}
-          </button>
         </div>
       )}
 
