@@ -21,7 +21,22 @@ export default async function EstudianteConfiguracionPage() {
 
   const student = await prisma.user.findUnique({
     where: { id: userId },
-    select: { name: true, username: true, grade: true, groupName: true }
+    select: {
+      name: true,
+      username: true,
+      grade: true,
+      groupName: true,
+      group: {
+        select: {
+          name: true,
+          grade: {
+            select: {
+              name: true
+            }
+          }
+        }
+      }
+    }
   });
 
   if (!student) return null;
@@ -49,11 +64,29 @@ export default async function EstudianteConfiguracionPage() {
             <div>
               <div className="text-muted text-xs uppercase font-semibold" style={{ marginBottom: "0.25rem" }}>Curso / Grupo</div>
               <div className="mt-1">
-                {(student.grade || student.groupName) ? (
-                  <span className="badge badge-info">
-                    {student.grade ? `Grado ${student.grade}` : ""}{student.grade && student.groupName ? " – " : ""}{student.groupName || ""}
-                  </span>
-                ) : <span className="text-muted">—</span>}
+                {(() => {
+                  const gradeFromRelation = student.group?.grade?.name || student.grade;
+                  const groupFromRelation = student.group?.name || student.groupName;
+
+                  let gradeDisplay = gradeFromRelation;
+                  let groupDisplay = groupFromRelation;
+
+                  if (groupFromRelation && groupFromRelation.includes("-")) {
+                    const parts = groupFromRelation.split("-");
+                    if (parts.length === 2) {
+                      gradeDisplay = parts[0].trim();
+                      groupDisplay = parts[1].trim();
+                    }
+                  }
+
+                  return (gradeDisplay || groupDisplay) ? (
+                    <span className="badge badge-info">
+                      {gradeDisplay ? `Grado ${gradeDisplay}` : ""}{gradeDisplay && groupDisplay ? " - " : ""}{groupDisplay || ""}
+                    </span>
+                  ) : (
+                    <span className="text-muted">—</span>
+                  );
+                })()}
               </div>
             </div>
           </div>
