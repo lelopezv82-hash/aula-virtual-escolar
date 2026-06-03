@@ -3,9 +3,11 @@
 import { useEffect, useState, Suspense, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Cloud, CheckCircle, AlertTriangle, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { useConfirm } from "@/components/ConfirmProvider";
 
 function GoogleDriveConfigContent() {
   const router = useRouter();
+  const confirm = useConfirm();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
@@ -57,7 +59,15 @@ function GoogleDriveConfigContent() {
   };
 
   const handleDisconnect = async () => {
-    if (!confirm("¿Estás seguro de que deseas desvincular Google Drive? Las nuevas subidas de archivos volverán a guardarse en la nube del sistema.")) {
+    const ok = await confirm({
+      title: "Desvincular Google Drive",
+      message: "¿Estás seguro de que deseas desvincular Google Drive? Las nuevas subidas de archivos volverán a guardarse en la nube del sistema.",
+      confirmText: "Desvincular",
+      cancelText: "Cancelar",
+      type: "danger"
+    });
+
+    if (!ok) {
       return;
     }
 

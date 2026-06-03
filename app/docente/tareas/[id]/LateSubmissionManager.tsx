@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Clock, Check, AlertCircle, Calendar, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useConfirm } from "@/components/ConfirmProvider";
 
 interface Student {
   id: string;
@@ -25,6 +26,7 @@ export default function LateSubmissionManager({
   students
 }: LateSubmissionManagerProps) {
   const router = useRouter();
+  const confirm = useConfirm();
   const getFormattedDate = (dateStr?: string | null) => {
     if (!dateStr) return "";
     return new Date(new Date(dateStr).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().substring(0, 16);
@@ -62,7 +64,7 @@ export default function LateSubmissionManager({
     };
 
     // 2. Interceptar navegación interna mediante enlaces <a> de Next.js
-    const handleAnchorClick = (e: MouseEvent) => {
+    const handleAnchorClick = async (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       const anchor = target.closest("a");
       if (anchor) {
@@ -75,12 +77,19 @@ export default function LateSubmissionManager({
           return;
         }
 
-        const confirmLeave = window.confirm(
-          "Tienes cambios sin guardar en la configuración de la prórroga. ¿Estás seguro de que deseas salir sin guardar?"
-        );
-        if (!confirmLeave) {
-          e.preventDefault();
-          e.stopPropagation();
+        e.preventDefault();
+        e.stopPropagation();
+
+        const confirmLeave = await confirm({
+          title: "Cambios sin guardar",
+          message: "Tienes cambios sin guardar en la configuración de la prórroga. ¿Estás seguro de que deseas salir sin guardar?",
+          confirmText: "Salir sin guardar",
+          cancelText: "Permanecer aquí",
+          type: "warning"
+        });
+
+        if (confirmLeave && href) {
+          router.push(href);
         }
       }
     };
@@ -92,7 +101,7 @@ export default function LateSubmissionManager({
       window.removeEventListener("beforeunload", handleBeforeUnload);
       document.removeEventListener("click", handleAnchorClick, true);
     };
-  }, [hasChanges]);
+  }, [hasChanges, confirm, router]);
 
   const handleSaveConfig = async (allowLate: boolean, untilDate: string) => {
     setLoadingTask(true);
@@ -171,29 +180,6 @@ export default function LateSubmissionManager({
         </div>
       </div>
 
-      {/* Panel de configuración de fecha extemporánea cuando la entrega tardía está activada */}
-      {taskAllowLate && (
-        <div className="mt-4 p-4 border border-indigo-100/50 dark:border-indigo-900/20 bg-indigo-50/30 dark:bg-indigo-950/10 rounded-xl animate-fade-in flex flex-col md:flex-row md:items-end gap-4 justify-between">
-          <div className="flex-1">
-            <label className="text-xs font-semibold text-indigo-950 dark:text-indigo-200 flex items-center gap-1.5 mb-1.5">
-              <Calendar size={14} className="text-indigo-500" />
-              Fecha y hora límite de prórroga general (Opcional):
-            </label>
-            <div className="relative flex items-center gap-2.5">
-              <input
-                type="datetime-local"
-                value={lateUntil}
-                onChange={handleDateChange}
-                className="w-full max-w-md px-3.5 py-2.0 text-sm rounded-lg border border-gray-200 dark:border-zinc-800 dark:bg-zinc-950 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500"
-              />
-            </div>
-            <p className="text-[11px] text-indigo-700/80 dark:text-indigo-300/60 mt-1">
-              * Si no defines fecha/hora, la prórroga estará activa indefinidamente. Recuerda hacer clic en "Guardar configuración" para aplicar los cambios.
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Barra de cambios sin guardar */}
       {hasChanges && (
         <div className="mt-4 p-4 border border-amber-200 dark:border-amber-900/50 bg-amber-50/80 dark:bg-amber-950/20 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 animate-fade-in backdrop-blur-sm shadow-sm">
@@ -235,6 +221,29 @@ export default function LateSubmissionManager({
                 </>
               )}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Panel de configuración de fecha extemporánea cuando la entrega tardía está activada */}
+      {taskAllowLate && (
+        <div className="mt-4 p-4 border border-indigo-100/50 dark:border-indigo-900/20 bg-indigo-50/30 dark:bg-indigo-950/10 rounded-xl animate-fade-in flex flex-col md:flex-row md:items-end gap-4 justify-between">
+          <div className="flex-1">
+            <label className="text-xs font-semibold text-indigo-950 dark:text-indigo-200 flex items-center gap-1.5 mb-1.5">
+              <Calendar size={14} className="text-indigo-500" />
+              Fecha y hora límite de prórroga general (Opcional):
+            </label>
+            <div className="relative flex items-center gap-2.5">
+              <input
+                type="datetime-local"
+                value={lateUntil}
+                onChange={handleDateChange}
+                className="w-full max-w-md px-3.5 py-2 text-sm rounded-lg border border-gray-200 dark:border-zinc-800 dark:bg-zinc-950 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500"
+              />
+            </div>
+            <p className="text-[11px] text-indigo-700/80 dark:text-indigo-300/60 mt-1">
+              * Si no defines fecha/hora, la prórroga estará activa indefinidamente. Recuerda hacer clic en "Guardar configuración" para aplicar los cambios.
+            </p>
           </div>
         </div>
       )}

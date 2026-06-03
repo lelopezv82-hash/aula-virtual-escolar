@@ -28,133 +28,66 @@ export default function ConfirmModal({
     switch (type) {
       case 'danger':
         return {
-          iconBg: 'rgba(239, 68, 68, 0.1)',
-          iconColor: '#ef4444',
-          btnBg: '#ef4444',
-          btnBgHover: '#dc2626',
-          btnShadow: '0 0 12px rgba(239, 68, 68, 0.3)'
+          iconBg: 'bg-red-50 dark:bg-red-950/20 ring-4 ring-red-500/10',
+          iconColor: 'text-red-500 dark:text-red-400',
+          btnBg: 'bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 focus:ring-red-500',
+          btnShadow: 'shadow-[0_4px_12px_rgba(239,68,68,0.2)] hover:shadow-[0_6px_16px_rgba(239,68,68,0.3)]',
+          icon: <Trash2 className="w-5.5 h-5.5" />
         };
       case 'warning':
         return {
-          iconBg: 'rgba(245, 158, 11, 0.1)',
-          iconColor: '#f59e0b',
-          btnBg: '#f59e0b',
-          btnBgHover: '#d97706',
-          btnShadow: '0 0 12px rgba(245, 158, 11, 0.3)'
+          iconBg: 'bg-amber-50 dark:bg-amber-950/20 ring-4 ring-amber-500/10',
+          iconColor: 'text-amber-600 dark:text-amber-400',
+          btnBg: 'bg-amber-600 hover:bg-amber-700 dark:bg-amber-700 dark:hover:bg-amber-600 focus:ring-amber-500',
+          btnShadow: 'shadow-[0_4px_12px_rgba(245,158,11,0.2)] hover:shadow-[0_6px_16px_rgba(245,158,11,0.3)]',
+          icon: <AlertTriangle className="w-5.5 h-5.5" />
         };
       case 'info':
       default:
         return {
-          iconBg: 'rgba(37, 99, 235, 0.1)',
-          iconColor: '#2563eb',
-          btnBg: '#2563eb',
-          btnBgHover: '#1d4ed8',
-          btnShadow: '0 0 12px rgba(37, 99, 235, 0.3)'
+          iconBg: 'bg-blue-50 dark:bg-blue-950/20 ring-4 ring-blue-500/10',
+          iconColor: 'text-blue-600 dark:text-blue-400',
+          btnBg: 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 focus:ring-blue-500',
+          btnShadow: 'shadow-[0_4px_12px_rgba(37,99,235,0.2)] hover:shadow-[0_6px_16px_rgba(37,99,235,0.3)]',
+          icon: <Info className="w-5.5 h-5.5" />
         };
     }
   };
 
   const colors = getThemeColor();
 
-  const getIcon = () => {
-    switch (type) {
-      case 'danger':
-        return <Trash2 size={26} color={colors.iconColor} />;
-      case 'warning':
-        return <AlertTriangle size={26} color={colors.iconColor} />;
-      case 'info':
-      default:
-        return <Info size={26} color={colors.iconColor} />;
-    }
-  };
-
   return (
     <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(15, 23, 42, 0.6)',
-        backdropFilter: 'blur(8px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 200,
-        padding: '1rem'
-      }}
+      className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/40 dark:bg-black/60 backdrop-blur-md animate-fade-in"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
-        className="card"
-        style={{
-          width: '100%',
-          maxWidth: '440px',
-          boxShadow: 'var(--shadow-lg), 0 20px 25px -5px rgba(0, 0, 0, 0.15)',
-          borderRadius: 'var(--radius-lg)',
-          overflow: 'hidden',
-          border: '1px solid var(--border-color)',
-          background: 'var(--bg-secondary)',
-          position: 'relative'
-        }}
+        className="relative w-full max-w-md overflow-hidden bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl shadow-2xl animate-scale-in"
       >
         {/* Header Close button */}
         <button
           onClick={onClose}
-          style={{
-            position: 'absolute',
-            top: '1rem',
-            right: '1rem',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '0.25rem',
-            borderRadius: 'var(--radius-md)',
-            color: 'var(--text-muted)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
+          className="absolute top-4 right-4 p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-800/60 transition-all duration-150"
         >
-          <X size={18} />
+          <X className="w-4 h-4" />
         </button>
 
         {/* Content */}
-        <div style={{ padding: '2rem 1.75rem 1.5rem 1.75rem' }}>
-          <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-start' }}>
-            {/* Icon Wrapper */}
+        <div className="p-6 pt-8 pb-5">
+          <div className="flex gap-4 items-start">
+            {/* Icon Wrapper with glowing rings */}
             <div
-              style={{
-                width: '52px',
-                height: '52px',
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: colors.iconBg,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}
+              className={`flex items-center justify-center w-11 h-11 rounded-xl flex-shrink-0 ${colors.iconBg} ${colors.iconColor}`}
             >
-              {getIcon()}
+              {colors.icon}
             </div>
 
             {/* Texts */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <h3
-                style={{
-                  fontSize: '1.25rem',
-                  fontWeight: 700,
-                  fontFamily: 'var(--font-heading)',
-                  color: 'var(--text-primary)'
-                }}
-              >
+            <div className="flex-1 flex flex-col gap-1.5">
+              <h3 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white font-heading">
                 {title}
               </h3>
-              <p
-                style={{
-                  fontSize: '0.925rem',
-                  color: 'var(--text-secondary)',
-                  lineHeight: '1.45rem'
-                }}
-              >
+              <p className="text-sm leading-relaxed text-gray-600 dark:text-zinc-400">
                 {message}
               </p>
             </div>
@@ -162,24 +95,10 @@ export default function ConfirmModal({
         </div>
 
         {/* Footer actions */}
-        <div
-          style={{
-            padding: '1rem 1.5rem 1.25rem 1.5rem',
-            background: 'var(--bg-primary)',
-            borderTop: '1px solid var(--border-color)',
-            display: 'flex',
-            justifyContent: 'end',
-            gap: '0.75rem'
-          }}
-        >
+        <div className="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50/50 dark:bg-zinc-900/30 border-t border-slate-100 dark:border-zinc-800/60">
           <button
             onClick={onClose}
-            className="btn btn-secondary"
-            style={{
-              padding: '0.5rem 1.25rem',
-              fontSize: '0.9rem',
-              fontWeight: 500
-            }}
+            className="px-4 py-2 text-sm font-semibold rounded-lg border border-slate-200 dark:border-zinc-800 text-gray-700 dark:text-zinc-300 bg-white dark:bg-zinc-900 hover:bg-slate-50 dark:hover:bg-zinc-800/60 active:scale-[0.98] transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-slate-500/20"
           >
             {cancelText}
           </button>
@@ -188,16 +107,7 @@ export default function ConfirmModal({
               onConfirm();
               onClose();
             }}
-            className="btn"
-            style={{
-              padding: '0.5rem 1.5rem',
-              fontSize: '0.9rem',
-              fontWeight: 500,
-              backgroundColor: colors.btnBg,
-              color: 'white',
-              boxShadow: colors.btnShadow,
-              transition: 'all 0.15s ease-in-out'
-            }}
+            className={`px-5 py-2 text-sm font-semibold text-white rounded-lg active:scale-[0.98] transition-all duration-150 focus:outline-none focus:ring-2 ${colors.btnBg} ${colors.btnShadow}`}
           >
             {confirmText}
           </button>
