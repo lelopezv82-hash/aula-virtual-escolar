@@ -44,7 +44,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'El nombre es obligatorio' }, { status: 400 });
     }
 
-    const trimmedName = name.trim();
+    let trimmedName = name.trim();
+    if (trimmedName.toLowerCase().startsWith("periodo ")) {
+      trimmedName = "Periodo " + trimmedName.substring(8);
+    }
 
     // Check if duplicate
     const existing = await prisma.period.findUnique({
@@ -97,7 +100,10 @@ export async function PATCH(request: Request) {
     }
 
     if (name !== undefined) {
-      const trimmedName = name.trim();
+      let trimmedName = name.trim();
+      if (trimmedName.toLowerCase().startsWith("periodo ")) {
+        trimmedName = "Periodo " + trimmedName.substring(8);
+      }
       if (trimmedName === "") {
         return NextResponse.json({ error: 'El nombre no puede estar vacío' }, { status: 400 });
       }

@@ -128,7 +128,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                   if (periodName === "Otros" && periodTasks.length === 0) return null;
 
                   const isPeriodActive = periodName === "Otros" || (() => {
-                    const p = periods.find(p => p.name === periodName);
+                    const p = periods.find(p => p.name.toLowerCase() === periodName.toLowerCase());
                     return p ? p.active : true;
                   })();
 
