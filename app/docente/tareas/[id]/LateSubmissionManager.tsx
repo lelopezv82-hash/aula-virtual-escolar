@@ -39,15 +39,15 @@ export default function LateSubmissionManager({
   
   const [loadingTask, setLoadingTask] = useState(false);
 
-  const handleSaveConfig = async () => {
+  const handleSaveConfig = async (allowLate: boolean, untilDate: string) => {
     setLoadingTask(true);
     try {
       const res = await fetch(`/api/docente/tareas/${taskId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          allowLateSubmission: taskAllowLate,
-          lateSubmissionUntil: taskAllowLate && lateUntil ? new Date(lateUntil).toISOString() : null
+          allowLateSubmission: allowLate,
+          lateSubmissionUntil: allowLate && untilDate ? new Date(untilDate).toISOString() : null
         })
       });
       if (res.ok) {
@@ -61,6 +61,15 @@ export default function LateSubmissionManager({
       alert("Error de red");
     } finally {
       setLoadingTask(false);
+    }
+  };
+
+  const handleToggleSwitch = async () => {
+    const nextState = !taskAllowLate;
+    setTaskAllowLate(nextState);
+    if (!nextState) {
+      // Si se desactiva, guardar inmediatamente
+      await handleSaveConfig(false, "");
     }
   };
 
@@ -81,10 +90,11 @@ export default function LateSubmissionManager({
             {taskAllowLate ? "Habilitado para todos" : "Bloqueado tras vencer"}
           </span>
           <button
-            onClick={() => setTaskAllowLate(!taskAllowLate)}
+            onClick={handleToggleSwitch}
+            disabled={loadingTask}
             className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
               taskAllowLate ? "bg-indigo-600" : "bg-gray-200 dark:bg-zinc-700"
-            }`}
+            } ${loadingTask ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             <span
               className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
@@ -117,7 +127,7 @@ export default function LateSubmissionManager({
           </div>
           
           <button
-            onClick={handleSaveConfig}
+            onClick={() => handleSaveConfig(true, lateUntil)}
             disabled={loadingTask}
             className="btn btn-primary px-4 py-2 text-sm rounded-lg font-semibold flex items-center gap-1.5 self-start md:self-end bg-indigo-600 hover:bg-indigo-700 active:scale-95 transition-all text-white"
           >
