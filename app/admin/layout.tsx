@@ -48,7 +48,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (isSuperAdmin) {
     links.push({
       href: "/admin/administradores",
-      label: "Administradores",
+      label: "Gestión Administradores",
       icon: <Shield size={20} />,
     });
   }
