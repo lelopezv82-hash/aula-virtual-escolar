@@ -62,7 +62,7 @@ export default async function EstudianteConfiguracionPage() {
               <span className="font-semibold" style={{ fontFamily: "monospace" }}>{student.username}</span>
             </div>
             <div>
-              <div className="text-muted text-xs uppercase font-semibold" style={{ marginBottom: "0.25rem" }}>Curso / Grupo</div>
+              <div className="text-muted text-xs uppercase font-semibold" style={{ marginBottom: "0.25rem" }}>Grado / Curso / Grupo</div>
               <div className="mt-1">
                 {(() => {
                   const gradeFromRelation = student.group?.grade?.name || student.grade;

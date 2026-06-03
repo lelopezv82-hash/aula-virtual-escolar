@@ -378,7 +378,7 @@ export default function EstudiantesPage() {
                   <th className="py-3 px-4 font-medium">Nombre</th>
                   <th className="py-3 px-4 font-medium">Usuario</th>
                   <th className="py-3 px-4 font-medium">Contraseña</th>
-                  <th className="py-3 px-4 font-medium">Curso / Grupo</th>
+                  <th className="py-3 px-4 font-medium">Grado / Curso / Grupo</th>
                   <th className="py-3 px-4 font-medium text-right">Acciones</th>
                 </tr>
               </thead>
