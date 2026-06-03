@@ -552,7 +552,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
         <div className="card text-center py-16 text-muted">
           <BookOpen size={56} className="mx-auto mb-4 opacity-35" />
           <p className="font-semibold text-lg">No tienes asignaturas activas.</p>
-          <p className="text-sm mt-1">Crea una asignatura en la sección "Mis Asignaturas" para empezar a gestionar contenido.</p>
+          <p className="text-sm mt-1">Crea una asignatura en la sección &quot;Mis Asignaturas&quot; para empezar a gestionar contenido.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-6">
@@ -990,7 +990,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                     {periods.length === 0 ? (
                       <tr>
                         <td colSpan={3} className="p-8 text-center text-muted">
-                          No hay periodos creados. Haz clic en "Nuevo Periodo" para empezar.
+                          No hay periodos creados. Haz clic en &quot;Nuevo Periodo&quot; para empezar.
                         </td>
                       </tr>
                     ) : (

@@ -574,7 +574,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
     <div className="flex flex-col gap-6 animate-fade-in">
       <div className="flex justify-between items-center border-b pb-4" style={{ borderColor: "var(--border-color)" }}>
         <div>
-          <h1 className="text-2xl font-bold">Gestión de Grados y Cursos</h1>
+          <h1 className="text-2xl font-bold">Gestión de Estudiantes</h1>
           <p className="text-muted text-sm mt-1">Estructura académica de la institución escolar.</p>
         </div>
         <button className="btn btn-primary shadow-sm" onClick={() => { setGradeName(""); setError(""); setShowGradeModal(true); }}>

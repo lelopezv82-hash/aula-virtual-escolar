@@ -242,7 +242,7 @@ export default function LateSubmissionManager({
               />
             </div>
             <p className="text-[11px] text-indigo-700/80 dark:text-indigo-300/60 mt-1">
-              * Si no defines fecha/hora, la prórroga estará activa indefinidamente. Recuerda hacer clic en "Guardar configuración" para aplicar los cambios.
+              * Si no defines fecha/hora, la prórroga estará activa indefinidamente. Recuerda hacer clic en &quot;Guardar configuración&quot; para aplicar los cambios.
             </p>
           </div>
         </div>
