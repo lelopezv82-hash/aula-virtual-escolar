@@ -20,10 +20,29 @@ export default async function NotificacionesPage() {
   });
   const studentGroupId = studentRecord?.groupId || null;
 
+  // Fetch active periods from database
+  const activePeriodsFromDb = await prisma.period.findMany({
+    where: { active: true }
+  });
+  const activePeriodNames = activePeriodsFromDb.map(p => p.name);
+  const now = new Date();
+
   // Build notifications from recent activity
   const recentTasks = await prisma.task.findMany({
     where: {
       active: true,
+      OR: [
+        { period: null },
+        { period: { in: activePeriodNames } }
+      ],
+      AND: [
+        {
+          OR: [
+            { publishAt: null },
+            { publishAt: { lte: now } }
+          ]
+        }
+      ],
       groups: studentGroupId ? {
         some: {
           id: studentGroupId
@@ -38,6 +57,18 @@ export default async function NotificacionesPage() {
   const recentResources = await prisma.resource.findMany({
     where: {
       active: true,
+      OR: [
+        { period: null },
+        { period: { in: activePeriodNames } }
+      ],
+      AND: [
+        {
+          OR: [
+            { publishAt: null },
+            { publishAt: { lte: now } }
+          ]
+        }
+      ],
       groups: studentGroupId ? {
         some: {
           id: studentGroupId
@@ -55,6 +86,11 @@ export default async function NotificacionesPage() {
     take: 10,
     include: { task: { include: { course: true } } }
   });
+
+  const filteredGrades = recentGrades.filter(s => 
+    (!s.task.period || activePeriodNames.includes(s.task.period)) &&
+    (!s.task.publishAt || new Date(s.task.publishAt) <= now)
+  );
 
   // Merge into a single timeline
   type Notification = {
@@ -90,7 +126,7 @@ export default async function NotificacionesPage() {
     });
   });
 
-  recentGrades.forEach(s => {
+  filteredGrades.forEach(s => {
     notifications.push({
       id: `grade-${s.id}`,
       type: "GRADE",

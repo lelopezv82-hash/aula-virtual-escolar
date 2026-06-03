@@ -21,9 +21,28 @@ export default async function TareasEstudiantePage() {
   });
   const studentGroupId = studentRecord?.groupId || null;
 
+  // Fetch active periods from database
+  const activePeriodsFromDb = await prisma.period.findMany({
+    where: { active: true }
+  });
+  const activePeriodNames = activePeriodsFromDb.map(p => p.name);
+  const now = new Date();
+
   const tasks = await prisma.task.findMany({
     where: {
       active: true,
+      OR: [
+        { period: null },
+        { period: { in: activePeriodNames } }
+      ],
+      AND: [
+        {
+          OR: [
+            { publishAt: null },
+            { publishAt: { lte: now } }
+          ]
+        }
+      ],
       groups: studentGroupId ? {
         some: {
           id: studentGroupId

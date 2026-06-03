@@ -151,13 +151,7 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
                   <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
-                        <th className="py-2 px-4 font-medium" style={{ paddingLeft: '16px' }}>Periodo</th>
-                        <th className="py-2 px-4 font-medium">Grado</th>
-                        <th className="py-2 px-4 font-medium">Grupo</th>
-                        <th className="py-2 px-4 font-medium">Asignatura</th>
-                        <th className="py-2 px-4 font-medium">Tema</th>
-                        <th className="py-2 px-4 font-medium">Título</th>
-                        <th className="py-2 px-4 font-medium">Estudiante</th>
+                        <th className="py-2 px-4 font-medium" style={{ paddingLeft: '16px' }}>Estudiante</th>
                         <th className="py-2 px-4 font-medium">Estado</th>
                         <th className="py-2 px-4 font-medium text-center">Entrega Tardía</th>
                         <th className="py-2 px-4 font-medium">Fecha de Envío</th>
@@ -173,13 +167,7 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
                         
                         return (
                           <tr key={student.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                            <td className="py-3 px-4" style={{ paddingLeft: '16px' }}>{task.period?.replace(/periodo\s*/i, "") || "Sin Periodo"}</td>
-                            <td className="py-3 px-4">{group.grade?.name || "Sin Grado"}</td>
-                            <td className="py-3 px-4">{group.name}</td>
-                            <td className="py-3 px-4">{task.course.name}</td>
-                            <td className="py-3 px-4">{task.theme || "Sin Tema"}</td>
-                            <td className="py-3 px-4 font-semibold">{task.title}</td>
-                            <td className="py-3 px-4">{student.name}</td>
+                            <td className="py-3 px-4" style={{ paddingLeft: '16px' }}>{student.name}</td>
                             <td className="py-3 px-4">
                               {isGraded ? (
                                 <span className="badge badge-success flex w-fit items-center gap-1"><CheckCircle size={12}/> Calificada: {submission.grade}</span>
@@ -244,13 +232,7 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
             <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
-                  <th className="py-2 px-4 font-medium" style={{ paddingLeft: '16px' }}>Periodo</th>
-                  <th className="py-2 px-4 font-medium">Grado</th>
-                  <th className="py-2 px-4 font-medium">Grupo</th>
-                  <th className="py-2 px-4 font-medium">Asignatura</th>
-                  <th className="py-2 px-4 font-medium">Tema</th>
-                  <th className="py-2 px-4 font-medium">Título</th>
-                  <th className="py-2 px-4 font-medium">Estudiante</th>
+                  <th className="py-2 px-4 font-medium" style={{ paddingLeft: '16px' }}>Estudiante</th>
                   <th className="py-2 px-4 font-medium">Estado</th>
                   <th className="py-2 px-4 font-medium text-center">Entrega Tardía</th>
                   <th className="py-2 px-4 font-medium">Fecha de Envío</th>
@@ -266,13 +248,7 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
                   
                   return (
                     <tr key={student.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                      <td className="py-3 px-4" style={{ paddingLeft: '16px' }}>{task.period?.replace(/periodo\s*/i, "") || "Sin Periodo"}</td>
-                      <td className="py-3 px-4">Sin Grado</td>
-                      <td className="py-3 px-4">Sin Grupo</td>
-                      <td className="py-3 px-4">{task.course.name}</td>
-                      <td className="py-3 px-4">{task.theme || "Sin Tema"}</td>
-                      <td className="py-3 px-4 font-semibold">{task.title}</td>
-                      <td className="py-3 px-4">{student.name}</td>
+                      <td className="py-3 px-4" style={{ paddingLeft: '16px' }}>{student.name}</td>
                       <td className="py-3 px-4">
                         {isGraded ? (
                           <span className="badge badge-success flex w-fit items-center gap-1"><CheckCircle size={12}/> Calificada: {submission.grade}</span>

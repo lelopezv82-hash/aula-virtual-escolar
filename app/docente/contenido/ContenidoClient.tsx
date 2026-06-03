@@ -710,14 +710,21 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                                           {new Date(task.dueDate).toLocaleString()}
                                         </td>
                                         <td className="py-3 px-4 text-center">
-                                          <button
-                                            onClick={() => toggleTaskActive(task)}
-                                            className={`p-1.5 rounded-lg inline-flex ${task.active !== false ? "text-green-600 hover:bg-green-50" : "text-gray-400 hover:bg-gray-100"}`}
-                                            title={task.active !== false ? "Visible para alumnos (Click para ocultar)" : "Oculto para alumnos (Click para mostrar)"}
-                                          >
-                                            {task.active !== false ? <Eye size={18} /> : <EyeOff size={18} />}
-                                          </button>
-                                        </td>
+                                           <div className="flex flex-col items-center justify-center gap-1">
+                                             <button
+                                               onClick={() => toggleTaskActive(task)}
+                                               className={`p-1.5 rounded-lg inline-flex ${task.active !== false ? "text-green-600 hover:bg-green-50" : "text-gray-400 hover:bg-gray-100"}`}
+                                               title={task.active !== false ? "Visible para alumnos (Click para ocultar)" : "Oculto para alumnos (Click para mostrar)"}
+                                             >
+                                               {task.active !== false ? <Eye size={18} /> : <EyeOff size={18} />}
+                                             </button>
+                                             {task.active !== false && task.publishAt && new Date(task.publishAt) > new Date() && (
+                                               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50" title={`Se publicará el ${new Date(task.publishAt).toLocaleString()}`}>
+                                                 Programada
+                                               </span>
+                                             )}
+                                           </div>
+                                         </td>
                                         <td className="py-3 px-4 text-right">
                                           <div className="flex justify-end gap-2">
                                             {task.attachmentUrl && (
@@ -857,14 +864,21 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                                           </div>
                                         </td>
                                         <td className="py-3 px-4 text-center">
-                                          <button
-                                            onClick={() => toggleResourceActive(res)}
-                                            className={`p-1.5 rounded-lg inline-flex ${res.active !== false ? "text-green-600 hover:bg-green-50" : "text-gray-400 hover:bg-gray-100"}`}
-                                            title={res.active !== false ? "Visible para alumnos (Click para ocultar)" : "Oculto para alumnos (Click para mostrar)"}
-                                          >
-                                            {res.active !== false ? <Eye size={18} /> : <EyeOff size={18} />}
-                                          </button>
-                                        </td>
+                                           <div className="flex flex-col items-center justify-center gap-1">
+                                             <button
+                                               onClick={() => toggleResourceActive(res)}
+                                               className={`p-1.5 rounded-lg inline-flex ${res.active !== false ? "text-green-600 hover:bg-green-50" : "text-gray-400 hover:bg-gray-100"}`}
+                                               title={res.active !== false ? "Visible para alumnos (Click para ocultar)" : "Oculto para alumnos (Click para mostrar)"}
+                                             >
+                                               {res.active !== false ? <Eye size={18} /> : <EyeOff size={18} />}
+                                             </button>
+                                             {res.active !== false && res.publishAt && new Date(res.publishAt) > new Date() && (
+                                               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50" title={`Se publicará el ${new Date(res.publishAt).toLocaleString()}`}>
+                                                 Programado
+                                               </span>
+                                             )}
+                                           </div>
+                                         </td>
                                         <td className="py-3 px-4 text-right">
                                           <div className="flex justify-end gap-2">
                                             <a href={res.url} target="_blank" rel="noreferrer" className="p-1.5 rounded hover:bg-slate-100 text-slate-500" title="Ver enlace/archivo">

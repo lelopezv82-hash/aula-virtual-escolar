@@ -35,10 +35,11 @@ export async function POST(request: Request) {
 
     let fileUrl = "";
 
-    // Find the task and the teacher ID
+    // Find the task, include groups and course details
     const task = await prisma.task.findUnique({
       where: { id: taskId },
       include: {
+        groups: true,
         course: {
           select: {
             teacherId: true,
@@ -52,7 +53,34 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Tarea no encontrada' }, { status: 404 });
     }
 
+    // Security & Scheduling checks
+    if (task.active === false) {
+      return NextResponse.json({ error: 'Tarea no encontrada' }, { status: 404 });
+    }
+
     const now = new Date();
+    if (task.publishAt && new Date(task.publishAt) > now) {
+      return NextResponse.json({ error: 'Tarea no disponible todavía' }, { status: 403 });
+    }
+
+    if (task.period) {
+      const period = await prisma.period.findUnique({
+        where: { name: task.period }
+      });
+      if (period && !period.active) {
+        return NextResponse.json({ error: 'El periodo de esta tarea no está activo' }, { status: 403 });
+      }
+    }
+
+    const student = await prisma.user.findUnique({
+      where: { id: studentId },
+      select: { groupId: true }
+    });
+
+    if (task.groups.length > 0 && !task.groups.some(g => g.id === student?.groupId)) {
+      return NextResponse.json({ error: 'No tienes acceso a esta tarea.' }, { status: 403 });
+    }
+
     const isLate = now > new Date(task.dueDate);
 
     if (isLate) {

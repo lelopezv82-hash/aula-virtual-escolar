@@ -21,6 +21,13 @@ export default async function EstudianteDashboard() {
   });
   const studentGroupId = studentRecord?.groupId || null;
 
+  // Fetch active periods from database
+  const activePeriodsFromDb = await prisma.period.findMany({
+    where: { active: true }
+  });
+  const activePeriodNames = activePeriodsFromDb.map(p => p.name);
+  const now = new Date();
+
   const courses = await prisma.course.findMany({
     where: studentGroupId ? {
       groups: {
@@ -38,11 +45,22 @@ export default async function EstudianteDashboard() {
 
   const coursesWithCount = courses.map(c => {
     const { tasks, resources, ...courseData } = c;
+    
+    // Count only visible tasks and resources
+    const visibleTasks = tasks.filter(t => 
+      (!t.period || activePeriodNames.includes(t.period)) &&
+      (!t.publishAt || new Date(t.publishAt) <= now)
+    );
+    const visibleResources = resources.filter(r => 
+      (!r.period || activePeriodNames.includes(r.period)) &&
+      (!r.publishAt || new Date(r.publishAt) <= now)
+    );
+
     return {
       ...courseData,
       _count: {
-        tasks: tasks.length,
-        resources: resources.length
+        tasks: visibleTasks.length,
+        resources: visibleResources.length
       }
     };
   });

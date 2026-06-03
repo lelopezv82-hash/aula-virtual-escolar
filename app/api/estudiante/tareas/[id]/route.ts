@@ -19,11 +19,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
+    const studentId = payload.id as string;
+    const student = await prisma.user.findUnique({
+      where: { id: studentId },
+      select: { groupId: true }
+    });
+
     const task = await prisma.task.findUnique({
       where: { id: resolvedParams.id },
       include: {
+        groups: true,
         submissions: {
-          where: { studentId: payload.id as string }
+          where: { studentId }
         }
       }
     });
@@ -32,7 +39,33 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Tarea no encontrada' }, { status: 404 });
     }
 
-    return NextResponse.json({ task });
+    // Security & Scheduling checks
+    if (task.active === false) {
+      return NextResponse.json({ error: 'Tarea no encontrada' }, { status: 404 });
+    }
+
+    const now = new Date();
+    if (task.publishAt && new Date(task.publishAt) > now) {
+      return NextResponse.json({ error: 'Tarea no encontrada' }, { status: 404 });
+    }
+
+    if (task.period) {
+      const period = await prisma.period.findUnique({
+        where: { name: task.period }
+      });
+      if (period && !period.active) {
+        return NextResponse.json({ error: 'Tarea no encontrada' }, { status: 404 });
+      }
+    }
+
+    if (task.groups.length > 0 && !task.groups.some(g => g.id === student?.groupId)) {
+      return NextResponse.json({ error: 'Tarea no encontrada' }, { status: 404 });
+    }
+
+    // Remove groups from response to keep payload clean if needed, or keep it
+    const { groups, ...taskData } = task;
+
+    return NextResponse.json({ task: taskData });
   } catch (error) {
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
