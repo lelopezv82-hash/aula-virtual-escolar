@@ -50,6 +50,50 @@ export default function LateSubmissionManager({
     setLateUntil(formatted);
   }, [initialTaskAllowLate, initialTaskLateUntil]);
 
+  const hasChanges = taskAllowLate !== initialTaskAllowLate || lateUntil !== savedLateUntil;
+
+  useEffect(() => {
+    if (!hasChanges) return;
+
+    // 1. Interceptar recarga / cierre de pestaña
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+
+    // 2. Interceptar navegación interna mediante enlaces <a> de Next.js
+    const handleAnchorClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const anchor = target.closest("a");
+      if (anchor) {
+        // Permitir descargas, enlaces que abren en nueva pestaña, o enlaces de anclaje interno (#)
+        if (anchor.target === "_blank" || anchor.hasAttribute("download")) {
+          return;
+        }
+        const href = anchor.getAttribute("href");
+        if (href && (href.startsWith("#") || href.startsWith("javascript:"))) {
+          return;
+        }
+
+        const confirmLeave = window.confirm(
+          "Tienes cambios sin guardar en la configuración de la prórroga. ¿Estás seguro de que deseas salir sin guardar?"
+        );
+        if (!confirmLeave) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("click", handleAnchorClick, true);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("click", handleAnchorClick, true);
+    };
+  }, [hasChanges]);
+
   const handleSaveConfig = async (allowLate: boolean, untilDate: string) => {
     setLoadingTask(true);
     try {
@@ -62,7 +106,10 @@ export default function LateSubmissionManager({
         })
       });
       if (res.ok) {
-        setSavedLateUntil(allowLate ? untilDate : "");
+        const nextDate = allowLate ? untilDate : "";
+        setSavedLateUntil(nextDate);
+        setLateUntil(nextDate);
+        setTaskAllowLate(allowLate);
         router.refresh();
       } else {
         alert("Error al actualizar la configuración de la tarea");
@@ -75,22 +122,21 @@ export default function LateSubmissionManager({
     }
   };
 
-  const handleDateChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setLateUntil(val);
-    
-    // Guardar automáticamente al seleccionar una fecha válida o limpiar el campo
-    if (val.length === 16 || val === "") {
-      if (val === savedLateUntil) return;
-      await handleSaveConfig(true, val);
-    }
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLateUntil(e.target.value);
   };
 
-  const handleToggleSwitch = async () => {
-    const nextState = !taskAllowLate;
-    setTaskAllowLate(nextState);
-    // Guardar inmediatamente al activar o desactivar
-    await handleSaveConfig(nextState, nextState ? lateUntil : "");
+  const handleToggleSwitch = () => {
+    setTaskAllowLate(!taskAllowLate);
+  };
+
+  const handleCancelChanges = () => {
+    setTaskAllowLate(initialTaskAllowLate);
+    setLateUntil(savedLateUntil);
+  };
+
+  const handleSaveDateConfig = async () => {
+    await handleSaveConfig(taskAllowLate, taskAllowLate ? lateUntil : "");
   };
 
   return (
@@ -140,19 +186,61 @@ export default function LateSubmissionManager({
                 onChange={handleDateChange}
                 className="w-full max-w-md px-3.5 py-2.0 text-sm rounded-lg border border-gray-200 dark:border-zinc-800 dark:bg-zinc-950 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500"
               />
-              {loadingTask && (
-                <span className="text-xs text-indigo-600 dark:text-indigo-400 animate-pulse font-medium">Guardando...</span>
-              )}
             </div>
             <p className="text-[11px] text-indigo-700/80 dark:text-indigo-300/60 mt-1">
-              * Si no defines fecha/hora, la prórroga estará activa indefinidamente. Los cambios se guardan automáticamente al elegirlos.
+              * Si no defines fecha/hora, la prórroga estará activa indefinidamente. Recuerda hacer clic en "Guardar configuración" para aplicar los cambios.
             </p>
           </div>
         </div>
       )}
 
+      {/* Barra de cambios sin guardar */}
+      {hasChanges && (
+        <div className="mt-4 p-4 border border-amber-200 dark:border-amber-900/50 bg-amber-50/80 dark:bg-amber-950/20 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 animate-fade-in backdrop-blur-sm shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
+              <AlertCircle size={20} className="animate-pulse" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                Cambios pendientes sin guardar
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-400/80 mt-0.5">
+                Has modificado la configuración de prórroga. Guarda los cambios para poder salir de esta interfaz.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+            <button
+              onClick={handleCancelChanges}
+              disabled={loadingTask}
+              className="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleSaveDateConfig}
+              disabled={loadingTask}
+              className="px-5 py-2 text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 dark:bg-amber-700 dark:hover:bg-amber-600 rounded-lg shadow-sm flex items-center gap-2 transition-all hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loadingTask ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <Check size={16} />
+                  Guardar configuración
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Mini warning showing currently active general setting */}
-      {taskAllowLate && (
+      {taskAllowLate && !hasChanges && (
         <div className="mt-3 p-2.5 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300 text-xs rounded-lg flex items-center gap-2">
           <Check size={14} className="text-emerald-600 dark:text-emerald-400" />
           La entrega tardía está habilitada a nivel general. Los estudiantes podrán entregar la tarea hasta la fecha límite extemporánea configurada arriba.
