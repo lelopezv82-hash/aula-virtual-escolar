@@ -83,13 +83,13 @@
 }
 
 .nav-item:hover {
-  background-color: rgba(37, 99, 235, 0.05);
+  background-color: var(--primary-light-hover);
   color: var(--primary-color);
   transform: translateX(2px);
 }
 
 .nav-item.active {
-  background: linear-gradient(90deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.01) 100%);
+  background: linear-gradient(90deg, var(--primary-light) 0%, transparent 100%);
   border-left: 4px solid var(--primary-color);
   padding-left: calc(1rem - 4px);
   color: var(--primary-color);
@@ -199,7 +199,7 @@
 }
 
 .collapse-sidebar-btn:hover, .close-sidebar-btn:hover {
-  background-color: rgba(37, 99, 235, 0.1);
+  background-color: var(--primary-light);
   color: var(--primary-color);
 }
 
@@ -237,7 +237,7 @@
 }
 
 .mobile-menu-btn:hover {
-  background-color: rgba(37, 99, 235, 0.05);
+  background-color: var(--primary-light-hover);
 }
 
 .mobile-header-brand {
