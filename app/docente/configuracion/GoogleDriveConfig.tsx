@@ -27,6 +27,8 @@ function GoogleDriveConfigContent() {
   const [isConnected, setIsConnected] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "danger"; text: string } | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
+  const [editLimitVal, setEditLimitVal] = useState<string>("");
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -100,6 +102,31 @@ function GoogleDriveConfigContent() {
       setMessage({ type: "danger", text: "Error de red al intentar desvincular." });
     } finally {
       setActionLoadingId(null);
+    }
+  };
+
+  const handleUpdateLimit = async (accountId: string) => {
+    try {
+      const res = await fetch("/api/docente/configuracion", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "update_limit",
+          accountId,
+          customLimitGB: editLimitVal.trim() === "" ? null : editLimitVal
+        })
+      });
+
+      if (res.ok) {
+        setMessage({ type: "success", text: "Límite de capacidad actualizado correctamente." });
+        setEditingAccountId(null);
+        fetchStatus();
+      } else {
+        const data = await res.json();
+        setMessage({ type: "danger", text: data.error || "No se pudo actualizar el límite." });
+      }
+    } catch {
+      setMessage({ type: "danger", text: "Error de red al intentar actualizar el límite." });
     }
   };
 
@@ -191,6 +218,10 @@ function GoogleDriveConfigContent() {
           <div className="flex flex-col gap-2.5">
             {accounts.map((acc) => {
               const usagePercentage = acc.limit > 0 ? (acc.usage / acc.limit) * 100 : 0;
+              const limitText = acc.customLimitGB 
+                ? `${acc.customLimitGB.toFixed(1)} GB` 
+                : (acc.limit > 1024 * 1024 * 1024 * 1024 ? "Compartido (100 TB)" : formatBytes(acc.limit));
+              
               return (
                 <div 
                   key={acc.id} 
@@ -200,9 +231,48 @@ function GoogleDriveConfigContent() {
                     <p className="text-xs font-semibold truncate text-emerald-600 dark:text-emerald-400" title={acc.email}>
                       {acc.email}
                     </p>
-                    <p className="text-[10px] text-muted">
-                      Espacio: {formatBytes(acc.usage)} / {acc.isPooled ? "Compartido (100 TB)" : formatBytes(acc.limit)} ({usagePercentage.toFixed(1)}% usado)
+                    <p className="text-[10px] text-muted flex items-center flex-wrap">
+                      Espacio: {formatBytes(acc.usage)} / {limitText} ({usagePercentage.toFixed(1)}% usado)
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingAccountId(acc.id);
+                          setEditLimitVal(acc.customLimitGB ? acc.customLimitGB.toString() : "");
+                        }}
+                        className="text-[10px] text-blue-500 hover:text-blue-700 hover:underline cursor-pointer ml-1.5 font-medium"
+                      >
+                        [Ajustar Límite]
+                      </button>
                     </p>
+
+                    {/* Inline edit limit form */}
+                    {editingAccountId === acc.id && (
+                      <div className="flex items-center gap-1.5 mt-1.5 p-2 bg-gray-50/50 dark:bg-zinc-900/60 rounded border border-gray-150 dark:border-zinc-800 animate-fade-in">
+                        <span className="text-[9px] font-semibold text-muted">Establecer límite (GB):</span>
+                        <input
+                          type="number"
+                          min="1"
+                          placeholder="Ej. 50"
+                          value={editLimitVal}
+                          onChange={(e) => setEditLimitVal(e.target.value)}
+                          className="w-14 px-1.5 py-0.5 text-[11px] rounded border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-850 text-gray-800 dark:text-gray-100 focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateLimit(acc.id)}
+                          className="btn btn-primary text-[9px] py-0.5 px-2 cursor-pointer"
+                        >
+                          Guardar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingAccountId(null)}
+                          className="text-[9px] text-muted-foreground hover:underline cursor-pointer"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    )}
                     
                     {/* Micro progress bar for individual account */}
                     <div className="w-full max-w-[200px] bg-gray-150 dark:bg-zinc-850 rounded-full h-1 overflow-hidden mt-0.5">

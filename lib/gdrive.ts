@@ -15,6 +15,7 @@ export interface AccountSpace {
   freeSpace: number; // in bytes
   usage: number; // in bytes
   limit: number; // in bytes
+  customLimit?: number | null;
 }
 
 /**
@@ -135,7 +136,8 @@ export async function getAccountsWithSpace(teacherId: string): Promise<AccountSp
         }
 
         const data = await res.json();
-        const limit = parseInt(data.storageQuota.limit || '0', 10);
+        const apiLimit = parseInt(data.storageQuota.limit || '0', 10);
+        const limit = account.customLimit ? Number(account.customLimit) : apiLimit;
         
         // Google Workspace pooled storage reports total domain usage in storageQuota.usage.
         // We use usageInDrive + usageInDriveTrash to get the individual user's file usage in their Drive.
@@ -154,6 +156,7 @@ export async function getAccountsWithSpace(teacherId: string): Promise<AccountSp
           freeSpace,
           usage,
           limit,
+          customLimit: account.customLimit ? Number(account.customLimit) : null
         });
       } catch (err) {
         console.error(`Error querying space for account ${account.email}:`, err);

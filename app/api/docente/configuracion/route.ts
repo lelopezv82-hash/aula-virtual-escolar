@@ -42,7 +42,8 @@ export async function GET(_request: Request) {
         limit: acc.limit,
         freeSpace: acc.freeSpace,
         hasFolder: !!acc.googleDriveFolderId,
-        isPooled: acc.limit > 1024 * 1024 * 1024 * 1024 // 1 TB
+        isPooled: acc.limit > 1024 * 1024 * 1024 * 1024 || !!acc.customLimit, // 1 TB or custom limit set
+        customLimitGB: acc.customLimit ? acc.customLimit / (1024 * 1024 * 1024) : null
       })),
       poolStats: {
         totalLimit,
@@ -131,7 +132,31 @@ export async function PATCH(request: Request) {
     if (payload.role !== "TEACHER") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const teacherId = payload.id as string;
-    const { name, currentPassword, newPassword } = await request.json();
+    const body = await request.json();
+
+    if (body.action === 'update_limit') {
+      const { accountId, customLimitGB } = body;
+      if (!accountId) {
+        return NextResponse.json({ error: 'Falta el ID de la cuenta' }, { status: 400 });
+      }
+
+      let customLimit = null;
+      if (customLimitGB !== null && customLimitGB !== undefined && customLimitGB !== '') {
+        const parsedLimit = parseFloat(customLimitGB);
+        if (!isNaN(parsedLimit) && parsedLimit > 0) {
+          customLimit = parsedLimit * 1024 * 1024 * 1024; // Convert GB to bytes
+        }
+      }
+
+      await prisma.googleDriveAccount.update({
+        where: { id: accountId, userId: teacherId },
+        data: { customLimit }
+      });
+
+      return NextResponse.json({ success: true });
+    }
+
+    const { name, currentPassword, newPassword } = body;
 
     if (!name) {
       return NextResponse.json({ error: 'El nombre es obligatorio' }, { status: 400 });
