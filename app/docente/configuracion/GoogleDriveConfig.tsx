@@ -77,7 +77,6 @@ function GoogleDriveConfigContent() {
 
       if (res.ok) {
         setIsConnected(false);
-        setHasFolder(false);
         setMessage({ type: "success", text: "Google Drive desvinculado correctamente." });
       } else {
         setMessage({ type: "danger", text: "No se pudo desvincular Google Drive." });
