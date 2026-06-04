@@ -5,14 +5,10 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Cloud, Loader2, Trash2, Plus, HardDrive, CheckCircle2, AlertTriangle } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
 
-// Helper function to format bytes into human readable format
+// Helper function to format bytes into human readable format (always in GB)
 const formatBytes = (bytes: number) => {
-  if (!bytes || bytes <= 0) return "0 GB";
+  if (!bytes || bytes <= 0) return "0.00 GB";
   const gb = bytes / (1024 * 1024 * 1024);
-  if (gb < 0.1) {
-    const mb = bytes / (1024 * 1024);
-    return `${mb.toFixed(1)} MB`;
-  }
   return `${gb.toFixed(2)} GB`;
 };
 
