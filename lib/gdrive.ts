@@ -136,7 +136,14 @@ export async function getAccountsWithSpace(teacherId: string): Promise<AccountSp
 
         const data = await res.json();
         const limit = parseInt(data.storageQuota.limit || '0', 10);
-        const usage = parseInt(data.storageQuota.usage || '0', 10);
+        
+        // Google Workspace pooled storage reports total domain usage in storageQuota.usage.
+        // We use usageInDrive + usageInDriveTrash to get the individual user's file usage in their Drive.
+        const usageInDrive = parseInt(data.storageQuota.usageInDrive || '0', 10);
+        const usageInTrash = parseInt(data.storageQuota.usageInDriveTrash || '0', 10);
+        const userUsage = usageInDrive + usageInTrash;
+
+        const usage = userUsage > 0 ? userUsage : parseInt(data.storageQuota.usage || '0', 10);
         const freeSpace = limit - usage;
 
         results.push({
