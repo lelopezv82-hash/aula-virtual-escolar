@@ -10,14 +10,16 @@ async function checkAccount(account) {
 
   try {
     // 1. Try querying about
-    const res = await fetch('https://www.googleapis.com/drive/v3/about?fields=storageQuota', {
+    const res = await fetch('https://www.googleapis.com/drive/v3/about?fields=*', {
       headers: { Authorization: `Bearer ${account.googleAccessToken}` },
     });
     
     if (res.ok) {
       const data = await res.json();
       console.log('- Access token check: VALID');
-      console.log('- Quota data:', JSON.stringify(data.storageQuota));
+      const fs = require('fs');
+      fs.writeFileSync('about_response.json', JSON.stringify(data, null, 2));
+      console.log('- Saved full response to about_response.json');
     } else {
       console.log(`- Access token check: INVALID (Status ${res.status}: ${res.statusText})`);
       

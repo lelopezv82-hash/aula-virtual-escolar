@@ -31,6 +31,8 @@ export async function GET(_request: Request) {
       totalFree += acc.freeSpace;
     }
 
+    const hasPooled = accounts.some(acc => acc.limit > 1024 * 1024 * 1024 * 1024);
+
     return NextResponse.json({
       isConnected: accounts.length > 0,
       accounts: accounts.map(acc => ({
@@ -39,12 +41,14 @@ export async function GET(_request: Request) {
         usage: acc.usage,
         limit: acc.limit,
         freeSpace: acc.freeSpace,
-        hasFolder: !!acc.googleDriveFolderId
+        hasFolder: !!acc.googleDriveFolderId,
+        isPooled: acc.limit > 1024 * 1024 * 1024 * 1024 // 1 TB
       })),
       poolStats: {
         totalLimit,
         totalUsage,
-        totalFree
+        totalFree,
+        hasPooled
       }
     });
   } catch (error) {

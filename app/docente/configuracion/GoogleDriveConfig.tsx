@@ -23,7 +23,7 @@ function GoogleDriveConfigContent() {
   
   const [loading, setLoading] = useState(true);
   const [accounts, setAccounts] = useState<any[]>([]);
-  const [poolStats, setPoolStats] = useState({ totalLimit: 0, totalUsage: 0, totalFree: 0 });
+  const [poolStats, setPoolStats] = useState({ totalLimit: 0, totalUsage: 0, totalFree: 0, hasPooled: false });
   const [isConnected, setIsConnected] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "danger"; text: string } | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
@@ -35,7 +35,7 @@ function GoogleDriveConfigContent() {
       if (res.ok) {
         setIsConnected(data.isConnected);
         setAccounts(data.accounts || []);
-        setPoolStats(data.poolStats || { totalLimit: 0, totalUsage: 0, totalFree: 0 });
+        setPoolStats(data.poolStats || { totalLimit: 0, totalUsage: 0, totalFree: 0, hasPooled: false });
       }
     } catch (err) {
       console.error("Error fetching Google Drive status:", err);
@@ -163,7 +163,7 @@ function GoogleDriveConfigContent() {
               Almacenamiento Total Combinado
             </span>
             <span className="text-xs text-muted font-semibold">
-              {formatBytes(poolStats.totalUsage)} / {formatBytes(poolStats.totalLimit)}
+              {formatBytes(poolStats.totalUsage)} / {poolStats.hasPooled ? "Compartido (100 TB)" : formatBytes(poolStats.totalLimit)}
             </span>
           </div>
           <div className="w-full bg-gray-200 dark:bg-zinc-850 rounded-full h-2.5 overflow-hidden mb-1.5">
@@ -201,7 +201,7 @@ function GoogleDriveConfigContent() {
                       {acc.email}
                     </p>
                     <p className="text-[10px] text-muted">
-                      Espacio: {formatBytes(acc.usage)} / {formatBytes(acc.limit)} ({usagePercentage.toFixed(1)}% usado)
+                      Espacio: {formatBytes(acc.usage)} / {acc.isPooled ? "Compartido (100 TB)" : formatBytes(acc.limit)} ({usagePercentage.toFixed(1)}% usado)
                     </p>
                     
                     {/* Micro progress bar for individual account */}
@@ -235,6 +235,16 @@ function GoogleDriveConfigContent() {
           </div>
         )}
       </div>
+
+      {/* Workspace Note */}
+      {poolStats.hasPooled && (
+        <div className="mt-1 p-2.5 bg-blue-50/50 dark:bg-blue-950/10 border border-blue-150 dark:border-blue-900/40 rounded-lg text-[10px] text-muted leading-relaxed flex items-start gap-1.5">
+          <span className="text-blue-500 font-semibold shrink-0">ℹ</span>
+          <span>
+            <strong>Nota sobre Google Workspace:</strong> Al usar un correo institucional, Google reporta el límite de almacenamiento total compartido de tu colegio (100 TB). Tu capacidad de subida personal está sujeta al límite asignado por el administrador de tu institución.
+          </span>
+        </div>
+      )}
 
       {/* Actions */}
       <div className="mt-2 pt-3 border-t border-gray-150 dark:border-zinc-800/80 flex justify-end">
