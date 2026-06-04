@@ -70,6 +70,7 @@ export default async function ContenidoPage() {
       theme: r.theme,
       period: r.period,
       active: r.active,
+      gdriveEmail: r.gdriveEmail,
       groups: r.groups.map(g => ({
         id: g.id,
         name: g.name,
@@ -89,6 +90,7 @@ export default async function ContenidoPage() {
       period: t.period,
       active: t.active,
       allowLateSubmission: t.allowLateSubmission,
+      gdriveEmail: t.gdriveEmail,
       lateSubmissionUntil: t.lateSubmissionUntil ? t.lateSubmissionUntil.toISOString() : null,
       groups: t.groups.map(g => ({
         id: g.id,
