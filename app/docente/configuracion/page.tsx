@@ -31,7 +31,6 @@ export default async function DocenteConfiguracionPage() {
           <ConfigForm initialName={user.name} />
         </div>
         <div className="card">
-          <h2 className="text-xl font-bold mb-4">Almacenamiento en Drive</h2>
           <GoogleDriveConfig />
         </div>
       </div>
