@@ -28,6 +28,7 @@ interface Resource {
   active?: boolean;
   publishAt?: string | null;
   groups: Group[];
+  gdriveEmail?: string | null;
 }
 
 interface Task {
@@ -44,6 +45,7 @@ interface Task {
   allowLateSubmission?: boolean;
   lateSubmissionUntil?: string | null;
   groups: Group[];
+  gdriveEmail?: string | null;
 }
 
 interface Course {
@@ -684,7 +686,16 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                                   <tbody>
                                     {periodTasks.map(task => (
                                       <tr key={task.id} style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-primary)' }}>
-                                        <td className="py-3 px-4 font-semibold text-sm text-slate-800">{task.title}</td>
+                                        <td className="py-3 px-4 font-semibold text-sm text-slate-800">
+                                          <div className="flex flex-col gap-0.5">
+                                            <span>{task.title}</span>
+                                            {task.gdriveEmail && (
+                                              <span className="text-[10px] text-muted-foreground font-normal flex items-center gap-1 mt-0.5" title="Cuenta de Google Drive de almacenamiento">
+                                                ☁️ {task.gdriveEmail}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </td>
                                         <td className="py-3 px-4 text-xs text-slate-600 dark:text-slate-400">{task.groups?.[0]?.grade?.name || "Sin Grado"}</td>
                                         <td className="py-3 px-4 text-xs text-slate-600 dark:text-slate-400">{task.groups?.map(g => g.name).join(", ") || "Sin Grupo"}</td>
                                         <td className="py-3 px-4">
@@ -861,9 +872,16 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                                     {periodResources.map(res => (
                                       <tr key={res.id} style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-primary)' }}>
                                         <td className="py-3 px-4 font-semibold text-sm text-slate-800">
-                                          <div className="flex items-center gap-2">
-                                            <span>{TYPE_ICONS[res.type] || "📁"}</span>
-                                            <span>{res.title}</span>
+                                          <div className="flex flex-col gap-0.5">
+                                            <div className="flex items-center gap-2">
+                                              <span>{TYPE_ICONS[res.type] || "📁"}</span>
+                                              <span>{res.title}</span>
+                                            </div>
+                                            {res.gdriveEmail && (
+                                              <span className="text-[10px] text-muted-foreground font-normal flex items-center gap-1 mt-0.5" title="Cuenta de Google Drive de almacenamiento">
+                                                ☁️ {res.gdriveEmail}
+                                              </span>
+                                            )}
                                           </div>
                                         </td>
                                         <td className="py-3 px-4 text-xs font-semibold text-slate-650">{res.type}</td>

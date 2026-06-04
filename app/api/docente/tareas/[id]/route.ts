@@ -114,6 +114,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     let attachmentUrl = task.attachmentUrl;
+    let gdriveEmail: string | null = task.gdriveEmail;
 
     if (file && file.size > 0) {
       const bytes = await file.arrayBuffer();
@@ -130,7 +131,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           const gradeName = selectedGroups[0]?.grade?.name || "Sin Grado";
           const groupName = selectedGroups[0]?.name || "Sin Grupo";
           const folderPath = `${period}/${task.course.name}/${gradeName}/${groupName}/Tareas/${title}`;
-          attachmentUrl = await uploadToGoogleDrive(buffer, file.name, file.type, payload.id as string, folderPath);
+          const uploadResult = await uploadToGoogleDrive(buffer, file.name, file.type, payload.id as string, folderPath);
+          attachmentUrl = uploadResult.url;
+          gdriveEmail = uploadResult.email;
         } catch (driveError) {
           console.error("Google Drive task update upload error, falling back to Supabase:", driveError);
         }
@@ -167,6 +170,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         description,
         dueDate: new Date(dueDate),
         attachmentUrl,
+        gdriveEmail,
         theme,
         period,
         publishAt,

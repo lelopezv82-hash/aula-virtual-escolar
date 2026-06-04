@@ -71,6 +71,7 @@ export async function POST(request: Request) {
     }
 
     let url = link || '';
+    let gdriveEmail: string | null = null;
 
     if (file && file.size > 0) {
       const bytes = await file.arrayBuffer();
@@ -87,7 +88,9 @@ export async function POST(request: Request) {
           const gradeName = selectedGroups[0]?.grade?.name || "Sin Grado";
           const groupName = selectedGroups[0]?.name || "Sin Grupo";
           const folderPath = `${period}/${course.name}/${gradeName}/${groupName}/Materiales`;
-          url = await uploadToGoogleDrive(buffer, file.name, file.type, teacherId, folderPath);
+          const uploadResult = await uploadToGoogleDrive(buffer, file.name, file.type, teacherId, folderPath);
+          url = uploadResult.url;
+          gdriveEmail = uploadResult.email;
         } catch (driveError) {
           console.error("Google Drive upload error, falling back to Supabase:", driveError);
         }
@@ -125,6 +128,7 @@ export async function POST(request: Request) {
         title, 
         type, 
         url, 
+        gdriveEmail,
         courseId, 
         theme, 
         period,
@@ -199,6 +203,7 @@ export async function PATCH(request: Request) {
     }
 
     let url = existingResource.url;
+    let gdriveEmail: string | null = existingResource.gdriveEmail;
 
     if (type === "LINK") {
       if (link) {
@@ -218,7 +223,9 @@ export async function PATCH(request: Request) {
           const gradeName = selectedGroups[0]?.grade?.name || "Sin Grado";
           const groupName = selectedGroups[0]?.name || "Sin Grupo";
           const folderPath = `${period}/${existingResource.course.name}/${gradeName}/${groupName}/Materiales`;
-          url = await uploadToGoogleDrive(buffer, file.name, file.type, teacherId, folderPath);
+          const uploadResult = await uploadToGoogleDrive(buffer, file.name, file.type, teacherId, folderPath);
+          url = uploadResult.url;
+          gdriveEmail = uploadResult.email;
         } catch (driveError) {
           console.error("Google Drive upload error, falling back to Supabase:", driveError);
         }
@@ -254,6 +261,7 @@ export async function PATCH(request: Request) {
         title, 
         type, 
         url, 
+        gdriveEmail,
         theme, 
         period,
         publishAt,

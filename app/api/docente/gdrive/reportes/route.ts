@@ -89,7 +89,8 @@ export async function POST(request: Request) {
       const taskFolder = taskTitle ? `/${taskTitle}` : "";
       const folderPath = `${gradeName}/${courseName}/${periodName}/Tareas${taskFolder}/Calificaciones`;
       try {
-        const webViewLink = await uploadToGoogleDrive(buffer, filename, 'text/csv', teacherId, folderPath);
+        const uploadResult = await uploadToGoogleDrive(buffer, filename, 'text/csv', teacherId, folderPath);
+        const webViewLink = uploadResult.url;
         return NextResponse.json({ success: true, webViewLink });
       } catch (driveError: any) {
         console.error("Error in Google Drive report upload:", driveError);
@@ -122,7 +123,8 @@ export async function POST(request: Request) {
         // If no courses are created yet, put it in a root "/Estudiantes"
         const folderPath = `Estudiantes`;
         try {
-          const webViewLink = await uploadToGoogleDrive(buffer, filename, 'text/csv', teacherId, folderPath);
+          const uploadResult = await uploadToGoogleDrive(buffer, filename, 'text/csv', teacherId, folderPath);
+          const webViewLink = uploadResult.url;
           return NextResponse.json({ success: true, webViewLink, message: 'Respaldado en carpeta Estudiantes raíz.' });
         } catch (driveError: any) {
           return NextResponse.json({ error: driveError.message }, { status: 500 });
@@ -132,7 +134,8 @@ export async function POST(request: Request) {
       const uploadPromises = courses.map(async (course) => {
         const gradeName = course.groups.find(g => g.id === groupId)?.grade?.name || "Sin Grado";
         const folderPath = `${gradeName}/${course.name}/Estudiantes`;
-        return uploadToGoogleDrive(buffer, filename, 'text/csv', teacherId, folderPath);
+        const res = await uploadToGoogleDrive(buffer, filename, 'text/csv', teacherId, folderPath);
+        return res.url;
       });
 
       const webViewLinks = await Promise.all(uploadPromises);

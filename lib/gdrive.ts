@@ -222,7 +222,7 @@ export async function uploadToGoogleDrive(
   mimeType: string,
   teacherId: string,
   subfolderName?: string
-): Promise<string> {
+): Promise<{ url: string; email: string }> {
   const accounts = await getAccountsWithSpace(teacherId);
   if (accounts.length === 0) {
     throw new Error('El docente no tiene cuentas de Google Drive vinculadas o no se pudo renovar la credencial.');
@@ -352,5 +352,5 @@ export async function uploadToGoogleDrive(
   }
 
   const metaData = await metaRes.json();
-  return metaData.webViewLink;
+  return { url: metaData.webViewLink, email: selectedAccount.email };
 }

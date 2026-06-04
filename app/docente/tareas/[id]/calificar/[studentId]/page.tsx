@@ -101,12 +101,18 @@ export default function CalificarPage({
           <FileText size={40} className="text-blue-500 shrink-0" />
           <div className="flex-1">
             <p className="font-semibold">Archivo entregado</p>
-            <p className="text-sm text-muted">
+            <p className="text-xs text-muted">
               Enviado el{" "}
               {submission.submittedAt
                 ? new Date(submission.submittedAt).toLocaleString()
                 : "—"}
             </p>
+            {submission.gdriveEmail && (
+              <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
+                <span>☁️ Almacenado en:</span>
+                <span className="font-medium text-slate-800 dark:text-slate-200">{submission.gdriveEmail}</span>
+              </p>
+            )}
           </div>
           <a
             href={submission.fileUrl}

@@ -16,6 +16,7 @@ interface Task {
   attachmentUrl?: string | null;
   active?: boolean;
   publishAt?: string | null;
+  gdriveEmail?: string | null;
 }
 
 interface Course {
@@ -169,7 +170,16 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                             <tbody>
                               {periodTasks.map(task => (
                                 <tr key={task.id} style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-primary)' }}>
-                                  <td className="py-3 px-4 font-medium text-sm">{task.title}</td>
+                                  <td className="py-3 px-4 font-semibold text-sm text-slate-800">
+                                    <div className="flex flex-col gap-0.5">
+                                      <span>{task.title}</span>
+                                      {task.gdriveEmail && (
+                                        <span className="text-[10px] text-muted-foreground font-normal flex items-center gap-1 mt-0.5" title="Cuenta de Google Drive de almacenamiento">
+                                          ☁️ {task.gdriveEmail}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
                                   <td className="py-3 px-4 text-xs text-slate-600 dark:text-slate-400">{(task as any).groups?.[0]?.grade?.name || "Sin Grado"}</td>
                                   <td className="py-3 px-4 text-xs text-slate-600 dark:text-slate-400">{(task as any).groups?.map((g: any) => g.name).join(", ") || "Sin Grupo"}</td>
                                   <td className="py-3 px-4">

@@ -66,6 +66,7 @@ model Resource {
   groups      GradeGroup[] @relation("GroupResources")
   active      Boolean  @default(true)
   publishAt   DateTime?
+  gdriveEmail String?
   createdAt   DateTime @default(now())
 
   @@index([courseId])
@@ -88,6 +89,7 @@ model Task {
   publishAt   DateTime?
   allowLateSubmission Boolean @default(false)
   lateSubmissionUntil DateTime?
+  gdriveEmail   String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -110,6 +112,7 @@ model Submission {
   submittedAt DateTime?
   allowLateSubmission Boolean @default(false)
   lateSubmissionUntil DateTime?
+  gdriveEmail String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

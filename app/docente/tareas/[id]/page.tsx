@@ -192,13 +192,20 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
                             </td>
                             <td className="py-3 px-4 text-right no-print">
                               {isSubmitted ? (
-                                <div className="flex justify-end gap-2">
-                                  <a href={submission.fileUrl || "#"} target="_blank" download className="btn btn-secondary text-sm px-2 py-1 flex items-center gap-1">
-                                    <Download size={14} /> Archivo
-                                  </a>
-                                  <Link href={`/docente/tareas/${task.id}/calificar/${student.id}`} className="btn btn-primary text-sm px-2 py-1">
-                                    Calificar
-                                  </Link>
+                                <div className="flex flex-col items-end gap-1">
+                                  <div className="flex justify-end gap-2">
+                                    <a href={submission.fileUrl || "#"} target="_blank" download className="btn btn-secondary text-sm px-2 py-1 flex items-center gap-1">
+                                      <Download size={14} /> Archivo
+                                    </a>
+                                    <Link href={`/docente/tareas/${task.id}/calificar/${student.id}`} className="btn btn-primary text-sm px-2 py-1">
+                                      Calificar
+                                    </Link>
+                                  </div>
+                                  {submission.gdriveEmail && (
+                                    <span className="text-[10px] text-muted-foreground" title="Cuenta de Google Drive de almacenamiento">
+                                      ☁️ {submission.gdriveEmail}
+                                    </span>
+                                  )}
                                 </div>
                               ) : (
                                 <span className="text-muted text-sm">Sin entrega</span>
@@ -273,13 +280,20 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
                       </td>
                       <td className="py-3 px-4 text-right no-print">
                         {isSubmitted ? (
-                          <div className="flex justify-end gap-2">
-                            <a href={submission.fileUrl || "#"} target="_blank" download className="btn btn-secondary text-sm px-2 py-1 flex items-center gap-1">
-                              <Download size={14} /> Archivo
-                            </a>
-                            <Link href={`/docente/tareas/${task.id}/calificar/${student.id}`} className="btn btn-primary text-sm px-2 py-1">
-                              Calificar
-                            </Link>
+                          <div className="flex flex-col items-end gap-1">
+                            <div className="flex justify-end gap-2">
+                              <a href={submission.fileUrl || "#"} target="_blank" download className="btn btn-secondary text-sm px-2 py-1 flex items-center gap-1">
+                                <Download size={14} /> Archivo
+                              </a>
+                              <Link href={`/docente/tareas/${task.id}/calificar/${student.id}`} className="btn btn-primary text-sm px-2 py-1">
+                                Calificar
+                              </Link>
+                            </div>
+                            {submission.gdriveEmail && (
+                              <span className="text-[10px] text-muted-foreground" title="Cuenta de Google Drive de almacenamiento">
+                                ☁️ {submission.gdriveEmail}
+                              </span>
+                            )}
                           </div>
                         ) : (
                           <span className="text-muted text-sm">Sin entrega</span>

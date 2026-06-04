@@ -60,6 +60,7 @@ export async function POST(request: Request) {
     }
 
     let attachmentUrl = null;
+    let gdriveEmail: string | null = null;
 
     if (file && file.size > 0) {
       const bytes = await file.arrayBuffer();
@@ -76,7 +77,9 @@ export async function POST(request: Request) {
           const gradeName = selectedGroups[0]?.grade?.name || "Sin Grado";
           const groupName = selectedGroups[0]?.name || "Sin Grupo";
           const folderPath = `${period}/${course.name}/${gradeName}/${groupName}/Tareas/${title}`;
-          attachmentUrl = await uploadToGoogleDrive(buffer, file.name, file.type, teacherId, folderPath);
+          const uploadResult = await uploadToGoogleDrive(buffer, file.name, file.type, teacherId, folderPath);
+          attachmentUrl = uploadResult.url;
+          gdriveEmail = uploadResult.email;
         } catch (driveError) {
           console.error("Google Drive task upload error, falling back to Supabase:", driveError);
         }
@@ -113,6 +116,7 @@ export async function POST(request: Request) {
         description,
         dueDate: new Date(dueDate),
         attachmentUrl,
+        gdriveEmail,
         courseId,
         theme,
         period,

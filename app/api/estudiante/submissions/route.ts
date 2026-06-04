@@ -34,6 +34,7 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(bytes);
 
     let fileUrl = "";
+    let gdriveEmail: string | null = null;
 
     // Find the task, include groups and course details
     const task = await prisma.task.findUnique({
@@ -132,7 +133,9 @@ export async function POST(request: Request) {
           const driveFileName = `${studentName} - ${file.name}`;
           const taskPeriod = task.period || "Sin Periodo";
           const folderPath = `${taskPeriod}/${task.course.name}/${gradeName}/${groupName}/Tareas/${task.title}/Entregas/${studentName}`;
-          fileUrl = await uploadToGoogleDrive(buffer, driveFileName, file.type, teacherId, folderPath);
+          const uploadResult = await uploadToGoogleDrive(buffer, driveFileName, file.type, teacherId, folderPath);
+          fileUrl = uploadResult.url;
+          gdriveEmail = uploadResult.email;
         } catch (driveError) {
           console.error("Google Drive upload error for student submission, falling back to Supabase:", driveError);
         }
@@ -173,6 +176,7 @@ export async function POST(request: Request) {
       },
       update: {
         fileUrl,
+        gdriveEmail,
         status: "SUBMITTED",
         submittedAt: new Date()
       },
@@ -180,6 +184,7 @@ export async function POST(request: Request) {
         taskId,
         studentId,
         fileUrl,
+        gdriveEmail,
         status: "SUBMITTED",
         submittedAt: new Date()
       }
