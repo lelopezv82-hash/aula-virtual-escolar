@@ -66,3 +66,7 @@
     transform: rotate(360deg);
   }
 }
+
+.input-field.with-icon.pr-10 {
+  padding-right: 2.75rem;
+}

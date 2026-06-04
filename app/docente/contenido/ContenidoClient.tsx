@@ -850,8 +850,9 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                                     <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
                                       <th className="py-2 px-4 font-medium text-xs">Título</th>
                                       <th className="py-2 px-4 font-medium text-xs">Tipo</th>
+                                      <th className="py-2 px-4 font-medium text-xs">Grado</th>
+                                      <th className="py-2 px-4 font-medium text-xs">Grupo</th>
                                       <th className="py-2 px-4 font-medium text-xs">Tema</th>
-                                      <th className="py-2 px-4 font-medium text-xs">Grupos</th>
                                       <th className="py-2.5 px-4 font-bold text-center text-xs">Estado</th>
                                       <th className="py-2 px-4 font-medium text-xs text-right">Acciones</th>
                                     </tr>
@@ -866,16 +867,13 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                                           </div>
                                         </td>
                                         <td className="py-3 px-4 text-xs font-semibold text-slate-650">{res.type}</td>
-                                        <td className="py-3 px-4 text-xs text-slate-500 font-semibold">{res.theme || "-"}</td>
-                                        <td className="py-3 px-4">
-                                          <div className="flex flex-wrap gap-1">
-                                            {res.groups.map(g => (
-                                              <span key={g.id} className="text-[10px] bg-blue-50 text-blue-700 border px-1.5 py-0.2 rounded font-bold">
-                                                {g.grade.name} - {g.name}
-                                              </span>
-                                            ))}
-                                          </div>
+                                        <td className="py-3 px-4 text-xs text-slate-600 dark:text-slate-400">
+                                          {Array.from(new Set(res.groups.map(g => g.grade?.name))).filter(Boolean).join(", ") || "Sin Grado"}
                                         </td>
+                                        <td className="py-3 px-4 text-xs text-slate-600 dark:text-slate-400">
+                                          {res.groups.map(g => g.name).join(", ") || "Sin Grupo"}
+                                        </td>
+                                        <td className="py-3 px-4 text-xs text-slate-500 font-semibold">{res.theme || "-"}</td>
                                         <td className="py-3 px-4 text-center">
                                            <div className="flex flex-col items-center justify-center gap-1">
                                              <button

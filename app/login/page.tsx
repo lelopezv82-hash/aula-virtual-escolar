@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { BookOpen, User, Lock, ArrowRight, Loader2 } from "lucide-react";
+import { BookOpen, User, Lock, ArrowRight, Loader2, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import "./login.css";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -83,17 +84,38 @@ export default function LoginPage() {
 
           <div className="input-group">
             <label htmlFor="password">Contraseña</label>
-            <div className="input-wrapper">
+            <div className="input-wrapper relative">
               <Lock className="input-icon" size={20} />
               <input
                 id="password"
-                type="password"
-                className="input-field with-icon"
+                type={showPassword ? "text" : "password"}
+                className="input-field with-icon pr-10"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+              <button
+                type="button"
+                className="password-toggle-btn"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: "absolute",
+                  right: "12px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "var(--text-muted)",
+                  padding: 0,
+                  display: "flex",
+                  alignItems: "center"
+                }}
+                title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
             </div>
           </div>
 
