@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import prisma from '@/lib/prisma';
-import { Users, BookOpen, ClipboardList, TrendingUp, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { Users, BookOpen, ClipboardList, TrendingUp, CheckCircle, Clock } from "lucide-react";
 import Link from "next/link";
 
 

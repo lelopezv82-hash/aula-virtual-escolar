@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Clock, Check, AlertCircle, Calendar, X } from "lucide-react";
+import { Clock, Check, AlertCircle, Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useConfirm } from "@/components/ConfirmProvider";
 
@@ -36,12 +36,6 @@ export default function LateSubmissionManager({
   const [savedLateUntil, setSavedLateUntil] = useState<string>(getFormattedDate(initialTaskLateUntil));
   const [lateUntil, setLateUntil] = useState<string>(getFormattedDate(initialTaskLateUntil));
   
-  const [studentAllowLate, setStudentAllowLate] = useState<Record<string, boolean>>(
-    students.reduce((acc, s) => {
-      acc[s.id] = s.allowLateSubmission;
-      return acc;
-    }, {} as Record<string, boolean>)
-  );
   
   const [loadingTask, setLoadingTask] = useState(false);
 

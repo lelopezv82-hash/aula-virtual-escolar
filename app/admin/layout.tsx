@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { jwtVerify } from "jose";
-import { LayoutDashboard, GraduationCap, Users, Settings, Shield, Database, Layers } from "lucide-react";
+import { LayoutDashboard, GraduationCap, Settings, Shield, Layers } from "lucide-react";
 import DashboardShell from "@/components/DashboardShell";
 import "@/app/docente/docente.css";
 
@@ -22,7 +22,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       redirect("/login");
     }
     user = payload;
-  } catch (err) {
+  } catch {
     redirect("/login");
   }
 

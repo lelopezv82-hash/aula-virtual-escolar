@@ -119,7 +119,7 @@ export default function NuevaTareaPage() {
       } else {
         setError(data.error || "Error al crear la tarea");
       }
-    } catch (err) {
+    } catch {
       setError("Error de conexión");
     } finally {
       setLoading(false);

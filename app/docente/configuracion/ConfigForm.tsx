@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save, Loader2, KeyRound, Check, Eye, EyeOff, ChevronDown, ChevronUp } from "lucide-react";
+import { Save, Loader2, KeyRound, Eye, EyeOff } from "lucide-react";
 
 interface ConfigFormProps {
   initialName: string;
@@ -17,7 +17,6 @@ export default function ConfigForm({ initialName }: ConfigFormProps) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "danger"; text: string } | null>(null);
   
-  const [showPasswordSection, setShowPasswordSection] = useState(false);
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);

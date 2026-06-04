@@ -39,7 +39,7 @@ export async function GET(
     });
 
     return NextResponse.json({ task, submission });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }

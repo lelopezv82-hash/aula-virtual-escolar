@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { 
-  FileText, Plus, ExternalLink, Trash2, Loader2, 
-  UploadCloud, X, Save, ClipboardList, BookOpen, ToggleLeft, ToggleRight,
-  Eye, EyeOff, Pencil
+  FileText, ExternalLink, Loader2, 
+  UploadCloud, X, ClipboardList, BookOpen, ToggleLeft, ToggleRight,
+  Eye, EyeOff
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -102,30 +102,6 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
       .catch(() => console.error("Failed to load grade groups"));
   }, []);
 
-  const openUploadModal = (course: Course) => {
-    setSelectedCourse(course);
-    setEditingResource(null);
-    setResourceForm({ title: "", type: "PDF", link: "", theme: "", groupIds: [] });
-    setResourceFile(null);
-    setError("");
-    setShowResourceModal(true);
-  };
-
-  const openEditModal = (resource: Resource, course: Course) => {
-    setSelectedCourse(course);
-    setEditingResource(resource);
-    setResourceForm({
-      title: resource.title,
-      type: resource.type,
-      link: resource.type === "LINK" ? resource.url : "",
-      theme: resource.theme || "",
-      groupIds: resource.groups ? resource.groups.map(g => g.id) : []
-    });
-    setResourceFile(null);
-    setError("");
-    setShowResourceModal(true);
-  };
-
   const handleSaveResource = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCourse) return;
@@ -163,50 +139,6 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
       setError("Error de conexión al guardar el recurso");
     } finally {
       setUploadingResource(false);
-    }
-  };
-
-  const handleDeleteResource = async (id: string) => {
-    const ok = await confirm({
-      title: "Eliminar Recurso",
-      message: "¿Eliminar este recurso?",
-      confirmText: "Eliminar",
-      type: "danger"
-    });
-    if (!ok) return;
-    
-    try {
-      const res = await fetch("/api/docente/recursos", { 
-        method: "DELETE", 
-        headers: { "Content-Type": "application/json" }, 
-        body: JSON.stringify({ id }) 
-      });
-      if (res.ok) {
-        router.refresh();
-      }
-    } catch {
-      console.error("Failed to delete resource");
-    }
-  };
-
-  const handleDeleteTask = async (id: string) => {
-    const ok = await confirm({
-      title: "Eliminar Tarea",
-      message: "¿Eliminar esta tarea y todas sus entregas/calificaciones asociadas?",
-      confirmText: "Eliminar",
-      type: "danger"
-    });
-    if (!ok) return;
-
-    try {
-      const res = await fetch(`/api/docente/tareas/${id}`, { 
-        method: "DELETE"
-      });
-      if (res.ok) {
-        router.refresh();
-      }
-    } catch {
-      console.error("Failed to delete task");
     }
   };
 

@@ -38,7 +38,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     }
 
     return NextResponse.json({ task });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }
@@ -140,7 +140,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         const safeFilename = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
         const uniqueFilename = `tareas/${task.courseId}_${Date.now()}_${safeFilename}`;
 
-        const { data, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from('aula-virtual')
           .upload(uniqueFilename, buffer, {
             contentType: file.type,

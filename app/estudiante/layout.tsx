@@ -22,7 +22,7 @@ export default async function EstudianteLayout({ children }: { children: React.R
       redirect("/login");
     }
     user = payload;
-  } catch (err) {
+  } catch {
     redirect("/login");
   }
 

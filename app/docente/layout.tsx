@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { jwtVerify } from "jose";
-import { BookOpen, Users, LayoutDashboard, Settings, ClipboardList, Calendar, Layers } from "lucide-react";
+import { BookOpen, LayoutDashboard, Settings, ClipboardList, Layers } from "lucide-react";
 import DashboardShell from "@/components/DashboardShell";
 import "./docente.css";
 
@@ -22,7 +22,7 @@ export default async function DocenteLayout({ children }: { children: React.Reac
       redirect("/login");
     }
     user = payload;
-  } catch (err) {
+  } catch {
     redirect("/login");
   }
 

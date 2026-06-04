@@ -33,7 +33,7 @@ export default function TaskActions({ taskId, attachmentUrl }: { taskId: string;
         alert(data.error || "Error al eliminar la tarea");
         setDeleting(false);
       }
-    } catch (err) {
+    } catch {
       alert("Error de conexión al servidor");
       setDeleting(false);
     }

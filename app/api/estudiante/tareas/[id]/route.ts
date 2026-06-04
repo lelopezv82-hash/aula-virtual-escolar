@@ -63,10 +63,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     }
 
     // Remove groups from response to keep payload clean if needed, or keep it
-    const { groups, ...taskData } = task;
+    const { groups: _groups, ...taskData } = task;
 
     return NextResponse.json({ task: taskData });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }

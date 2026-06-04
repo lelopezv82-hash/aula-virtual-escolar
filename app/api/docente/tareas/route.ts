@@ -87,7 +87,7 @@ export async function POST(request: Request) {
         const safeFilename = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
         const uniqueFilename = `tareas/${courseId}_${Date.now()}_${safeFilename}`;
 
-        const { data, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from('aula-virtual')
           .upload(uniqueFilename, buffer, {
             contentType: file.type,

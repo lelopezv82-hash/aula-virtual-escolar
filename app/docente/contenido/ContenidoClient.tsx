@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { 
-  Plus, Edit2, Trash2, Calendar, FileText, ClipboardList, BookOpen, 
-  Layers, UploadCloud, X, Save, Loader2, ExternalLink, ToggleLeft, ToggleRight, Eye, EyeOff
+  Plus, Edit2, Trash2, FileText, ClipboardList, BookOpen, 
+  Layers, UploadCloud, X, Save, Loader2, ExternalLink, Eye
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useConfirm } from "@/components/ConfirmProvider";

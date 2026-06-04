@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Trash2, BookOpen, Layers, Users, Loader2, Save, X, KeyRound, Copy, Check, UserPlus, Eye, EyeOff, Edit2, FileSpreadsheet, Upload } from "lucide-react";
+import { Plus, Trash2, Layers, Users, Loader2, Save, X, Copy, Check, UserPlus, Eye, EyeOff, Edit2, FileSpreadsheet, Upload } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
 import * as XLSX from "xlsx";
 import mammoth from "mammoth";

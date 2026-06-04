@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import prisma from '@/lib/prisma';
-import { Users, GraduationCap, BookOpen, ClipboardList, PlusCircle, ArrowRight, UserPlus, Clock } from "lucide-react";
+import { Users, GraduationCap, BookOpen, ClipboardList, ArrowRight, UserPlus, Clock } from "lucide-react";
 import Link from "next/link";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
@@ -162,7 +162,7 @@ export default async function AdminDashboard() {
               {gradeStats.map(stat => (
                 <div key={stat.grade}>
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="font-semibold">Grado {stat.grade}</span>
+                    <span className="font-semibold">{stat.grade}</span>
                     <span className="text-muted">{stat.count} estudiantes ({stat.percentage.toFixed(0)}%)</span>
                   </div>
                   <div style={{ background: "var(--bg-primary)", height: "8px", borderRadius: "var(--radius-full)", overflow: "hidden" }}>

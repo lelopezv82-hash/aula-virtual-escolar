@@ -1,7 +1,7 @@
 import prisma from '@/lib/prisma';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
-import { BookOpen, Download, Link as LinkIcon, FileText, AlertCircle } from "lucide-react";
+import { BookOpen, Download, Link as LinkIcon, AlertCircle } from "lucide-react";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 

@@ -32,7 +32,6 @@ interface ExportButtonsProps {
 export default function ExportButtons({ 
   taskTitle, 
   courseName, 
-  dueDate, 
   students, 
   submissions,
   period,

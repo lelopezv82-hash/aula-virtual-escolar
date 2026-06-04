@@ -109,7 +109,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
       } else {
         setError(data.error || "Error al actualizar la tarea");
       }
-    } catch (err) {
+    } catch {
       setError("Error de conexión");
     } finally {
       setLoading(false);

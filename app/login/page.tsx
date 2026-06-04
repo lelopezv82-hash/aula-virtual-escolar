@@ -39,7 +39,7 @@ export default function LoginPage() {
       } else {
         setError(data.error || "Error al iniciar sesión");
       }
-    } catch (err) {
+    } catch {
       setError("Error de conexión. Inténtalo de nuevo.");
     } finally {
       setLoading(false);

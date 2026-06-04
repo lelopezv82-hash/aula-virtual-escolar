@@ -7,7 +7,7 @@ import bcrypt from 'bcryptjs';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
-export async function GET(request: Request) {
+export async function GET(_request: Request) {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("auth_token")?.value;
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(_request: Request) {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("auth_token")?.value;

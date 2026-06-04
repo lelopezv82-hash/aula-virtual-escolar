@@ -304,7 +304,7 @@ export default function EstudiantesPage() {
       } else {
         setImportError(data.error || "Error al realizar la importación.");
       }
-    } catch (err) {
+    } catch {
       setImportError("Error de red al intentar importar.");
     } finally {
       setImporting(false);

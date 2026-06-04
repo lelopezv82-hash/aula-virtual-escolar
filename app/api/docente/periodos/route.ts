@@ -28,7 +28,7 @@ export async function GET() {
     const periods = await prisma.period.findMany();
     periods.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
     return NextResponse.json({ periods });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Error al obtener periodos' }, { status: 500 });
   }
 }
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ success: true, period });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Error al crear el periodo' }, { status: 500 });
   }
 }
@@ -177,7 +177,7 @@ export async function DELETE(request: Request) {
     });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Error al eliminar el periodo' }, { status: 500 });
   }
 }

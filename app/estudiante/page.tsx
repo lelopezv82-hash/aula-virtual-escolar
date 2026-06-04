@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import prisma from '@/lib/prisma';
-import { BookOpen, FileText, Download, Clock } from "lucide-react";
+import { BookOpen, FileText, Clock } from "lucide-react";
 import Link from "next/link";
 
 

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Clock, Calendar, Check, X, ShieldAlert } from "lucide-react";
+import { Clock, Calendar, Check, X } from "lucide-react";
 
 interface StudentLateSubmissionToggleProps {
   taskId: string;

@@ -98,7 +98,7 @@ export async function POST(request: Request) {
         const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
         const uniqueName = `recursos/${Date.now()}_${safeName}`;
         
-        const { data, error } = await supabase.storage
+        const { error } = await supabase.storage
           .from('aula-virtual')
           .upload(uniqueName, buffer, {
             contentType: file.type,
@@ -228,7 +228,7 @@ export async function PATCH(request: Request) {
         const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
         const uniqueName = `recursos/${Date.now()}_${safeName}`;
         
-        const { data, error } = await supabase.storage
+        const { error } = await supabase.storage
           .from('aula-virtual')
           .upload(uniqueName, buffer, {
             contentType: file.type,

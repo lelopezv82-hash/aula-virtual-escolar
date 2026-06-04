@@ -1,14 +1,12 @@
 "use client";
 
 import { useState, useEffect, use } from "react";
-import { useRouter } from "next/navigation";
 import { ArrowLeft, UploadCloud, Loader2, CheckCircle, FileText, Clock, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 
 export default function TareaDetallePage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const taskId = resolvedParams.id;
-  const router = useRouter();
   
   const [task, setTask] = useState<any>(null);
   const [submission, setSubmission] = useState<any>(null);
@@ -70,7 +68,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
         setError(data.error || "Error al enviar la tarea.");
         setErrorType("danger");
       }
-    } catch (err) {
+    } catch {
       setError("Error de conexión al servidor.");
       setErrorType("danger");
     } finally {

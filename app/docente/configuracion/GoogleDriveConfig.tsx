@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Cloud, CheckCircle, AlertTriangle, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { Cloud, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
 
 function GoogleDriveConfigContent() {
@@ -12,7 +12,6 @@ function GoogleDriveConfigContent() {
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
-  const [hasFolder, setHasFolder] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "danger"; text: string } | null>(null);
   const [showConfig, setShowConfig] = useState(false);
 
@@ -22,7 +21,6 @@ function GoogleDriveConfigContent() {
       const data = await res.json();
       if (res.ok) {
         setIsConnected(data.isConnected);
-        setHasFolder(data.hasFolder);
       }
     } catch (err) {
       console.error("Error fetching Google Drive status:", err);

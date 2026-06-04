@@ -15,7 +15,7 @@ export default async function EstudianteConfiguracionPage() {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     userId = payload.id as string;
-  } catch (err) {
+  } catch {
     redirect("/login");
   }
 
