@@ -368,7 +368,7 @@ function GoogleDriveConfigContent() {
               : "Almacenamiento Local Activo"}
           </span>
           <span className="font-semibold text-indigo-600 dark:text-indigo-400">
-            {isConnected ? `${combinedUsePercentage.toFixed(1)}%` : "0%"}
+            {isConnected ? `${combinedUsePercentage.toFixed(1)}% usado` : "0% usado"}
           </span>
         </div>
       )}
