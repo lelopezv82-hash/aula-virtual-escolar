@@ -145,7 +145,12 @@ export async function getAccountsWithSpace(teacherId: string): Promise<AccountSp
         const usageInTrash = parseInt(data.storageQuota.usageInDriveTrash || '0', 10);
         const userUsage = usageInDrive + usageInTrash;
 
-        const usage = userUsage > 0 ? userUsage : parseInt(data.storageQuota.usage || '0', 10);
+        const apiUsage = parseInt(data.storageQuota.usage || '0', 10);
+        
+        // Personal gmail.com accounts should show their total account usage (Drive + Gmail + Photos).
+        // Workspace pooled storage accounts should show userUsage (Drive files only) to avoid domain total leak.
+        const isWorkspace = !account.email.endsWith('@gmail.com') && (account.customLimit || apiLimit > 1099511627776);
+        const usage = isWorkspace ? userUsage : apiUsage;
         const freeSpace = limit - usage;
 
         results.push({
