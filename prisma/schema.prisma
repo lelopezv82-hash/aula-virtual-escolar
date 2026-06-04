@@ -28,6 +28,7 @@ model User {
 
   coursesAsTeacher Course[]     @relation("TeacherCourses")
   submissions      Submission[]
+  googleDriveAccounts GoogleDriveAccount[]
 
   @@index([groupId])
   @@index([role])
@@ -146,3 +147,20 @@ model Period {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model GoogleDriveAccount {
+  id                  String   @id @default(uuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email               String
+  googleAccessToken   String
+  googleRefreshToken  String
+  googleTokenExpiry   DateTime
+  googleDriveFolderId String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([userId, email])
+  @@index([userId])
+}
+

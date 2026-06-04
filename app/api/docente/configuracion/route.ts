@@ -5,6 +5,9 @@ import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 
 
+import { getAccountsWithSpace } from '@/lib/gdrive';
+
+
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
 export async function GET(_request: Request) {
@@ -15,17 +18,34 @@ export async function GET(_request: Request) {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     if (payload.role !== "TEACHER") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    const teacher = await prisma.user.findUnique({
-      where: { id: payload.id as string },
-      select: {
-        googleRefreshToken: true,
-        googleDriveFolderId: true,
-      }
-    });
+    const teacherId = payload.id as string;
+    const accounts = await getAccountsWithSpace(teacherId);
+
+    let totalLimit = 0;
+    let totalUsage = 0;
+    let totalFree = 0;
+
+    for (const acc of accounts) {
+      totalLimit += acc.limit;
+      totalUsage += acc.usage;
+      totalFree += acc.freeSpace;
+    }
 
     return NextResponse.json({
-      isConnected: !!teacher?.googleRefreshToken,
-      hasFolder: !!teacher?.googleDriveFolderId
+      isConnected: accounts.length > 0,
+      accounts: accounts.map(acc => ({
+        id: acc.id,
+        email: acc.email,
+        usage: acc.usage,
+        limit: acc.limit,
+        freeSpace: acc.freeSpace,
+        hasFolder: !!acc.googleDriveFolderId
+      })),
+      poolStats: {
+        totalLimit,
+        totalUsage,
+        totalFree
+      }
     });
   } catch (error) {
     console.error("Error fetching config:", error);
@@ -33,7 +53,7 @@ export async function GET(_request: Request) {
   }
 }
 
-export async function DELETE(_request: Request) {
+export async function DELETE(request: Request) {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("auth_token")?.value;
@@ -41,15 +61,55 @@ export async function DELETE(_request: Request) {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     if (payload.role !== "TEACHER") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    await prisma.user.update({
-      where: { id: payload.id as string },
-      data: {
-        googleAccessToken: null,
-        googleRefreshToken: null,
-        googleTokenExpiry: null,
-        googleDriveFolderId: null
+    const { searchParams } = new URL(request.url);
+    const accountId = searchParams.get("accountId");
+
+    if (accountId) {
+      const acc = await prisma.googleDriveAccount.findFirst({
+        where: { id: accountId, userId: payload.id as string }
+      });
+      if (!acc) {
+        return NextResponse.json({ error: 'Cuenta no encontrada' }, { status: 404 });
       }
+      await prisma.googleDriveAccount.delete({
+        where: { id: accountId }
+      });
+    } else {
+      await prisma.googleDriveAccount.deleteMany({
+        where: { userId: payload.id as string }
+      });
+    }
+
+    const remainingCount = await prisma.googleDriveAccount.count({
+      where: { userId: payload.id as string }
     });
+
+    if (remainingCount === 0) {
+      await prisma.user.update({
+        where: { id: payload.id as string },
+        data: {
+          googleAccessToken: null,
+          googleRefreshToken: null,
+          googleTokenExpiry: null,
+          googleDriveFolderId: null
+        }
+      });
+    } else {
+      const nextAcc = await prisma.googleDriveAccount.findFirst({
+        where: { userId: payload.id as string }
+      });
+      if (nextAcc) {
+        await prisma.user.update({
+          where: { id: payload.id as string },
+          data: {
+            googleAccessToken: nextAcc.googleAccessToken,
+            googleRefreshToken: nextAcc.googleRefreshToken,
+            googleTokenExpiry: nextAcc.googleTokenExpiry,
+            googleDriveFolderId: nextAcc.googleDriveFolderId
+          }
+        });
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -65,12 +65,64 @@ export async function GET(request: Request) {
     const tokenData = await tokenRes.json();
     const expiryDate = new Date(Date.now() + tokenData.expires_in * 1000);
 
-    // Save credentials to database
+    // Fetch the email of this Google account
+    let email = 'cuenta-gdrive@gmail.com';
+    try {
+      const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: {
+          Authorization: `Bearer ${tokenData.access_token}`,
+        },
+      });
+      if (userInfoRes.ok) {
+        const userInfo = await userInfoRes.json();
+        if (userInfo.email) {
+          email = userInfo.email;
+        }
+      }
+    } catch (userInfoError) {
+      console.error('Error fetching Google userinfo:', userInfoError);
+    }
+
+    // Try to find if this account is already linked
+    const existingAccount = await prisma.googleDriveAccount.findUnique({
+      where: {
+        userId_email: {
+          userId: state,
+          email: email,
+        },
+      },
+    });
+
+    const refreshToken = tokenData.refresh_token || existingAccount?.googleRefreshToken || '';
+
+    // Create or update the GoogleDriveAccount record
+    await prisma.googleDriveAccount.upsert({
+      where: {
+        userId_email: {
+          userId: state,
+          email: email,
+        },
+      },
+      update: {
+        googleAccessToken: tokenData.access_token,
+        googleRefreshToken: refreshToken,
+        googleTokenExpiry: expiryDate,
+      },
+      create: {
+        userId: state,
+        email: email,
+        googleAccessToken: tokenData.access_token,
+        googleRefreshToken: refreshToken,
+        googleTokenExpiry: expiryDate,
+      },
+    });
+
+    // Save credentials to database (on User table for backward compatibility/fallbacks)
     await prisma.user.update({
       where: { id: state },
       data: {
         googleAccessToken: tokenData.access_token,
-        googleRefreshToken: tokenData.refresh_token || undefined, // refresh token is only sent on first prompt or when prompt=consent is used
+        googleRefreshToken: refreshToken || undefined,
         googleTokenExpiry: expiryDate,
       },
     });

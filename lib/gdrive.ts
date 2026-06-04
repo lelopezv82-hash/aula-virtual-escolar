@@ -7,10 +7,20 @@ interface GoogleTokenResponse {
   token_type: string;
 }
 
+export interface AccountSpace {
+  id: string;
+  email: string;
+  accessToken: string;
+  googleDriveFolderId: string | null;
+  freeSpace: number; // in bytes
+  usage: number; // in bytes
+  limit: number; // in bytes
+}
+
 /**
- * Refreshes the Google Access Token for a teacher using their refresh token.
+ * Refreshes the Google Access Token for a specific linked account.
  */
-async function refreshGoogleToken(teacherId: string, refreshToken: string): Promise<string> {
+async function refreshGoogleToken(accountId: string, refreshToken: string): Promise<string> {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
@@ -39,8 +49,8 @@ async function refreshGoogleToken(teacherId: string, refreshToken: string): Prom
   const expiryDate = new Date(Date.now() + data.expires_in * 1000);
 
   // Update DB
-  await prisma.user.update({
-    where: { id: teacherId },
+  await prisma.googleDriveAccount.update({
+    where: { id: accountId },
     data: {
       googleAccessToken: data.access_token,
       googleTokenExpiry: expiryDate,
@@ -51,37 +61,110 @@ async function refreshGoogleToken(teacherId: string, refreshToken: string): Prom
 }
 
 /**
- * Gets a valid Google access token for the teacher. Refreshes if expired.
+ * Gets a valid Google access token. Looks at all connected accounts for the teacher
+ * and returns the first one that is valid or can be successfully refreshed.
  */
 export async function getGoogleAccessToken(teacherId: string): Promise<string | null> {
-  const user = await prisma.user.findUnique({
-    where: { id: teacherId },
+  const accounts = await prisma.googleDriveAccount.findMany({
+    where: { userId: teacherId },
     select: {
+      id: true,
       googleAccessToken: true,
       googleRefreshToken: true,
       googleTokenExpiry: true,
     },
   });
 
-  if (!user || !user.googleRefreshToken) {
-    return null; // Not connected to Google Drive
+  if (accounts.length === 0) {
+    return null; // Not connected to any Google Drive
   }
 
-  // If we have an access token and it is still valid (with 5 mins buffer)
-  if (user.googleAccessToken && user.googleTokenExpiry) {
-    const isExpired = new Date(user.googleTokenExpiry).getTime() - 5 * 60 * 1000 < Date.now();
-    if (!isExpired) {
-      return user.googleAccessToken;
+  for (const account of accounts) {
+    // If we have an access token and it is still valid (with 5 mins buffer)
+    if (account.googleAccessToken && account.googleTokenExpiry) {
+      const isExpired = new Date(account.googleTokenExpiry).getTime() - 5 * 60 * 1000 < Date.now();
+      if (!isExpired) {
+        return account.googleAccessToken;
+      }
+    }
+
+    // Otherwise, refresh it
+    if (account.googleRefreshToken) {
+      try {
+        return await refreshGoogleToken(account.id, account.googleRefreshToken);
+      } catch (error) {
+        console.error(`Error refreshing token for account ${account.id} of teacher ${teacherId}:`, error);
+      }
     }
   }
 
-  // Otherwise, refresh it
-  try {
-    return await refreshGoogleToken(teacherId, user.googleRefreshToken);
-  } catch (error) {
-    console.error(`Error refreshing token for teacher ${teacherId}:`, error);
-    return null;
+  return null;
+}
+
+/**
+ * Fetches all Google Drive accounts for a teacher with their current storage spaces.
+ */
+export async function getAccountsWithSpace(teacherId: string): Promise<AccountSpace[]> {
+  const accounts = await prisma.googleDriveAccount.findMany({
+    where: { userId: teacherId },
+  });
+
+  if (accounts.length === 0) {
+    return [];
   }
+
+  const results: AccountSpace[] = [];
+
+  // Query quotas in parallel
+  await Promise.all(
+    accounts.map(async (account) => {
+      try {
+        let token = account.googleAccessToken;
+        const isExpired = account.googleTokenExpiry && new Date(account.googleTokenExpiry).getTime() - 5 * 60 * 1000 < Date.now();
+        
+        if (isExpired && account.googleRefreshToken) {
+          token = await refreshGoogleToken(account.id, account.googleRefreshToken);
+        }
+
+        const res = await fetch('https://www.googleapis.com/drive/v3/about?fields=storageQuota', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!res.ok) {
+          throw new Error(`Failed to fetch storage quota: ${res.statusText}`);
+        }
+
+        const data = await res.json();
+        const limit = parseInt(data.storageQuota.limit || '0', 10);
+        const usage = parseInt(data.storageQuota.usage || '0', 10);
+        const freeSpace = limit - usage;
+
+        results.push({
+          id: account.id,
+          email: account.email,
+          accessToken: token,
+          googleDriveFolderId: account.googleDriveFolderId,
+          freeSpace,
+          usage,
+          limit,
+        });
+      } catch (err) {
+        console.error(`Error querying space for account ${account.email}:`, err);
+        // If query fails but we have a token, we list it with 0 free space as a fallback
+        results.push({
+          id: account.id,
+          email: account.email,
+          accessToken: account.googleAccessToken,
+          googleDriveFolderId: account.googleDriveFolderId,
+          freeSpace: 0,
+          usage: 0,
+          limit: 0,
+        });
+      }
+    })
+  );
+
+  return results;
 }
 
 /**
@@ -115,7 +198,8 @@ async function createDriveFolder(accessToken: string, folderName: string, parent
 }
 
 /**
- * Uploads a file buffer directly to Google Drive under the teacher's configured folder.
+ * Uploads a file buffer directly to Google Drive.
+ * Selects the connected account with the most free space.
  */
 export async function uploadToGoogleDrive(
   buffer: Buffer,
@@ -124,25 +208,27 @@ export async function uploadToGoogleDrive(
   teacherId: string,
   subfolderName?: string
 ): Promise<string> {
-  const accessToken = await getGoogleAccessToken(teacherId);
-  if (!accessToken) {
-    throw new Error('El docente no tiene Google Drive vinculado o no se pudo renovar la credencial.');
+  const accounts = await getAccountsWithSpace(teacherId);
+  if (accounts.length === 0) {
+    throw new Error('El docente no tiene cuentas de Google Drive vinculadas o no se pudo renovar la credencial.');
   }
 
-  // Get or create parent folder ID for the app
-  let mainFolderId = '';
-  const teacher = await prisma.user.findUnique({
-    where: { id: teacherId },
-    select: { googleDriveFolderId: true },
-  });
+  // Sort by free space descending
+  accounts.sort((a, b) => b.freeSpace - a.freeSpace);
 
-  if (teacher?.googleDriveFolderId) {
-    mainFolderId = teacher.googleDriveFolderId;
+  // Use the one with the most free space
+  const selectedAccount = accounts[0];
+  const accessToken = selectedAccount.accessToken;
+
+  // Get or create parent folder ID for the app on this specific account
+  let mainFolderId = '';
+  if (selectedAccount.googleDriveFolderId) {
+    mainFolderId = selectedAccount.googleDriveFolderId;
   } else {
     // Create new main folder
     mainFolderId = await createDriveFolder(accessToken, 'Aula Virtual Escolar');
-    await prisma.user.update({
-      where: { id: teacherId },
+    await prisma.googleDriveAccount.update({
+      where: { id: selectedAccount.id },
       data: { googleDriveFolderId: mainFolderId },
     });
   }

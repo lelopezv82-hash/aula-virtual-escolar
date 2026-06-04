@@ -29,7 +29,7 @@ export async function GET() {
       response_type: 'code',
       client_id: clientId,
       redirect_uri: redirectUri,
-      scope: 'https://www.googleapis.com/auth/drive.file',
+      scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email',
       access_type: 'offline',
       prompt: 'consent',
       state: payload.id as string, // Pass teacher ID as state for verification
