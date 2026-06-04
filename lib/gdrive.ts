@@ -290,15 +290,17 @@ export async function uploadToGoogleDrive(
     parents: [uploadFolderId],
   };
 
-  const multipartRequestBody =
+  const part1 = Buffer.from(
     delimiter +
     'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
     JSON.stringify(metadata) +
     delimiter +
-    'Content-Type: ' + (mimeType || 'application/octet-stream') + '\r\n' +
-    'Content-Transfer-Encoding: base64\r\n\r\n' +
-    buffer.toString('base64') +
-    closeDelimiter;
+    'Content-Type: ' + (mimeType || 'application/octet-stream') + '\r\n\r\n'
+  );
+  const part2 = buffer;
+  const part3 = Buffer.from(closeDelimiter);
+
+  const multipartRequestBody = Buffer.concat([part1, part2, part3]);
 
   const uploadRes = await fetch(
     'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
