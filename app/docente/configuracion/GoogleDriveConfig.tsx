@@ -179,7 +179,7 @@ function GoogleDriveConfigContent() {
         </div>
       )}
 
-      {/* Accounts List - ALWAYS VISIBLE */}
+      {/* Accounts List */}
       <div className="flex flex-col gap-2.5 mt-1">
         <h5 className="text-[10px] font-bold tracking-wider text-muted uppercase">Cuentas vinculadas al pool</h5>
         
@@ -188,44 +188,46 @@ function GoogleDriveConfigContent() {
             No tienes cuentas vinculadas. Vincula tu primer Google Drive para empezar a expandir tu espacio de almacenamiento.
           </p>
         ) : (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2.5">
             {accounts.map((acc) => {
               const usagePercentage = acc.limit > 0 ? (acc.usage / acc.limit) * 100 : 0;
               return (
                 <div 
                   key={acc.id} 
-                  className="p-3 rounded-lg border border-gray-150 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 flex flex-col gap-2 relative group hover:border-gray-250 dark:hover:border-zinc-700 transition-all"
+                  className="p-3 rounded-lg border border-gray-150 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative group hover:border-gray-250 dark:hover:border-zinc-700 transition-all"
                 >
-                  <div className="flex justify-between items-start gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold truncate text-emerald-600 dark:text-emerald-400" title={acc.email}>
-                        {acc.email}
-                      </p>
-                      <p className="text-[10px] text-muted mt-0.5">
-                        Espacio: {formatBytes(acc.usage)} / {formatBytes(acc.limit)} ({usagePercentage.toFixed(1)}% usado)
-                      </p>
+                  <div className="flex-1 min-w-0 flex flex-col gap-1">
+                    <p className="text-xs font-semibold truncate text-emerald-600 dark:text-emerald-400" title={acc.email}>
+                      {acc.email}
+                    </p>
+                    <p className="text-[10px] text-muted">
+                      Espacio: {formatBytes(acc.usage)} / {formatBytes(acc.limit)} ({usagePercentage.toFixed(1)}% usado)
+                    </p>
+                    
+                    {/* Micro progress bar for individual account */}
+                    <div className="w-full max-w-[200px] bg-gray-150 dark:bg-zinc-850 rounded-full h-1 overflow-hidden mt-0.5">
+                      <div 
+                        className="bg-emerald-400 dark:bg-emerald-500 h-1 rounded-full transition-all duration-500" 
+                        style={{ width: `${usagePercentage}%` }}
+                      />
                     </div>
+                  </div>
+
+                  <div className="shrink-0 flex items-center justify-end">
                     <button
                       type="button"
                       onClick={() => handleDisconnect(acc.id, acc.email)}
                       disabled={actionLoadingId === acc.id}
-                      className="p-1 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/20 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 transition-all focus:outline-none cursor-pointer"
-                      title="Desvincular cuenta"
+                      className="btn btn-secondary text-[11px] py-1 px-2.5 flex items-center gap-1.5 cursor-pointer transition-all hover:bg-rose-50 dark:hover:bg-rose-950/10 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-250/50"
+                      style={{ color: "var(--danger)", borderColor: "rgba(239, 68, 68, 0.2)" }}
                     >
                       {actionLoadingId === acc.id ? (
-                        <Loader2 className="animate-spin" size={13} />
+                        <Loader2 className="animate-spin" size={12} />
                       ) : (
-                        <Trash2 size={13} />
+                        <Trash2 size={12} />
                       )}
+                      Desvincular
                     </button>
-                  </div>
-
-                  {/* Micro progress bar for individual account */}
-                  <div className="w-full bg-gray-150 dark:bg-zinc-850 rounded-full h-1 overflow-hidden">
-                    <div 
-                      className="bg-emerald-400 dark:bg-emerald-500 h-1 rounded-full transition-all duration-500" 
-                      style={{ width: `${usagePercentage}%` }}
-                    />
                   </div>
                 </div>
               );
