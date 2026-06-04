@@ -543,7 +543,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
         >
           <span className="flex items-center gap-2">
             <Layers size={18} />
-            Gestión de Periodos Académicos
+            Gestión Periodos Académicos
           </span>
         </button>
       </div>
@@ -955,7 +955,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
             <div className="flex flex-col gap-6 animate-fade-in">
               <div className="flex justify-between items-center flex-wrap gap-4">
                 <div>
-                  <h2 className="text-xl font-bold">Gestión de Periodos Académicos</h2>
+                  <h2 className="text-xl font-bold">Gestión Periodos Académicos</h2>
                   <p className="text-muted text-sm mt-1">Crea, edita y activa/desactiva los periodos lectivos globales para todas las asignaturas.</p>
                 </div>
                 <button
