@@ -31,7 +31,7 @@ export async function GET(_request: Request) {
       totalFree += acc.freeSpace;
     }
 
-    const hasPooled = accounts.some(acc => acc.limit > 1024 * 1024 * 1024 * 1024);
+    const hasPooled = accounts.some(acc => acc.limit > 1024 * 1024 * 1024 * 1024 && !acc.customLimit);
 
     return NextResponse.json({
       isConnected: accounts.length > 0,
@@ -42,7 +42,7 @@ export async function GET(_request: Request) {
         limit: acc.limit,
         freeSpace: acc.freeSpace,
         hasFolder: !!acc.googleDriveFolderId,
-        isPooled: acc.limit > 1024 * 1024 * 1024 * 1024 || !!acc.customLimit, // 1 TB or custom limit set
+        isPooled: acc.limit > 1024 * 1024 * 1024 * 1024 && !acc.customLimit, // 1 TB and no custom limit override
         customLimitGB: acc.customLimit ? acc.customLimit / (1024 * 1024 * 1024) : null
       })),
       poolStats: {
