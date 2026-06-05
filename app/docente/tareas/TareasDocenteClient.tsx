@@ -64,9 +64,6 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex justify-end">
-        <GDriveVisibilityToggle />
-      </div>
       {/* Global Filter Toolbar */}
       {allTasks.length > 0 && (uniqueThemes.length > 0 || uniquePeriods.length > 0) && (
         <div className="card p-4 flex flex-wrap gap-4 items-center" style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-color)" }}>
