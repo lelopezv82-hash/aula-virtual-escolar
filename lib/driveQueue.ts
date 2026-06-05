@@ -3,7 +3,7 @@ import { supabase } from './supabase';
 import { uploadToGoogleDrive } from './gdrive';
 
 export interface EnqueueOptions {
-  recordType: 'RESOURCE' | 'SUBMISSION';
+  recordType: 'RESOURCE' | 'SUBMISSION' | 'TASK';
   recordId: string;
   supabaseUrl: string;
   supabasePath: string;
@@ -101,6 +101,11 @@ export async function processDriveQueue(teacherId?: string): Promise<ProcessResu
         await prisma.submission.update({
           where: { id: item.recordId },
           data: { fileUrl: uploadResult.url, gdriveEmail: uploadResult.email },
+        });
+      } else if (item.recordType === 'TASK') {
+        await prisma.task.update({
+          where: { id: item.recordId },
+          data: { attachmentUrl: uploadResult.url, gdriveEmail: uploadResult.email },
         });
       }
 

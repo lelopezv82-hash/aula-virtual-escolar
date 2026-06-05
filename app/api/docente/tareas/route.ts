@@ -4,6 +4,7 @@ import { jwtVerify } from "jose";
 import prisma from '@/lib/prisma';
 import { supabase } from '@/lib/supabase';
 import { getGoogleAccessToken, uploadToGoogleDrive } from '@/lib/gdrive';
+import { enqueueFailedDriveUpload } from '@/lib/driveQueue';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
@@ -127,6 +128,29 @@ export async function POST(request: Request) {
         weight: isNaN(weight) ? 0 : weight
       }
     });
+
+    // Si el archivo adjunto quedó en Supabase (gdrive falló), encolar para reintento
+    if (file && file.size > 0 && !gdriveEmail && attachmentUrl && attachmentUrl.includes('supabase')) {
+      const supabasePath = attachmentUrl.split('/aula-virtual/')[1]?.split('?')[0] ?? '';
+      const selectedGroups = await prisma.gradeGroup.findMany({
+        where: { id: { in: groupIds } },
+        include: { grade: true }
+      });
+      const gradeName = selectedGroups[0]?.grade?.name || "Sin Grado";
+      const groupName = selectedGroups[0]?.name || "Sin Grupo";
+      const folderPath = `${period}/${course.name}/${gradeName}/${groupName}/Tareas/${title}`;
+
+      await enqueueFailedDriveUpload({
+        recordType: 'TASK',
+        recordId: task.id,
+        supabaseUrl: attachmentUrl,
+        supabasePath,
+        teacherId,
+        filename: file.name,
+        mimeType: file.type,
+        folderPath,
+      });
+    }
 
     return NextResponse.json({ success: true, task });
 
