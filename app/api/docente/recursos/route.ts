@@ -4,6 +4,7 @@ import { jwtVerify } from "jose";
 import prisma from '@/lib/prisma';
 import { supabase } from '@/lib/supabase';
 import { getGoogleAccessToken, uploadToGoogleDrive } from '@/lib/gdrive';
+import { enqueueFailedDriveUpload } from '@/lib/driveQueue';
 
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
@@ -118,6 +119,9 @@ export async function POST(request: Request) {
           .getPublicUrl(uniqueName);
 
         url = publicUrl;
+        // Guardar en cola para reintento a Drive cuando haya conexión
+        // (el resourceId aún no existe; se actualizará después del create)
+        // Se encola después del create — ver más abajo
       }
     }
 
@@ -138,6 +142,30 @@ export async function POST(request: Request) {
         }
       }
     });
+
+    // Si el archivo quedó en Supabase (gdrive falló), encolar para reintento
+    if (file && file.size > 0 && !gdriveEmail && url && url.includes('supabase')) {
+      const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+      // Extraer el path relativo de la URL pública
+      const supabasePath = url.split('/aula-virtual/')[1]?.split('?')[0] ?? '';
+      const selectedGroups = await prisma.gradeGroup.findMany({
+        where: { id: { in: groupIds } },
+        include: { grade: true }
+      });
+      const gradeName = selectedGroups[0]?.grade?.name || "Sin Grado";
+      const groupName = selectedGroups[0]?.name || "Sin Grupo";
+      const folderPath = `${period}/${(await prisma.course.findUnique({ where: { id: courseId } }))?.name || ''}/${gradeName}/${groupName}/Materiales`;
+      await enqueueFailedDriveUpload({
+        recordType: 'RESOURCE',
+        recordId: resource.id,
+        supabaseUrl: url,
+        supabasePath,
+        teacherId,
+        filename: file.name,
+        mimeType: file.type,
+        folderPath,
+      });
+    }
 
     return NextResponse.json({ success: true, resource });
   } catch (error) {
@@ -252,6 +280,26 @@ export async function PATCH(request: Request) {
           .getPublicUrl(uniqueName);
 
         url = publicUrl;
+
+        // Encolar para reintento a Drive cuando haya conexión
+        const supabasePath = publicUrl.split('/aula-virtual/')[1]?.split('?')[0] ?? '';
+        const selectedGroups = await prisma.gradeGroup.findMany({
+          where: { id: { in: groupIds } },
+          include: { grade: true }
+        });
+        const gradeName = selectedGroups[0]?.grade?.name || "Sin Grado";
+        const groupName = selectedGroups[0]?.name || "Sin Grupo";
+        const folderPath = `${period}/${existingResource.course.name}/${gradeName}/${groupName}/Materiales`;
+        await enqueueFailedDriveUpload({
+          recordType: 'RESOURCE',
+          recordId: id,
+          supabaseUrl: publicUrl,
+          supabasePath,
+          teacherId,
+          filename: file.name,
+          mimeType: file.type,
+          folderPath,
+        });
       }
     }
 

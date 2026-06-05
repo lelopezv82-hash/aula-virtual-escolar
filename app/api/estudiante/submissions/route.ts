@@ -4,6 +4,7 @@ import { jwtVerify } from "jose";
 import prisma from '@/lib/prisma';
 import { supabase } from '@/lib/supabase';
 import { getGoogleAccessToken, uploadToGoogleDrive } from '@/lib/gdrive';
+import { enqueueFailedDriveUpload } from '@/lib/driveQueue';
 
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
@@ -75,7 +76,13 @@ export async function POST(request: Request) {
 
     const student = await prisma.user.findUnique({
       where: { id: studentId },
-      select: { groupId: true }
+      include: {
+        group: {
+          include: {
+            grade: true
+          }
+        }
+      }
     });
 
     if (task.groups.length > 0 && !task.groups.some(g => g.id === student?.groupId)) {
@@ -111,28 +118,21 @@ export async function POST(request: Request) {
     }
 
     const teacherId = task.course.teacherId;
+    let driveFileName = file.name;
+    let folderPath = "";
 
     if (teacherId) {
+      const gradeName = student?.group?.grade?.name || "Sin Grado";
+      const groupName = student?.group?.name || "Sin Grupo";
+      const studentName = student?.name || "Estudiante";
+      driveFileName = `${studentName} - ${file.name}`;
+      const taskPeriod = task.period || "Sin Periodo";
+      folderPath = `${taskPeriod}/${task.course.name}/${gradeName}/${groupName}/Tareas/${task.title}/Entregas/${studentName}`;
+
       // Try uploading to Google Drive first if teacher has it connected
       const gAccessToken = await getGoogleAccessToken(teacherId);
       if (gAccessToken) {
         try {
-          const student = await prisma.user.findUnique({
-            where: { id: studentId },
-            include: {
-              group: {
-                include: {
-                  grade: true
-                }
-              }
-            }
-          });
-          const gradeName = student?.group?.grade?.name || "Sin Grado";
-          const groupName = student?.group?.name || "Sin Grupo";
-          const studentName = student?.name || "Estudiante";
-          const driveFileName = `${studentName} - ${file.name}`;
-          const taskPeriod = task.period || "Sin Periodo";
-          const folderPath = `${taskPeriod}/${task.course.name}/${gradeName}/${groupName}/Tareas/${task.title}/Entregas/${studentName}`;
           const uploadResult = await uploadToGoogleDrive(buffer, driveFileName, file.type, teacherId, folderPath);
           fileUrl = uploadResult.url;
           gdriveEmail = uploadResult.email;
@@ -189,6 +189,22 @@ export async function POST(request: Request) {
         submittedAt: new Date()
       }
     });
+
+    // Si el docente tiene Google Drive vinculado, pero la entrega quedó en Supabase, la encolamos
+    const hasDriveLinked = teacherId ? (await prisma.googleDriveAccount.count({ where: { userId: teacherId } })) > 0 : false;
+    if (hasDriveLinked && !gdriveEmail && fileUrl && fileUrl.includes('supabase')) {
+      const supabasePath = fileUrl.split('/aula-virtual/')[1]?.split('?')[0] ?? '';
+      await enqueueFailedDriveUpload({
+        recordType: 'SUBMISSION',
+        recordId: submission.id,
+        supabaseUrl: fileUrl,
+        supabasePath,
+        teacherId: teacherId!,
+        filename: driveFileName,
+        mimeType: file.type,
+        folderPath,
+      });
+    }
 
     return NextResponse.json({ success: true, submission });
 

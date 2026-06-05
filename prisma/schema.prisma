@@ -168,3 +168,20 @@ model GoogleDriveAccount {
   @@index([userId])
 }
 
+model DriveUploadQueue {
+  id            String    @id @default(uuid())
+  recordType    String    // "RESOURCE" o "SUBMISSION"
+  recordId      String    // ID del Resource o Submission en DB
+  supabaseUrl   String    // URL actual en Supabase (para descargar el archivo)
+  supabasePath  String    // Path relativo en Supabase Storage (para borrar)
+  teacherId     String    // Cuenta Drive a usar
+  filename      String
+  mimeType      String
+  folderPath    String    // e.g. "2025-1/Matemáticas/10/A/Materiales"
+  attempts      Int       @default(0)
+  lastAttemptAt DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([teacherId])
+  @@index([recordType, recordId])
+}

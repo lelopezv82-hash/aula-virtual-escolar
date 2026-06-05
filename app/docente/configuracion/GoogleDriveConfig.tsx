@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Cloud, Loader2, Trash2, Plus, HardDrive, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Cloud, Loader2, Trash2, Plus, HardDrive, CheckCircle2, AlertTriangle, RefreshCw } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
 
 // Helper function to format bytes into human readable format (always in GB)
@@ -25,6 +25,8 @@ function GoogleDriveConfigContent() {
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
   const [editLimitVal, setEditLimitVal] = useState<string>("");
+  const [queueCount, setQueueCount] = useState<number>(0);
+  const [syncing, setSyncing] = useState<boolean>(false);
   const [isOpen, setIsOpen] = useState(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("gdrive_config_expanded");
@@ -57,8 +59,21 @@ function GoogleDriveConfigContent() {
     }
   }, []);
 
+  const fetchQueueCount = useCallback(async () => {
+    try {
+      const res = await fetch("/api/docente/gdrive/retry-queue");
+      const data = await res.json();
+      if (res.ok) {
+        setQueueCount(data.count || 0);
+      }
+    } catch (err) {
+      console.error("Error fetching queue count:", err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchStatus();
+    fetchQueueCount();
 
     // Check query parameters for OAuth results
     const success = searchParams.get("success");
@@ -77,7 +92,7 @@ function GoogleDriveConfigContent() {
       setMessage({ type: "danger", text: errorText });
       router.replace("/docente/configuracion");
     }
-  }, [searchParams, fetchStatus, router]);
+  }, [searchParams, fetchStatus, fetchQueueCount, router]);
 
   const handleConnect = () => {
     // Redirect to the API route that starts the Google auth flow
@@ -138,6 +153,43 @@ function GoogleDriveConfigContent() {
       }
     } catch {
       setMessage({ type: "danger", text: "Error de red al intentar actualizar el límite." });
+    }
+  };
+
+  const handleSyncQueue = async () => {
+    setSyncing(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/docente/gdrive/retry-queue", {
+        method: "POST"
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (data.succeeded > 0) {
+          setMessage({ 
+            type: "success", 
+            text: `¡Sincronización completada! Se migraron ${data.succeeded} archivo(s) a Google Drive.` 
+          });
+        } else if (data.failed > 0) {
+          setMessage({ 
+            type: "danger", 
+            text: `No se pudieron sincronizar algunos archivos. Errores: ${data.errors.join(', ')}` 
+          });
+        } else {
+          setMessage({ 
+            type: "success", 
+            text: "No había archivos pendientes por sincronizar." 
+          });
+        }
+        fetchStatus();
+        fetchQueueCount();
+      } else {
+        setMessage({ type: "danger", text: data.error || "Ocurrió un error al sincronizar." });
+      }
+    } catch {
+      setMessage({ type: "danger", text: "Error de red al intentar sincronizar la cola." });
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -234,6 +286,36 @@ function GoogleDriveConfigContent() {
                 <span>{combinedUsePercentage.toFixed(1)}% usado</span>
                 <span>{formatBytes(poolStats.totalFree)} libres</span>
               </div>
+            </div>
+          )}
+
+          {/* Cola de reintentos */}
+          {isConnected && queueCount > 0 && (
+            <div className="p-3 rounded-lg bg-amber-50/40 dark:bg-amber-950/10 border border-amber-250 dark:border-amber-900/40 flex items-center justify-between gap-3 animate-fade-in">
+              <div className="flex items-start gap-2">
+                <AlertTriangle size={18} className="text-amber-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-xs font-bold text-gray-800 dark:text-gray-200">
+                    Archivos pendientes de sincronización ({queueCount})
+                  </p>
+                  <p className="text-[10px] text-muted-foreground leading-normal">
+                    Algunos archivos no se pudieron guardar en Google Drive debido a problemas de conexión y están almacenados temporalmente en el sistema. Puedes reintentar la subida ahora.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={syncing}
+                onClick={handleSyncQueue}
+                className="btn btn-secondary text-xs py-1 px-2.5 flex items-center gap-1.5 font-semibold cursor-pointer whitespace-nowrap hover:bg-amber-100 dark:hover:bg-amber-900/20"
+              >
+                {syncing ? (
+                  <Loader2 className="animate-spin" size={13} />
+                ) : (
+                  <RefreshCw size={13} />
+                )}
+                Sincronizar ahora
+              </button>
             </div>
           )}
 
