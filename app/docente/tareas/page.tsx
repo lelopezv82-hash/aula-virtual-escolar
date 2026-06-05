@@ -4,7 +4,6 @@ import { jwtVerify } from "jose";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import TareasDocenteClient from "./TareasDocenteClient";
-import GDriveVisibilityToggle from "@/components/GDriveVisibilityToggle";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
@@ -67,12 +66,9 @@ export default async function TareasDocentePage() {
           <h1>Gestión de Tareas</h1>
           <p>Crea tareas y revisa las entregas de tus estudiantes.</p>
         </div>
-        <div className="flex items-center gap-4 flex-wrap">
-          <GDriveVisibilityToggle />
-          <Link href="/docente/tareas/nueva" className="btn btn-primary flex items-center gap-2">
-            <Plus size={18} /> Nueva Tarea
-          </Link>
-        </div>
+        <Link href="/docente/tareas/nueva" className="btn btn-primary flex items-center gap-2">
+          <Plus size={18} /> Nueva Tarea
+        </Link>
       </div>
 
       <TareasDocenteClient courses={serializedCourses} periods={serializedPeriods} />

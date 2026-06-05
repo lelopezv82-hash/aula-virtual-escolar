@@ -76,7 +76,7 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
       {/* Normal Screen Header */}
       <div className="flex justify-between items-center mb-6 flex-wrap gap-4 no-print">
         <div className="flex items-center gap-4">
-          <Link href="/docente/tareas" className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+          <Link href="/docente/contenido" className="p-2 rounded-full hover:bg-gray-100 transition-colors">
             <ArrowLeft size={24} />
           </Link>
           <div>
