@@ -74,6 +74,17 @@ export default function GestionPeriodosClient({ initialPeriods }: GestionPeriodo
   };
 
   const handleToggleActive = async (period: Period) => {
+    // If deactivating, warn the user
+    if (period.active) {
+      const ok = await confirm({
+        title: "Desactivar Periodo",
+        message: `¿Deseas desactivar "${period.name}"? Esto ocultará automáticamente TODAS las tareas y materiales de este periodo a los estudiantes.`,
+        confirmText: "Desactivar",
+        type: "danger",
+      });
+      if (!ok) return;
+    }
+
     try {
       const res = await fetch("/api/docente/periodos", {
         method: "PATCH",
