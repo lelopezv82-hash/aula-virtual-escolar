@@ -634,10 +634,11 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                     </h2>
                     
                     <div className="flex flex-col gap-5">
-                      {["Periodo 1", "Periodo 2", "Periodo 3", "Periodo 4", "Otros"].map(periodName => {
+                      {[...periods.map(p => p.name), "Otros"].map(periodName => {
+                        const knownPeriodNames = periods.map(p => p.name);
                         const periodTasks = filteredTasks.filter(t => {
                           if (periodName === "Otros") {
-                            return !t.period || !["Periodo 1", "Periodo 2", "Periodo 3", "Periodo 4"].includes(t.period);
+                            return !t.period || !knownPeriodNames.includes(t.period);
                           }
                           return t.period === periodName;
                         });
