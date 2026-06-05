@@ -175,7 +175,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                                     <div className="flex flex-col gap-0.5">
                                       <span>{task.title}</span>
                                       {task.gdriveEmail && (
-                                        <GDriveEmailDisplay email={task.gdriveEmail} context="content" />
+                                        <GDriveEmailDisplay email={task.gdriveEmail} context="tasks" />
                                       )}
                                     </div>
                                   </td>

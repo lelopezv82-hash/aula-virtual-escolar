@@ -572,7 +572,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
               {activeTab === "tareas" ? "Tareas y Evaluaciones Asignadas" : "Materiales de Clase Compartidos"}
             </h3>
             <div className="flex items-center gap-4 flex-wrap">
-              <GDriveVisibilityToggle context="content" />
+              <GDriveVisibilityToggle context={activeTab === "tareas" ? "tasks" : "materials"} />
               <button
                 onClick={() => activeTab === "tareas" ? openNewTaskModal() : openNewResourceModal()}
                 className="btn btn-primary px-4 py-2 text-sm flex items-center gap-2"
@@ -699,7 +699,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                                           <div className="flex flex-col gap-0.5">
                                             <span>{task.title}</span>
                                             {task.gdriveEmail && (
-                                              <GDriveEmailDisplay email={task.gdriveEmail} context="content" />
+                                              <GDriveEmailDisplay email={task.gdriveEmail} context="tasks" />
                                             )}
                                           </div>
                                         </td>
@@ -885,7 +885,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                                               <span>{res.title}</span>
                                             </div>
                                             {res.gdriveEmail && (
-                                              <GDriveEmailDisplay email={res.gdriveEmail} context="content" />
+                                              <GDriveEmailDisplay email={res.gdriveEmail} context="materials" />
                                             )}
                                           </div>
                                         </td>
