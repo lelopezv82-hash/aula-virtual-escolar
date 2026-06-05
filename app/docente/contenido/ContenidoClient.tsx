@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { 
   Plus, Edit2, Trash2, FileText, ClipboardList, BookOpen, 
-  Layers, UploadCloud, X, Save, Loader2, ExternalLink, Eye
+  UploadCloud, X, Save, Loader2, ExternalLink, Eye
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useConfirm } from "@/components/ConfirmProvider";
@@ -80,7 +80,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
   const router = useRouter();
   const confirm = useConfirm();
   
-  const [activeTab, setActiveTab] = useState<"tareas" | "materiales" | "periodos">("tareas");
+  const [activeTab, setActiveTab] = useState<"tareas" | "materiales">("tareas");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -535,19 +535,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
             Gestión de Materiales
           </span>
         </button>
-        <button
-          onClick={() => setActiveTab("periodos")}
-          className={`pb-3 px-2 font-bold text-sm md:text-base border-b-2 transition-all ${
-            activeTab === "periodos" 
-              ? "border-blue-600 text-blue-600 font-extrabold" 
-              : "border-transparent text-muted hover:text-primary"
-          }`}
-        >
-          <span className="flex items-center gap-2">
-            <Layers size={18} />
-            Gestión Periodos Académicos
-          </span>
-        </button>
+
       </div>
 
       {courses.length === 0 ? (
@@ -560,20 +548,18 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
         <div className="flex flex-col gap-6">
           
           {/* Header Action Row */}
-          {activeTab !== "periodos" && (
-            <div className="flex justify-between items-center flex-wrap gap-4">
-              <h3 className="font-bold text-base md:text-lg">
-                {activeTab === "tareas" ? "Tareas y Evaluaciones Asignadas" : "Materiales de Clase Compartidos"}
-              </h3>
-              <button
-                onClick={() => activeTab === "tareas" ? openNewTaskModal() : openNewResourceModal()}
-                className="btn btn-primary px-4 py-2 text-sm flex items-center gap-2"
-              >
-                <Plus size={18} />
-                {activeTab === "tareas" ? "Nueva Tarea" : "Subir Material"}
-              </button>
-            </div>
-          )}
+          <div className="flex justify-between items-center flex-wrap gap-4">
+            <h3 className="font-bold text-base md:text-lg">
+              {activeTab === "tareas" ? "Tareas y Evaluaciones Asignadas" : "Materiales de Clase Compartidos"}
+            </h3>
+            <button
+              onClick={() => activeTab === "tareas" ? openNewTaskModal() : openNewResourceModal()}
+              className="btn btn-primary px-4 py-2 text-sm flex items-center gap-2"
+            >
+              <Plus size={18} />
+              {activeTab === "tareas" ? "Nueva Tarea" : "Subir Material"}
+            </button>
+          </div>
 
           {/* List and Tables */}
           {activeTab === "tareas" && (
@@ -969,121 +955,6 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
             </div>
           )}
 
-          {activeTab === "periodos" && (
-            <div className="flex flex-col gap-6 animate-fade-in">
-              <div className="flex justify-between items-center flex-wrap gap-4">
-                <div>
-                  <h2 className="text-xl font-bold">Gestión Periodos Académicos</h2>
-                  <p className="text-muted text-sm mt-1">Crea, edita y activa/desactiva los periodos lectivos globales para todas las asignaturas.</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingPeriod(null);
-                    setPeriodForm({ name: "" });
-                    setError("");
-                    setShowPeriodModal(true);
-                  }}
-                  className="btn btn-primary px-4 py-2 text-sm flex items-center gap-2"
-                >
-                  <Plus size={18} />
-                  Nuevo Periodo
-                </button>
-              </div>
-
-              <div className="card overflow-hidden p-0" style={{ border: "1px solid var(--border-color)", background: "var(--bg-primary)" }}>
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr style={{ background: "var(--bg-secondary)", borderBottom: "1px solid var(--border-color)" }}>
-                      <th className="p-4 text-xs font-bold uppercase tracking-wider text-muted">Nombre del Periodo</th>
-                      <th className="p-4 text-xs font-bold uppercase tracking-wider text-muted">Estado</th>
-                      <th className="p-4 text-xs font-bold uppercase tracking-wider text-muted text-right">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800" style={{ borderColor: "var(--border-color)" }}>
-                    {periods.length === 0 ? (
-                      <tr>
-                        <td colSpan={3} className="p-8 text-center text-muted">
-                          No hay periodos creados. Haz clic en &quot;Nuevo Periodo&quot; para empezar.
-                        </td>
-                      </tr>
-                    ) : (
-                      periods.map((period) => (
-                        <tr key={period.id} className="hover:bg-slate-50/55 dark:hover:bg-slate-900/30 transition-colors">
-                          <td className="p-4 font-semibold text-sm">{period.name}</td>
-                          <td className="p-4">
-                            <div className="flex items-center gap-3">
-                              <button
-                                type="button"
-                                onClick={() => handleTogglePeriodActive(period)}
-                                className="relative inline-flex items-center cursor-pointer transition-colors duration-200 ease-in-out focus:outline-none"
-                                style={{
-                                  width: "42px",
-                                  height: "22px",
-                                  borderRadius: "9999px",
-                                  background: period.active ? "var(--success, #10b981)" : "#cbd5e1",
-                                  border: "none",
-                                  padding: 0,
-                                  outline: "none"
-                                }}
-                                title={period.active ? "Desactivar Periodo" : "Activar Periodo"}
-                              >
-                                <span
-                                  className="pointer-events-none inline-block rounded-full bg-white shadow-md transition-transform duration-200 ease-in-out"
-                                  style={{
-                                    width: "18px",
-                                    height: "18px",
-                                    transform: period.active ? "translateX(22px)" : "translateX(2px)",
-                                    boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
-                                  }}
-                                />
-                              </button>
-                              <span 
-                                className={`text-xs font-semibold ${
-                                  period.active 
-                                    ? "text-green-600 dark:text-green-400 font-bold" 
-                                    : "text-gray-400"
-                                }`}
-                              >
-                                {period.active ? "Activo" : "Inactivo"}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="p-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEditingPeriod(period);
-                                  setPeriodForm({ name: period.name });
-                                  setError("");
-                                  setShowPeriodModal(true);
-                                }}
-                                className="p-1.5 rounded-lg border hover:bg-slate-100 text-blue-600 dark:text-blue-400 dark:hover:bg-gray-800 transition-all"
-                                style={{ borderColor: "var(--border-color)" }}
-                                title="Editar Nombre"
-                              >
-                                <Edit2 size={16} />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeletePeriod(period)}
-                                className="p-1.5 rounded-lg border hover:bg-red-50 text-red-600 dark:text-red-400 dark:hover:bg-red-950/30 transition-all"
-                                style={{ borderColor: "var(--border-color)" }}
-                                title="Eliminar Periodo"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
 
         </div>
       )}
