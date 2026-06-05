@@ -87,6 +87,23 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
   const [periods, setPeriods] = useState<Period[]>(initialPeriods);
   const [activePeriodTab, setActivePeriodTab] = useState(initialPeriods[0]?.name || "Periodo 1");
 
+  // Reload periods from API on mount to always show latest data
+  useEffect(() => {
+    fetch("/api/docente/periodos")
+      .then(res => res.json())
+      .then(data => {
+        if (data.periods && data.periods.length > 0) {
+          setPeriods(data.periods);
+          setActivePeriodTab(prev => 
+            data.periods.find((p: Period) => p.name === prev) 
+              ? prev 
+              : data.periods[0]?.name || "Periodo 1"
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   // Periods CRUD modals state
   const [showPeriodModal, setShowPeriodModal] = useState(false);
   const [editingPeriod, setEditingPeriod] = useState<Period | null>(null);

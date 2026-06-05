@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import GestionPeriodosClient from "./GestionPeriodosClient";
 
+export const dynamic = 'force-dynamic';
+
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "super-secret-educational-key-2026"
 );
