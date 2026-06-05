@@ -190,16 +190,15 @@ export async function POST(request: Request) {
       }
     });
 
-    // Si el docente tiene Google Drive vinculado, pero la entrega quedó en Supabase, la encolamos
-    const hasDriveLinked = teacherId ? (await prisma.googleDriveAccount.count({ where: { userId: teacherId } })) > 0 : false;
-    if (hasDriveLinked && !gdriveEmail && fileUrl && fileUrl.includes('supabase')) {
+    // Si la entrega quedó en Supabase, la encolamos para reintento en Drive cuando se configure/solucione
+    if (!gdriveEmail && fileUrl && fileUrl.includes('supabase') && teacherId) {
       const supabasePath = fileUrl.split('/aula-virtual/')[1]?.split('?')[0] ?? '';
       await enqueueFailedDriveUpload({
         recordType: 'SUBMISSION',
         recordId: submission.id,
         supabaseUrl: fileUrl,
         supabasePath,
-        teacherId: teacherId!,
+        teacherId: teacherId,
         filename: driveFileName,
         mimeType: file.type,
         folderPath,
