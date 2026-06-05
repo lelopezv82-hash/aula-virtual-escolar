@@ -6,6 +6,7 @@ import Link from "next/link";
 import ExportButtons from "./ExportButtons";
 import LateSubmissionManager from "./LateSubmissionManager";
 import StudentLateSubmissionToggle from "./StudentLateSubmissionToggle";
+import GDriveEmailDisplay from "@/components/GDriveEmailDisplay";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
@@ -202,9 +203,7 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
                                     </Link>
                                   </div>
                                   {submission.gdriveEmail && (
-                                    <span className="text-[10px] text-muted-foreground" title="Cuenta de Google Drive de almacenamiento">
-                                      ☁️ {submission.gdriveEmail}
-                                    </span>
+                                    <GDriveEmailDisplay email={submission.gdriveEmail} />
                                   )}
                                 </div>
                               ) : (
@@ -290,9 +289,7 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
                               </Link>
                             </div>
                             {submission.gdriveEmail && (
-                              <span className="text-[10px] text-muted-foreground" title="Cuenta de Google Drive de almacenamiento">
-                                ☁️ {submission.gdriveEmail}
-                              </span>
+                              <GDriveEmailDisplay email={submission.gdriveEmail} />
                             )}
                           </div>
                         ) : (

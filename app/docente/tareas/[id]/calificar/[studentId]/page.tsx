@@ -4,6 +4,7 @@ import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, Save, FileText, Download } from "lucide-react";
 import Link from "next/link";
+import GDriveEmailDisplay from "@/components/GDriveEmailDisplay";
 
 export default function CalificarPage({
   params,
@@ -108,10 +109,7 @@ export default function CalificarPage({
                 : "—"}
             </p>
             {submission.gdriveEmail && (
-              <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
-                <span>☁️ Almacenado en:</span>
-                <span className="font-medium text-slate-800 dark:text-slate-200">{submission.gdriveEmail}</span>
-              </p>
+              <GDriveEmailDisplay email={submission.gdriveEmail} label="Almacenado en: " className="mt-1" />
             )}
           </div>
           <a

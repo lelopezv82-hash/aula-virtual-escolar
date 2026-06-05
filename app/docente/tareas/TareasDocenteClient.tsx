@@ -5,6 +5,8 @@ import { ClipboardList, Plus } from "lucide-react";
 import TaskActions from "./TaskActions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import GDriveEmailDisplay from "@/components/GDriveEmailDisplay";
+import GDriveVisibilityToggle from "@/components/GDriveVisibilityToggle";
 
 interface Task {
   id: string;
@@ -62,6 +64,9 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
 
   return (
     <div className="flex flex-col gap-6">
+      <div className="flex justify-end">
+        <GDriveVisibilityToggle />
+      </div>
       {/* Global Filter Toolbar */}
       {allTasks.length > 0 && (uniqueThemes.length > 0 || uniquePeriods.length > 0) && (
         <div className="card p-4 flex flex-wrap gap-4 items-center" style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-color)" }}>
@@ -174,9 +179,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                                     <div className="flex flex-col gap-0.5">
                                       <span>{task.title}</span>
                                       {task.gdriveEmail && (
-                                        <span className="text-[10px] text-muted-foreground font-normal flex items-center gap-1 mt-0.5" title="Cuenta de Google Drive de almacenamiento">
-                                          ☁️ {task.gdriveEmail}
-                                        </span>
+                                        <GDriveEmailDisplay email={task.gdriveEmail} />
                                       )}
                                     </div>
                                   </td>

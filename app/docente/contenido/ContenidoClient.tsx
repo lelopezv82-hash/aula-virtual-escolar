@@ -8,6 +8,8 @@ import {
 import { useRouter } from "next/navigation";
 import { useConfirm } from "@/components/ConfirmProvider";
 import Link from "next/link";
+import GDriveEmailDisplay from "@/components/GDriveEmailDisplay";
+import GDriveVisibilityToggle from "@/components/GDriveVisibilityToggle";
 
 
 interface Group {
@@ -569,13 +571,16 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
             <h3 className="font-bold text-base md:text-lg">
               {activeTab === "tareas" ? "Tareas y Evaluaciones Asignadas" : "Materiales de Clase Compartidos"}
             </h3>
-            <button
-              onClick={() => activeTab === "tareas" ? openNewTaskModal() : openNewResourceModal()}
-              className="btn btn-primary px-4 py-2 text-sm flex items-center gap-2"
-            >
-              <Plus size={18} />
-              {activeTab === "tareas" ? "Nueva Tarea" : "Subir Material"}
-            </button>
+            <div className="flex items-center gap-4 flex-wrap">
+              <GDriveVisibilityToggle />
+              <button
+                onClick={() => activeTab === "tareas" ? openNewTaskModal() : openNewResourceModal()}
+                className="btn btn-primary px-4 py-2 text-sm flex items-center gap-2"
+              >
+                <Plus size={18} />
+                {activeTab === "tareas" ? "Nueva Tarea" : "Subir Material"}
+              </button>
+            </div>
           </div>
 
           {/* List and Tables */}
@@ -694,9 +699,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                                           <div className="flex flex-col gap-0.5">
                                             <span>{task.title}</span>
                                             {task.gdriveEmail && (
-                                              <span className="text-[10px] text-muted-foreground font-normal flex items-center gap-1 mt-0.5" title="Cuenta de Google Drive de almacenamiento">
-                                                ☁️ {task.gdriveEmail}
-                                              </span>
+                                              <GDriveEmailDisplay email={task.gdriveEmail} />
                                             )}
                                           </div>
                                         </td>
@@ -882,9 +885,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                                               <span>{res.title}</span>
                                             </div>
                                             {res.gdriveEmail && (
-                                              <span className="text-[10px] text-muted-foreground font-normal flex items-center gap-1 mt-0.5" title="Cuenta de Google Drive de almacenamiento">
-                                                ☁️ {res.gdriveEmail}
-                                              </span>
+                                              <GDriveEmailDisplay email={res.gdriveEmail} />
                                             )}
                                           </div>
                                         </td>
