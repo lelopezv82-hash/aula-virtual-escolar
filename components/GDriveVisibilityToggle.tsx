@@ -2,34 +2,40 @@
 
 import { useEffect, useState } from "react";
 
-export default function GDriveVisibilityToggle() {
+interface GDriveVisibilityToggleProps {
+  context?: string;
+}
+
+export default function GDriveVisibilityToggle({ context = "global" }: GDriveVisibilityToggleProps) {
   const [showEmails, setShowEmails] = useState(true);
+  const localStorageKey = `show_gdrive_emails_${context}`;
+  const customEventName = `gdrive_emails_visibility_changed_${context}`;
 
   useEffect(() => {
-    const val = localStorage.getItem("show_gdrive_emails") !== "false";
+    const val = localStorage.getItem(localStorageKey) !== "false";
     setShowEmails(val);
 
     const handleStorageChange = () => {
-      const currentVal = localStorage.getItem("show_gdrive_emails") !== "false";
+      const currentVal = localStorage.getItem(localStorageKey) !== "false";
       setShowEmails(currentVal);
     };
 
     window.addEventListener("storage", handleStorageChange);
-    window.addEventListener("gdrive_emails_visibility_changed", handleStorageChange);
+    window.addEventListener(customEventName, handleStorageChange);
 
     return () => {
       window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("gdrive_emails_visibility_changed", handleStorageChange);
+      window.removeEventListener(customEventName, handleStorageChange);
     };
-  }, []);
+  }, [localStorageKey, customEventName]);
 
   const toggleVisibility = () => {
     const nextVal = !showEmails;
-    localStorage.setItem("show_gdrive_emails", String(nextVal));
+    localStorage.setItem(localStorageKey, String(nextVal));
     setShowEmails(nextVal);
 
     // Disparar evento personalizado para actualizar los componentes de la misma pestaña inmediatamente
-    const event = new Event("gdrive_emails_visibility_changed");
+    const event = new Event(customEventName);
     window.dispatchEvent(event);
   };
 
@@ -63,3 +69,4 @@ export default function GDriveVisibilityToggle() {
     </div>
   );
 }
+

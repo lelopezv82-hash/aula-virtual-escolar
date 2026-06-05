@@ -6,32 +6,35 @@ interface GDriveEmailDisplayProps {
   email: string | null | undefined;
   className?: string;
   label?: string; // Por ejemplo "Almacenado en: " o similar
+  context?: string;
 }
 
-export default function GDriveEmailDisplay({ email, className = "", label = "" }: GDriveEmailDisplayProps) {
+export default function GDriveEmailDisplay({ email, className = "", label = "", context = "global" }: GDriveEmailDisplayProps) {
   const [showEmails, setShowEmails] = useState(true);
+  const localStorageKey = `show_gdrive_emails_${context}`;
+  const customEventName = `gdrive_emails_visibility_changed_${context}`;
 
   useEffect(() => {
     // Leer valor inicial
-    const val = localStorage.getItem("show_gdrive_emails") !== "false";
+    const val = localStorage.getItem(localStorageKey) !== "false";
     setShowEmails(val);
 
     // Escuchar cambios de localStorage en la misma página o en otras pestañas
     const handleStorageChange = () => {
-      const currentVal = localStorage.getItem("show_gdrive_emails") !== "false";
+      const currentVal = localStorage.getItem(localStorageKey) !== "false";
       setShowEmails(currentVal);
     };
 
     window.addEventListener("storage", handleStorageChange);
     
     // Para capturar eventos locales dentro de la misma pestaña
-    window.addEventListener("gdrive_emails_visibility_changed", handleStorageChange);
+    window.addEventListener(customEventName, handleStorageChange);
 
     return () => {
       window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("gdrive_emails_visibility_changed", handleStorageChange);
+      window.removeEventListener(customEventName, handleStorageChange);
     };
-  }, []);
+  }, [localStorageKey, customEventName]);
 
   if (!email || !showEmails) return null;
 
@@ -44,3 +47,4 @@ export default function GDriveEmailDisplay({ email, className = "", label = "" }
     </span>
   );
 }
+

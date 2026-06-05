@@ -109,7 +109,7 @@ export default function CalificarPage({
                 : "—"}
             </p>
             {submission.gdriveEmail && (
-              <GDriveEmailDisplay email={submission.gdriveEmail} label="Almacenado en: " className="mt-1" />
+              <GDriveEmailDisplay email={submission.gdriveEmail} label="Almacenado en: " className="mt-1" context="task_details" />
             )}
           </div>
           <a

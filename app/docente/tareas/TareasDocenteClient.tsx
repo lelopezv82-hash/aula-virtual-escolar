@@ -6,7 +6,6 @@ import TaskActions from "./TaskActions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import GDriveEmailDisplay from "@/components/GDriveEmailDisplay";
-import GDriveVisibilityToggle from "@/components/GDriveVisibilityToggle";
 
 interface Task {
   id: string;
@@ -176,7 +175,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                                     <div className="flex flex-col gap-0.5">
                                       <span>{task.title}</span>
                                       {task.gdriveEmail && (
-                                        <GDriveEmailDisplay email={task.gdriveEmail} />
+                                        <GDriveEmailDisplay email={task.gdriveEmail} context="content" />
                                       )}
                                     </div>
                                   </td>

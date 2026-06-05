@@ -94,7 +94,7 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
         </div>
         
         <div className="flex items-center gap-3 flex-wrap">
-          <GDriveVisibilityToggle />
+          <GDriveVisibilityToggle context="task_details" />
           <ExportButtons 
             taskTitle={task.title} 
             courseName={task.course.name} 
@@ -207,7 +207,7 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
                                     </Link>
                                   </div>
                                   {submission.gdriveEmail && (
-                                    <GDriveEmailDisplay email={submission.gdriveEmail} />
+                                    <GDriveEmailDisplay email={submission.gdriveEmail} context="task_details" />
                                   )}
                                 </div>
                               ) : (
@@ -293,7 +293,7 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
                               </Link>
                             </div>
                             {submission.gdriveEmail && (
-                              <GDriveEmailDisplay email={submission.gdriveEmail} />
+                              <GDriveEmailDisplay email={submission.gdriveEmail} context="task_details" />
                             )}
                           </div>
                         ) : (
