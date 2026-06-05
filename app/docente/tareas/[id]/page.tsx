@@ -7,6 +7,7 @@ import ExportButtons from "./ExportButtons";
 import LateSubmissionManager from "./LateSubmissionManager";
 import StudentLateSubmissionToggle from "./StudentLateSubmissionToggle";
 import GDriveEmailDisplay from "@/components/GDriveEmailDisplay";
+import GDriveVisibilityToggle from "@/components/GDriveVisibilityToggle";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
@@ -92,24 +93,27 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
           </div>
         </div>
         
-        <ExportButtons 
-          taskTitle={task.title} 
-          courseName={task.course.name} 
-          dueDate={new Date(task.dueDate).toLocaleDateString()}
-          students={allStudents.map(s => ({ id: s.id, name: s.name }))}
-          submissions={task.submissions.map(s => ({
-            id: s.id,
-            studentId: s.studentId,
-            status: s.status,
-            grade: s.grade,
-            feedback: s.feedback,
-            submittedAt: s.submittedAt
-          }))}
-          period={task.period?.replace(/periodo\s*/i, "")}
-          gradeName={task.groups[0]?.grade?.name}
-          groupName={task.groups.map(g => g.name).join(", ")}
-          theme={task.theme}
-        />
+        <div className="flex items-center gap-3 flex-wrap">
+          <GDriveVisibilityToggle />
+          <ExportButtons 
+            taskTitle={task.title} 
+            courseName={task.course.name} 
+            dueDate={new Date(task.dueDate).toLocaleDateString()}
+            students={allStudents.map(s => ({ id: s.id, name: s.name }))}
+            submissions={task.submissions.map(s => ({
+              id: s.id,
+              studentId: s.studentId,
+              status: s.status,
+              grade: s.grade,
+              feedback: s.feedback,
+              submittedAt: s.submittedAt
+            }))}
+            period={task.period?.replace(/periodo\s*/i, "")}
+            gradeName={task.groups[0]?.grade?.name}
+            groupName={task.groups.map(g => g.name).join(", ")}
+            theme={task.theme}
+          />
+        </div>
       </div>
 
       <LateSubmissionManager
