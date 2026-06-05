@@ -33,13 +33,13 @@ export default function GDriveEmailDisplay({ email, className = "", label = "" }
     };
   }, []);
 
-  if (!email) return null;
+  if (!email || !showEmails) return null;
 
   return (
     <span className={`text-[10px] text-muted-foreground font-normal flex items-center gap-1 mt-0.5 ${className}`} title="Almacenamiento de Google Drive">
       <span>☁️ {label}</span>
       <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-        {showEmails ? email : "Google Drive"}
+        {email}
       </span>
     </span>
   );
