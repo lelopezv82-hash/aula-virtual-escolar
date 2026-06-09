@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { 
   Plus, Edit2, Trash2, FileText, ClipboardList, BookOpen, 
-  UploadCloud, X, Save, Loader2, ExternalLink, Eye
+  UploadCloud, X, Save, Loader2, ExternalLink, Eye, Code, Copy
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useConfirm } from "@/components/ConfirmProvider";
@@ -252,6 +252,47 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     publishAt: ""
   });
   const [resourceFile, setResourceFile] = useState<File | null>(null);
+
+  const [scriptModalTask, setScriptModalTask] = useState<Task | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyScript = () => {
+    if (!scriptModalTask) return;
+    const script = `function onFormSubmit(e) {
+  var formResponse = e.response;
+  var itemResponses = formResponse.getItemResponses();
+  var studentName = "";
+  
+  if (itemResponses.length > 0) {
+    studentName = itemResponses[0].getResponse();
+  }
+  
+  var gradableItemResponses = formResponse.getGradableItemResponses();
+  var totalScore = 0;
+  
+  for (var i = 0; i < gradableItemResponses.length; i++) {
+    var itemScore = gradableItemResponses[i].getScore();
+    if (itemScore) totalScore += itemScore;
+  }
+  
+  var payload = {
+    studentName: studentName,
+    score: totalScore
+  };
+
+  var options = {
+    "method": "post",
+    "contentType": "application/json",
+    "payload": JSON.stringify(payload)
+  };
+
+  var webhookUrl = "${window.location.origin}/api/webhooks/google-forms/${scriptModalTask.id}";
+  UrlFetchApp.fetch(webhookUrl, options);
+}`;
+    navigator.clipboard.writeText(script);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   // Available groups for selection based on selected course
   const [availableGroups, setAvailableGroups] = useState<Group[]>([]);
@@ -775,6 +816,16 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                                                 <ExternalLink size={12} /> Guía
                                               </a>
                                             )}
+                                            {task.attachmentUrl && (task.attachmentUrl.includes('google.com/forms') || task.attachmentUrl.includes('forms.gle')) && (
+                                              <button
+                                                onClick={() => setScriptModalTask(task)}
+                                                className="btn btn-secondary py-1 px-2 text-xs flex items-center gap-1"
+                                                style={{ backgroundColor: '#fffbeb', borderColor: '#fcd34d', color: '#d97706' }}
+                                                title="Auto-calificar con Google Forms"
+                                              >
+                                                <Code size={12} /> Auto-Calificar
+                                              </button>
+                                            )}
                                             <Link
                                               href={`/docente/tareas/${task.id}`}
                                               className="btn btn-secondary py-1 px-2 text-xs flex items-center gap-1"
@@ -1282,6 +1333,87 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Script Modal */}
+      {scriptModalTask && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "1rem" }}
+          onClick={e => e.target === e.currentTarget && setScriptModalTask(null)}>
+          <div className="card w-full max-w-2xl animate-fade-in" style={{ borderRadius: "1rem" }}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <Code className="text-amber-500" />
+                Auto-Calificar Tarea ({scriptModalTask.title})
+              </h2>
+              <button type="button" onClick={() => setScriptModalTask(null)} className="p-1 rounded hover:bg-slate-150"><X size={20} /></button>
+            </div>
+            
+            <div className="text-sm mb-4 space-y-3" style={{ color: "var(--text-secondary)" }}>
+              <p>Para que esta tarea reciba las calificaciones automáticamente desde Google Forms, debes agregar este pequeño script al formulario:</p>
+              <ol className="list-decimal pl-5 space-y-1">
+                <li>Abre el formulario en Google Forms.</li>
+                <li>Haz clic en los <strong>3 puntos verticales (⋮)</strong> arriba a la derecha.</li>
+                <li>Selecciona <strong>Editor de secuencias de comandos</strong>.</li>
+                <li><strong>Reemplaza</strong> todo el código que aparezca allí por el siguiente código:</li>
+              </ol>
+            </div>
+
+            <div className="relative mb-4">
+              <button 
+                onClick={handleCopyScript} 
+                className="absolute top-2 right-2 btn btn-secondary py-1 px-2 text-xs flex items-center gap-1 bg-white shadow-sm"
+              >
+                {copied ? <span className="text-green-600 font-bold">¡Copiado!</span> : <><Copy size={12} /> Copiar</>}
+              </button>
+              <pre className="p-4 bg-slate-900 text-green-400 rounded-lg text-[10px] overflow-x-auto">
+{`function onFormSubmit(e) {
+  var formResponse = e.response;
+  var itemResponses = formResponse.getItemResponses();
+  var studentName = "";
+  
+  if (itemResponses.length > 0) {
+    studentName = itemResponses[0].getResponse();
+  }
+  
+  var gradableItemResponses = formResponse.getGradableItemResponses();
+  var totalScore = 0;
+  
+  for (var i = 0; i < gradableItemResponses.length; i++) {
+    var itemScore = gradableItemResponses[i].getScore();
+    if (itemScore) totalScore += itemScore;
+  }
+  
+  var payload = {
+    studentName: studentName,
+    score: totalScore
+  };
+
+  var options = {
+    "method": "post",
+    "contentType": "application/json",
+    "payload": JSON.stringify(payload)
+  };
+
+  var webhookUrl = "${typeof window !== 'undefined' ? window.location.origin : ''}/api/webhooks/google-forms/${scriptModalTask.id}";
+  UrlFetchApp.fetch(webhookUrl, options);
+}`}
+              </pre>
+            </div>
+
+            <div className="text-sm space-y-2" style={{ color: "var(--text-secondary)" }}>
+              <p>5. Haz clic en el ícono del disquete 💾 para guardar (Proyecto sin título).</p>
+              <p>6. En el menú izquierdo, haz clic en el reloj ⏱️ <strong>(Activadores)</strong>.</p>
+              <p>7. Haz clic en <strong>+ Añadir activador</strong> abajo a la derecha.</p>
+              <ul className="list-disc pl-5 mt-1">
+                <li>Selecciona la función: <strong>onFormSubmit</strong></li>
+                <li>Fuente del evento: <strong>De un formulario</strong></li>
+                <li>Tipo de evento: <strong>Al enviarse el formulario</strong></li>
+              </ul>
+              <p>8. Haz clic en Guardar y <strong>autoriza los permisos</strong> de tu cuenta de Google.</p>
+              <p className="mt-3 font-bold text-amber-700 dark:text-amber-400">¡Listo! A partir de ahora, cuando un alumno entregue el examen, se calificará automáticamente aquí en la plataforma.</p>
+            </div>
+          </div>
         </div>
       )}
 
