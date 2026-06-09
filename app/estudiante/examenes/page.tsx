@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { ClipboardList, Clock, CheckCircle } from "lucide-react";
 import Link from "next/link";
-
+import EvidenciaBotones from "./EvidenciaBotones";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
@@ -112,6 +112,23 @@ export default async function ExamenesEstudiantePage() {
                     <Link href={`/estudiante/tareas/${exam.id}`} className="btn w-full md:w-auto" style={{ backgroundColor: '#8b5cf6', color: 'white' }}>
                       Resolver Examen
                     </Link>
+                  )}
+
+                  {isSubmitted && (
+                    <EvidenciaBotones 
+                      exam={{
+                        id: exam.id,
+                        title: exam.title,
+                        course: { name: exam.course.name }
+                      }}
+                      submission={{
+                        grade: submission.grade,
+                        status: submission.status,
+                        fileUrl: submission.fileUrl,
+                        submittedAt: submission.submittedAt
+                      }}
+                      isGoogleForm={!!exam.attachmentUrl && (exam.attachmentUrl.includes("docs.google.com/forms") || exam.attachmentUrl.includes("forms.gle"))}
+                    />
                   )}
                 </div>
               </div>
