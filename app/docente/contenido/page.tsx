@@ -93,6 +93,7 @@ export default async function ContenidoPage() {
       active: t.active,
       allowLateSubmission: t.allowLateSubmission,
       gdriveEmail: t.gdriveEmail,
+      type: t.type,
       lateSubmissionUntil: t.lateSubmissionUntil ? t.lateSubmissionUntil.toISOString() : null,
       groups: t.groups.map(g => ({
         id: g.id,
