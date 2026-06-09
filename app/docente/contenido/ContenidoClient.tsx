@@ -1507,6 +1507,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
           questionTitle.toLowerCase().indexOf("estudiante") !== -1 || 
           questionTitle.toLowerCase().indexOf("apellido") !== -1) {
         studentName = answer;
+        continue; // Evita que esta pregunta se guarde en las respuestas visibles
       }
 
       var answerText = answer;
