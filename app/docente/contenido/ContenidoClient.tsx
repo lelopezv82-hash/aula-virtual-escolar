@@ -79,6 +79,152 @@ const TYPE_ICONS: Record<string, string> = {
   PDF: "📄", WORD: "📝", PPT: "📊", IMAGE: "🖼️", VIDEO: "🎬", LINK: "🔗"
 };
 
+const generateGoogleAppsScript = (taskId: string, origin: string) => `function onFormSubmit(e) {
+  try {
+    var response = e.response;
+    var form = FormApp.getActiveForm();
+    var isQuiz = form.isQuiz();
+    
+    var studentName = "Desconocido";
+    var itemResponses = response.getItemResponses();
+    var rawData = [];
+    var totalScore = 0;
+    var totalPossible = 0;
+
+    for (var i = 0; i < itemResponses.length; i++) {
+      var itemResponse = itemResponses[i];
+      var item = itemResponse.getItem();
+      var questionTitle = item.getTitle();
+      var answer = itemResponse.getResponse();
+      
+      if (questionTitle.toLowerCase().indexOf("nombre") !== -1 || 
+          questionTitle.toLowerCase().indexOf("estudiante") !== -1 || 
+          questionTitle.toLowerCase().indexOf("apellido") !== -1) {
+        studentName = answer;
+        continue; // Evita que esta pregunta se guarde en las respuestas visibles
+      }
+
+      var answerText = answer;
+      if (Array.isArray(answer)) {
+        answerText = answer.join(", ");
+      }
+      
+      var isGradable = false;
+      var itemScore = null;
+      var maxScore = null;
+      var isCorrect = false;
+      var correctAnswerText = "";
+      var itemOptions = [];
+
+      try {
+        var type = item.getType();
+        if (type === FormApp.ItemType.MULTIPLE_CHOICE) {
+          var choices = item.asMultipleChoiceItem().getChoices();
+          for(var c=0; c<choices.length; c++) itemOptions.push(choices[c].getValue());
+        } else if (type === FormApp.ItemType.CHECKBOX) {
+          var choices = item.asCheckboxItem().getChoices();
+          for(var c=0; c<choices.length; c++) itemOptions.push(choices[c].getValue());
+        } else if (type === FormApp.ItemType.LIST) {
+          var choices = item.asListItem().getChoices();
+          for(var c=0; c<choices.length; c++) itemOptions.push(choices[c].getValue());
+        }
+      } catch(e) {}
+
+      if (isQuiz) {
+        try {
+          var gradableResponses = response.getGradableItemResponses();
+          for (var j = 0; j < gradableResponses.length; j++) {
+            if (gradableResponses[j].getItem().getId() === item.getId()) {
+              isGradable = true;
+              itemScore = gradableResponses[j].getScore() || 0;
+              totalScore += itemScore;
+              
+              var gItem = gradableResponses[j].getItem();
+              switch(gItem.getType()) {
+                case FormApp.ItemType.MULTIPLE_CHOICE:
+                  maxScore = gItem.asMultipleChoiceItem().getPoints() || 0;
+                  var choices = gItem.asMultipleChoiceItem().getChoices();
+                  for(var c=0; c<choices.length; c++) { if(choices[c].isCorrectAnswer()) correctAnswerText = choices[c].getValue(); }
+                  break;
+                case FormApp.ItemType.CHECKBOX:
+                  maxScore = gItem.asCheckboxItem().getPoints() || 0;
+                  var choices = gItem.asCheckboxItem().getChoices();
+                  var cArr = [];
+                  for(var c=0; c<choices.length; c++) { if(choices[c].isCorrectAnswer()) cArr.push(choices[c].getValue()); }
+                  correctAnswerText = cArr.join(", ");
+                  break;
+                case FormApp.ItemType.LIST:
+                  maxScore = gItem.asListItem().getPoints() || 0;
+                  var choices = gItem.asListItem().getChoices();
+                  for(var c=0; c<choices.length; c++) { if(choices[c].isCorrectAnswer()) correctAnswerText = choices[c].getValue(); }
+                  break;
+                case FormApp.ItemType.TEXT:
+                  maxScore = gItem.asTextItem().getPoints() || 0;
+                  break;
+                case FormApp.ItemType.PARAGRAPH_TEXT:
+                  maxScore = gItem.asParagraphTextItem().getPoints() || 0;
+                  break;
+              }
+              
+              if (maxScore !== null) {
+                totalPossible += maxScore;
+                if (itemScore === maxScore && maxScore > 0) {
+                  isCorrect = true;
+                }
+              }
+              break;
+            }
+          }
+        } catch(e) {}
+      }
+
+      rawData.push({
+        question: questionTitle,
+        answer: answerText ? answerText.toString() : "",
+        isGradable: isGradable,
+        score: itemScore,
+        maxScore: maxScore,
+        isCorrect: isCorrect,
+        correctAnswer: correctAnswerText,
+        options: itemOptions
+      });
+    }
+    
+    var respondentEmail = response.getRespondentEmail();
+    if (studentName === "Desconocido" && respondentEmail) {
+      studentName = respondentEmail.split('@')[0];
+    }
+
+    var finalScore = null;
+    if (isQuiz) {
+      if (totalPossible > 0) {
+        finalScore = (totalScore / totalPossible) * 10;
+      } else {
+        finalScore = totalScore;
+      }
+    }
+
+    var payload = {
+      studentName: studentName,
+      score: finalScore,
+      rawData: rawData
+    };
+
+    var options = {
+      "method": "post",
+      "contentType": "application/json",
+      "payload": JSON.stringify(payload),
+      "muteHttpExceptions": true
+    };
+
+    var webhookUrl = "${origin}/api/webhooks/google-forms/${taskId}";
+    UrlFetchApp.fetch(webhookUrl, options);
+
+  } catch (err) {
+    console.error("Error en el Webhook:", err);
+  }
+}`;
+
 export default function ContenidoClient({ courses, initialPeriods }: ContenidoClientProps) {
   const router = useRouter();
   const confirm = useConfirm();
@@ -260,134 +406,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
 
   const handleCopyScript = () => {
     if (!scriptModalTask) return;
-    const script = `function onFormSubmit(e) {
-  try {
-    var response = e.response;
-    var form = FormApp.getActiveForm();
-    var isQuiz = form.isQuiz();
-    
-    var studentName = "Desconocido";
-    var itemResponses = response.getItemResponses();
-    var rawData = [];
-    var totalScore = 0;
-    var totalPossible = 0;
-
-    for (var i = 0; i < itemResponses.length; i++) {
-      var itemResponse = itemResponses[i];
-      var item = itemResponse.getItem();
-      var questionTitle = item.getTitle();
-      var answer = itemResponse.getResponse();
-      
-      if (questionTitle.toLowerCase().indexOf("nombre") !== -1 || 
-          questionTitle.toLowerCase().indexOf("estudiante") !== -1 || 
-          questionTitle.toLowerCase().indexOf("apellido") !== -1) {
-        studentName = answer;
-      }
-
-      var answerText = answer;
-      if (Array.isArray(answer)) {
-        answerText = answer.join(", ");
-      }
-      
-      var isGradable = false;
-      var itemScore = null;
-      var maxScore = null;
-      var isCorrect = false;
-      var correctAnswerText = "";
-
-      if (isQuiz) {
-        try {
-          var gradableResponses = response.getGradableItemResponses();
-          for (var j = 0; j < gradableResponses.length; j++) {
-            if (gradableResponses[j].getItem().getId() === item.getId()) {
-              isGradable = true;
-              itemScore = gradableResponses[j].getScore() || 0;
-              totalScore += itemScore;
-              
-              var gItem = gradableResponses[j].getItem();
-              switch(gItem.getType()) {
-                case FormApp.ItemType.MULTIPLE_CHOICE:
-                  maxScore = gItem.asMultipleChoiceItem().getPoints() || 0;
-                  var choices = gItem.asMultipleChoiceItem().getChoices();
-                  for(var c=0; c<choices.length; c++) { if(choices[c].isCorrectAnswer()) correctAnswerText = choices[c].getValue(); }
-                  break;
-                case FormApp.ItemType.CHECKBOX:
-                  maxScore = gItem.asCheckboxItem().getPoints() || 0;
-                  var choices = gItem.asCheckboxItem().getChoices();
-                  var cArr = [];
-                  for(var c=0; c<choices.length; c++) { if(choices[c].isCorrectAnswer()) cArr.push(choices[c].getValue()); }
-                  correctAnswerText = cArr.join(", ");
-                  break;
-                case FormApp.ItemType.LIST:
-                  maxScore = gItem.asListItem().getPoints() || 0;
-                  var choices = gItem.asListItem().getChoices();
-                  for(var c=0; c<choices.length; c++) { if(choices[c].isCorrectAnswer()) correctAnswerText = choices[c].getValue(); }
-                  break;
-                case FormApp.ItemType.TEXT:
-                  maxScore = gItem.asTextItem().getPoints() || 0;
-                  break;
-                case FormApp.ItemType.PARAGRAPH_TEXT:
-                  maxScore = gItem.asParagraphTextItem().getPoints() || 0;
-                  break;
-              }
-              
-              if (maxScore !== null) {
-                totalPossible += maxScore;
-                if (itemScore === maxScore && maxScore > 0) {
-                  isCorrect = true;
-                }
-              }
-              break;
-            }
-          }
-        } catch(e) {}
-      }
-
-      rawData.push({
-        question: questionTitle,
-        answer: answerText ? answerText.toString() : "",
-        isGradable: isGradable,
-        score: itemScore,
-        maxScore: maxScore,
-        isCorrect: isCorrect,
-        correctAnswer: correctAnswerText
-      });
-    }
-    
-    var respondentEmail = response.getRespondentEmail();
-    if (studentName === "Desconocido" && respondentEmail) {
-      studentName = respondentEmail.split('@')[0];
-    }
-
-    var finalScore = null;
-    if (isQuiz) {
-      if (totalPossible > 0) {
-        finalScore = (totalScore / totalPossible) * 10;
-      } else {
-        finalScore = totalScore;
-      }
-    }
-
-    var payload = {
-      studentName: studentName,
-      score: finalScore,
-      rawData: rawData
-    };
-
-    var options = {
-      "method": "post",
-      "contentType": "application/json",
-      "payload": JSON.stringify(payload),
-      "muteHttpExceptions": true
-    };
-
-    var webhookUrl = "${window.location.origin}/api/webhooks/google-forms/${scriptModalTask.id}";
-    UrlFetchApp.fetch(webhookUrl, options);
-
-  } catch (err) {
-    console.error("Error en el Webhook:", err);
-  }
-}`;
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const script = generateGoogleAppsScript(scriptModalTask.id, origin);
     navigator.clipboard.writeText(script);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -1485,151 +1505,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                 {copied ? <span className="text-green-600 font-bold">¡Copiado!</span> : <><Copy size={12} /> Copiar</>}
               </button>
               <pre className="p-4 bg-slate-900 text-green-400 rounded-lg text-[10px] overflow-x-auto" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
-{`function onFormSubmit(e) {
-  try {
-    var response = e.response;
-    var form = FormApp.getActiveForm();
-    var isQuiz = form.isQuiz();
-    
-    var studentName = "Desconocido";
-    var itemResponses = response.getItemResponses();
-    var rawData = [];
-    var totalScore = 0;
-    var totalPossible = 0;
-
-    for (var i = 0; i < itemResponses.length; i++) {
-      var itemResponse = itemResponses[i];
-      var item = itemResponse.getItem();
-      var questionTitle = item.getTitle();
-      var answer = itemResponse.getResponse();
-      
-      if (questionTitle.toLowerCase().indexOf("nombre") !== -1 || 
-          questionTitle.toLowerCase().indexOf("estudiante") !== -1 || 
-          questionTitle.toLowerCase().indexOf("apellido") !== -1) {
-        studentName = answer;
-        continue; // Evita que esta pregunta se guarde en las respuestas visibles
-      }
-
-      var answerText = answer;
-      if (Array.isArray(answer)) {
-        answerText = answer.join(", ");
-      }
-      
-      var isGradable = false;
-      var itemScore = null;
-      var maxScore = null;
-      var isCorrect = false;
-      var correctAnswerText = "";
-      var itemOptions = [];
-
-      try {
-        var type = item.getType();
-        if (type === FormApp.ItemType.MULTIPLE_CHOICE) {
-          var choices = item.asMultipleChoiceItem().getChoices();
-          for(var c=0; c<choices.length; c++) itemOptions.push(choices[c].getValue());
-        } else if (type === FormApp.ItemType.CHECKBOX) {
-          var choices = item.asCheckboxItem().getChoices();
-          for(var c=0; c<choices.length; c++) itemOptions.push(choices[c].getValue());
-        } else if (type === FormApp.ItemType.LIST) {
-          var choices = item.asListItem().getChoices();
-          for(var c=0; c<choices.length; c++) itemOptions.push(choices[c].getValue());
-        }
-      } catch(e) {}
-
-      if (isQuiz) {
-        try {
-          var gradableResponses = response.getGradableItemResponses();
-          for (var j = 0; j < gradableResponses.length; j++) {
-            if (gradableResponses[j].getItem().getId() === item.getId()) {
-              isGradable = true;
-              itemScore = gradableResponses[j].getScore() || 0;
-              totalScore += itemScore;
-              
-              var gItem = gradableResponses[j].getItem();
-              switch(gItem.getType()) {
-                case FormApp.ItemType.MULTIPLE_CHOICE:
-                  maxScore = gItem.asMultipleChoiceItem().getPoints() || 0;
-                  var choices = gItem.asMultipleChoiceItem().getChoices();
-                  for(var c=0; c<choices.length; c++) { if(choices[c].isCorrectAnswer()) correctAnswerText = choices[c].getValue(); }
-                  break;
-                case FormApp.ItemType.CHECKBOX:
-                  maxScore = gItem.asCheckboxItem().getPoints() || 0;
-                  var choices = gItem.asCheckboxItem().getChoices();
-                  var cArr = [];
-                  for(var c=0; c<choices.length; c++) { if(choices[c].isCorrectAnswer()) cArr.push(choices[c].getValue()); }
-                  correctAnswerText = cArr.join(", ");
-                  break;
-                case FormApp.ItemType.LIST:
-                  maxScore = gItem.asListItem().getPoints() || 0;
-                  var choices = gItem.asListItem().getChoices();
-                  for(var c=0; c<choices.length; c++) { if(choices[c].isCorrectAnswer()) correctAnswerText = choices[c].getValue(); }
-                  break;
-                case FormApp.ItemType.TEXT:
-                  maxScore = gItem.asTextItem().getPoints() || 0;
-                  break;
-                case FormApp.ItemType.PARAGRAPH_TEXT:
-                  maxScore = gItem.asParagraphTextItem().getPoints() || 0;
-                  break;
-              }
-              
-              if (maxScore !== null) {
-                totalPossible += maxScore;
-                if (itemScore === maxScore && maxScore > 0) {
-                  isCorrect = true;
-                }
-              }
-              break;
-            }
-          }
-        } catch(e) {}
-      }
-
-      rawData.push({
-        question: questionTitle,
-        answer: answerText ? answerText.toString() : "",
-        isGradable: isGradable,
-        score: itemScore,
-        maxScore: maxScore,
-        isCorrect: isCorrect,
-        correctAnswer: correctAnswerText,
-        options: itemOptions
-      });
-    }
-    
-    var respondentEmail = response.getRespondentEmail();
-    if (studentName === "Desconocido" && respondentEmail) {
-      studentName = respondentEmail.split('@')[0];
-    }
-
-    var finalScore = null;
-    if (isQuiz) {
-      if (totalPossible > 0) {
-        finalScore = (totalScore / totalPossible) * 10;
-      } else {
-        finalScore = totalScore;
-      }
-    }
-
-    var payload = {
-      studentName: studentName,
-      score: finalScore,
-      rawData: rawData
-    };
-
-    var options = {
-      "method": "post",
-      "contentType": "application/json",
-      "payload": JSON.stringify(payload),
-      "muteHttpExceptions": true
-    };
-
-    var webhookUrl = "${typeof window !== 'undefined' ? window.location.origin : ''}/api/webhooks/google-forms/${scriptModalTask.id}";
-    UrlFetchApp.fetch(webhookUrl, options);
-
-  } catch (err) {
-    console.error("Error en el Webhook:", err);
-  }
-}`}
+{generateGoogleAppsScript(scriptModalTask.id, typeof window !== 'undefined' ? window.location.origin : '')}
               </pre>
             </div>
 
