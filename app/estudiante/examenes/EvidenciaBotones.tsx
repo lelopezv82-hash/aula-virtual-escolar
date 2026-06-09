@@ -58,7 +58,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-lg max-h-[90vh] shadow-2xl flex flex-col animate-fade-in" style={{ animation: "fade-in 0.2s ease-out" }}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-lg max-h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-fade-in" style={{ animation: "fade-in 0.2s ease-out" }}>
             <div className="p-4 border-b flex justify-between items-center bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 rounded-t-xl shrink-0">
               <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100 flex items-center gap-2">
                 <FileText size={20} className="text-blue-500" />
@@ -72,7 +72,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
               </button>
             </div>
             
-            <div className="p-6 overflow-y-auto grow">
+            <div className="p-6 overflow-y-auto grow min-h-0">
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4 shrink-0">
                 <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-1">{exam.title}</h4>
                 <p className="text-sm text-blue-600 dark:text-blue-400">Materia: {exam.course.name}</p>
