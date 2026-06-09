@@ -147,7 +147,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
                                   }
                                   
                                   return (
-                                    <div key={optIndex} className={`px-6 py-3 flex justify-between items-center -mx-6 ${bgClass}`}>
+                                    <div key={optIndex} className={`px-4 py-3 rounded-[4px] flex justify-between items-center ${bgClass}`}>
                                       <div className="flex items-center gap-3">
                                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${isUserAnswer ? 'border-[#5f6368]' : 'border-[#bdc1c6]'}`}>
                                           {isUserAnswer && <div className="w-2.5 h-2.5 rounded-full bg-[#5f6368]"></div>}
@@ -163,7 +163,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
                               </div>
                             ) : (
                               // Fallback para entregas antiguas sin options
-                              <div className={`px-6 py-3 flex justify-between items-center -mx-6 ${isIncorrect ? 'bg-[#fce8e6]' : isCorrect ? 'bg-[#e6f4ea]' : ''}`}>
+                              <div className={`px-4 py-3 rounded-[4px] flex justify-between items-center ${isIncorrect ? 'bg-[#fce8e6]' : isCorrect ? 'bg-[#e6f4ea]' : ''}`}>
                                 <div className="flex items-center gap-3">
                                   {/* Radio button simulado */}
                                   <div className="w-5 h-5 rounded-full border-2 border-[#5f6368] flex items-center justify-center shrink-0">
