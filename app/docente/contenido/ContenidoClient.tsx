@@ -234,7 +234,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     allowLateSubmission: false,
     lateSubmissionUntil: "",
     groupIds: [] as string[],
-    publishAt: ""
+    publishAt: "",
+    externalUrl: ""
   });
   const [taskFile, setTaskFile] = useState<File | null>(null);
 
@@ -281,7 +282,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       allowLateSubmission: false,
       lateSubmissionUntil: "",
       groupIds: [],
-      publishAt: ""
+      publishAt: "",
+      externalUrl: ""
     });
     setTaskFile(null);
     setShowTaskModal(true);
@@ -307,7 +309,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       allowLateSubmission: task.allowLateSubmission || false,
       lateSubmissionUntil: formattedLateUntil,
       groupIds: task.groups.map(g => g.id),
-      publishAt: formattedPublishAt
+      publishAt: formattedPublishAt,
+      externalUrl: task.attachmentUrl && !task.attachmentUrl.includes("supabase") && !task.attachmentUrl.includes("drive.google.com") ? task.attachmentUrl : ""
     });
     setTaskFile(null);
     setShowTaskModal(true);
@@ -341,6 +344,9 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       fd.append("publishAt", new Date(taskForm.publishAt).toISOString());
     } else {
       fd.append("publishAt", "");
+    }
+    if (taskForm.externalUrl) {
+      fd.append("externalUrl", taskForm.externalUrl);
     }
     if (taskFile) fd.append("file", taskFile);
 
@@ -1094,6 +1100,15 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
               <label className="text-xs font-bold mb-1">Descripción de la Tarea</label>
               <textarea className="input-field py-1.5 px-3 text-xs h-20" placeholder="Escribe las instrucciones aquí..."
                 value={taskForm.description} onChange={e => setTaskForm({ ...taskForm, description: e.target.value })} />
+            </div>
+
+            <div className="input-group mb-4">
+              <label className="text-xs font-bold mb-1">Enlace Externo (Google Forms, Youtube, etc.)</label>
+              <input type="url" className="input-field py-1.5 px-3 text-xs" placeholder="Ej. https://docs.google.com/forms/.../viewform?usp=pp_url&entry.123=__ESTUDIANTE__"
+                value={taskForm.externalUrl} onChange={e => setTaskForm({ ...taskForm, externalUrl: e.target.value })} />
+              <p className="text-[10px] text-muted mt-1">
+                Si pegas un enlace prellenado de Google Forms, usa <strong>__ESTUDIANTE__</strong> donde va el nombre, para que el sistema lo llene automáticamente por el alumno.
+              </p>
             </div>
 
             <div className="mb-4">

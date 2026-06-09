@@ -10,6 +10,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   
   const [task, setTask] = useState<any>(null);
   const [submission, setSubmission] = useState<any>(null);
+  const [studentName, setStudentName] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -23,6 +24,9 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
       .then(data => {
         if (data.task) {
           setTask(data.task);
+          if (data.studentName) {
+            setStudentName(data.studentName);
+          }
           if (data.task.submissions && data.task.submissions.length > 0) {
             setSubmission(data.task.submissions[0]);
           }
@@ -39,9 +43,9 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
     }
   };
 
-  const handleUpload = async (e: React.FormEvent) => {
+  const handleUpload = async (e: React.FormEvent, isMarkAsDone: boolean = false) => {
     e.preventDefault();
-    if (!file) {
+    if (!isMarkAsDone && !file) {
       setError("¡Ups! Falta el archivo. Por favor, selecciona el archivo de tu tarea antes de enviarla.");
       setErrorType("warning");
       return;
@@ -52,7 +56,12 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
 
     const formData = new FormData();
     formData.append("taskId", taskId);
-    formData.append("file", file);
+    if (file) {
+      formData.append("file", file);
+    }
+    if (isMarkAsDone) {
+      formData.append("markAsDone", "true");
+    }
 
     try {
       const res = await fetch("/api/estudiante/submissions", {
@@ -105,6 +114,10 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
     ? studentLateUntil 
     : (generalLateUntil && generalLateUntil > now ? generalLateUntil : null);
 
+  const finalIframeUrl = task?.attachmentUrl 
+    ? task.attachmentUrl.replace("__ESTUDIANTE__", encodeURIComponent(studentName || "")) 
+    : "";
+
   return (
     <div className="animate-fade-in max-w-3xl mx-auto">
       <div className="flex items-center gap-4 mb-6">
@@ -123,7 +136,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
           {task.description}
         </p>
 
-        {task.attachmentUrl && (
+        {task.attachmentUrl && !task.attachmentUrl.includes("docs.google.com/forms") && !task.attachmentUrl.includes("forms.gle") && (
           <div className="flex items-center gap-3 p-4 border rounded-md" style={{ borderColor: "var(--border-color)", background: "var(--bg-primary)" }}>
             <FileText className="text-blue-500" size={32} />
             <div>
@@ -138,6 +151,25 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
             >
               Descargar Guía
             </a>
+          </div>
+        )}
+
+        {task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")) && (
+          <div className="mt-4 border rounded-lg overflow-hidden" style={{ borderColor: "var(--border-color)" }}>
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 border-b text-sm font-medium flex items-center gap-2 text-blue-800 dark:text-blue-300" style={{ borderColor: "var(--border-color)" }}>
+              <span>📝 Por favor responde el siguiente formulario:</span>
+            </div>
+            <iframe 
+              src={finalIframeUrl.includes("embedded=true") ? finalIframeUrl : `${finalIframeUrl}${finalIframeUrl.includes("?") ? "&" : "?"}embedded=true`}
+              width="100%" 
+              height="800" 
+              frameBorder="0" 
+              marginHeight={0} 
+              marginWidth={0}
+              className="bg-white"
+            >
+              Cargando formulario...
+            </iframe>
           </div>
         )}
       </div>
@@ -220,25 +252,43 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                 )
               )}
               
-              <div className="border-2 border-dashed rounded-lg p-8 text-center hover:bg-gray-50 transition-colors" style={{ borderColor: 'var(--primary-color)' }}>
-                <UploadCloud size={48} className="mx-auto mb-4" style={{ color: 'var(--primary-color)' }} />
-                <label htmlFor="file-upload" className="cursor-pointer">
-                  <span className="btn btn-secondary mx-auto mb-2 inline-flex">Seleccionar Archivo</span>
-                  <input 
-                    id="file-upload" 
-                    type="file" 
-                    className="hidden" 
-                    onChange={handleFileChange} 
-                  />
-                </label>
-                <p className="text-sm text-muted mt-2">
-                  {file ? file.name : "Soporta PDF, DOCX, Imágenes y archivos comprimidos."}
-                </p>
-              </div>
+              {(!task.attachmentUrl || (!task.attachmentUrl.includes("docs.google.com/forms") && !task.attachmentUrl.includes("forms.gle"))) ? (
+                <>
+                  <div className="border-2 border-dashed rounded-lg p-8 text-center hover:bg-gray-50 transition-colors" style={{ borderColor: 'var(--primary-color)' }}>
+                    <UploadCloud size={48} className="mx-auto mb-4" style={{ color: 'var(--primary-color)' }} />
+                    <label htmlFor="file-upload" className="cursor-pointer">
+                      <span className="btn btn-secondary mx-auto mb-2 inline-flex">Seleccionar Archivo</span>
+                      <input 
+                        id="file-upload" 
+                        type="file" 
+                        className="hidden" 
+                        onChange={handleFileChange} 
+                      />
+                    </label>
+                    <p className="text-sm text-muted mt-2">
+                      {file ? file.name : "Soporta PDF, DOCX, Imágenes y archivos comprimidos."}
+                    </p>
+                  </div>
 
-              <button type="submit" className="btn btn-primary mt-2" disabled={loading}>
-                {loading ? <Loader2 className="animate-spin" size={20} /> : (isSubmitted ? "Reemplazar Entrega" : "Enviar Tarea")}
-              </button>
+                  <button type="submit" className="btn btn-primary mt-2" disabled={loading}>
+                    {loading ? <Loader2 className="animate-spin" size={20} /> : (isSubmitted ? "Reemplazar Entrega" : "Enviar Tarea")}
+                  </button>
+                </>
+              ) : (
+                <div className="text-center p-6 border rounded-lg bg-slate-50 dark:bg-slate-900/50 flex flex-col items-center gap-3" style={{ borderColor: 'var(--border-color)' }}>
+                  <p className="text-sm text-muted max-w-sm">
+                    Esta tarea es un formulario externo. Asegúrate de haberlo enviado arriba antes de marcarla como completada.
+                  </p>
+                  <button 
+                    type="button" 
+                    onClick={(e) => handleUpload(e, true)} 
+                    className="btn btn-primary w-full max-w-xs" 
+                    disabled={loading}
+                  >
+                    {loading ? <Loader2 className="animate-spin mx-auto" size={20} /> : (isSubmitted ? "Ya Completada" : "Marcar como Completada")}
+                  </button>
+                </div>
+              )}
             </form>
           )
         )}

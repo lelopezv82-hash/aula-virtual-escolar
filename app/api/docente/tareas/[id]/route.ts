@@ -100,6 +100,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const groupIdsJson = formData.get('groupIds') as string | null;
     const publishAtRaw = formData.get('publishAt') as string | null;
     const publishAt = publishAtRaw && publishAtRaw.trim() !== "" ? new Date(publishAtRaw) : null;
+    const externalUrl = formData.get('externalUrl') as string | null;
 
     let groupIds: string[] = [];
     if (groupIdsJson) {
@@ -114,7 +115,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ error: 'Faltan datos obligatorios (título, fecha límite, tema, periodo y al menos un grupo)' }, { status: 400 });
     }
 
-    let attachmentUrl = task.attachmentUrl;
+    let attachmentUrl = externalUrl !== null ? externalUrl : task.attachmentUrl;
     let gdriveEmail: string | null = task.gdriveEmail;
 
     if (file && file.size > 0) {

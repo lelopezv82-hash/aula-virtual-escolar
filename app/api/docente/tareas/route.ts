@@ -37,6 +37,7 @@ export async function POST(request: Request) {
     const groupIdsJson = formData.get('groupIds') as string | null;
     const publishAtRaw = formData.get('publishAt') as string | null;
     const publishAt = publishAtRaw && publishAtRaw.trim() !== "" ? new Date(publishAtRaw) : null;
+    const externalUrl = formData.get('externalUrl') as string | null;
 
     let groupIds: string[] = [];
     if (groupIdsJson) {
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Curso no encontrado o no te pertenece' }, { status: 403 });
     }
 
-    let attachmentUrl = null;
+    let attachmentUrl = externalUrl || null;
     let gdriveEmail: string | null = null;
 
     if (file && file.size > 0) {

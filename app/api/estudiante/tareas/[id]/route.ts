@@ -22,7 +22,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const studentId = payload.id as string;
     const student = await prisma.user.findUnique({
       where: { id: studentId },
-      select: { groupId: true }
+      select: { groupId: true, name: true }
     });
 
     const task = await prisma.task.findUnique({
@@ -65,7 +65,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     // Remove groups from response to keep payload clean if needed, or keep it
     const { groups: _groups, ...taskData } = task;
 
-    return NextResponse.json({ task: taskData });
+    return NextResponse.json({ task: taskData, studentName: student?.name });
   } catch {
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
