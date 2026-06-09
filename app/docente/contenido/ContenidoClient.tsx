@@ -269,6 +269,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     var studentName = "Desconocido";
     var itemResponses = response.getItemResponses();
     var rawData = [];
+    var totalScore = 0;
+    var totalPossible = 0;
 
     for (var i = 0; i < itemResponses.length; i++) {
       var itemResponse = itemResponses[i];
@@ -287,9 +289,68 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
         answerText = answer.join(", ");
       }
       
+      var isGradable = false;
+      var itemScore = null;
+      var maxScore = null;
+      var isCorrect = false;
+      var correctAnswerText = "";
+
+      if (isQuiz) {
+        try {
+          var gradableResponses = response.getGradableItemResponses();
+          for (var j = 0; j < gradableResponses.length; j++) {
+            if (gradableResponses[j].getItem().getId() === item.getId()) {
+              isGradable = true;
+              itemScore = gradableResponses[j].getScore() || 0;
+              totalScore += itemScore;
+              
+              var gItem = gradableResponses[j].getItem();
+              switch(gItem.getType()) {
+                case FormApp.ItemType.MULTIPLE_CHOICE:
+                  maxScore = gItem.asMultipleChoiceItem().getPoints() || 0;
+                  var choices = gItem.asMultipleChoiceItem().getChoices();
+                  for(var c=0; c<choices.length; c++) { if(choices[c].isCorrectAnswer()) correctAnswerText = choices[c].getValue(); }
+                  break;
+                case FormApp.ItemType.CHECKBOX:
+                  maxScore = gItem.asCheckboxItem().getPoints() || 0;
+                  var choices = gItem.asCheckboxItem().getChoices();
+                  var cArr = [];
+                  for(var c=0; c<choices.length; c++) { if(choices[c].isCorrectAnswer()) cArr.push(choices[c].getValue()); }
+                  correctAnswerText = cArr.join(", ");
+                  break;
+                case FormApp.ItemType.LIST:
+                  maxScore = gItem.asListItem().getPoints() || 0;
+                  var choices = gItem.asListItem().getChoices();
+                  for(var c=0; c<choices.length; c++) { if(choices[c].isCorrectAnswer()) correctAnswerText = choices[c].getValue(); }
+                  break;
+                case FormApp.ItemType.TEXT:
+                  maxScore = gItem.asTextItem().getPoints() || 0;
+                  break;
+                case FormApp.ItemType.PARAGRAPH_TEXT:
+                  maxScore = gItem.asParagraphTextItem().getPoints() || 0;
+                  break;
+              }
+              
+              if (maxScore !== null) {
+                totalPossible += maxScore;
+                if (itemScore === maxScore && maxScore > 0) {
+                  isCorrect = true;
+                }
+              }
+              break;
+            }
+          }
+        } catch(e) {}
+      }
+
       rawData.push({
         question: questionTitle,
-        answer: answerText ? answerText.toString() : ""
+        answer: answerText ? answerText.toString() : "",
+        isGradable: isGradable,
+        score: itemScore,
+        maxScore: maxScore,
+        isCorrect: isCorrect,
+        correctAnswer: correctAnswerText
       });
     }
     
@@ -298,47 +359,18 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       studentName = respondentEmail.split('@')[0];
     }
 
-    var score = null;
+    var finalScore = null;
     if (isQuiz) {
-      var totalScore = 0;
-      var totalPossible = 0;
-      
-      var gradedResponses = response.getGradableItemResponses();
-      for (var j = 0; j < gradedResponses.length; j++) {
-        totalScore += gradedResponses[j].getScore() || 0;
-        var gradableItem = gradedResponses[j].getItem();
-        
-        var maxScore = 0;
-        switch(gradableItem.getType()) {
-          case FormApp.ItemType.MULTIPLE_CHOICE:
-            maxScore = gradableItem.asMultipleChoiceItem().getPoints() || 0;
-            break;
-          case FormApp.ItemType.CHECKBOX:
-            maxScore = gradableItem.asCheckboxItem().getPoints() || 0;
-            break;
-          case FormApp.ItemType.LIST:
-            maxScore = gradableItem.asListItem().getPoints() || 0;
-            break;
-          case FormApp.ItemType.TEXT:
-            maxScore = gradableItem.asTextItem().getPoints() || 0;
-            break;
-          case FormApp.ItemType.PARAGRAPH_TEXT:
-            maxScore = gradableItem.asParagraphTextItem().getPoints() || 0;
-            break;
-        }
-        totalPossible += maxScore;
-      }
-      
       if (totalPossible > 0) {
-        score = (totalScore / totalPossible) * 10;
+        finalScore = (totalScore / totalPossible) * 10;
       } else {
-        score = totalScore;
+        finalScore = totalScore;
       }
     }
 
     var payload = {
       studentName: studentName,
-      score: score,
+      score: finalScore,
       rawData: rawData
     };
 
@@ -1462,6 +1494,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     var studentName = "Desconocido";
     var itemResponses = response.getItemResponses();
     var rawData = [];
+    var totalScore = 0;
+    var totalPossible = 0;
 
     for (var i = 0; i < itemResponses.length; i++) {
       var itemResponse = itemResponses[i];
@@ -1480,9 +1514,68 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
         answerText = answer.join(", ");
       }
       
+      var isGradable = false;
+      var itemScore = null;
+      var maxScore = null;
+      var isCorrect = false;
+      var correctAnswerText = "";
+
+      if (isQuiz) {
+        try {
+          var gradableResponses = response.getGradableItemResponses();
+          for (var j = 0; j < gradableResponses.length; j++) {
+            if (gradableResponses[j].getItem().getId() === item.getId()) {
+              isGradable = true;
+              itemScore = gradableResponses[j].getScore() || 0;
+              totalScore += itemScore;
+              
+              var gItem = gradableResponses[j].getItem();
+              switch(gItem.getType()) {
+                case FormApp.ItemType.MULTIPLE_CHOICE:
+                  maxScore = gItem.asMultipleChoiceItem().getPoints() || 0;
+                  var choices = gItem.asMultipleChoiceItem().getChoices();
+                  for(var c=0; c<choices.length; c++) { if(choices[c].isCorrectAnswer()) correctAnswerText = choices[c].getValue(); }
+                  break;
+                case FormApp.ItemType.CHECKBOX:
+                  maxScore = gItem.asCheckboxItem().getPoints() || 0;
+                  var choices = gItem.asCheckboxItem().getChoices();
+                  var cArr = [];
+                  for(var c=0; c<choices.length; c++) { if(choices[c].isCorrectAnswer()) cArr.push(choices[c].getValue()); }
+                  correctAnswerText = cArr.join(", ");
+                  break;
+                case FormApp.ItemType.LIST:
+                  maxScore = gItem.asListItem().getPoints() || 0;
+                  var choices = gItem.asListItem().getChoices();
+                  for(var c=0; c<choices.length; c++) { if(choices[c].isCorrectAnswer()) correctAnswerText = choices[c].getValue(); }
+                  break;
+                case FormApp.ItemType.TEXT:
+                  maxScore = gItem.asTextItem().getPoints() || 0;
+                  break;
+                case FormApp.ItemType.PARAGRAPH_TEXT:
+                  maxScore = gItem.asParagraphTextItem().getPoints() || 0;
+                  break;
+              }
+              
+              if (maxScore !== null) {
+                totalPossible += maxScore;
+                if (itemScore === maxScore && maxScore > 0) {
+                  isCorrect = true;
+                }
+              }
+              break;
+            }
+          }
+        } catch(e) {}
+      }
+
       rawData.push({
         question: questionTitle,
-        answer: answerText ? answerText.toString() : ""
+        answer: answerText ? answerText.toString() : "",
+        isGradable: isGradable,
+        score: itemScore,
+        maxScore: maxScore,
+        isCorrect: isCorrect,
+        correctAnswer: correctAnswerText
       });
     }
     
@@ -1491,47 +1584,18 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       studentName = respondentEmail.split('@')[0];
     }
 
-    var score = null;
+    var finalScore = null;
     if (isQuiz) {
-      var totalScore = 0;
-      var totalPossible = 0;
-      
-      var gradedResponses = response.getGradableItemResponses();
-      for (var j = 0; j < gradedResponses.length; j++) {
-        totalScore += gradedResponses[j].getScore() || 0;
-        var gradableItem = gradedResponses[j].getItem();
-        
-        var maxScore = 0;
-        switch(gradableItem.getType()) {
-          case FormApp.ItemType.MULTIPLE_CHOICE:
-            maxScore = gradableItem.asMultipleChoiceItem().getPoints() || 0;
-            break;
-          case FormApp.ItemType.CHECKBOX:
-            maxScore = gradableItem.asCheckboxItem().getPoints() || 0;
-            break;
-          case FormApp.ItemType.LIST:
-            maxScore = gradableItem.asListItem().getPoints() || 0;
-            break;
-          case FormApp.ItemType.TEXT:
-            maxScore = gradableItem.asTextItem().getPoints() || 0;
-            break;
-          case FormApp.ItemType.PARAGRAPH_TEXT:
-            maxScore = gradableItem.asParagraphTextItem().getPoints() || 0;
-            break;
-        }
-        totalPossible += maxScore;
-      }
-      
       if (totalPossible > 0) {
-        score = (totalScore / totalPossible) * 10;
+        finalScore = (totalScore / totalPossible) * 10;
       } else {
-        score = totalScore;
+        finalScore = totalScore;
       }
     }
 
     var payload = {
       studentName: studentName,
-      score: score,
+      score: finalScore,
       rawData: rawData
     };
 

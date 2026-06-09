@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, X, CheckCircle, FileText } from "lucide-react";
+import { Eye, X, CheckCircle, FileText, XCircle, CheckCircle2, CircleDot } from "lucide-react";
 
 interface EvidenciaModalProps {
   exam: {
@@ -23,7 +23,15 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
   const [isOpen, setIsOpen] = useState(false);
 
   // Intentamos parsear las respuestas guardadas en feedback (que ahora deberían venir como JSON string)
-  let answersData: { question: string; answer: string }[] | null = null;
+  let answersData: { 
+    question: string; 
+    answer: string;
+    isGradable?: boolean;
+    score?: number | null;
+    maxScore?: number | null;
+    isCorrect?: boolean;
+    correctAnswer?: string;
+  }[] | null = null;
   if (isGoogleForm && submission.feedback) {
     try {
       const parsed = JSON.parse(submission.feedback);
@@ -82,15 +90,66 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
 
               {answersData && answersData.length > 0 ? (
                 <div className="mt-6 flex flex-col gap-4">
-                  <h5 className="font-bold text-gray-800 dark:text-gray-200 border-b pb-2 mb-2">Tus Respuestas</h5>
-                  {answersData.map((item, index) => (
-                    <div key={index} className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                      <p className="font-semibold text-gray-800 dark:text-gray-200 mb-2">{item.question}</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">Respuesta:</span> {item.answer}
-                      </p>
-                    </div>
-                  ))}
+                  {answersData.map((item, index) => {
+                    if (item.isGradable === false) {
+                      // Estilo simple para preguntas no evaluables (ej. Nombre)
+                      return (
+                        <div key={index} className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+                          <p className="font-semibold text-gray-800 mb-4">{item.question}</p>
+                          <p className="text-sm text-gray-600 border-b border-gray-300 pb-1">{item.answer}</p>
+                        </div>
+                      );
+                    }
+
+                    // Estilo Google Forms para preguntas evaluables
+                    const isIncorrect = item.maxScore !== null && item.maxScore !== undefined && item.maxScore > 0 && !item.isCorrect;
+                    const isCorrect = item.maxScore !== null && item.maxScore !== undefined && item.maxScore > 0 && item.isCorrect;
+
+                    return (
+                      <div key={index} className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                        {/* Cabecera de la pregunta */}
+                        <div className="p-5 flex gap-3 items-start relative">
+                          {isIncorrect && <XCircle className="text-red-600 shrink-0 mt-0.5" size={20} />}
+                          {isCorrect && <CheckCircle2 className="text-green-600 shrink-0 mt-0.5" size={20} />}
+                          {(!isIncorrect && !isCorrect) && <div className="w-5 shrink-0" />} {/* Espaciador */}
+
+                          <div className="flex-grow">
+                            <div className="flex justify-between items-start mb-4">
+                              <p className={`font-semibold text-base ${isIncorrect ? 'text-red-600' : isCorrect ? 'text-green-700' : 'text-gray-800'}`}>
+                                {item.question}
+                              </p>
+                              {item.maxScore !== null && item.maxScore !== undefined && item.maxScore > 0 && (
+                                <span className="text-xs font-medium text-gray-600 ml-4 whitespace-nowrap bg-gray-100 px-2 py-1 rounded">
+                                  {item.score || 0}/{item.maxScore}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Respuesta del estudiante */}
+                            <div className={`p-3 rounded-md flex justify-between items-center ${isIncorrect ? 'bg-red-50' : isCorrect ? 'bg-green-50' : 'bg-gray-50'}`}>
+                              <div className="flex items-center gap-2">
+                                <CircleDot size={16} className={isIncorrect ? 'text-red-500' : isCorrect ? 'text-green-600' : 'text-gray-500'} />
+                                <span className="text-sm text-gray-800">{item.answer || <span className="italic text-gray-400">Sin responder</span>}</span>
+                              </div>
+                              {isIncorrect && <X className="text-red-500 shrink-0" size={18} />}
+                              {isCorrect && <CheckCircle2 className="text-green-600 shrink-0" size={18} />}
+                            </div>
+
+                            {/* Respuesta Correcta (si se equivocó) */}
+                            {isIncorrect && item.correctAnswer && (
+                              <div className="mt-4 pt-4 border-t border-gray-100">
+                                <p className="text-xs font-medium text-gray-500 mb-2">Respuesta correcta</p>
+                                <div className="flex items-center gap-2">
+                                  <CircleDot size={16} className="text-gray-500" />
+                                  <span className="text-sm text-gray-800">{item.correctAnswer}</span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 shrink-0">
