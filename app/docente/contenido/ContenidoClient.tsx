@@ -722,14 +722,16 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                                     onClick={() => openNewTaskModal(course.id, periodName)}
                                     className="btn btn-primary py-1 px-2.5 text-[11px] h-auto flex items-center gap-1"
                                   >
-                                    <Plus size={12} /> Crear Tarea
+                                    <Plus size={12} /> {activeTab === "examenes" ? "Crear Examen" : "Crear Tarea"}
                                   </button>
                                 )}
                               </div>
                             </h4>
                             
                             {periodTasks.length === 0 ? (
-                              <p className="text-muted text-xs italic p-2">No hay tareas creadas en este periodo.</p>
+                              <p className="text-muted text-xs italic p-2">
+                                {activeTab === "examenes" ? "No hay exámenes creados en este periodo." : "No hay tareas creadas en este periodo."}
+                              </p>
                             ) : (
                               <div className="overflow-x-auto">
                                 <table className="w-full text-left border-collapse" style={{ borderCollapse: 'collapse' }}>
