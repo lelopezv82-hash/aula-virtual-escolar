@@ -4,7 +4,6 @@ import { jwtVerify } from "jose";
 import { ArrowLeft, Download, CheckCircle, Clock } from "lucide-react";
 import Link from "next/link";
 import ExportButtons from "./ExportButtons";
-import GoogleFormsScriptModal from "./GoogleFormsScriptModal";
 import LateSubmissionManager from "./LateSubmissionManager";
 import StudentLateSubmissionToggle from "./StudentLateSubmissionToggle";
 import GDriveEmailDisplay from "@/components/GDriveEmailDisplay";
@@ -96,9 +95,6 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
         
         <div className="flex items-center gap-3 flex-wrap">
           <GDriveVisibilityToggle context="task_details" />
-          {task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")) && (
-            <GoogleFormsScriptModal taskId={task.id} />
-          )}
           <ExportButtons 
             taskTitle={task.title} 
             courseName={task.course.name} 
