@@ -57,132 +57,140 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
       </div>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-lg max-h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-fade-in" style={{ animation: "fade-in 0.2s ease-out" }}>
-            <div className="p-4 border-b flex justify-between items-center bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 rounded-t-xl shrink-0">
-              <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100 flex items-center gap-2">
-                <FileText size={20} className="text-blue-500" />
-                Evidencia de Examen
-              </h3>
-              <button 
-                onClick={() => setIsOpen(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-              >
-                <X size={24} />
-              </button>
-            </div>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-[#f0ebf8] rounded-lg w-full max-w-3xl max-h-[95vh] shadow-2xl flex flex-col overflow-hidden animate-fade-in relative">
             
-            <div className="p-6 overflow-y-auto grow min-h-0">
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4 shrink-0">
-                <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-1">{exam.title}</h4>
-                <p className="text-sm text-blue-600 dark:text-blue-400">Materia: {exam.course.name}</p>
-              </div>
+            {/* Botón flotante para cerrar */}
+            <button 
+              onClick={() => setIsOpen(false)}
+              className="absolute top-4 right-4 z-10 bg-white/50 hover:bg-white rounded-full p-2 text-gray-600 transition-colors shadow-sm"
+              title="Cerrar"
+            >
+              <X size={24} />
+            </button>
 
-              <div className="mb-6 shrink-0">
-                <p className="text-gray-700 dark:text-gray-300 font-medium flex items-center gap-2 mb-2">
-                  <CheckCircle size={18} className="text-green-500" />
-                  Calificación: {submission.grade !== null && submission.grade !== undefined ? <span className="font-bold text-xl">{submission.grade}</span> : <span className="italic font-normal">Pendiente de calificar</span>}
-                </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Fecha de entrega: {submission.submittedAt ? new Date(submission.submittedAt).toLocaleString('es-CO') : 'No disponible'}
-                </p>
-              </div>
-
-              {answersData && answersData.length > 0 ? (
-                <div className="mt-6 flex flex-col gap-4">
-                  {answersData.map((item, index) => {
-                    if (item.isGradable === false) {
-                      // Estilo simple para preguntas no evaluables (ej. Nombre)
-                      return (
-                        <div key={index} className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
-                          <p className="font-semibold text-gray-800 mb-4">{item.question}</p>
-                          <p className="text-sm text-gray-600 border-b border-gray-300 pb-1">{item.answer}</p>
+            <div className="p-4 md:p-8 overflow-y-auto grow min-h-0">
+              <div className="max-w-2xl mx-auto">
+                
+                {/* Header (Top Box) */}
+                <div className="bg-white border border-[#dadce0] rounded-[8px] overflow-hidden mb-4 border-t-8 border-t-[#673ab7]">
+                  <div className="p-6">
+                    <div className="flex justify-between items-start gap-4">
+                      <h1 className="text-[32px] text-[#202124] font-normal leading-tight">{exam.title}</h1>
+                      
+                      <div className="flex flex-col items-end shrink-0 gap-1 mt-2">
+                        <span className="text-sm text-[#202124]">Puntos totales</span>
+                        <div className="bg-[#673ab7] text-white px-3 py-1 rounded-[4px] font-medium text-sm">
+                          {answersData ? (
+                            `${answersData.reduce((sum, item) => sum + (item.score || 0), 0)}/${answersData.reduce((sum, item) => sum + (item.maxScore || 0), 0)}`
+                          ) : (
+                            submission.grade !== null ? submission.grade : '?'
+                          )}
                         </div>
-                      );
-                    }
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-                    // Estilo Google Forms para preguntas evaluables
-                    const isIncorrect = item.maxScore !== null && item.maxScore !== undefined && item.maxScore > 0 && !item.isCorrect;
-                    const isCorrect = item.maxScore !== null && item.maxScore !== undefined && item.maxScore > 0 && item.isCorrect;
-
-                    return (
-                      <div key={index} className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-                        {/* Cabecera de la pregunta */}
-                        <div className="p-5 flex gap-3 items-start relative">
-                          {isIncorrect && <XCircle className="text-red-600 shrink-0 mt-0.5" size={20} />}
-                          {isCorrect && <CheckCircle2 className="text-green-600 shrink-0 mt-0.5" size={20} />}
-                          {(!isIncorrect && !isCorrect) && <div className="w-5 shrink-0" />} {/* Espaciador */}
-
-                          <div className="flex-grow">
-                            <div className="flex justify-between items-start mb-4">
-                              <p className={`font-semibold text-base ${isIncorrect ? 'text-red-600' : isCorrect ? 'text-green-700' : 'text-gray-800'}`}>
-                                {item.question}
-                              </p>
-                              {item.maxScore !== null && item.maxScore !== undefined && item.maxScore > 0 && (
-                                <span className="text-xs font-medium text-gray-600 ml-4 whitespace-nowrap bg-gray-100 px-2 py-1 rounded">
-                                  {item.score || 0}/{item.maxScore}
-                                </span>
-                              )}
+                {/* Preguntas */}
+                {answersData && answersData.length > 0 ? (
+                  <div className="flex flex-col gap-4">
+                    {answersData.map((item, index) => {
+                      if (item.isGradable === false) {
+                        return (
+                          <div key={index} className="bg-white p-6 rounded-[8px] border border-[#dadce0] shadow-sm">
+                            <p className="text-base text-[#202124] mb-6">
+                              {item.question} <span className="text-[#d93025]">*</span>
+                            </p>
+                            <div className="border-b border-[#dadce0] pb-1 w-full md:w-3/4">
+                              <span className="text-[#202124]">{item.answer}</span>
                             </div>
+                          </div>
+                        );
+                      }
 
-                            {/* Respuesta del estudiante */}
-                            <div className={`p-3 rounded-md flex justify-between items-center ${isIncorrect ? 'bg-red-50' : isCorrect ? 'bg-green-50' : 'bg-gray-50'}`}>
-                              <div className="flex items-center gap-2">
-                                <CircleDot size={16} className={isIncorrect ? 'text-red-500' : isCorrect ? 'text-green-600' : 'text-gray-500'} />
-                                <span className="text-sm text-gray-800">{item.answer || <span className="italic text-gray-400">Sin responder</span>}</span>
+                      const isIncorrect = item.maxScore !== null && item.maxScore !== undefined && item.maxScore > 0 && !item.isCorrect;
+                      const isCorrect = item.maxScore !== null && item.maxScore !== undefined && item.maxScore > 0 && item.isCorrect;
+
+                      return (
+                        <div key={index} className="bg-white p-6 rounded-[8px] border border-[#dadce0] shadow-sm">
+                          {/* Cabecera de la pregunta */}
+                          <div className="flex justify-between items-start mb-4 gap-4">
+                            <div className="flex items-start gap-3">
+                              {isCorrect && <CheckCircle2 className="text-[#1e8e3e] shrink-0 mt-[2px]" size={20} />}
+                              {isIncorrect && <X className="text-[#d93025] shrink-0 mt-[2px]" size={20} />}
+                              {(!isIncorrect && !isCorrect) && <div className="w-5 shrink-0" />} 
+
+                              <p className={`text-base ${isIncorrect ? 'text-[#d93025]' : isCorrect ? 'text-[#1e8e3e]' : 'text-[#202124]'}`}>
+                                {item.question} <span className="text-[#d93025]">*</span>
+                              </p>
+                            </div>
+                            
+                            {item.maxScore !== null && item.maxScore !== undefined && item.maxScore > 0 && (
+                              <span className="text-[14px] text-[#202124] shrink-0 mt-1">
+                                {item.score || 0}/{item.maxScore}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Respuesta del estudiante */}
+                          <div className="ml-8">
+                            <div className={`px-4 py-3 rounded-[4px] flex justify-between items-center ${isIncorrect ? 'bg-[#fce8e6]' : isCorrect ? 'bg-[#e6f4ea]' : ''}`}>
+                              <div className="flex items-center gap-3">
+                                {/* Radio button simulado */}
+                                <div className="w-5 h-5 rounded-full border-2 border-[#5f6368] flex items-center justify-center shrink-0">
+                                  <div className="w-2.5 h-2.5 rounded-full bg-[#5f6368]"></div>
+                                </div>
+                                <span className="text-[14px] text-[#202124]">{item.answer || <span className="italic text-[#80868b]">Sin responder</span>}</span>
                               </div>
-                              {isIncorrect && <X className="text-red-500 shrink-0" size={18} />}
-                              {isCorrect && <CheckCircle2 className="text-green-600 shrink-0" size={18} />}
+                              {isIncorrect && <X className="text-[#d93025] shrink-0" size={20} />}
+                              {isCorrect && <CheckCircle2 className="text-[#1e8e3e] shrink-0" size={20} />}
                             </div>
 
                             {/* Respuesta Correcta (si se equivocó) */}
                             {isIncorrect && item.correctAnswer && (
-                              <div className="mt-4 pt-4 border-t border-gray-100">
-                                <p className="text-xs font-medium text-gray-500 mb-2">Respuesta correcta</p>
-                                <div className="flex items-center gap-2">
-                                  <CircleDot size={16} className="text-gray-500" />
-                                  <span className="text-sm text-gray-800">{item.correctAnswer}</span>
+                              <div className="mt-4">
+                                <div className="text-[13px] text-[#5f6368] font-medium mb-2">Respuestas correctas</div>
+                                <div className="px-4 py-2 flex items-center gap-3">
+                                  <div className="w-5 h-5 rounded-full border-2 border-[#5f6368] flex items-center justify-center shrink-0">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-[#5f6368]"></div>
+                                  </div>
+                                  <span className="text-[14px] text-[#202124]">{item.correctAnswer}</span>
                                 </div>
                               </div>
                             )}
+                            
+                            {/* Nota si hay opciones faltantes */}
+                            <div className="mt-4 text-[12px] text-[#bdc1c6] italic">
+                              * Solo se muestran la respuesta elegida y la correcta.
+                            </div>
                           </div>
                         </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-[8px] p-6 border border-[#dadce0] text-[14px] text-[#202124]">
+                    {isGoogleForm ? (
+                      <p>
+                        Tu examen fue enviado con éxito a través de Google Forms y tus respuestas han sido registradas. 
+                        Esta calificación ya es oficial en la plataforma. 
+                        <br/><br/>
+                        <span className="italic text-[13px] text-[#5f6368]">(El detalle individual de respuestas no está disponible para entregas antiguas).</span>
+                      </p>
+                    ) : submission.fileUrl ? (
+                      <div className="flex flex-col gap-2 items-start">
+                        <p>Has adjuntado un archivo con tus respuestas.</p>
+                        <a href={submission.fileUrl} target="_blank" className="text-[#1a73e8] hover:underline font-medium text-[14px]">
+                          Abrir archivo original
+                        </a>
                       </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 shrink-0">
-                  {isGoogleForm ? (
-                    <p>
-                      Tu examen fue enviado con éxito a través de Google Forms y tus respuestas han sido registradas. 
-                      Esta calificación ya es oficial en la plataforma. 
-                      <br/><br/>
-                      <span className="italic text-xs">(El detalle individual de respuestas no está disponible para entregas antiguas o anteriores a la actualización).</span>
-                    </p>
-                  ) : submission.fileUrl ? (
-                    <div className="flex flex-col gap-2 items-start">
-                      <p>Has adjuntado un archivo con tus respuestas.</p>
-                      <a href={submission.fileUrl} target="_blank" className="px-4 py-2 mt-2 bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300 rounded-md font-medium transition-colors text-sm">
-                        Ver archivo original
-                      </a>
-                    </div>
-                  ) : (
-                    <p>
-                      No se encontró un archivo adjunto ni respuestas detalladas de un formulario enlazado a esta entrega.
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex justify-end rounded-b-xl shrink-0">
-              <button 
-                onClick={() => setIsOpen(false)}
-                className="px-4 py-2 rounded-md font-medium text-gray-600 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors"
-              >
-                Cerrar
-              </button>
+                    ) : (
+                      <p>No se encontró información detallada de esta entrega.</p>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
