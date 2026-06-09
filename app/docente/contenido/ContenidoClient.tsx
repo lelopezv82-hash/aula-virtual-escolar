@@ -301,7 +301,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
 
   // Update available groups when course changes in forms
   useEffect(() => {
-    const selectedCourseId = activeTab === "tareas" ? taskForm.courseId : resourceForm.courseId;
+    const selectedCourseId = (activeTab === "tareas" || activeTab === "examenes") ? taskForm.courseId : resourceForm.courseId;
     if (selectedCourseId) {
       const course = courses.find(c => c.id === selectedCourseId);
       setAvailableGroups(course ? course.groups : []);
