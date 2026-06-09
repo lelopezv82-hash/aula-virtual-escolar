@@ -88,8 +88,16 @@ export default async function EstudianteCursoDetallePage({
 
   // Filter tasks & resources by selected period, active status, and group assignment
   const now = new Date();
-  const filteredTasks = course.tasks.filter(t => 
+  const filteredRegularTasks = course.tasks.filter(t => 
     t.period === currentPeriod && 
+    t.type !== "EXAM" &&
+    t.active !== false && 
+    (!t.publishAt || new Date(t.publishAt) <= now) &&
+    (t.groups.length === 0 || t.groups.some(g => g.id === studentGroupId))
+  );
+  const filteredExams = course.tasks.filter(t => 
+    t.period === currentPeriod && 
+    t.type === "EXAM" &&
     t.active !== false && 
     (!t.publishAt || new Date(t.publishAt) <= now) &&
     (t.groups.length === 0 || t.groups.some(g => g.id === studentGroupId))
@@ -158,14 +166,14 @@ export default async function EstudianteCursoDetallePage({
                 Tareas - {currentPeriod}
               </h2>
 
-              {filteredTasks.length === 0 ? (
+              {filteredRegularTasks.length === 0 ? (
                 <div className="text-center py-10 text-muted">
                   <HelpCircle size={40} className="mx-auto mb-3 opacity-40" />
                   <p>No hay tareas asignadas para este periodo todavía.</p>
                 </div>
               ) : (
                 <div className="flex flex-col gap-4">
-                  {filteredTasks.map(task => {
+                  {filteredRegularTasks.map(task => {
                     const submission = task.submissions[0];
                     const isSubmitted = submission && submission.status !== "PENDING";
                     const isGraded = submission && submission.status === "GRADED";
@@ -222,6 +230,71 @@ export default async function EstudianteCursoDetallePage({
                 </div>
               )}
             </div>
+
+            {/* Exams Section */}
+            {filteredExams.length > 0 && (
+              <div className="card border-2 border-indigo-100 dark:border-indigo-900/50">
+                <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
+                  <ClipboardList size={22} />
+                  Exámenes - {currentPeriod}
+                </h2>
+
+                <div className="flex flex-col gap-4">
+                  {filteredExams.map(task => {
+                    const submission = task.submissions[0];
+                    const isSubmitted = submission && submission.status !== "PENDING";
+                    const isGraded = submission && submission.status === "GRADED";
+                    const isOverdue = new Date(task.dueDate) < new Date() && !isSubmitted;
+
+                    return (
+                      <div
+                        key={task.id}
+                        className="p-4 rounded-lg flex justify-between items-center flex-wrap gap-4 border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-900/20"
+                        style={{
+                          transition: "transform var(--transition-fast)"
+                        }}
+                      >
+                        <div className="flex-1 min-w-[200px]">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            {isGraded ? (
+                              <span className="badge badge-success flex items-center gap-1">
+                                <CheckCircle size={12} /> Nota: {submission.grade?.toFixed(1)}
+                              </span>
+                            ) : isSubmitted ? (
+                              <span className="badge badge-info">Entregado</span>
+                            ) : isOverdue ? (
+                              <span className="badge badge-danger flex items-center gap-1">
+                                <AlertCircle size={12} /> Retrasado
+                              </span>
+                            ) : (
+                              <span className="badge badge-warning flex items-center gap-1">
+                                <Clock size={12} /> Pendiente
+                              </span>
+                            )}
+                            <span className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">
+                              Vence: {new Date(task.dueDate).toLocaleDateString()}
+                            </span>
+                            {task.weight !== undefined && task.weight !== null && task.weight > 0 && (
+                              <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300">
+                                Peso: {task.weight}%
+                              </span>
+                            )}
+                          </div>
+                          <h3 className="font-bold text-base text-indigo-900 dark:text-indigo-100">{task.title}</h3>
+                          <p className="text-sm text-indigo-700/70 dark:text-indigo-300/70 truncate mt-0.5">{task.description || "Sin descripción"}</p>
+                        </div>
+
+                        <div>
+                          <Link href={`/estudiante/tareas/${task.id}`} className="btn btn-primary text-sm bg-indigo-600 hover:bg-indigo-700 text-white">
+                            {isSubmitted ? "Ver Examen" : "Resolver Examen"}
+                          </Link>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right Sidebar: Resources */}

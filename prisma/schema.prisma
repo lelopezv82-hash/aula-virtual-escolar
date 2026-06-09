@@ -81,6 +81,7 @@ model Task {
   attachmentUrl String?
   courseId      String
   course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  type          String   @default("TASK") // TASK or EXAM
   theme         String?
   period        String?
   groups        GradeGroup[] @relation("GroupTasks")

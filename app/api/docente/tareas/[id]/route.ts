@@ -98,9 +98,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const weightRaw = formData.get('weight') as string | null;
     const weight = weightRaw ? parseInt(weightRaw, 10) : 0;
     const groupIdsJson = formData.get('groupIds') as string | null;
-    const publishAtRaw = formData.get('publishAt') as string | null;
     const publishAt = publishAtRaw && publishAtRaw.trim() !== "" ? new Date(publishAtRaw) : null;
     const externalUrl = formData.get('externalUrl') as string | null;
+    const type = formData.get('type') as string | null;
 
     let groupIds: string[] = [];
     if (groupIdsJson) {
@@ -175,6 +175,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         gdriveEmail,
         theme,
         period,
+        type: type === "EXAM" || type === "TASK" ? type : task.type,
         publishAt,
         groups: {
           set: groupIds.map(id => ({ id }))

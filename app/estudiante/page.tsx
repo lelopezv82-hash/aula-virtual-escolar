@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import prisma from '@/lib/prisma';
-import { BookOpen, FileText, Clock } from "lucide-react";
+import { BookOpen, FileText, Clock, ClipboardList } from "lucide-react";
 import Link from "next/link";
 
 
@@ -48,6 +48,12 @@ export default async function EstudianteDashboard() {
     
     // Count only visible tasks and resources
     const visibleTasks = tasks.filter(t => 
+      t.type !== "EXAM" &&
+      (!t.period || activePeriodNames.includes(t.period)) &&
+      (!t.publishAt || new Date(t.publishAt) <= now)
+    );
+    const visibleExams = tasks.filter(t => 
+      t.type === "EXAM" &&
       (!t.period || activePeriodNames.includes(t.period)) &&
       (!t.publishAt || new Date(t.publishAt) <= now)
     );
@@ -60,6 +66,7 @@ export default async function EstudianteDashboard() {
       ...courseData,
       _count: {
         tasks: visibleTasks.length,
+        exams: visibleExams.length,
         resources: visibleResources.length
       }
     };
@@ -93,9 +100,12 @@ export default async function EstudianteDashboard() {
             </p>
 
             <div className="flex justify-between items-center mt-auto border-t pt-4" style={{ borderColor: "var(--border-color)" }}>
-              <div className="flex gap-4 text-sm text-muted">
-                <span className="flex items-center gap-1"><FileText size={16}/> {course._count.resources} recursos</span>
-                <span className="flex items-center gap-1"><Clock size={16}/> {course._count.tasks} tareas</span>
+              <div className="flex gap-3 text-xs text-muted flex-wrap">
+                <span className="flex items-center gap-1"><FileText size={14}/> {course._count.resources} recursos</span>
+                <span className="flex items-center gap-1"><Clock size={14}/> {course._count.tasks} tareas</span>
+                {course._count.exams > 0 && (
+                  <span className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-medium"><ClipboardList size={14}/> {course._count.exams} exámenes</span>
+                )}
               </div>
               <Link href={`/estudiante/cursos/${course.id}`} className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.875rem' }}>
                 Ver Asignatura

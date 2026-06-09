@@ -42,6 +42,7 @@ interface Task {
   theme?: string | null;
   weight?: number | null;
   period?: string | null;
+  type?: string;
   active?: boolean;
   publishAt?: string | null;
   allowLateSubmission?: boolean;
@@ -82,7 +83,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
   const router = useRouter();
   const confirm = useConfirm();
   
-  const [activeTab, setActiveTab] = useState<"tareas" | "materiales">("tareas");
+  const [activeTab, setActiveTab] = useState<"tareas" | "materiales" | "examenes">("tareas");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -235,7 +236,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     lateSubmissionUntil: "",
     groupIds: [] as string[],
     publishAt: "",
-    externalUrl: ""
+    externalUrl: "",
+    type: "TASK"
   });
   const [taskFile, setTaskFile] = useState<File | null>(null);
 
@@ -324,7 +326,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       lateSubmissionUntil: "",
       groupIds: [],
       publishAt: "",
-      externalUrl: ""
+      externalUrl: "",
+      type: activeTab === "examenes" ? "EXAM" : "TASK"
     });
     setTaskFile(null);
     setShowTaskModal(true);
@@ -351,7 +354,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       lateSubmissionUntil: formattedLateUntil,
       groupIds: task.groups.map(g => g.id),
       publishAt: formattedPublishAt,
-      externalUrl: task.attachmentUrl && !task.attachmentUrl.includes("supabase") && !task.attachmentUrl.includes("drive.google.com") ? task.attachmentUrl : ""
+      externalUrl: task.attachmentUrl && !task.attachmentUrl.includes("supabase") && !task.attachmentUrl.includes("drive.google.com") ? task.attachmentUrl : "",
+      type: task.type || "TASK"
     });
     setTaskFile(null);
     setShowTaskModal(true);
@@ -377,6 +381,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     fd.append("period", taskForm.period);
     fd.append("weight", taskForm.weight.toString());
     fd.append("allowLateSubmission", taskForm.allowLateSubmission ? "true" : "false");
+    fd.append("type", taskForm.type);
     if (taskForm.allowLateSubmission && taskForm.lateSubmissionUntil) {
       fd.append("lateSubmissionUntil", new Date(taskForm.lateSubmissionUntil).toISOString());
     }
@@ -577,16 +582,15 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       <div className="flex gap-4 border-b pb-1" style={{ borderColor: "var(--border-color)" }}>
         <button
           onClick={() => setActiveTab("tareas")}
-          className={`pb-3 px-2 font-bold text-sm md:text-base border-b-2 transition-all ${
-            activeTab === "tareas" 
-              ? "border-blue-600 text-blue-600 font-extrabold" 
-              : "border-transparent text-muted hover:text-primary"
-          }`}
+          className={`flex items-center gap-2 px-5 py-3 font-semibold transition-colors border-b-2 ${activeTab === "tareas" ? "text-blue-600 border-blue-600 dark:text-blue-400 dark:border-blue-400" : "text-muted border-transparent hover:text-foreground"}`}
         >
-          <span className="flex items-center gap-2">
-            <ClipboardList size={18} />
-            Gestión de Tareas
-          </span>
+          <ClipboardList size={18} /> Tareas
+        </button>
+        <button
+          onClick={() => setActiveTab("examenes")}
+          className={`flex items-center gap-2 px-5 py-3 font-semibold transition-colors border-b-2 ${activeTab === "examenes" ? "text-blue-600 border-blue-600 dark:text-blue-400 dark:border-blue-400" : "text-muted border-transparent hover:text-foreground"}`}
+        >
+          <ClipboardList size={18} /> Exámenes
         </button>
         <button
           onClick={() => setActiveTab("materiales")}
@@ -616,7 +620,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
           {/* Header Action Row */}
           <div className="flex justify-between items-center flex-wrap gap-4">
             <h3 className="font-bold text-base md:text-lg">
-              {activeTab === "tareas" ? "Tareas y Evaluaciones Asignadas" : "Materiales de Clase Compartidos"}
+              {activeTab === "tareas" ? "Tareas y Evaluaciones Asignadas" : activeTab === "examenes" ? "Exámenes y Evaluaciones" : "Materiales de Clase Compartidos"}
             </h3>
             <div className="flex items-center gap-4 flex-wrap">
               <GDriveVisibilityToggle context={activeTab === "tareas" ? "tasks" : "materials"} />
@@ -625,18 +629,18 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                 className="btn btn-primary px-4 py-2 text-sm flex items-center gap-2"
               >
                 <Plus size={18} />
-                {activeTab === "tareas" ? "Nueva Tarea" : "Subir Material"}
+                {activeTab === "tareas" ? "Nueva Tarea" : activeTab === "examenes" ? "Nuevo Examen" : "Subir Material"}
               </button>
             </div>
           </div>
 
           {/* List and Tables */}
-          {activeTab === "tareas" && (
+          {(activeTab === "tareas" || activeTab === "examenes") && (
             <div className="flex flex-col gap-6">
               {/* Global Filter Toolbar */}
               {allTasks.length > 0 && (uniqueThemes.length > 0 || uniquePeriods.length > 0) && (
                 <div className="card p-4 flex flex-wrap gap-4 items-center mb-2" style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-color)" }}>
-                  <span className="font-semibold text-sm text-muted">Filtrar Tareas:</span>
+                  <span className="font-semibold text-sm text-muted">Filtrar {activeTab === "examenes" ? "Exámenes" : "Tareas"}:</span>
                   {uniqueThemes.length > 0 && (
                     <div className="flex items-center gap-2">
                       <label className="text-xs text-muted font-medium">Tema:</label>
@@ -673,7 +677,9 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                 const filteredTasks = course.tasks.filter(task => {
                   const matchTheme = !selectedTheme || task.theme === selectedTheme;
                   const matchPeriod = !selectedPeriod || task.period === selectedPeriod;
-                  return matchTheme && matchPeriod;
+                  const matchType = task.type === (activeTab === "examenes" ? "EXAM" : "TASK");
+                  const matchTabPeriod = task.period === activePeriodTab;
+                  return matchTheme && matchPeriod && matchType && matchTabPeriod;
                 });
 
                 if (hasFiltersApplied && filteredTasks.length === 0) return null;
@@ -1153,29 +1159,38 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                 value={taskForm.description} onChange={e => setTaskForm({ ...taskForm, description: e.target.value })} />
             </div>
 
-            <div className="input-group mb-4">
-              <label className="text-xs font-bold mb-1">Enlace Externo (Google Forms, Youtube, etc.)</label>
-              <input type="url" className="input-field py-1.5 px-3 text-xs" placeholder="Ej. https://docs.google.com/forms/.../viewform?usp=pp_url&entry.123=__ESTUDIANTE__"
-                value={taskForm.externalUrl} onChange={e => setTaskForm({ ...taskForm, externalUrl: e.target.value })} />
-              <p className="text-[10px] text-muted mt-1">
-                Si pegas un enlace prellenado de Google Forms, usa <strong>__ESTUDIANTE__</strong> donde va el nombre, para que el sistema lo llene automáticamente por el alumno.
-              </p>
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-xs font-bold mb-1.5">{editingTask ? "Nuevo Archivo Adjunto (Opcional)" : "Archivo Adjunto (Opcional)"}</label>
-              <label htmlFor="task-file" className="block border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-blue-500 transition-colors" style={{ borderColor: 'var(--border-color)' }}>
-                <UploadCloud size={24} className="mx-auto mb-1.5 text-blue-500" />
-                <p className="text-xs font-bold">{taskFile ? taskFile.name : "Selecciona una guía o archivo"}</p>
-                <input id="task-file" type="file" className="hidden" onChange={e => setTaskFile(e.target.files?.[0] || null)} />
-              </label>
-            </div>
+            {taskForm.type === "EXAM" ? (
+              <div className="input-group mb-4">
+                <label className="text-xs font-bold mb-1">Enlace del Examen (Google Forms, etc.)</label>
+                <input type="url" className="input-field py-1.5 px-3 text-xs" placeholder="Ej. https://docs.google.com/forms/.../viewform?usp=pp_url&entry.123=__ESTUDIANTE__"
+                  value={taskForm.externalUrl} onChange={e => setTaskForm({ ...taskForm, externalUrl: e.target.value })} />
+                <p className="text-[10px] text-muted mt-1">
+                  Para Google Forms, recuerda usar <strong>__ESTUDIANTE__</strong> en el enlace prellenado para la calificación automática.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="input-group mb-4">
+                  <label className="text-xs font-bold mb-1">Enlace Externo (Opcional, ej. YouTube, lectura web)</label>
+                  <input type="url" className="input-field py-1.5 px-3 text-xs" placeholder="Ej. https://www.youtube.com/watch?v=..."
+                    value={taskForm.externalUrl} onChange={e => setTaskForm({ ...taskForm, externalUrl: e.target.value })} />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-xs font-bold mb-1.5">{editingTask ? "Nuevo Archivo Adjunto (Opcional)" : "Archivo Adjunto (Opcional)"}</label>
+                  <label htmlFor="task-file" className="block border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-blue-500 transition-colors" style={{ borderColor: 'var(--border-color)' }}>
+                    <UploadCloud size={24} className="mx-auto mb-1.5 text-blue-500" />
+                    <p className="text-xs font-bold">{taskFile ? taskFile.name : "Selecciona una guía o archivo"}</p>
+                    <input id="task-file" type="file" className="hidden" onChange={e => setTaskFile(e.target.files?.[0] || null)} />
+                  </label>
+                </div>
+              </>
+            )}
 
             <div className="flex justify-end gap-3 border-t pt-4" style={{ borderColor: "var(--border-color)" }}>
               <button type="button" className="btn btn-secondary text-xs" onClick={() => setShowTaskModal(false)}>Cancelar</button>
               <button type="submit" className="btn btn-primary text-xs" disabled={loading}>
                 {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
-                {editingTask ? "Guardar Cambios" : "Crear Tarea"}
+                {editingTask ? "Guardar Cambios" : (taskForm.type === "EXAM" ? "Crear Examen" : "Crear Tarea")}
               </button>
             </div>
           </form>
