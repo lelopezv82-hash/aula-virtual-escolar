@@ -7,7 +7,7 @@ import Link from "next/link";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
-export default async function TareasEstudiantePage() {
+export default async function ExamenesEstudiantePage() {
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
   if (!token) return null;
@@ -28,10 +28,10 @@ export default async function TareasEstudiantePage() {
   const activePeriodNames = activePeriodsFromDb.map(p => p.name);
   const now = new Date();
 
-  const tasks = await prisma.task.findMany({
+  const exams = await prisma.task.findMany({
     where: {
       active: true,
-      type: "TASK",
+      type: "EXAM",
       OR: [
         { period: null },
         { period: { in: activePeriodNames } }
@@ -62,54 +62,54 @@ export default async function TareasEstudiantePage() {
   return (
     <div className="animate-fade-in">
       <div className="dashboard-header">
-        <h1>Mis Tareas</h1>
-        <p>Revisa y envía tus asignaciones pendientes.</p>
+        <h1>Mis Exámenes</h1>
+        <p>Revisa y resuelve tus evaluaciones programadas.</p>
       </div>
 
       <div className="flex flex-col gap-4">
-        {tasks.length === 0 ? (
+        {exams.length === 0 ? (
           <div className="card text-center py-8 text-muted">
             <ClipboardList size={48} className="mx-auto mb-4 opacity-50" />
-            <p>No tienes tareas asignadas en este momento.</p>
+            <p>No tienes exámenes asignados en este momento.</p>
           </div>
         ) : (
-          tasks.map(task => {
-            const submission = task.submissions[0];
-            const isLate = new Date() > new Date(task.dueDate);
+          exams.map(exam => {
+            const submission = exam.submissions[0];
+            const isLate = new Date() > new Date(exam.dueDate);
             const isSubmitted = submission && submission.status !== "PENDING";
             const isGraded = submission && submission.status === "GRADED";
 
             return (
-              <div key={task.id} className="card flex flex-col md:flex-row md:items-center justify-between gap-4" style={{ borderLeft: isSubmitted ? '4px solid var(--success)' : isLate ? '4px solid var(--danger)' : '4px solid var(--primary-color)' }}>
+              <div key={exam.id} className="card flex flex-col md:flex-row md:items-center justify-between gap-4" style={{ borderLeft: isSubmitted ? '4px solid var(--success)' : isLate ? '4px solid var(--danger)' : '4px solid #8b5cf6' }}>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-bold px-2 py-1 bg-gray-100 rounded text-gray-600">
-                      {task.course.name}
+                    <span className="text-xs font-bold px-2 py-1 bg-purple-100 rounded text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                      {exam.course.name}
                     </span>
                     {isGraded && (
                       <span className="badge badge-success flex items-center gap-1">
-                        <CheckCircle size={12} /> Calificada: {submission.grade}
+                        <CheckCircle size={12} /> Calificado: {submission.grade}
                       </span>
                     )}
                     {isSubmitted && !isGraded && (
-                      <span className="badge badge-info">Entregada</span>
+                      <span className="badge badge-info">Entregado</span>
                     )}
                     {!isSubmitted && isLate && (
-                      <span className="badge badge-danger">Atrasada</span>
+                      <span className="badge badge-danger">Atrasado</span>
                     )}
                   </div>
-                  <h3 className="text-lg font-bold text-primary">{task.title}</h3>
-                  <p className="text-sm text-muted line-clamp-2 mt-1">{task.description}</p>
+                  <h3 className="text-lg font-bold" style={{ color: '#8b5cf6' }}>{exam.title}</h3>
+                  <p className="text-sm text-muted line-clamp-2 mt-1">{exam.description}</p>
                 </div>
 
                 <div className="flex flex-col md:items-end gap-2 min-w-[200px]">
                   <div className="text-sm text-muted flex items-center gap-1">
                     <Clock size={16} /> 
-                    Vence: {new Date(task.dueDate).toLocaleString()}
+                    Vence: {new Date(exam.dueDate).toLocaleString()}
                   </div>
                   
-                  <Link href={`/estudiante/tareas/${task.id}`} className={`btn w-full md:w-auto ${isSubmitted ? 'btn-secondary' : 'btn-primary'}`}>
-                    {isSubmitted ? 'Ver Entrega' : 'Subir Tarea'}
+                  <Link href={`/estudiante/tareas/${exam.id}`} className={`btn w-full md:w-auto ${isSubmitted ? 'btn-secondary' : ''}`} style={{ backgroundColor: isSubmitted ? undefined : '#8b5cf6', color: isSubmitted ? undefined : 'white' }}>
+                    {isSubmitted ? 'Ver Entrega' : 'Resolver Examen'}
                   </Link>
                 </div>
               </div>

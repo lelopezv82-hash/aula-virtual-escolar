@@ -38,6 +38,11 @@ export default async function EstudianteLayout({ children }: { children: React.R
       icon: <ClipboardList size={20} />,
     },
     {
+      href: "/estudiante/examenes",
+      label: "Mis Exámenes",
+      icon: <ClipboardList size={20} />,
+    },
+    {
       href: "/estudiante/recursos",
       label: "Recursos",
       icon: <BookOpen size={20} />,
