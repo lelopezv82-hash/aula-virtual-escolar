@@ -261,35 +261,100 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
   const handleCopyScript = () => {
     if (!scriptModalTask) return;
     const script = `function onFormSubmit(e) {
-  var formResponse = e.response;
-  var itemResponses = formResponse.getItemResponses();
-  var studentName = "";
-  
-  if (itemResponses.length > 0) {
-    studentName = itemResponses[0].getResponse();
-  }
-  
-  var gradableItemResponses = formResponse.getGradableItemResponses();
-  var totalScore = 0;
-  
-  for (var i = 0; i < gradableItemResponses.length; i++) {
-    var itemScore = gradableItemResponses[i].getScore();
-    if (itemScore) totalScore += itemScore;
-  }
-  
-  var payload = {
-    studentName: studentName,
-    score: totalScore
-  };
+  try {
+    var response = e.response;
+    var form = FormApp.getActiveForm();
+    var isQuiz = form.isQuiz();
+    
+    var studentName = "Desconocido";
+    var itemResponses = response.getItemResponses();
+    var rawData = [];
 
-  var options = {
-    "method": "post",
-    "contentType": "application/json",
-    "payload": JSON.stringify(payload)
-  };
+    for (var i = 0; i < itemResponses.length; i++) {
+      var itemResponse = itemResponses[i];
+      var item = itemResponse.getItem();
+      var questionTitle = item.getTitle();
+      var answer = itemResponse.getResponse();
+      
+      if (questionTitle.toLowerCase().indexOf("nombre") !== -1 || 
+          questionTitle.toLowerCase().indexOf("estudiante") !== -1 || 
+          questionTitle.toLowerCase().indexOf("apellido") !== -1) {
+        studentName = answer;
+      }
 
-  var webhookUrl = "${window.location.origin}/api/webhooks/google-forms/${scriptModalTask.id}";
-  UrlFetchApp.fetch(webhookUrl, options);
+      var answerText = answer;
+      if (Array.isArray(answer)) {
+        answerText = answer.join(", ");
+      }
+      
+      rawData.push({
+        question: questionTitle,
+        answer: answerText ? answerText.toString() : ""
+      });
+    }
+    
+    var respondentEmail = response.getRespondentEmail();
+    if (studentName === "Desconocido" && respondentEmail) {
+      studentName = respondentEmail.split('@')[0];
+    }
+
+    var score = null;
+    if (isQuiz) {
+      var totalScore = 0;
+      var totalPossible = 0;
+      
+      var gradedResponses = response.getGradableItemResponses();
+      for (var j = 0; j < gradedResponses.length; j++) {
+        totalScore += gradedResponses[j].getScore() || 0;
+        var gradableItem = gradedResponses[j].getItem();
+        
+        var maxScore = 0;
+        switch(gradableItem.getType()) {
+          case FormApp.ItemType.MULTIPLE_CHOICE:
+            maxScore = gradableItem.asMultipleChoiceItem().getPoints() || 0;
+            break;
+          case FormApp.ItemType.CHECKBOX:
+            maxScore = gradableItem.asCheckboxItem().getPoints() || 0;
+            break;
+          case FormApp.ItemType.LIST:
+            maxScore = gradableItem.asListItem().getPoints() || 0;
+            break;
+          case FormApp.ItemType.TEXT:
+            maxScore = gradableItem.asTextItem().getPoints() || 0;
+            break;
+          case FormApp.ItemType.PARAGRAPH_TEXT:
+            maxScore = gradableItem.asParagraphTextItem().getPoints() || 0;
+            break;
+        }
+        totalPossible += maxScore;
+      }
+      
+      if (totalPossible > 0) {
+        score = (totalScore / totalPossible) * 10;
+      } else {
+        score = totalScore;
+      }
+    }
+
+    var payload = {
+      studentName: studentName,
+      score: score,
+      rawData: rawData
+    };
+
+    var options = {
+      "method": "post",
+      "contentType": "application/json",
+      "payload": JSON.stringify(payload),
+      "muteHttpExceptions": true
+    };
+
+    var webhookUrl = "${window.location.origin}/api/webhooks/google-forms/${scriptModalTask.id}";
+    UrlFetchApp.fetch(webhookUrl, options);
+
+  } catch (err) {
+    console.error("Error en el Webhook:", err);
+  }
 }`;
     navigator.clipboard.writeText(script);
     setCopied(true);
