@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from "react";
 import { ArrowLeft, UploadCloud, Loader2, CheckCircle, FileText, Clock, AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import EvidenciaBotones from "@/app/estudiante/examenes/EvidenciaBotones";
 
 export default function TareaDetallePage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -193,6 +194,26 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
               <div className="mt-2 text-green-900">
                 <strong>Comentario del docente:</strong>
                 <p className="italic mt-1">&quot;{submission.feedback}&quot;</p>
+              </div>
+            )}
+            
+            {isGoogleForm && submission.feedback && (
+              <div className="mt-4 border-t border-green-200 pt-4">
+                <EvidenciaBotones 
+                  exam={{
+                    id: task.id,
+                    title: task.title,
+                    course: { name: task.course?.name || "Asignatura" }
+                  }}
+                  submission={{
+                    grade: submission.grade,
+                    status: submission.status,
+                    fileUrl: submission.fileUrl,
+                    submittedAt: submission.submittedAt,
+                    feedback: submission.feedback
+                  }}
+                  isGoogleForm={isGoogleForm}
+                />
               </div>
             )}
           </div>

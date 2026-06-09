@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { CheckCircle, Clock, AlertCircle } from "lucide-react";
+import EvidenciaBotones from "@/app/estudiante/examenes/EvidenciaBotones";
 
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
@@ -116,6 +117,26 @@ export default async function CalificacionesEstudiantePage() {
                           )}
                           {!isGraded && (
                             <p className="text-sm text-muted mt-1">Tu docente aún no ha calificado esta entrega.</p>
+                          )}
+                          
+                          {sub.feedback && (sub.task.attachmentUrl?.includes("docs.google.com/forms") || sub.task.attachmentUrl?.includes("forms.gle")) && (
+                            <div className="mt-3">
+                              <EvidenciaBotones 
+                                exam={{
+                                  id: sub.task.id,
+                                  title: sub.task.title,
+                                  course: { name: sub.task.course?.name || "Asignatura" }
+                                }}
+                                submission={{
+                                  grade: sub.grade,
+                                  status: sub.status,
+                                  fileUrl: sub.fileUrl,
+                                  submittedAt: sub.submittedAt,
+                                  feedback: sub.feedback
+                                }}
+                                isGoogleForm={true}
+                              />
+                            </div>
                           )}
                         </div>
 
