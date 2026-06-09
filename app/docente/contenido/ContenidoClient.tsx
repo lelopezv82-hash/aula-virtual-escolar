@@ -1520,6 +1520,21 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       var maxScore = null;
       var isCorrect = false;
       var correctAnswerText = "";
+      var itemOptions = [];
+
+      try {
+        var type = item.getType();
+        if (type === FormApp.ItemType.MULTIPLE_CHOICE) {
+          var choices = item.asMultipleChoiceItem().getChoices();
+          for(var c=0; c<choices.length; c++) itemOptions.push(choices[c].getValue());
+        } else if (type === FormApp.ItemType.CHECKBOX) {
+          var choices = item.asCheckboxItem().getChoices();
+          for(var c=0; c<choices.length; c++) itemOptions.push(choices[c].getValue());
+        } else if (type === FormApp.ItemType.LIST) {
+          var choices = item.asListItem().getChoices();
+          for(var c=0; c<choices.length; c++) itemOptions.push(choices[c].getValue());
+        }
+      } catch(e) {}
 
       if (isQuiz) {
         try {
@@ -1576,7 +1591,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
         score: itemScore,
         maxScore: maxScore,
         isCorrect: isCorrect,
-        correctAnswer: correctAnswerText
+        correctAnswer: correctAnswerText,
+        options: itemOptions
       });
     }
     

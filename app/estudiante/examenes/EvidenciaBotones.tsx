@@ -31,6 +31,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
     maxScore?: number | null;
     isCorrect?: boolean;
     correctAnswer?: string;
+    options?: string[];
   }[] | null = null;
   if (isGoogleForm && submission.feedback) {
     try {
@@ -133,19 +134,47 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
                             )}
                           </div>
 
-                          {/* Respuesta del estudiante */}
+                          {/* Respuesta del estudiante y Opciones */}
                           <div className="ml-8">
-                            <div className={`px-4 py-3 rounded-[4px] flex justify-between items-center ${isIncorrect ? 'bg-[#fce8e6]' : isCorrect ? 'bg-[#e6f4ea]' : ''}`}>
-                              <div className="flex items-center gap-3">
-                                {/* Radio button simulado */}
-                                <div className="w-5 h-5 rounded-full border-2 border-[#5f6368] flex items-center justify-center shrink-0">
-                                  <div className="w-2.5 h-2.5 rounded-full bg-[#5f6368]"></div>
-                                </div>
-                                <span className="text-[14px] text-[#202124]">{item.answer || <span className="italic text-[#80868b]">Sin responder</span>}</span>
+                            {item.options && item.options.length > 0 ? (
+                              <div className="flex flex-col gap-3">
+                                {item.options.map((opt, optIndex) => {
+                                  const isUserAnswer = opt === item.answer;
+                                  
+                                  let bgClass = "";
+                                  if (isUserAnswer) {
+                                    bgClass = isCorrect ? "bg-[#e6f4ea]" : "bg-[#fce8e6]";
+                                  }
+                                  
+                                  return (
+                                    <div key={optIndex} className={`px-4 py-3 rounded-[4px] flex justify-between items-center ${bgClass}`}>
+                                      <div className="flex items-center gap-3">
+                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${isUserAnswer ? 'border-[#5f6368]' : 'border-[#bdc1c6]'}`}>
+                                          {isUserAnswer && <div className="w-2.5 h-2.5 rounded-full bg-[#5f6368]"></div>}
+                                        </div>
+                                        <span className="text-[14px] text-[#202124]">{opt}</span>
+                                      </div>
+                                      
+                                      {isUserAnswer && isIncorrect && <X className="text-[#d93025] shrink-0" size={20} />}
+                                      {isUserAnswer && isCorrect && <CheckCircle2 className="text-[#1e8e3e] shrink-0" size={20} />}
+                                    </div>
+                                  );
+                                })}
                               </div>
-                              {isIncorrect && <X className="text-[#d93025] shrink-0" size={20} />}
-                              {isCorrect && <CheckCircle2 className="text-[#1e8e3e] shrink-0" size={20} />}
-                            </div>
+                            ) : (
+                              // Fallback para entregas antiguas sin options
+                              <div className={`px-4 py-3 rounded-[4px] flex justify-between items-center ${isIncorrect ? 'bg-[#fce8e6]' : isCorrect ? 'bg-[#e6f4ea]' : ''}`}>
+                                <div className="flex items-center gap-3">
+                                  {/* Radio button simulado */}
+                                  <div className="w-5 h-5 rounded-full border-2 border-[#5f6368] flex items-center justify-center shrink-0">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-[#5f6368]"></div>
+                                  </div>
+                                  <span className="text-[14px] text-[#202124]">{item.answer || <span className="italic text-[#80868b]">Sin responder</span>}</span>
+                                </div>
+                                {isIncorrect && <X className="text-[#d93025] shrink-0" size={20} />}
+                                {isCorrect && <CheckCircle2 className="text-[#1e8e3e] shrink-0" size={20} />}
+                              </div>
+                            )}
 
                             {/* Respuesta Correcta (si se equivocó) */}
                             {isIncorrect && item.correctAnswer && (
@@ -160,10 +189,11 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
                               </div>
                             )}
                             
-                            {/* Nota si hay opciones faltantes */}
-                            <div className="mt-4 text-[12px] text-[#bdc1c6] italic">
-                              * Solo se muestran la respuesta elegida y la correcta.
-                            </div>
+                            {!item.options && (
+                              <div className="mt-4 text-[12px] text-[#bdc1c6] italic">
+                                * Solo se muestran la respuesta elegida y la correcta.
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
