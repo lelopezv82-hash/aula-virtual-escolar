@@ -114,6 +114,8 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
     ? studentLateUntil 
     : (generalLateUntil && generalLateUntil > now ? generalLateUntil : null);
 
+  const isGoogleForm = task?.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle"));
+
   const finalIframeUrl = task?.attachmentUrl 
     ? task.attachmentUrl.replace("__ESTUDIANTE__", encodeURIComponent(studentName || "")) 
     : "";
@@ -136,7 +138,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
           {task.description}
         </p>
 
-        {task.attachmentUrl && !task.attachmentUrl.includes("docs.google.com/forms") && !task.attachmentUrl.includes("forms.gle") && (
+        {task.attachmentUrl && !isGoogleForm && (
           <div className="flex items-center gap-3 p-4 border rounded-md" style={{ borderColor: "var(--border-color)", background: "var(--bg-primary)" }}>
             <FileText className="text-blue-500" size={32} />
             <div>
@@ -154,7 +156,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
           </div>
         )}
 
-        {task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")) && (
+        {isGoogleForm && (
           <div className="mt-4 border rounded-lg overflow-hidden" style={{ borderColor: "var(--border-color)" }}>
             <div className="bg-blue-50 dark:bg-blue-900/20 p-3 border-b text-sm font-medium flex items-center gap-2 text-blue-800 dark:text-blue-300" style={{ borderColor: "var(--border-color)" }}>
               <span>📝 Por favor responde el siguiente formulario:</span>
@@ -192,7 +194,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
           </div>
         )}
 
-        {isSubmitted && (
+        {isSubmitted && !isGoogleForm && (
           <div className="flex items-center gap-3 p-4 border rounded-md mb-6" style={{ borderColor: "var(--border-color)" }}>
             <FileText className="text-blue-500" size={32} />
             <div>
@@ -210,7 +212,16 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
           </div>
         )}
 
-        {!isGraded && (
+        {isSubmitted && isGoogleForm && !isGraded && (
+          <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/50 rounded-lg p-4 mb-6">
+            <h3 className="font-bold text-blue-800 mb-1 flex items-center gap-2">
+              <CheckCircle size={18} /> Formulario Recibido
+            </h3>
+            <p className="text-sm text-blue-700">Tu examen ha sido recibido. Actualiza la página si la calificación automática está activada.</p>
+          </div>
+        )}
+
+        {!isGraded && !isGoogleForm && (
           isSubmissionBlocked ? (
             <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-lg p-4 text-red-800 dark:text-red-350 flex flex-col gap-2">
               <h3 className="font-bold flex items-center gap-2">
@@ -252,43 +263,25 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                 )
               )}
               
-              {(!task.attachmentUrl || (!task.attachmentUrl.includes("docs.google.com/forms") && !task.attachmentUrl.includes("forms.gle"))) ? (
-                <>
-                  <div className="border-2 border-dashed rounded-lg p-8 text-center hover:bg-gray-50 transition-colors" style={{ borderColor: 'var(--primary-color)' }}>
-                    <UploadCloud size={48} className="mx-auto mb-4" style={{ color: 'var(--primary-color)' }} />
-                    <label htmlFor="file-upload" className="cursor-pointer">
-                      <span className="btn btn-secondary mx-auto mb-2 inline-flex">Seleccionar Archivo</span>
-                      <input 
-                        id="file-upload" 
-                        type="file" 
-                        className="hidden" 
-                        onChange={handleFileChange} 
-                      />
-                    </label>
-                    <p className="text-sm text-muted mt-2">
-                      {file ? file.name : "Soporta PDF, DOCX, Imágenes y archivos comprimidos."}
-                    </p>
-                  </div>
+              <div className="border-2 border-dashed rounded-lg p-8 text-center hover:bg-gray-50 transition-colors" style={{ borderColor: 'var(--primary-color)' }}>
+                <UploadCloud size={48} className="mx-auto mb-4" style={{ color: 'var(--primary-color)' }} />
+                <label htmlFor="file-upload" className="cursor-pointer">
+                  <span className="btn btn-secondary mx-auto mb-2 inline-flex">Seleccionar Archivo</span>
+                  <input 
+                    id="file-upload" 
+                    type="file" 
+                    className="hidden" 
+                    onChange={handleFileChange} 
+                  />
+                </label>
+                <p className="text-sm text-muted mt-2">
+                  {file ? file.name : "Soporta PDF, DOCX, Imágenes y archivos comprimidos."}
+                </p>
+              </div>
 
-                  <button type="submit" className="btn btn-primary mt-2" disabled={loading}>
-                    {loading ? <Loader2 className="animate-spin" size={20} /> : (isSubmitted ? "Reemplazar Entrega" : "Enviar Tarea")}
-                  </button>
-                </>
-              ) : (
-                <div className="text-center p-6 border rounded-lg bg-slate-50 dark:bg-slate-900/50 flex flex-col items-center gap-3" style={{ borderColor: 'var(--border-color)' }}>
-                  <p className="text-sm text-muted max-w-sm">
-                    Esta tarea es un formulario externo. Asegúrate de haberlo enviado arriba antes de marcarla como completada.
-                  </p>
-                  <button 
-                    type="button" 
-                    onClick={(e) => handleUpload(e, true)} 
-                    className="btn btn-primary w-full max-w-xs" 
-                    disabled={loading}
-                  >
-                    {loading ? <Loader2 className="animate-spin mx-auto" size={20} /> : (isSubmitted ? "Ya Completada" : "Marcar como Completada")}
-                  </button>
-                </div>
-              )}
+              <button type="submit" className="btn btn-primary mt-2" disabled={loading}>
+                {loading ? <Loader2 className="animate-spin" size={20} /> : (isSubmitted ? "Reemplazar Entrega" : "Enviar Tarea")}
+              </button>
             </form>
           )
         )}
