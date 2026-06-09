@@ -69,8 +69,8 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
               <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400">
                 {isGoogleForm ? (
                   <p>
-                    Las respuestas detalladas de este examen están registradas en Google Forms. 
-                    Revisa tu correo electrónico para ver el comprobante que Google envía automáticamente.
+                    Tu examen fue enviado con éxito a través de Google Forms y tus respuestas han sido registradas. 
+                    Esta calificación ya es oficial en la plataforma.
                   </p>
                 ) : submission.fileUrl ? (
                   <div className="flex flex-col gap-2 items-start">
