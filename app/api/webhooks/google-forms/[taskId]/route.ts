@@ -66,7 +66,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tas
       update: {
         status: gradeToSave !== null ? "GRADED" : "SUBMITTED",
         grade: gradeToSave,
-        feedback: null,
+        feedback: rawData ? JSON.stringify(rawData) : null,
         submittedAt: new Date()
       },
       create: {
@@ -74,7 +74,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tas
         studentId: matchedStudent.id,
         status: gradeToSave !== null ? "GRADED" : "SUBMITTED",
         grade: gradeToSave,
-        feedback: null,
+        feedback: rawData ? JSON.stringify(rawData) : null,
         submittedAt: new Date()
       }
     });

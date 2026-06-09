@@ -125,7 +125,8 @@ export default async function ExamenesEstudiantePage() {
                         grade: submission.grade,
                         status: submission.status,
                         fileUrl: submission.fileUrl,
-                        submittedAt: submission.submittedAt
+                        submittedAt: submission.submittedAt,
+                        feedback: submission.feedback
                       }}
                       isGoogleForm={!!exam.attachmentUrl && (exam.attachmentUrl.includes("docs.google.com/forms") || exam.attachmentUrl.includes("forms.gle"))}
                     />
