@@ -285,9 +285,11 @@ export default async function EstudianteCursoDetallePage({
                         </div>
 
                         <div>
-                          <Link href={`/estudiante/tareas/${task.id}`} className="btn btn-primary text-sm bg-indigo-600 hover:bg-indigo-700 text-white">
-                            {isSubmitted ? "Ver Examen" : "Resolver Examen"}
-                          </Link>
+                          {!isSubmitted && (
+                            <Link href={`/estudiante/tareas/${task.id}`} className="btn btn-primary text-sm bg-indigo-600 hover:bg-indigo-700 text-white">
+                              Resolver Examen
+                            </Link>
+                          )}
                         </div>
                       </div>
                     );

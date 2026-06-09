@@ -108,9 +108,11 @@ export default async function ExamenesEstudiantePage() {
                     Vence: {new Date(exam.dueDate).toLocaleString()}
                   </div>
                   
-                  <Link href={`/estudiante/tareas/${exam.id}`} className={`btn w-full md:w-auto ${isSubmitted ? 'btn-secondary' : ''}`} style={{ backgroundColor: isSubmitted ? undefined : '#8b5cf6', color: isSubmitted ? undefined : 'white' }}>
-                    {isSubmitted ? 'Ver Entrega' : 'Resolver Examen'}
-                  </Link>
+                  {!isSubmitted && (
+                    <Link href={`/estudiante/tareas/${exam.id}`} className="btn w-full md:w-auto" style={{ backgroundColor: '#8b5cf6', color: 'white' }}>
+                      Resolver Examen
+                    </Link>
+                  )}
                 </div>
               </div>
             );
