@@ -1049,7 +1049,11 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
           onClick={e => e.target === e.currentTarget && setShowTaskModal(false)}>
           <form onSubmit={handleSaveTask} className="card w-full max-w-lg animate-fade-in" style={{ borderRadius: "1rem" }}>
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold">{editingTask ? "Editar Tarea" : "Nueva Tarea"}</h2>
+              <h2 className="text-lg font-bold">
+                {editingTask 
+                  ? (taskForm.type === "EXAM" ? "Editar Examen" : "Editar Tarea") 
+                  : (taskForm.type === "EXAM" ? "Nuevo Examen" : "Nueva Tarea")}
+              </h2>
               <button type="button" onClick={() => setShowTaskModal(false)} className="p-1 rounded hover:bg-slate-150"><X size={20} /></button>
             </div>
             {error && <div className="alert alert-danger mb-4 text-xs font-bold">{error}</div>}
@@ -1078,7 +1082,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
 
             <div className="flex gap-4 mb-3 flex-wrap sm:flex-nowrap">
               <div className="input-group flex-1">
-                <label className="text-xs font-bold mb-1">Título de la Tarea *</label>
+                <label className="text-xs font-bold mb-1">{taskForm.type === "EXAM" ? "Título del Examen" : "Título de la Tarea"} *</label>
                 <input type="text" className="input-field py-1.5 px-3 text-xs" placeholder="Ej. Taller de cinemática"
                   value={taskForm.title} onChange={e => setTaskForm({ ...taskForm, title: e.target.value })} required />
               </div>
@@ -1156,7 +1160,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
             </div>
 
             <div className="input-group mb-4">
-              <label className="text-xs font-bold mb-1">Descripción de la Tarea</label>
+              <label className="text-xs font-bold mb-1">{taskForm.type === "EXAM" ? "Descripción del Examen" : "Descripción de la Tarea"}</label>
               <textarea className="input-field py-1.5 px-3 text-xs h-20" placeholder="Escribe las instrucciones aquí..."
                 value={taskForm.description} onChange={e => setTaskForm({ ...taskForm, description: e.target.value })} />
             </div>
