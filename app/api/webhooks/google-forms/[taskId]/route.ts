@@ -66,7 +66,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tas
       update: {
         status: gradeToSave !== null ? "GRADED" : "SUBMITTED",
         grade: gradeToSave,
-        feedback: gradeToSave !== null ? `Calificado automáticamente por Google Forms. Puntaje: ${score}` : 'Enviado por Google Forms',
+        feedback: null,
         submittedAt: new Date()
       },
       create: {
@@ -74,7 +74,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tas
         studentId: matchedStudent.id,
         status: gradeToSave !== null ? "GRADED" : "SUBMITTED",
         grade: gradeToSave,
-        feedback: gradeToSave !== null ? `Calificado automáticamente por Google Forms. Puntaje: ${score}` : 'Enviado por Google Forms',
+        feedback: null,
         submittedAt: new Date()
       }
     });
