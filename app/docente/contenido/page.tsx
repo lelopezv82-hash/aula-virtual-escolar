@@ -42,7 +42,7 @@ export default async function ContenidoPage() {
             }
           }
         },
-        orderBy: { dueDate: 'asc' }
+        orderBy: { createdAt: 'desc' }
       }
     },
     orderBy: { name: 'asc' }

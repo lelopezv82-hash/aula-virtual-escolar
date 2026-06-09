@@ -53,7 +53,7 @@ export default async function EstudianteCursoDetallePage({
         include: { groups: true }
       },
       tasks: {
-        orderBy: { dueDate: "asc" },
+        orderBy: { createdAt: "desc" },
         include: {
           groups: true,
           submissions: {
