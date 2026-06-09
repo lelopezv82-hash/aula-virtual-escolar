@@ -156,7 +156,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
           </div>
         )}
 
-        {isGoogleForm && (
+        {isGoogleForm && !isSubmitted && !isGraded && (
           <div className="mt-4 border rounded-lg overflow-hidden" style={{ borderColor: "var(--border-color)" }}>
             <div className="bg-blue-50 dark:bg-blue-900/20 p-3 border-b text-sm font-medium flex items-center gap-2 text-blue-800 dark:text-blue-300" style={{ borderColor: "var(--border-color)" }}>
               <span>📝 Por favor responde el siguiente formulario:</span>
