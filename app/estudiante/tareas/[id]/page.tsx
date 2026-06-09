@@ -124,7 +124,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   return (
     <div className="animate-fade-in max-w-3xl mx-auto">
       <div className="flex items-center gap-4 mb-6">
-        <Link href="/estudiante/tareas" className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+        <Link href={task.type === 'EXAM' ? "/estudiante/examenes" : "/estudiante/tareas"} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
           <ArrowLeft size={24} />
         </Link>
         <div>
