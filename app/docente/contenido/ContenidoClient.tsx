@@ -602,7 +602,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
         >
           <span className="flex items-center gap-2">
             <FileText size={18} />
-            Gestión de Materiales
+            Materiales
           </span>
         </button>
 
