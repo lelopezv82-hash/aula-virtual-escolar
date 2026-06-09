@@ -135,7 +135,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
                           </div>
 
                           {/* Respuesta del estudiante y Opciones */}
-                          <div className="ml-8">
+                          <div className="mt-2">
                             {item.options && item.options.length > 0 ? (
                               <div className="flex flex-col gap-3">
                                 {item.options.map((opt, optIndex) => {
