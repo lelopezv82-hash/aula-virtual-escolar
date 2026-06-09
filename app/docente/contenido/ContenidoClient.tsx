@@ -625,7 +625,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
             <div className="flex items-center gap-4 flex-wrap">
               <GDriveVisibilityToggle context={activeTab === "tareas" ? "tasks" : "materials"} />
               <button
-                onClick={() => activeTab === "tareas" ? openNewTaskModal() : openNewResourceModal()}
+                onClick={() => (activeTab === "tareas" || activeTab === "examenes") ? openNewTaskModal() : openNewResourceModal()}
                 className="btn btn-primary px-4 py-2 text-sm flex items-center gap-2"
               >
                 <Plus size={18} />
