@@ -35,6 +35,7 @@ export async function POST(request: Request) {
     const weightRaw = formData.get('weight') as string | null;
     const weight = weightRaw ? parseInt(weightRaw, 10) : 0;
     const groupIdsJson = formData.get('groupIds') as string | null;
+    const publishAtRaw = formData.get('publishAt') as string | null;
     const publishAt = publishAtRaw && publishAtRaw.trim() !== "" ? new Date(publishAtRaw) : null;
     const externalUrl = formData.get('externalUrl') as string | null;
     const type = formData.get('type') as string | null;
