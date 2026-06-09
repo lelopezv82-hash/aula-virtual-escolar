@@ -1387,7 +1387,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
               >
                 {copied ? <span className="text-green-600 font-bold">¡Copiado!</span> : <><Copy size={12} /> Copiar</>}
               </button>
-              <pre className="p-4 bg-slate-900 text-green-400 rounded-lg text-[10px] overflow-x-auto">
+              <pre className="p-4 bg-slate-900 text-green-400 rounded-lg text-[10px] overflow-x-auto" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
 {`function onFormSubmit(e) {
   try {
     var response = e.response;
