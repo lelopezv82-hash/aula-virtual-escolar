@@ -44,7 +44,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
           style={{ backgroundColor: '#4facfe', color: 'white' }}
         >
           <Eye size={16} />
-          Visualizar Evidencia
+          Ver Respuestas
         </button>
       </div>
 
