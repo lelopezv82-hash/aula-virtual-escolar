@@ -68,18 +68,18 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
         <X size={28} />
       </button>
 
-      <div className="min-h-screen flex justify-center items-start bg-gradient-to-br from-[#f3e8ff] via-[#f5f3ff] to-[#ede9fe]">
+      <div className="min-h-screen flex justify-center items-start bg-[#e8f0fe]">
         <div className="w-full max-w-[770px] flex flex-col animate-fade-in relative mx-auto p-4 md:p-6 lg:py-8">
                 
                 {/* Header (Top Box) */}
-                <div className="bg-white border border-[#dadce0] rounded-[8px] overflow-hidden mb-3 border-t-8 border-t-[#673ab7]">
+                <div className="bg-white border border-[#dadce0] rounded-[8px] overflow-hidden mb-3 border-t-8 border-t-[#1a73e8]">
                   <div className="p-5 sm:p-6">
                     <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
                       <h1 className="text-[24px] sm:text-[32px] text-[#202124] font-normal leading-tight break-words">{exam.title}</h1>
                       
                       <div className="flex flex-col items-end shrink-0 gap-1 mt-2">
                         <span className="text-sm text-[#202124]">Puntos totales</span>
-                        <div className="bg-[#673ab7] text-white px-3 py-1 rounded-[4px] font-medium text-sm">
+                        <div className="bg-[#1a73e8] text-white px-3 py-1 rounded-[4px] font-medium text-sm">
                           {answersData ? (
                             `${answersData.reduce((sum, item) => sum + (item.score || 0), 0)}/${answersData.reduce((sum, item) => sum + (item.maxScore || 0), 0)}`
                           ) : (
