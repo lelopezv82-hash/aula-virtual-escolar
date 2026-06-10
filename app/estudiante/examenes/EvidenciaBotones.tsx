@@ -224,8 +224,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
             </div>
           </div>
         </div>
-      </div>
-    </>,
+      </div>,
     document.body
   ) : null;
 
