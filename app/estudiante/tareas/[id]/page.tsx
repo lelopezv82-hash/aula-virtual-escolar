@@ -118,7 +118,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const isGoogleForm = task?.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle"));
 
   const finalIframeUrl = task?.attachmentUrl 
-    ? task.attachmentUrl.replace(/_*ESTUDIANTE_*/gi, encodeURIComponent(studentName || "")) 
+    ? task.attachmentUrl.replace(/(?:_|%5F|%20|\+|-)*ESTUDIANTE(?:_|%5F|%20|\+|-|%5f)*/gi, encodeURIComponent(studentName || "")) 
     : "";
 
   return (
