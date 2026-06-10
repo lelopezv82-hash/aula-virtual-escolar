@@ -139,7 +139,7 @@ export default function CursosPage() {
     <div className="flex flex-col gap-6 animate-fade-in">
       <div className="flex justify-between items-center border-b pb-4" style={{ borderColor: "var(--border-color)" }}>
         <div>
-          <h1 className="text-2xl font-bold">Mis Asignaturas</h1>
+          <h1 className="text-2xl font-bold">Gestión Asignaturas</h1>
           <p className="text-muted text-sm mt-1">Crea y edita tus asignaturas académicas.</p>
         </div>
         <button className="btn btn-primary shadow-sm" onClick={openCreateCourse}>

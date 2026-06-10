@@ -275,7 +275,7 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
         <div className="card text-center py-12 text-muted">
           <BookOpen size={48} className="mx-auto mb-4 opacity-40 animate-pulse" />
           <p className="text-lg font-medium">No tienes asignaturas activas.</p>
-          <p className="text-sm mt-1">Crea una asignatura en la pestaña &quot;Mis Asignaturas&quot; para empezar.</p>
+          <p className="text-sm mt-1">Crea una asignatura en la pestaña &quot;Gestión Asignaturas&quot; para empezar.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-8">
