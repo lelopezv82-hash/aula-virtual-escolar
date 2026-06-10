@@ -59,7 +59,7 @@ export default function ExportButtons({
 
         const grade = sub?.grade !== undefined && sub?.grade !== null ? sub.grade.toFixed(1) : "—";
         const date = sub?.submittedAt ? new Date(sub.submittedAt).toLocaleString("es-CO") : "—";
-        const feedback = sub?.feedback || "";
+        const feedback = (sub?.feedback && !sub.feedback.trim().startsWith("[")) ? sub.feedback : "";
 
         return [
           period || "Sin Periodo",

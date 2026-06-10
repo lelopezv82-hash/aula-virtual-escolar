@@ -33,7 +33,7 @@ export default function CalificarPage({
         if (data.submission?.grade !== null && data.submission?.grade !== undefined) {
           setGrade(data.submission.grade.toString());
         }
-        if (data.submission?.feedback) {
+        if (data.submission?.feedback && !data.submission.feedback.trim().startsWith("[")) {
           setFeedback(data.submission.feedback);
         }
       })

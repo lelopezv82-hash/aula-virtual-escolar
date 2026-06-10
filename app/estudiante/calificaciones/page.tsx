@@ -110,7 +110,7 @@ export default async function CalificacionesEstudiantePage() {
                             {isPending && <span className="badge badge-info flex items-center gap-1"><Clock size={12} /> En revisión</span>}
                           </div>
                           <h3 className="font-bold text-lg">{sub.task.title}</h3>
-                          {isGraded && sub.feedback && !sub.feedback.includes("Calificado automáticamente por Google Forms") && (
+                          {isGraded && sub.feedback && !sub.feedback.includes("Calificado automáticamente por Google Forms") && !sub.feedback.trim().startsWith("[") && (
                             <div className="mt-2 p-3 rounded-lg text-sm italic" style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)", borderLeft: "3px solid var(--primary-color)" }}>
                               💬 &quot;{sub.feedback}&quot;
                             </div>

@@ -190,10 +190,13 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
               <CheckCircle size={18} /> {task?.type === "EXAM" ? "Examen Calificado" : "Tarea Calificada"}
             </h3>
             <p className="text-2xl font-black text-green-700 my-2">Nota: {submission.grade}</p>
-            {submission.feedback && !submission.feedback.includes("Calificado automáticamente por Google Forms") && (
-              <div className="mt-2 text-green-900">
-                <strong>Comentario del docente:</strong>
-                <p className="italic mt-1">&quot;{submission.feedback}&quot;</p>
+            {submission.feedback && !submission.feedback.includes("Calificado automáticamente por Google Forms") && !submission.feedback.trim().startsWith("[") && (
+              <div className="mt-4 p-4 rounded-lg bg-green-50 border border-green-200">
+                <strong className="text-green-900 flex items-center gap-2 mb-2">
+                  <FileText size={16} />
+                  Comentario del docente:
+                </strong>
+                <p className="italic text-green-800">&quot;{submission.feedback}&quot;</p>
               </div>
             )}
             
