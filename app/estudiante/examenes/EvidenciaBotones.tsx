@@ -73,7 +73,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
                 
                 {/* Header (Top Box) */}
                 <div className="bg-white border border-[#dadce0] rounded-[8px] overflow-hidden mb-3 border-t-8 border-t-[#1a73e8]">
-                  <div className="p-6">
+                  <div className="p-6" style={{ padding: '24px' }}>
                     <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
                       <h1 className="text-[24px] sm:text-[32px] text-[#202124] font-normal leading-tight break-words">{exam.title}</h1>
                       
@@ -97,7 +97,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
                     {answersData.map((item, index) => {
                       if (item.isGradable === false) {
                         return (
-                          <div key={index} className="bg-white p-6 rounded-[8px] border border-[#dadce0] shadow-sm">
+                          <div key={index} className="bg-white p-6 rounded-[8px] border border-[#dadce0] shadow-sm" style={{ padding: '24px' }}>
                             <p className="text-base text-[#202124] mb-6">
                               {item.question} <span className="text-[#d93025]">*</span>
                             </p>
@@ -112,7 +112,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
                       const isCorrect = item.maxScore !== null && item.maxScore !== undefined && item.maxScore > 0 && item.isCorrect;
 
                       return (
-                        <div key={index} className="bg-white p-6 rounded-[8px] border border-[#dadce0] shadow-sm">
+                        <div key={index} className="bg-white p-6 rounded-[8px] border border-[#dadce0] shadow-sm" style={{ padding: '24px' }}>
                           {/* Cabecera de la pregunta */}
                           <div className="flex justify-between items-start mb-4 gap-4">
                             <div className="flex items-start gap-3">
@@ -145,7 +145,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
                                   }
                                   
                                   return (
-                                    <div key={optIndex} className={`px-4 py-3 rounded-[4px] flex justify-between items-center ${bgClass}`}>
+                                    <div key={optIndex} className={`px-4 py-3 rounded-[4px] flex justify-between items-center ${bgClass}`} style={{ padding: '12px 16px' }}>
                                       <div className="flex items-center gap-3">
                                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${isUserAnswer ? 'border-[#5f6368]' : 'border-[#bdc1c6]'}`}>
                                           {isUserAnswer && <div className="w-2.5 h-2.5 rounded-full bg-[#5f6368]"></div>}
@@ -198,7 +198,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
                     })}
                   </div>
                 ) : (
-                  <div className="bg-white rounded-[8px] p-6 border border-[#dadce0] text-[14px] text-[#202124]">
+                  <div className="bg-white rounded-[8px] p-6 border border-[#dadce0] text-[14px] text-[#202124]" style={{ padding: '24px' }}>
                     {isGoogleForm ? (
                       <p>
                         Tu examen fue enviado con éxito a través de Google Forms y tus respuestas han sido registradas. 
