@@ -58,20 +58,20 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
       </div>
 
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-[#f0ebf8] rounded-lg w-full max-w-3xl max-h-[95vh] shadow-2xl flex flex-col overflow-hidden animate-fade-in relative">
-            
-            {/* Botón flotante para cerrar */}
-            <button 
-              onClick={() => setIsOpen(false)}
-              className="absolute top-4 right-4 z-10 bg-white/50 hover:bg-white rounded-full p-2 text-gray-600 transition-colors shadow-sm"
-              title="Cerrar"
-            >
-              <X size={24} />
-            </button>
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm overflow-y-auto">
+          {/* Botón flotante para cerrar FIJO en la pantalla */}
+          <button 
+            onClick={() => setIsOpen(false)}
+            className="fixed top-4 right-4 md:top-6 md:right-6 z-[110] bg-white/20 hover:bg-white text-white hover:text-gray-800 rounded-full p-2 transition-all shadow-lg backdrop-blur-md"
+            title="Cerrar"
+          >
+            <X size={28} />
+          </button>
 
-            <div className="p-4 md:p-8 overflow-y-auto grow min-h-0">
-              <div className="max-w-2xl mx-auto">
+          <div className="min-h-screen p-4 py-16 md:py-20 flex justify-center items-start">
+            <div className="bg-[#f0ebf8] rounded-lg w-full max-w-3xl shadow-2xl flex flex-col animate-fade-in relative">
+              <div className="p-4 md:p-8">
+                <div className="max-w-2xl mx-auto">
                 
                 {/* Header (Top Box) */}
                 <div className="bg-white border border-[#dadce0] rounded-[8px] overflow-hidden mb-4 border-t-8 border-t-[#673ab7]">
