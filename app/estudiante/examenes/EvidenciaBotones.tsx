@@ -62,7 +62,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
       {/* Botón flotante para cerrar FIJO en la pantalla */}
       <button 
         onClick={() => setIsOpen(false)}
-        className="fixed top-4 right-4 md:top-6 md:right-6 z-[110] bg-white/20 hover:bg-white text-white hover:text-gray-800 rounded-full p-2 transition-all shadow-lg backdrop-blur-md"
+        className="fixed top-2 right-2 md:top-6 md:right-6 z-[110] bg-white/20 hover:bg-white text-white hover:text-gray-800 rounded-full p-2 transition-all shadow-lg backdrop-blur-md"
         title="Cerrar"
       >
         <X size={28} />
@@ -74,8 +74,8 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
                 {/* Header (Top Box) */}
                 <div className="bg-white border border-[#dadce0] rounded-[8px] overflow-hidden mb-4 border-t-8 border-t-[#673ab7]">
                   <div className="p-6">
-                    <div className="flex justify-between items-start gap-4">
-                      <h1 className="text-[32px] text-[#202124] font-normal leading-tight">{exam.title}</h1>
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
+                      <h1 className="text-[24px] sm:text-[32px] text-[#202124] font-normal leading-tight break-words">{exam.title}</h1>
                       
                       <div className="flex flex-col items-end shrink-0 gap-1 mt-2">
                         <span className="text-sm text-[#202124]">Puntos totales</span>
