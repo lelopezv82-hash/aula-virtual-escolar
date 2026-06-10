@@ -68,7 +68,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
         <X size={28} />
       </button>
 
-      <div className="min-h-screen flex justify-center items-start bg-[#f0ebf8]">
+      <div className="min-h-screen flex justify-center items-start bg-gradient-to-br from-[#f3e8ff] via-[#f5f3ff] to-[#ede9fe]">
         <div className="w-full max-w-[770px] flex flex-col animate-fade-in relative mx-auto p-4 md:p-6 lg:py-8">
                 
                 {/* Header (Top Box) */}
