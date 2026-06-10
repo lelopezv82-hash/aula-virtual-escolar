@@ -72,7 +72,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
         <div className="w-full max-w-[770px] flex flex-col animate-fade-in relative mx-auto p-4 md:p-6 lg:py-8">
                 
                 {/* Header (Top Box) */}
-                <div className="bg-white border border-[#dadce0] rounded-[8px] overflow-hidden mb-4 border-t-8 border-t-[#673ab7]">
+                <div className="bg-white border border-[#dadce0] rounded-[8px] overflow-hidden mb-3 border-t-8 border-t-[#673ab7]">
                   <div className="p-5 sm:p-6">
                     <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
                       <h1 className="text-[24px] sm:text-[32px] text-[#202124] font-normal leading-tight break-words">{exam.title}</h1>
@@ -93,7 +93,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
 
                 {/* Preguntas */}
                 {answersData && answersData.length > 0 ? (
-                  <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-3">
                     {answersData.map((item, index) => {
                       if (item.isGradable === false) {
                         return (
