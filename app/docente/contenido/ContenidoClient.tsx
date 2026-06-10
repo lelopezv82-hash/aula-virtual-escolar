@@ -198,7 +198,7 @@ const generateGoogleAppsScript = (taskId: string, origin: string) => `function o
     var finalScore = null;
     if (isQuiz) {
       if (totalPossible > 0) {
-        finalScore = (totalScore / totalPossible) * 10;
+        finalScore = Math.round((totalScore / totalPossible) * 50) / 10;
       } else {
         finalScore = totalScore;
       }
