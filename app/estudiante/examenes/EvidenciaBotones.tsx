@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Eye, X, CheckCircle, FileText, XCircle, CheckCircle2, CircleDot } from "lucide-react";
 
 interface EvidenciaModalProps {
@@ -44,34 +45,33 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
     }
   }
 
-  return (
-    <>
-      <div className="flex flex-col gap-2 w-full md:items-end">
-        <button 
-          onClick={() => setIsOpen(true)}
-          className="btn flex items-center justify-center gap-2 w-full md:w-auto hover:opacity-90 transition-opacity" 
-          style={{ backgroundColor: '#4facfe', color: 'white' }}
-        >
-          <Eye size={16} />
-          Ver Respuestas
-        </button>
-      </div>
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+    // Bloquear scroll del body al abrir el modal
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [isOpen]);
 
-      {isOpen && (
-        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm overflow-y-auto">
-          {/* Botón flotante para cerrar FIJO en la pantalla */}
-          <button 
-            onClick={() => setIsOpen(false)}
-            className="fixed top-4 right-4 md:top-6 md:right-6 z-[110] bg-white/20 hover:bg-white text-white hover:text-gray-800 rounded-full p-2 transition-all shadow-lg backdrop-blur-md"
-            title="Cerrar"
-          >
-            <X size={28} />
-          </button>
+  const modalContent = isOpen && mounted ? createPortal(
+    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm overflow-y-auto">
+      {/* Botón flotante para cerrar FIJO en la pantalla */}
+      <button 
+        onClick={() => setIsOpen(false)}
+        className="fixed top-4 right-4 md:top-6 md:right-6 z-[110] bg-white/20 hover:bg-white text-white hover:text-gray-800 rounded-full p-2 transition-all shadow-lg backdrop-blur-md"
+        title="Cerrar"
+      >
+        <X size={28} />
+      </button>
 
-          <div className="min-h-screen p-4 py-16 md:py-20 flex justify-center items-start">
-            <div className="bg-[#f0ebf8] rounded-lg w-full max-w-3xl shadow-2xl flex flex-col animate-fade-in relative">
-              <div className="p-4 md:p-8">
-                <div className="max-w-2xl mx-auto">
+      <div className="min-h-screen p-4 py-16 md:py-20 flex justify-center items-start">
+        <div className="bg-[#f0ebf8] rounded-lg w-full max-w-3xl shadow-2xl flex flex-col animate-fade-in relative">
+          <div className="p-4 md:p-8">
+            <div className="max-w-2xl mx-auto">
                 
                 {/* Header (Top Box) */}
                 <div className="bg-white border border-[#dadce0] rounded-[8px] overflow-hidden mb-4 border-t-8 border-t-[#673ab7]">
@@ -224,8 +224,24 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
             </div>
           </div>
         </div>
-        </div>
-      )}
+      </div>
+    </>,
+    document.body
+  ) : null;
+
+  return (
+    <>
+      <div className="flex flex-col gap-2 w-full md:items-end">
+        <button 
+          onClick={() => setIsOpen(true)}
+          className="btn flex items-center justify-center gap-2 w-full md:w-auto hover:opacity-90 transition-opacity" 
+          style={{ backgroundColor: '#4facfe', color: 'white' }}
+        >
+          <Eye size={16} />
+          Ver Respuestas
+        </button>
+      </div>
+      {modalContent}
     </>
   );
 }
