@@ -101,7 +101,7 @@ const generateGoogleAppsScript = (taskId: string, origin: string) => `function o
           questionTitle.toLowerCase().indexOf("estudiante") !== -1 || 
           questionTitle.toLowerCase().indexOf("apellido") !== -1) {
         studentName = answer;
-        continue; // Evita que esta pregunta se guarde en las respuestas visibles
+        // Se removió el continue para que sí se guarde en las respuestas visibles
       }
 
       var answerText = answer;
