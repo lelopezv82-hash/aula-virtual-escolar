@@ -737,7 +737,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
           {/* Header Action Row */}
           <div className="flex justify-between items-center flex-wrap gap-4">
             <h3 className="font-bold text-base md:text-lg">
-              {activeTab === "tareas" ? "Tareas y Evaluaciones Asignadas" : activeTab === "examenes" ? "Exámenes y Evaluaciones" : "Materiales de Clase Compartidos"}
+              {activeTab === "tareas" ? "Tareas" : activeTab === "examenes" ? "Exámenes" : "Materiales"}
             </h3>
             <div className="flex items-center gap-4 flex-wrap">
               <GDriveVisibilityToggle context={activeTab === "tareas" ? "tasks" : "materials"} />
