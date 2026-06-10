@@ -69,9 +69,8 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
       </button>
 
       <div className="min-h-screen p-4 py-16 md:py-20 flex justify-center items-start">
-        <div className="bg-[#f0ebf8] rounded-lg w-full max-w-3xl shadow-2xl flex flex-col animate-fade-in relative">
-          <div className="p-4 md:p-8">
-            <div className="max-w-2xl mx-auto">
+        <div className="bg-[#f0ebf8] rounded-lg w-full max-w-2xl shadow-2xl flex flex-col animate-fade-in relative mx-auto">
+          <div className="p-4 md:p-6 lg:p-8">
                 
                 {/* Header (Top Box) */}
                 <div className="bg-white border border-[#dadce0] rounded-[8px] overflow-hidden mb-4 border-t-8 border-t-[#673ab7]">
@@ -223,8 +222,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
               </div>
             </div>
           </div>
-        </div>
-      </div>,
+        </div>,
     document.body
   ) : null;
 
