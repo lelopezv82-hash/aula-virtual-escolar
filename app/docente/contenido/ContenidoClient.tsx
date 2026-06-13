@@ -49,6 +49,7 @@ interface Task {
   lateSubmissionUntil?: string | null;
   groups: Group[];
   gdriveEmail?: string | null;
+  duration?: number | null;
 }
 
 interface Course {
@@ -383,7 +384,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     groupIds: [] as string[],
     publishAt: "",
     externalUrl: "",
-    type: "TASK"
+    type: "TASK",
+    duration: ""
   });
   const [taskFile, setTaskFile] = useState<File | null>(null);
 
@@ -444,7 +446,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       groupIds: [],
       publishAt: "",
       externalUrl: "",
-      type: activeTab === "examenes" ? "EXAM" : "TASK"
+      type: activeTab === "examenes" ? "EXAM" : "TASK",
+      duration: ""
     });
     setTaskFile(null);
     setShowTaskModal(true);
@@ -472,7 +475,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       groupIds: task.groups.map(g => g.id),
       publishAt: formattedPublishAt,
       externalUrl: task.attachmentUrl && !task.attachmentUrl.includes("supabase") && !task.attachmentUrl.includes("drive.google.com") ? task.attachmentUrl : "",
-      type: task.type || "TASK"
+      type: task.type || "TASK",
+      duration: task.duration !== null && task.duration !== undefined ? String(task.duration) : ""
     });
     setTaskFile(null);
     setShowTaskModal(true);
@@ -499,6 +503,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     fd.append("weight", taskForm.weight.toString());
     fd.append("allowLateSubmission", taskForm.allowLateSubmission ? "true" : "false");
     fd.append("type", taskForm.type);
+    fd.append("duration", taskForm.duration);
     if (taskForm.allowLateSubmission && taskForm.lateSubmissionUntil) {
       fd.append("lateSubmissionUntil", new Date(taskForm.lateSubmissionUntil).toISOString());
     }
@@ -1221,6 +1226,13 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                 <input type="datetime-local" className="input-field py-1.5 px-3 text-xs"
                   value={taskForm.dueDate} onChange={e => setTaskForm({ ...taskForm, dueDate: e.target.value })} required />
               </div>
+              {taskForm.type === "EXAM" && (
+                <div className="input-group flex-1">
+                  <label className="text-xs font-bold mb-1">Límite de Tiempo (minutos, opcional)</label>
+                  <input type="number" className="input-field py-1.5 px-3 text-xs" min="1" placeholder="Ej. 60"
+                    value={taskForm.duration} onChange={e => setTaskForm({ ...taskForm, duration: e.target.value })} />
+                </div>
+              )}
             </div>
 
             <div className="input-group mb-3">
