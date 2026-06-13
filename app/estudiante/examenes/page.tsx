@@ -109,10 +109,11 @@ export default async function ExamenesEstudiantePage() {
                   </div>
                   
                   {!isSubmitted && (
-                    <Link href={`/estudiante/tareas/${exam.id}`} className="btn w-full md:w-auto" style={{ backgroundColor: '#8b5cf6', color: 'white' }}>
+                    <Link href={`/estudiante/examenes/${exam.id}`} className="btn w-full md:w-auto" style={{ backgroundColor: '#8b5cf6', color: 'white' }}>
                       Resolver Examen
                     </Link>
                   )}
+
 
                   {isSubmitted && (
                     <EvidenciaBotones 

@@ -29,8 +29,8 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
       .then(res => res.json())
       .then(data => {
         if (data.task) {
-          if (data.task.type === "EXAM") {
-            router.replace(`/estudiante/examenes/${taskId}`);
+          if (data.task.type !== "EXAM") {
+            router.replace(`/estudiante/tareas/${taskId}`);
             return;
           }
           setTask(data.task);
@@ -268,9 +268,10 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   return (
     <div className="animate-fade-in max-w-3xl mx-auto">
       <div className="flex items-center gap-4 mb-6">
-        <Link href="/estudiante/tareas" className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+        <Link href="/estudiante/examenes" className="p-2 rounded-full hover:bg-gray-100 transition-colors">
           <ArrowLeft size={24} />
         </Link>
+
         <div>
           <h1 className="text-2xl font-bold">{task.title}</h1>
           <p className="text-muted text-sm">Vence: {new Date(task.dueDate).toLocaleString()}</p>
