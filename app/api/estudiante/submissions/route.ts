@@ -25,20 +25,13 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const taskId = formData.get('taskId') as string;
     const file = formData.get('file') as File | null;
-    const markAsDone = formData.get('markAsDone') === 'true';
 
-    if (!taskId || (!file && !markAsDone)) {
-      return NextResponse.json({ error: 'Faltan datos obligatorios' }, { status: 400 });
+    if (!taskId) {
+      return NextResponse.json({ error: 'Falta taskId' }, { status: 400 });
     }
 
     let fileUrl = "";
     let gdriveEmail: string | null = null;
-
-    let buffer: Buffer | null = null;
-    if (file) {
-      const bytes = await file.arrayBuffer();
-      buffer = Buffer.from(bytes);
-    }
 
     // Find the task, include groups and course details
     const task = await prisma.task.findUnique({
@@ -92,6 +85,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No tienes acceso a esta tarea.' }, { status: 403 });
     }
 
+    // Check if task has a timer limit
+    if (task.duration) {
+      const existingSubmission = await prisma.submission.findUnique({
+        where: {
+          taskId_studentId: {
+            taskId,
+            studentId
+          }
+        }
+      });
+
+      if (!existingSubmission || !existingSubmission.startedAt) {
+        return NextResponse.json({ error: 'Debe iniciar el examen antes de entregar.' }, { status: 400 });
+      }
+
+      const timeLimitInMs = (task.duration * 60 * 1000) + 30000; // 30 seconds grace period
+      const timeElapsed = now.getTime() - new Date(existingSubmission.startedAt).getTime();
+
+      if (timeElapsed > timeLimitInMs) {
+        return NextResponse.json({ error: 'El tiempo límite para este examen ha vencido.' }, { status: 400 });
+      }
+    }
+
     const isLate = now > new Date(task.dueDate);
 
     if (isLate) {
@@ -121,7 +137,10 @@ export async function POST(request: Request) {
     }
 
     const teacherId = task.course.teacherId;
-    if (file && buffer) {
+
+    if (file && file.size > 0) {
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
       let driveFileName = file.name;
       let folderPath = "";
 
@@ -169,6 +188,18 @@ export async function POST(request: Request) {
 
         fileUrl = publicUrl;
       }
+    } else {
+      // Preserve existing fileUrl if no new file is uploaded
+      const existingSubmission = await prisma.submission.findUnique({
+        where: {
+          taskId_studentId: {
+            taskId,
+            studentId
+          }
+        }
+      });
+      fileUrl = existingSubmission?.fileUrl || "";
+      gdriveEmail = existingSubmission?.gdriveEmail || null;
     }
 
     // Upsert submission in database
@@ -180,7 +211,7 @@ export async function POST(request: Request) {
         }
       },
       update: {
-        fileUrl,
+        fileUrl: fileUrl || null,
         gdriveEmail,
         status: "SUBMITTED",
         submittedAt: new Date()
@@ -188,25 +219,32 @@ export async function POST(request: Request) {
       create: {
         taskId,
         studentId,
-        fileUrl,
+        fileUrl: fileUrl || null,
         gdriveEmail,
         status: "SUBMITTED",
         submittedAt: new Date()
       }
     });
 
-    // Si la entrega quedó en Supabase, la encolamos para reintento en Drive cuando se configure/solucione
+    // Si la entrega quedó en Supabase y se envió un archivo, la encolamos para reintento en Drive cuando se configure/solucione
     if (file && !gdriveEmail && fileUrl && fileUrl.includes('supabase') && teacherId) {
       const supabasePath = fileUrl.split('/aula-virtual/')[1]?.split('?')[0] ?? '';
+      const gradeName = student?.group?.grade?.name || "Sin Grado";
+      const groupName = student?.group?.name || "Sin Grupo";
+      const studentName = student?.name || "Estudiante";
+      const driveFileName = `${studentName} - ${file.name}`;
+      const taskPeriod = task.period || "Sin Periodo";
+      const folderPath = `${taskPeriod}/${task.course.name}/${gradeName}/${groupName}/Tareas/${task.title}/Entregas/${studentName}`;
+
       await enqueueFailedDriveUpload({
         recordType: 'SUBMISSION',
         recordId: submission.id,
         supabaseUrl: fileUrl,
         supabasePath,
         teacherId: teacherId,
-        filename: file.name,
+        filename: driveFileName,
         mimeType: file.type,
-        folderPath: `${task.period || "Sin Periodo"}/${task.course.name}/${student?.group?.grade?.name || "Sin Grado"}/${student?.group?.name || "Sin Grupo"}/Tareas/${task.title}/Entregas/${student?.name || "Estudiante"}`,
+        folderPath,
       });
     }
 

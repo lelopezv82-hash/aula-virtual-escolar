@@ -16,6 +16,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
   const [theme, setTheme] = useState("");
   const [period, setPeriod] = useState("");
   const [weight, setWeight] = useState("0");
+  const [duration, setDuration] = useState("");
   const [groupIds, setGroupIds] = useState<string[]>([]);
   const [gradeGroups, setGradeGroups] = useState<{id: string, name: string}[]>([]);
   const [file, setFile] = useState<File | null>(null);
@@ -62,6 +63,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
           setTheme(data.task.theme || "");
           setPeriod(data.task.period || "");
           setWeight(data.task.weight !== undefined ? String(data.task.weight) : "0");
+          setDuration(data.task.duration !== null && data.task.duration !== undefined ? String(data.task.duration) : "");
           setGroupIds(data.task.groups ? data.task.groups.map((g: any) => g.id) : []);
           // Convert date to local string for datetime-local input (yyyy-MM-ddThh:mm)
           const date = new Date(data.task.dueDate);
@@ -90,6 +92,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
     if (theme) formData.append("theme", theme);
     if (period) formData.append("period", period);
     formData.append("weight", weight);
+    if (duration) formData.append("duration", duration);
     formData.append("groupIds", JSON.stringify(groupIds));
     if (file) {
       formData.append("file", file);
@@ -255,16 +258,30 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
           />
         </div>
 
-        <div className="input-group">
-          <label htmlFor="dueDate">Fecha y Hora Límite</label>
-          <input
-            id="dueDate"
-            type="datetime-local"
-            className="input-field"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            required
-          />
+        <div className="flex gap-4">
+          <div className="input-group flex-1">
+            <label htmlFor="dueDate">Fecha y Hora Límite *</label>
+            <input
+              id="dueDate"
+              type="datetime-local"
+              className="input-field"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              required
+            />
+          </div>
+          <div className="input-group flex-1">
+            <label htmlFor="duration">Límite de Tiempo (minutos, opcional)</label>
+            <input
+              id="duration"
+              type="number"
+              min="1"
+              placeholder="Ej. 60 (vacío para ilimitado)"
+              className="input-field"
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+            />
+          </div>
         </div>
 
         {existingAttachment && (

@@ -100,8 +100,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const groupIdsJson = formData.get('groupIds') as string | null;
     const publishAtRaw = formData.get('publishAt') as string | null;
     const publishAt = publishAtRaw && publishAtRaw.trim() !== "" ? new Date(publishAtRaw) : null;
-    const externalUrl = formData.get('externalUrl') as string | null;
-    const type = formData.get('type') as string | null;
+    const durationRaw = formData.get('duration') as string | null;
+    const duration = durationRaw && durationRaw.trim() !== "" ? parseInt(durationRaw, 10) : null;
 
     let groupIds: string[] = [];
     if (groupIdsJson) {
@@ -116,7 +116,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ error: 'Faltan datos obligatorios (título, fecha límite, tema, periodo y al menos un grupo)' }, { status: 400 });
     }
 
-    let attachmentUrl = externalUrl !== null ? externalUrl : task.attachmentUrl;
+    let attachmentUrl = task.attachmentUrl;
     let gdriveEmail: string | null = task.gdriveEmail;
 
     if (file && file.size > 0) {
@@ -176,12 +176,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         gdriveEmail,
         theme,
         period,
-        type: type === "EXAM" || type === "TASK" ? type : task.type,
         publishAt,
         groups: {
           set: groupIds.map(id => ({ id }))
         },
-        weight: isNaN(weight) ? 0 : weight
+        weight: isNaN(weight) ? 0 : weight,
+        duration: duration && !isNaN(duration) ? duration : null
       }
     });
 

@@ -16,6 +16,7 @@ export default function NuevaTareaPage() {
   const [theme, setTheme] = useState("");
   const [period, setPeriod] = useState("");
   const [weight, setWeight] = useState("0");
+  const [duration, setDuration] = useState("");
   const [groupIds, setGroupIds] = useState<string[]>([]);
   const [courses, setCourses] = useState<{id: string, name: string}[]>([]);
   const [gradeGroups, setGradeGroups] = useState<{id: string, name: string}[]>([]);
@@ -100,6 +101,7 @@ export default function NuevaTareaPage() {
     if (theme) formData.append("theme", theme);
     if (period) formData.append("period", period);
     formData.append("weight", weight);
+    if (duration) formData.append("duration", duration);
     formData.append("groupIds", JSON.stringify(groupIds));
     if (file) {
       formData.append("file", file);
@@ -299,16 +301,30 @@ export default function NuevaTareaPage() {
           />
         </div>
 
-        <div className="input-group">
-          <label htmlFor="dueDate">Fecha y Hora Límite</label>
-          <input
-            id="dueDate"
-            type="datetime-local"
-            className="input-field"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            required
-          />
+        <div className="flex gap-4">
+          <div className="input-group flex-1">
+            <label htmlFor="dueDate">Fecha y Hora Límite *</label>
+            <input
+              id="dueDate"
+              type="datetime-local"
+              className="input-field"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              required
+            />
+          </div>
+          <div className="input-group flex-1">
+            <label htmlFor="duration">Límite de Tiempo (minutos, opcional)</label>
+            <input
+              id="duration"
+              type="number"
+              min="1"
+              placeholder="Ej. 60 (vacío para ilimitado)"
+              className="input-field"
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+            />
+          </div>
         </div>
 
         <div className="input-group">

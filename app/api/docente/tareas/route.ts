@@ -37,8 +37,8 @@ export async function POST(request: Request) {
     const groupIdsJson = formData.get('groupIds') as string | null;
     const publishAtRaw = formData.get('publishAt') as string | null;
     const publishAt = publishAtRaw && publishAtRaw.trim() !== "" ? new Date(publishAtRaw) : null;
-    const externalUrl = formData.get('externalUrl') as string | null;
-    const type = formData.get('type') as string | null;
+    const durationRaw = formData.get('duration') as string | null;
+    const duration = durationRaw && durationRaw.trim() !== "" ? parseInt(durationRaw, 10) : null;
 
     let groupIds: string[] = [];
     if (groupIdsJson) {
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Curso no encontrado o no te pertenece' }, { status: 403 });
     }
 
-    let attachmentUrl = externalUrl || null;
+    let attachmentUrl = null;
     let gdriveEmail: string | null = null;
 
     if (file && file.size > 0) {
@@ -123,12 +123,12 @@ export async function POST(request: Request) {
         courseId,
         theme,
         period,
-        type: type === "EXAM" ? "EXAM" : "TASK",
         publishAt,
         groups: {
           connect: groupIds.map(id => ({ id }))
         },
-        weight: isNaN(weight) ? 0 : weight
+        weight: isNaN(weight) ? 0 : weight,
+        duration: duration && !isNaN(duration) ? duration : null
       }
     });
 
