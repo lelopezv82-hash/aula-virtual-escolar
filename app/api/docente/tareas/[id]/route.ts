@@ -103,6 +103,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const durationRaw = formData.get('duration') as string | null;
     const duration = durationRaw && durationRaw.trim() !== "" ? parseInt(durationRaw, 10) : null;
     const type = formData.get('type') as string | null;
+    const externalUrl = formData.get('externalUrl') as string | null;
 
     let groupIds: string[] = [];
 
@@ -120,6 +121,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     let attachmentUrl = task.attachmentUrl;
     let gdriveEmail: string | null = task.gdriveEmail;
+    if (externalUrl !== null) {
+      attachmentUrl = externalUrl || null;
+      gdriveEmail = null;
+    }
 
     if (file && file.size > 0) {
       const bytes = await file.arrayBuffer();

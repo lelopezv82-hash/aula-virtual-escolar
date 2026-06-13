@@ -324,9 +324,20 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
       </div>
 
       {/* Exam Iframe or normal upload area */}
-      {isGoogleForm ? (
+      {task.attachmentUrl ? (
         <div className="card mb-6 flex flex-col gap-4">
           <h2 className="text-lg font-bold">Examen en Línea</h2>
+          
+          {!isSubmitted && !isTimerExpired && !isGoogleForm && (
+            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 text-amber-900 dark:text-amber-200 rounded-lg p-4 text-sm flex flex-col gap-2">
+              <p className="font-bold flex items-center gap-1">💡 Enlace Externo:</p>
+              <p>Si el examen no carga correctamente abajo, puedes abrirlo directamente en una nueva pestaña:</p>
+              <a href={embedUrl} target="_blank" rel="noopener noreferrer" className="btn btn-secondary self-start text-xs font-semibold py-1.5 px-3">
+                Abrir examen en nueva pestaña
+              </a>
+            </div>
+          )}
+
           <div className="relative border rounded-lg overflow-hidden bg-white" style={{ height: "650px", borderColor: "var(--border-color)" }}>
             {isTimerExpired || (timeLeft !== null && timeLeft <= 0) ? (
               <div className="absolute inset-0 bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-6 text-center">
@@ -359,7 +370,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
 
           {!isSubmitted && !isTimerExpired && (
             <div className="flex justify-between items-center mt-2 border-t pt-4" style={{ borderColor: "var(--border-color)" }}>
-              <p className="text-xs text-muted">⚠️ Recuerda dar clic en "Enviar" dentro de Google Forms antes de dar clic aquí.</p>
+              <p className="text-xs text-muted">⚠️ Recuerda enviar tus respuestas dentro del examen antes de hacer clic aquí.</p>
               <button 
                 onClick={handleMarkAsFinished} 
                 disabled={loading}
@@ -372,108 +383,12 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
           )}
         </div>
       ) : (
-        <div className="card" style={{ borderTop: isGraded ? '4px solid var(--success)' : isSubmitted ? '4px solid var(--primary-color)' : '4px solid var(--border-color)' }}>
-          <h2 className="text-lg font-bold mb-4">Tu Entrega</h2>
-
-          {isGraded && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-              <h3 className="font-bold text-green-800 mb-1 flex items-center gap-2">
-                <CheckCircle size={18} /> Tarea Calificada
-              </h3>
-              <p className="text-2xl font-black text-green-700 my-2">Nota: {submission.grade}</p>
-              {submission.feedback && (
-                <div className="mt-2 text-green-900">
-                  <strong>Comentario del docente:</strong>
-                  <p className="italic mt-1">&quot;{submission.feedback}&quot;</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {isSubmitted && !isGoogleForm && (
-            <div className="flex items-center gap-3 p-4 border rounded-md mb-6" style={{ borderColor: "var(--border-color)" }}>
-              <FileText className="text-blue-500" size={32} />
-              <div>
-                <p className="font-medium">Archivo entregado</p>
-                <p className="text-sm text-muted">Enviado el {new Date(submission.submittedAt).toLocaleString()}</p>
-              </div>
-              {submission.fileUrl && (
-                <a 
-                  href={submission.fileUrl} 
-                  target="_blank"
-                  download
-                  className="btn btn-secondary ml-auto"
-                >
-                  Descargar
-                </a>
-              )}
-            </div>
-          )}
-
-          {!isGraded && !isGoogleForm && (
-            isSubmissionBlocked || isTimerExpired ? (
-              <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-lg p-4 text-red-800 dark:text-red-350 flex flex-col gap-2">
-                <h3 className="font-bold flex items-center gap-2">
-                  <Clock size={18} /> Plazo de Entrega Vencido / Tiempo Agotado
-                </h3>
-                <p className="text-sm">
-                  El tiempo límite ha expirado o el plazo original ha vencido. La entrega se ha deshabilitado.
-                </p>
-              </div>
-            ) : (
-              <form onSubmit={handleUpload} className="flex flex-col gap-4">
-                {isOverdue && (
-                  <div className="bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/50 rounded-lg p-4 text-indigo-900 dark:text-indigo-200 flex flex-col gap-1">
-                    <h3 className="font-bold flex items-center gap-2 text-sm">
-                      <Clock size={16} className="text-indigo-600 dark:text-indigo-400" />
-                      Plazo Extemporáneo Activo
-                    </h3>
-                    <p className="text-xs">
-                      El plazo de entrega original ha vencido, pero tienes permiso para entregar tu tarea tarde
-                      {activeExtensionDate ? ` hasta el ${activeExtensionDate.toLocaleString()}.` : " sin límite de tiempo definido."}
-                    </p>
-                  </div>
-                )}
-                {error && (
-                  errorType === "warning" ? (
-                    <div className="flex items-center gap-3 p-4 border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 rounded-xl text-amber-900 dark:text-amber-200 animate-scale-in">
-                      <AlertTriangle className="text-amber-600 dark:text-amber-400 flex-shrink-0" size={20} />
-                      <div className="flex-1 text-sm font-medium">
-                        {error}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-3 p-4 border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/20 rounded-xl text-red-900 dark:text-red-200 animate-scale-in">
-                      <AlertTriangle className="text-red-600 dark:text-red-400 flex-shrink-0" size={20} />
-                      <div className="flex-1 text-sm font-medium">
-                        {error}
-                      </div>
-                    </div>
-                  )
-                )}
-                
-                <div className="border-2 border-dashed rounded-lg p-8 text-center hover:bg-gray-50 transition-colors" style={{ borderColor: 'var(--primary-color)' }}>
-                  <UploadCloud size={48} className="mx-auto mb-4" style={{ color: 'var(--primary-color)' }} />
-                  <label htmlFor="file-upload" className="cursor-pointer">
-                    <span className="btn btn-secondary mx-auto mb-2 inline-flex">Seleccionar Archivo</span>
-                    <input 
-                      id="file-upload" 
-                      type="file" 
-                      className="hidden" 
-                      onChange={handleFileChange} 
-                    />
-                  </label>
-                  <p className="text-sm text-muted mt-2">
-                    {file ? file.name : "Soporta PDF, DOCX, Imágenes y archivos comprimidos."}
-                  </p>
-                </div>
-
-                <button type="submit" className="btn btn-primary mt-2" disabled={loading}>
-                  {loading ? <Loader2 className="animate-spin" size={20} /> : (isSubmitted ? "Reemplazar Entrega" : "Enviar Tarea")}
-                </button>
-              </form>
-            )
-          )}
+        <div className="card p-8 text-center flex flex-col gap-4 border-t-4 border-t-red-500">
+          <AlertTriangle className="text-amber-500 mx-auto" size={48} />
+          <h2 className="text-xl font-bold">Enlace no Configurado</h2>
+          <p className="text-muted text-sm max-w-md mx-auto">
+            Este examen no tiene un enlace de evaluación configurado por el docente. Por favor, comunícate con tu profesor para que asigne el formulario correspondiente.
+          </p>
         </div>
       )}
     </div>

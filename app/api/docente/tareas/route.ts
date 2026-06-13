@@ -40,8 +40,10 @@ export async function POST(request: Request) {
     const durationRaw = formData.get('duration') as string | null;
     const duration = durationRaw && durationRaw.trim() !== "" ? parseInt(durationRaw, 10) : null;
     const type = formData.get('type') as string | null;
+    const externalUrl = formData.get('externalUrl') as string | null;
 
     let groupIds: string[] = [];
+
 
     if (groupIdsJson) {
       try {
@@ -64,8 +66,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Curso no encontrado o no te pertenece' }, { status: 403 });
     }
 
-    let attachmentUrl = null;
+    let attachmentUrl = externalUrl || null;
     let gdriveEmail: string | null = null;
+
 
     if (file && file.size > 0) {
       const bytes = await file.arrayBuffer();
