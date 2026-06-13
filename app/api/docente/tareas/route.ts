@@ -39,8 +39,10 @@ export async function POST(request: Request) {
     const publishAt = publishAtRaw && publishAtRaw.trim() !== "" ? new Date(publishAtRaw) : null;
     const durationRaw = formData.get('duration') as string | null;
     const duration = durationRaw && durationRaw.trim() !== "" ? parseInt(durationRaw, 10) : null;
+    const type = formData.get('type') as string | null;
 
     let groupIds: string[] = [];
+
     if (groupIdsJson) {
       try {
         groupIds = JSON.parse(groupIdsJson);
@@ -128,9 +130,11 @@ export async function POST(request: Request) {
           connect: groupIds.map(id => ({ id }))
         },
         weight: isNaN(weight) ? 0 : weight,
-        duration: duration && !isNaN(duration) ? duration : null
+        duration: duration && !isNaN(duration) ? duration : null,
+        type: type || "TASK"
       }
     });
+
 
     // Si el archivo adjunto quedó en Supabase (gdrive falló), encolar para reintento
     if (file && file.size > 0 && !gdriveEmail && attachmentUrl && attachmentUrl.includes('supabase')) {
