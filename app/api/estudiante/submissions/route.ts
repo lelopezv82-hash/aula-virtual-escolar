@@ -85,17 +85,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No tienes acceso a esta tarea.' }, { status: 403 });
     }
 
+    const isGoogleFormExam = task.type === "EXAM" && !!(task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));
+
+    // Fetch existing submission early so we can reuse it
+    const existingSubmission = await prisma.submission.findUnique({
+      where: {
+        taskId_studentId: {
+          taskId,
+          studentId
+        }
+      }
+    });
+
     // Check if task has a timer limit
     if (task.duration) {
-      const existingSubmission = await prisma.submission.findUnique({
-        where: {
-          taskId_studentId: {
-            taskId,
-            studentId
-          }
-        }
-      });
-
       if (!existingSubmission || !existingSubmission.startedAt) {
         return NextResponse.json({ error: 'Debe iniciar el examen antes de entregar.' }, { status: 400 });
       }
@@ -104,7 +107,10 @@ export async function POST(request: Request) {
       const timeElapsed = now.getTime() - new Date(existingSubmission.startedAt).getTime();
 
       if (timeElapsed > timeLimitInMs) {
-        return NextResponse.json({ error: 'El tiempo límite para este examen ha vencido.' }, { status: 400 });
+        // If it's a Google Form exam, allow the auto-submit to proceed (to grade it as 0/close it)
+        if (!isGoogleFormExam) {
+          return NextResponse.json({ error: 'El tiempo límite para este examen ha vencido.' }, { status: 400 });
+        }
       }
     }
 
@@ -116,15 +122,6 @@ export async function POST(request: Request) {
 
       if (!isGeneralLateAllowed) {
         // Comprobar si hay un permiso individual extemporáneo para este estudiante
-        const existingSubmission = await prisma.submission.findUnique({
-          where: {
-            taskId_studentId: {
-              taskId,
-              studentId
-            }
-          }
-        });
-
         const isStudentLateAllowed = existingSubmission && (
           existingSubmission.allowLateSubmission || 
           (existingSubmission.lateSubmissionUntil && new Date(existingSubmission.lateSubmissionUntil) > now)
@@ -190,16 +187,21 @@ export async function POST(request: Request) {
       }
     } else {
       // Preserve existing fileUrl if no new file is uploaded
-      const existingSubmission = await prisma.submission.findUnique({
-        where: {
-          taskId_studentId: {
-            taskId,
-            studentId
-          }
-        }
-      });
       fileUrl = existingSubmission?.fileUrl || "";
       gdriveEmail = existingSubmission?.gdriveEmail || null;
+    }
+
+    // Determine status and grade for saving
+    let statusToSave = "SUBMITTED";
+    let gradeToSave: number | undefined = undefined;
+
+    if (isGoogleFormExam) {
+      statusToSave = "GRADED";
+      if (existingSubmission && existingSubmission.status === "GRADED") {
+        gradeToSave = existingSubmission.grade ?? 0;
+      } else {
+        gradeToSave = 0; // Default grade is 0 when timer expires or manual finishing occurs without webhook
+      }
     }
 
     // Upsert submission in database
@@ -213,7 +215,8 @@ export async function POST(request: Request) {
       update: {
         fileUrl: fileUrl || null,
         gdriveEmail,
-        status: "SUBMITTED",
+        status: statusToSave,
+        grade: gradeToSave,
         submittedAt: new Date()
       },
       create: {
@@ -221,7 +224,8 @@ export async function POST(request: Request) {
         studentId,
         fileUrl: fileUrl || null,
         gdriveEmail,
-        status: "SUBMITTED",
+        status: statusToSave,
+        grade: gradeToSave !== undefined ? gradeToSave : null,
         submittedAt: new Date()
       }
     });
