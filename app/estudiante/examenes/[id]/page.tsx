@@ -398,24 +398,14 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
             )}
           </div>
 
-          {!isSubmitted && !isTimerExpired && (
+          {!isSubmitted && !isTimerExpired && !isGoogleForm && (
             <div className="flex flex-col gap-3 mt-2 border-t pt-4" style={{ borderColor: "var(--border-color)" }}>
-              <label className="flex items-center gap-2.5 text-xs font-semibold cursor-pointer select-none text-amber-800 dark:text-amber-300 bg-amber-50/50 dark:bg-amber-950/10 p-3 rounded-lg border border-amber-100 dark:border-amber-900/30">
-                <input 
-                  type="checkbox" 
-                  checked={hasSentGoogleForm} 
-                  onChange={(e) => setHasSentGoogleForm(e.target.checked)}
-                  className="rounded border-amber-300 text-amber-600 focus:ring-amber-500 h-4 w-4"
-                />
-                <span>Confirmo que ya presioné el botón "Enviar" (Submit) DENTRO del examen de Google Forms y completé todas mis respuestas.</span>
-              </label>
-
               <div className="flex justify-between items-center flex-wrap gap-2">
-                <p className="text-[10px] text-muted max-w-md">⚠️ Este botón cierra el examen en el aula virtual. Asegúrate de marcar la confirmación de arriba primero.</p>
+                <p className="text-xs text-muted">⚠️ Una vez que completes tu examen en el enlace de arriba, haz clic aquí para registrar tu entrega en el aula virtual.</p>
                 <button 
                   onClick={handleMarkAsFinished} 
-                  disabled={loading || !hasSentGoogleForm}
-                  className="btn btn-primary flex items-center gap-2 py-2.5 px-6 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={loading}
+                  className="btn btn-primary flex items-center gap-2 py-2.5 px-6"
                 >
                   {loading ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />}
                   Finalizar y Entregar Examen
