@@ -4,6 +4,7 @@ import { useState, useEffect, use } from "react";
 import { ArrowLeft, UploadCloud, Loader2, CheckCircle, FileText, Clock, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import EvidenciaBotones from "../EvidenciaBotones";
 
 export default function TareaDetallePage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -23,6 +24,8 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const [errorType, setErrorType] = useState<"danger" | "warning">("danger");
   const [initialLoad, setInitialLoad] = useState(true);
   const [hasSentGoogleForm, setHasSentGoogleForm] = useState(false);
+  const [isGracePeriod, setIsGracePeriod] = useState(false);
+  const [graceTimeLeft, setGraceTimeLeft] = useState(30);
 
   useEffect(() => {
     // Fetch task and existing submission info
@@ -46,12 +49,16 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   }, [taskId, router]);
 
 
+  const isGoogleForm = !!(task?.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));
   const isGraded = submission?.status === "GRADED";
   const isSubmitted = submission?.status === "SUBMITTED" || isGraded;
 
-  // Polling to check if webhook has submitted the exam
+  // Polling to check if webhook has graded the exam
   useEffect(() => {
-    if (!task || isSubmitted || isTimerExpired) return;
+    if (!task || !isGoogleForm) return;
+
+    // Stop polling if the submission is already GRADED
+    if (submission?.status === "GRADED") return;
 
     const interval = setInterval(() => {
       fetch(`/api/estudiante/tareas/${taskId}`)
@@ -59,8 +66,8 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
         .then(data => {
           if (data.task && data.task.submissions && data.task.submissions.length > 0) {
             const sub = data.task.submissions[0];
-            if (sub.status === "SUBMITTED" || sub.status === "GRADED") {
-              setSubmission(sub);
+            setSubmission(sub);
+            if (sub.status === "GRADED") {
               clearInterval(interval);
             }
           }
@@ -69,10 +76,11 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [task, taskId, isSubmitted, isTimerExpired]);
+  }, [task, taskId, isGoogleForm, submission?.status]);
 
   const triggerAutoSubmit = async () => {
     setIsTimerExpired(true);
+    setIsGracePeriod(false);
     setLoading(true);
     try {
       const formData = new FormData();
@@ -122,7 +130,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
       if (left <= 0) {
         clearInterval(interval);
         setTimeLeft(0);
-        triggerAutoSubmit();
+        setIsGracePeriod(true);
       } else {
         setTimeLeft(left);
       }
@@ -130,6 +138,29 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
 
     return () => clearInterval(interval);
   }, [task, submission, isSubmitted]);
+
+  // Grace period countdown hook
+  useEffect(() => {
+    if (!isGracePeriod || isSubmitted) return;
+
+    if (graceTimeLeft <= 0) {
+      triggerAutoSubmit();
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setGraceTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          triggerAutoSubmit();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isGracePeriod, graceTimeLeft, isSubmitted]);
 
   const handleStartExam = async () => {
     setStartingExam(true);
@@ -288,7 +319,6 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   }
 
   // Google Forms check and embed URL preparation
-  const isGoogleForm = task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle"));
   let embedUrl = task.attachmentUrl || "";
   if (isGoogleForm && embedUrl && studentName) {
     embedUrl = embedUrl.replace("_ESTUDIANTE_", encodeURIComponent(studentName));
@@ -309,7 +339,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
       </div>
 
       {/* Countdown Timer Banner */}
-      {task.duration && !isSubmitted && timeLeft !== null && (
+      {task.duration && !isSubmitted && timeLeft !== null && timeLeft > 0 && (
         <div className="mb-6 p-4 rounded-xl border flex items-center justify-between animate-pulse" 
              style={{ 
                background: timeLeft < 60 ? 'rgba(239, 68, 68, 0.08)' : 'rgba(37, 99, 235, 0.08)',
@@ -323,6 +353,24 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
           <div className="text-xl font-black font-mono">
             {Math.floor(timeLeft / 60).toString().padStart(2, '0')}:
             {(timeLeft % 60).toString().padStart(2, '0')}
+          </div>
+        </div>
+      )}
+
+      {/* Grace Period Warning Banner */}
+      {isGracePeriod && !isSubmitted && (
+        <div className="mb-6 p-4 rounded-xl border flex flex-col sm:flex-row items-center justify-between gap-4 animate-pulse" 
+             style={{ 
+               background: 'rgba(239, 68, 68, 0.15)',
+               borderColor: 'rgba(239, 68, 68, 0.5)',
+               color: 'var(--danger)'
+             }}>
+          <div className="flex items-center gap-2">
+            <Clock size={20} className="text-red-500 animate-spin" />
+            <span className="font-black text-sm text-red-600">⚠️ ¡TIEMPO AGOTADO! Por favor, haz clic en el botón "Enviar" (Submit) dentro del formulario de Google Forms de inmediato.</span>
+          </div>
+          <div className="text-xl font-black font-mono text-red-600">
+            Cerrando en: {graceTimeLeft}s
           </div>
         </div>
       )}
@@ -369,13 +417,63 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
           )}
 
           <div className="relative border rounded-lg overflow-hidden bg-white" style={{ height: "650px", borderColor: "var(--border-color)" }}>
-            {isTimerExpired || (timeLeft !== null && timeLeft <= 0) ? (
+            {submission?.status === "GRADED" ? (
+              <div className="absolute inset-0 bg-green-50 dark:bg-green-950/20 flex flex-col items-center justify-center p-6 text-center overflow-y-auto">
+                <CheckCircle className="text-green-500 mb-2 shrink-0" size={48} />
+                <h3 className="text-xl font-bold text-green-600">Examen Calificado</h3>
+                <p className="text-muted mt-1 max-w-md text-sm">
+                  Has completado y entregado este examen con éxito. Tu calificación ya está registrada.
+                </p>
+                
+                <div className="my-4 p-4 rounded-full bg-white dark:bg-gray-800 shadow-md border-2 border-green-500 flex flex-col items-center justify-center w-32 h-32 mx-auto shrink-0 animate-fade-in">
+                  <span className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider">Nota</span>
+                  <span className="text-2xl font-black text-green-600 dark:text-green-400">{submission.grade}</span>
+                  <span className="text-[10px] text-gray-400">/ 5.0</span>
+                </div>
+
+                <div className="mt-2 shrink-0">
+                  <EvidenciaBotones 
+                    exam={{
+                      id: task.id,
+                      title: task.title,
+                      course: { name: task.course?.name || "Curso" }
+                    }}
+                    submission={{
+                      grade: submission.grade,
+                      status: submission.status,
+                      fileUrl: submission.fileUrl,
+                      submittedAt: submission.submittedAt,
+                      feedback: submission.feedback
+                    }}
+                    isGoogleForm={isGoogleForm}
+                  />
+                </div>
+              </div>
+            ) : (submission?.status === "SUBMITTED" && isGoogleForm && !isTimerExpired) ? (
+              <div className="absolute inset-0 bg-blue-50 dark:bg-blue-950/20 flex flex-col items-center justify-center p-6 text-center">
+                <Loader2 className="animate-spin text-blue-500 mb-4" size={48} />
+                <h3 className="text-xl font-bold text-blue-600">Procesando respuestas</h3>
+                <p className="text-muted mt-2 max-w-sm">
+                  Estamos recuperando tu nota y respuestas de Google Forms. Esto puede tomar unos segundos...
+                </p>
+                <p className="text-xs text-gray-400 mt-4 max-w-xs">
+                  Si ya presionaste "Enviar" en el formulario, esta página se actualizará automáticamente.
+                </p>
+              </div>
+            ) : (submission?.status === "SUBMITTED" && isGoogleForm && isTimerExpired) ? (
               <div className="absolute inset-0 bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-6 text-center">
                 <AlertTriangle className="text-red-500 mb-4 animate-bounce" size={48} />
                 <h3 className="text-xl font-bold text-red-600">Tiempo Expirado</h3>
                 <p className="text-muted mt-2 max-w-md">
-                  El tiempo límite para completar este examen ha finalizado y el formulario ha sido bloqueado. Tus respuestas parciales se han registrado.
+                  El tiempo límite ha finalizado y el formulario ha sido bloqueado.
                 </p>
+                <p className="text-sm text-muted mt-2 max-w-md">
+                  Si presionaste "Enviar" en Google Forms durante el tiempo límite o el período de gracia, tus respuestas se procesarán en breve.
+                </p>
+                <div className="mt-6 flex flex-col items-center gap-2">
+                  <Loader2 className="animate-spin text-gray-400" size={24} />
+                  <span className="text-xs text-gray-400">Buscando calificaciones en el servidor...</span>
+                </div>
               </div>
             ) : isSubmitted ? (
               <div className="absolute inset-0 bg-green-50 dark:bg-green-950/20 flex flex-col items-center justify-center p-6 text-center">
@@ -383,6 +481,14 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                 <h3 className="text-xl font-bold text-green-600">Examen Entregado</h3>
                 <p className="text-muted mt-2 max-w-md">
                   Has completado y entregado este examen con éxito.
+                </p>
+              </div>
+            ) : (isTimerExpired && !isGracePeriod) ? (
+              <div className="absolute inset-0 bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-6 text-center">
+                <AlertTriangle className="text-red-500 mb-4 animate-bounce" size={48} />
+                <h3 className="text-xl font-bold text-red-600">Tiempo Expirado</h3>
+                <p className="text-muted mt-2 max-w-md">
+                  El tiempo límite para completar este examen ha finalizado y el formulario ha sido bloqueado. Tus respuestas parciales se han registrado.
                 </p>
               </div>
             ) : (
