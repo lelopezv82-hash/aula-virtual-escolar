@@ -43,3 +43,42 @@ export async function GET(
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string; studentId: string }> }
+) {
+  try {
+    const resolvedParams = await params;
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth_token")?.value;
+
+    if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    if (payload.role !== "TEACHER") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+
+    const task = await prisma.task.findUnique({
+      where: { id: resolvedParams.id },
+      include: { course: true }
+    });
+
+    if (!task || task.course.teacherId !== (payload.id as string)) {
+      return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 });
+    }
+
+    // Delete the submission record
+    await prisma.submission.delete({
+      where: {
+        taskId_studentId: {
+          taskId: resolvedParams.id,
+          studentId: resolvedParams.studentId,
+        }
+      }
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error resetting submission:", error);
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+  }
+}

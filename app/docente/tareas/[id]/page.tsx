@@ -8,6 +8,7 @@ import LateSubmissionManager from "./LateSubmissionManager";
 import StudentLateSubmissionToggle from "./StudentLateSubmissionToggle";
 import GDriveEmailDisplay from "@/components/GDriveEmailDisplay";
 import GDriveVisibilityToggle from "@/components/GDriveVisibilityToggle";
+import ResetSubmissionButton from "./ResetSubmissionButton";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
@@ -196,15 +197,26 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
                               {submission?.submittedAt ? new Date(submission.submittedAt).toLocaleString() : '-'}
                             </td>
                             <td className="py-3 px-4 text-right no-print">
-                              {isSubmitted ? (
+                              {submission ? (
                                 <div className="flex flex-col items-end gap-1">
                                   <div className="flex justify-end gap-2">
-                                    <a href={submission.fileUrl || "#"} target="_blank" download className="btn btn-secondary text-sm px-2 py-1 flex items-center gap-1">
-                                      <Download size={14} /> Archivo
-                                    </a>
-                                    <Link href={`/docente/tareas/${task.id}/calificar/${student.id}`} className="btn btn-primary text-sm px-2 py-1">
-                                      Calificar
-                                    </Link>
+                                    {task.type !== "EXAM" && submission.fileUrl && (
+                                      <a href={submission.fileUrl} target="_blank" download className="btn btn-secondary text-sm px-2 py-1 flex items-center gap-1">
+                                        <Download size={14} /> Archivo
+                                      </a>
+                                    )}
+                                    {task.type === "EXAM" && (
+                                      <ResetSubmissionButton 
+                                        taskId={task.id}
+                                        studentId={student.id}
+                                        studentName={student.name}
+                                      />
+                                    )}
+                                    {(task.type !== "EXAM" || isSubmitted) && (
+                                      <Link href={`/docente/tareas/${task.id}/calificar/${student.id}`} className="btn btn-primary text-sm px-2 py-1">
+                                        Calificar
+                                      </Link>
+                                    )}
                                   </div>
                                   {submission.gdriveEmail && (
                                     <GDriveEmailDisplay email={submission.gdriveEmail} context="task_details" />
@@ -282,15 +294,26 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
                         {submission?.submittedAt ? new Date(submission.submittedAt).toLocaleString() : '-'}
                       </td>
                       <td className="py-3 px-4 text-right no-print">
-                        {isSubmitted ? (
+                        {submission ? (
                           <div className="flex flex-col items-end gap-1">
                             <div className="flex justify-end gap-2">
-                              <a href={submission.fileUrl || "#"} target="_blank" download className="btn btn-secondary text-sm px-2 py-1 flex items-center gap-1">
-                                <Download size={14} /> Archivo
-                              </a>
-                              <Link href={`/docente/tareas/${task.id}/calificar/${student.id}`} className="btn btn-primary text-sm px-2 py-1">
-                                Calificar
-                              </Link>
+                              {task.type !== "EXAM" && submission.fileUrl && (
+                                <a href={submission.fileUrl} target="_blank" download className="btn btn-secondary text-sm px-2 py-1 flex items-center gap-1">
+                                  <Download size={14} /> Archivo
+                                </a>
+                              )}
+                              {task.type === "EXAM" && (
+                                <ResetSubmissionButton 
+                                  taskId={task.id}
+                                  studentId={student.id}
+                                  studentName={student.name}
+                                />
+                              )}
+                              {(task.type !== "EXAM" || isSubmitted) && (
+                                <Link href={`/docente/tareas/${task.id}/calificar/${student.id}`} className="btn btn-primary text-sm px-2 py-1">
+                                  Calificar
+                                </Link>
+                              )}
                             </div>
                             {submission.gdriveEmail && (
                               <GDriveEmailDisplay email={submission.gdriveEmail} context="task_details" />

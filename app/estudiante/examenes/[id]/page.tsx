@@ -173,6 +173,13 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   };
 
   const handleMarkAsFinished = async () => {
+    const confirmSubmit = window.confirm(
+      "¿Estás seguro de que deseas finalizar y entregar el examen?\n\n" +
+      "⚠️ IMPORTANTE: Asegúrate de haber presionado el botón 'Enviar' (Submit) DENTRO del formulario de Google antes de hacer clic en Aceptar.\n\n" +
+      "Si entregas el examen ahora sin haber enviado tus respuestas en Google Forms, no quedarán registradas y no podrás volver a abrir el examen."
+    );
+    if (!confirmSubmit) return;
+
     setLoading(true);
     setError("");
     try {
