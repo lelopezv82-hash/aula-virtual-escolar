@@ -69,15 +69,27 @@ export async function DELETE(
     const now = new Date();
     const isLate = now > new Date(task.dueDate);
 
-    // Update the submission record to reset state instead of deleting it
-    await prisma.submission.update({
+    // Update or create the submission record to reset state instead of deleting it
+    await prisma.submission.upsert({
       where: {
         taskId_studentId: {
           taskId: resolvedParams.id,
           studentId: resolvedParams.studentId,
         }
       },
-      data: {
+      update: {
+        status: "PENDING",
+        grade: null,
+        feedback: null,
+        fileUrl: null,
+        submittedAt: null,
+        startedAt: null,
+        allowLateSubmission: isLate ? true : false,
+        lateSubmissionUntil: null
+      },
+      create: {
+        taskId: resolvedParams.id,
+        studentId: resolvedParams.studentId,
         status: "PENDING",
         grade: null,
         feedback: null,

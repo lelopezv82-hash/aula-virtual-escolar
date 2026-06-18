@@ -200,12 +200,18 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
                 ) : (
                   <div className="bg-white rounded-[8px] p-6 border border-[#dadce0] text-[14px] text-[#202124]" style={{ padding: '24px' }}>
                     {isGoogleForm ? (
-                      <p>
-                        Tu examen fue enviado con éxito a través de Google Forms y tus respuestas han sido registradas. 
-                        Esta calificación ya es oficial en la plataforma. 
-                        <br/><br/>
-                        <span className="italic text-[13px] text-[#5f6368]">(El detalle individual de respuestas no está disponible para entregas antiguas).</span>
-                      </p>
+                      !submission.feedback && submission.grade === 1.0 ? (
+                        <p className="text-[#d93025] font-medium text-base">
+                          Este examen fue calificado con la nota mínima de <strong>1.0</strong> debido a que el plazo venció o el tiempo expiró sin que se registraran respuestas en la plataforma.
+                        </p>
+                      ) : (
+                        <p>
+                          Tu examen fue enviado con éxito a través de Google Forms y tus respuestas han sido registradas. 
+                          Esta calificación ya es oficial en la plataforma. 
+                          <br/><br/>
+                          <span className="italic text-[13px] text-[#5f6368]">(El detalle individual de respuestas no está disponible para entregas antiguas).</span>
+                        </p>
+                      )
                     ) : submission.fileUrl ? (
                       <div className="flex flex-col gap-2 items-start">
                         <p>Has adjuntado un archivo con tus respuestas.</p>

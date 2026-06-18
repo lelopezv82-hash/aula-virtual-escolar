@@ -294,34 +294,34 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
                         {submission?.submittedAt ? new Date(submission.submittedAt).toLocaleString() : '-'}
                       </td>
                       <td className="py-3 px-4 text-right no-print">
-                        {submission ? (
-                          <div className="flex flex-col items-end gap-1">
-                            <div className="flex justify-end gap-2">
-                              {task.type !== "EXAM" && submission.fileUrl && (
-                                <a href={submission.fileUrl} target="_blank" download className="btn btn-secondary text-sm px-2 py-1 flex items-center gap-1">
-                                  <Download size={14} /> Archivo
-                                </a>
-                              )}
-                              {task.type === "EXAM" && (
-                                <ResetSubmissionButton 
-                                  taskId={task.id}
-                                  studentId={student.id}
-                                  studentName={student.name}
-                                />
-                              )}
-                              {(task.type !== "EXAM" || isSubmitted) && (
-                                <Link href={`/docente/tareas/${task.id}/calificar/${student.id}`} className="btn btn-primary text-sm px-2 py-1">
-                                  Calificar
-                                </Link>
-                              )}
-                            </div>
-                            {submission.gdriveEmail && (
-                              <GDriveEmailDisplay email={submission.gdriveEmail} context="task_details" />
+                        <div className="flex flex-col items-end gap-1">
+                          <div className="flex justify-end gap-2">
+                            {submission && task.type !== "EXAM" && submission.fileUrl && (
+                              <a href={submission.fileUrl} target="_blank" download className="btn btn-secondary text-sm px-2 py-1 flex items-center gap-1">
+                                <Download size={14} /> Archivo
+                              </a>
+                            )}
+                            {task.type === "EXAM" && (
+                              <ResetSubmissionButton 
+                                taskId={task.id}
+                                studentId={student.id}
+                                studentName={student.name}
+                                hasSubmission={!!submission}
+                              />
+                            )}
+                            {submission && (task.type !== "EXAM" || isSubmitted) && (
+                              <Link href={`/docente/tareas/${task.id}/calificar/${student.id}`} className="btn btn-primary text-sm px-2 py-1">
+                                Calificar
+                              </Link>
+                            )}
+                            {!submission && task.type !== "EXAM" && (
+                              <span className="text-muted text-sm">Sin entrega</span>
                             )}
                           </div>
-                        ) : (
-                          <span className="text-muted text-sm">Sin entrega</span>
-                        )}
+                          {submission?.gdriveEmail && (
+                            <GDriveEmailDisplay email={submission.gdriveEmail} context="task_details" />
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
