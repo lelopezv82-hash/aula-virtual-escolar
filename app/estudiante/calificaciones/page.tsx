@@ -15,17 +15,6 @@ export default async function CalificacionesEstudiantePage() {
   const { payload } = await jwtVerify(token, JWT_SECRET);
   const studentId = payload.id as string;
 
-  const submissions = await prisma.submission.findMany({
-    where: {
-      studentId,
-      task: {
-        active: true
-      }
-    },
-    include: { task: { include: { course: true } } },
-    orderBy: { updatedAt: "desc" }
-  });
-
   // Fetch active periods from database
   const activePeriodsFromDb = await prisma.period.findMany({
     where: { active: true }
@@ -34,10 +23,93 @@ export default async function CalificacionesEstudiantePage() {
   const activePeriodNames = activePeriodsFromDb.map(p => p.name);
 
   const now = new Date();
-  const activeSubmissions = submissions.filter(sub => 
-    (!sub.task.period || activePeriodNames.includes(sub.task.period)) && 
-    (!sub.task.publishAt || new Date(sub.task.publishAt) <= now)
-  );
+
+  // Get student group to fetch all tasks assigned to their group
+  const studentRecord = await prisma.user.findUnique({
+    where: { id: studentId },
+    select: { groupId: true }
+  });
+  const studentGroupId = studentRecord?.groupId || null;
+
+  // Fetch all active tasks assigned to the student's group (or all if no groups restrict them)
+  const tasks = await prisma.task.findMany({
+    where: {
+      active: true,
+      OR: [
+        { period: null },
+        { period: { in: activePeriodNames } }
+      ],
+      AND: [
+        {
+          OR: [
+            { publishAt: null },
+            { publishAt: { lte: now } }
+          ]
+        }
+      ],
+      groups: studentGroupId ? {
+        some: {
+          id: studentGroupId
+        }
+      } : { none: {} }
+    },
+    include: {
+      course: true,
+      submissions: {
+        where: { studentId }
+      }
+    }
+  });
+
+  // Map tasks to their submissions, adding virtual 1.0 graded submissions for expired/closed Google Forms exams
+  const activeSubmissions = tasks.map(task => {
+    const sub = task.submissions[0];
+    const isLate = now > new Date(task.dueDate);
+    const isClosed = isLate && !task.allowLateSubmission && !(task.lateSubmissionUntil && new Date(task.lateSubmissionUntil) > now);
+    const isGoogleForm = !!(task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));
+
+    if (sub) {
+      if (sub.status === "PENDING" && isClosed && task.type === "EXAM" && isGoogleForm) {
+        return {
+          ...sub,
+          status: "GRADED",
+          grade: 1.0,
+          task
+        };
+      }
+      return {
+        ...sub,
+        task
+      };
+    }
+
+    // If no submission and Google Form exam is closed, virtually grade as 1.0
+    if (isClosed && task.type === "EXAM" && isGoogleForm) {
+      return {
+        id: `virtual-${task.id}`,
+        taskId: task.id,
+        studentId,
+        status: "GRADED",
+        grade: 1.0,
+        feedback: null,
+        fileUrl: null,
+        submittedAt: null,
+        createdAt: task.dueDate,
+        updatedAt: task.dueDate,
+        allowLateSubmission: false,
+        lateSubmissionUntil: null,
+        gdriveEmail: null,
+        startedAt: null,
+        task
+      };
+    }
+
+    return null;
+  }).filter((sub): sub is any => sub !== null);
+
+  // Sort by updatedAt desc (using task updatedAt fallback for virtual ones)
+  activeSubmissions.sort((a, b) => new Date(b.updatedAt || b.task.updatedAt).getTime() - new Date(a.updatedAt || a.task.updatedAt).getTime());
+
   const graded = activeSubmissions.filter(s => s.status === "GRADED");
   const avg = graded.length > 0
     ? graded.reduce((sum, s) => sum + (s.grade ?? 0), 0) / graded.length

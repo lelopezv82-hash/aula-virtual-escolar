@@ -76,8 +76,19 @@ export default async function ExamenesEstudiantePage() {
           exams.map(exam => {
             const submission = exam.submissions[0];
             const isLate = new Date() > new Date(exam.dueDate);
-            const isSubmitted = submission && submission.status !== "PENDING";
-            const isGraded = submission && submission.status === "GRADED";
+            const isGoogleForm = !!(exam.attachmentUrl && (exam.attachmentUrl.includes("docs.google.com/forms") || exam.attachmentUrl.includes("forms.gle")));
+            
+            // Check if late submissions are blocked (overdue and no extensions)
+            const isClosed = isLate && !exam.allowLateSubmission && !(exam.lateSubmissionUntil && new Date(exam.lateSubmissionUntil) > new Date());
+            
+            // If the Google Form exam is closed and never finished/submitted, virtually grade it as 1.0
+            const virtualSubmission = (!submission || submission.status === "PENDING") && isClosed && isGoogleForm
+              ? { status: "GRADED", grade: 1.0, feedback: null, submittedAt: null, fileUrl: null }
+              : null;
+              
+            const activeSubmission = submission || virtualSubmission;
+            const isSubmitted = activeSubmission && activeSubmission.status !== "PENDING";
+            const isGraded = activeSubmission && activeSubmission.status === "GRADED";
 
             return (
               <div key={exam.id} className="card flex flex-col md:flex-row md:items-center justify-between gap-4" style={{ borderLeft: isSubmitted ? '4px solid var(--success)' : isLate ? '4px solid var(--danger)' : '4px solid #8b5cf6' }}>
@@ -88,7 +99,7 @@ export default async function ExamenesEstudiantePage() {
                     </span>
                     {isGraded && (
                       <span className="badge badge-success flex items-center gap-1">
-                        <CheckCircle size={12} /> Calificado: {submission.grade}
+                        <CheckCircle size={12} /> Calificado: {activeSubmission.grade}
                       </span>
                     )}
                     {isSubmitted && !isGraded && (
@@ -123,13 +134,13 @@ export default async function ExamenesEstudiantePage() {
                         course: { name: exam.course.name }
                       }}
                       submission={{
-                        grade: submission.grade,
-                        status: submission.status,
-                        fileUrl: submission.fileUrl,
-                        submittedAt: submission.submittedAt,
-                        feedback: submission.feedback
+                        grade: activeSubmission.grade,
+                        status: activeSubmission.status,
+                        fileUrl: activeSubmission.fileUrl,
+                        submittedAt: activeSubmission.submittedAt,
+                        feedback: activeSubmission.feedback
                       }}
-                      isGoogleForm={!!exam.attachmentUrl && (exam.attachmentUrl.includes("docs.google.com/forms") || exam.attachmentUrl.includes("forms.gle"))}
+                      isGoogleForm={isGoogleForm}
                     />
                   )}
                 </div>
