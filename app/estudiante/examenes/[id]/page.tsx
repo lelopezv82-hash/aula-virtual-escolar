@@ -130,7 +130,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
 
   // Timer countdown hook
   useEffect(() => {
-    if (!task || !task.duration || !submission || !submission.startedAt || isSubmitted) {
+    if (!task || !task.duration || !submission || !submission.startedAt || isSubmitted || isGracePeriod || isTimerExpired) {
       return;
     }
 
@@ -144,9 +144,16 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
 
     const initialLeft = calculateTimeLeft();
     if (initialLeft <= 0) {
-      setIsTimerExpired(true);
-      setTimeLeft(0);
-      triggerAutoSubmit();
+      const graceTimeRemaining = 30 + initialLeft; // initialLeft is negative
+      if (graceTimeRemaining > 0) {
+        setIsGracePeriod(true);
+        setGraceTimeLeft(graceTimeRemaining);
+        setTimeLeft(0);
+      } else {
+        setIsTimerExpired(true);
+        setTimeLeft(0);
+        triggerAutoSubmit();
+      }
       return;
     } else {
       setTimeLeft(initialLeft);
@@ -164,7 +171,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [task, submission, isSubmitted, triggerAutoSubmit]);
+  }, [task, submission, isSubmitted, isGracePeriod, isTimerExpired, triggerAutoSubmit]);
 
   // Grace period countdown hook
   useEffect(() => {
