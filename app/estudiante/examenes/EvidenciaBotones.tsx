@@ -17,6 +17,7 @@ interface EvidenciaModalProps {
     submittedAt?: Date | null;
     feedback?: string | null;
     feedbackTemplate?: string | null;
+    studentName?: string | null;
   };
   isGoogleForm: boolean;
 }
@@ -47,11 +48,16 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
           if (!hasOwnFeedback) {
             // Si es una plantilla (no la entrega propia del estudiante),
             // limpiamos su respuesta y ponemos puntaje en 0 e isCorrect en false.
+            // Excepto si es la pregunta de nombre del estudiante.
+            const isNameQuestion = item.question.toLowerCase().includes("nombre") && 
+              !item.question.toLowerCase().includes("docente") && 
+              !item.question.toLowerCase().includes("profesor");
+            
             return {
               ...item,
-              answer: "", // Sin respuesta
-              score: 0,   // 0 puntos
-              isCorrect: false // Incorrecto
+              answer: isNameQuestion ? (submission.studentName || "Estudiante") : "",
+              score: isNameQuestion ? (item.maxScore || 0) : 0,
+              isCorrect: isNameQuestion ? true : false
             };
           }
           return item;

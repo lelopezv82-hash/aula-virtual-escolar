@@ -17,9 +17,10 @@ export default async function ExamenesEstudiantePage() {
 
   const studentRecord = await prisma.user.findUnique({
     where: { id: studentId },
-    select: { groupId: true }
+    select: { groupId: true, name: true }
   });
   const studentGroupId = studentRecord?.groupId || null;
+  const studentName = studentRecord?.name || "Estudiante";
 
   // Fetch active periods from database
   const activePeriodsFromDb = await prisma.period.findMany({
@@ -171,7 +172,8 @@ export default async function ExamenesEstudiantePage() {
                         fileUrl: activeSubmission.fileUrl,
                         submittedAt: activeSubmission.submittedAt,
                         feedback: activeSubmission.feedback,
-                        feedbackTemplate: exam.feedbackTemplate
+                        feedbackTemplate: exam.feedbackTemplate,
+                        studentName: studentName
                       }}
                       isGoogleForm={isGoogleForm}
                     />

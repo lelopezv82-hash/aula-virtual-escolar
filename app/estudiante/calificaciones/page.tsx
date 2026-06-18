@@ -27,9 +27,10 @@ export default async function CalificacionesEstudiantePage() {
   // Get student group to fetch all tasks assigned to their group
   const studentRecord = await prisma.user.findUnique({
     where: { id: studentId },
-    select: { groupId: true }
+    select: { groupId: true, name: true }
   });
   const studentGroupId = studentRecord?.groupId || null;
+  const studentName = studentRecord?.name || "Estudiante";
 
   // Fetch all active tasks assigned to the student's group (or all if no groups restrict them)
   const tasks = await prisma.task.findMany({
@@ -231,7 +232,8 @@ export default async function CalificacionesEstudiantePage() {
                                   fileUrl: sub.fileUrl,
                                   submittedAt: sub.submittedAt,
                                   feedback: sub.feedback,
-                                  feedbackTemplate: sub.feedbackTemplate
+                                  feedbackTemplate: sub.feedbackTemplate,
+                                  studentName: studentName
                                 }}
                                 isGoogleForm={true}
                               />
