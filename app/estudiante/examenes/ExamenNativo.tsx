@@ -177,8 +177,8 @@ export default function ExamenNativo({
                 key={q.id} 
                 className={`p-5 rounded-xl border flex flex-col gap-3 ${
                   isCorrect 
-                    ? "bg-green-50/30 border-green-200 dark:bg-green-950/10 dark:border-green-900/50" 
-                    : "bg-red-50/30 border-red-200 dark:bg-red-950/10 dark:border-red-900/50"
+                    ? "bg-green-50/20 border-green-200 dark:bg-green-950/5 dark:border-green-900/40" 
+                    : "bg-red-50/20 border-red-200 dark:bg-red-950/5 dark:border-red-900/40"
                 }`}
               >
                 <div className="flex justify-between items-start gap-4">
@@ -204,16 +204,24 @@ export default function ExamenNativo({
                       let icon = null;
 
                       if (isOptCorrect) {
-                        optStyle = "border-green-400 bg-green-100/30 dark:border-green-900/50 dark:bg-green-950/20 font-bold text-green-700 dark:text-green-400";
+                        optStyle = "border-green-500 bg-green-50/30 dark:border-green-900/50 dark:bg-green-950/20 font-bold text-green-700 dark:text-green-600";
                         icon = <Check size={14} className="text-green-500" />;
                       } else if (isSelected && !isOptCorrect) {
-                        optStyle = "border-red-400 bg-red-100/30 dark:border-red-900/50 dark:bg-red-950/20 font-bold text-red-700 dark:text-red-400";
+                        optStyle = "border-red-500 bg-red-50/30 dark:border-red-900/50 dark:bg-red-950/20 font-bold text-red-700 dark:text-red-600";
                         icon = <X size={14} className="text-red-500" />;
                       }
 
                       return (
                         <div key={opt.id} className={`flex items-center gap-2 p-2.5 rounded border ${optStyle}`}>
-                          <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${isSelected ? "bg-primary border-primary" : "border-gray-300"}`}>
+                          <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${
+                            isSelected && !isOptCorrect 
+                              ? "bg-red-500 border-red-500" 
+                              : isOptCorrect 
+                                ? "bg-green-500 border-green-500" 
+                                : isSelected 
+                                  ? "bg-blue-500 border-blue-500" 
+                                  : "border-gray-300"
+                          }`}>
                             {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
                           </div>
                           <span className="flex-1">{opt.text}</span>
@@ -224,17 +232,24 @@ export default function ExamenNativo({
                   </div>
                 ) : (
                   <div className="text-xs flex flex-col gap-2">
-                    <div className="p-2.5 rounded border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+                    <div className={`p-2.5 rounded border ${isCorrect ? "border-green-500 bg-green-50/10" : "border-red-500 bg-red-50/10"}`}>
                       <p className="text-muted font-semibold mb-0.5">Tu respuesta:</p>
                       <p className={isCorrect ? "text-green-600 font-bold" : "text-red-500 font-bold"}>
                         {studentAns || "(Vacío)"}
                       </p>
                     </div>
-                    {!isCorrect && q.options[0]?.text && (
-                      <p className="text-xs text-green-600 font-medium">
-                        Respuesta correcta esperada: <strong>{q.options[0].text}</strong>
-                      </p>
-                    )}
+                  </div>
+                )}
+
+                {/* Google Forms Style Correction Feedback Block */}
+                {!isCorrect && (
+                  <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-800 border-l-4 border-l-red-500 text-xs mt-2 flex flex-col gap-1">
+                    <span className="font-bold text-red-600 dark:text-red-400">Respuesta correcta:</span>
+                    <span className="text-muted">
+                      {q.type === "MULTIPLE_CHOICE" 
+                        ? q.options.find(o => o.isCorrect)?.text 
+                        : q.options[0]?.text || "(Sin especificar)"}
+                    </span>
                   </div>
                 )}
               </div>

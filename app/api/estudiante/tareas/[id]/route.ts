@@ -75,7 +75,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const submission = task.submissions[0];
     const isGoogleForm = !!(task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));
     
-    const canSeeAnswers = submission && submission.status !== "PENDING" && (submission.attempt > 1 || submission.unlockedAnswers === true);
+    const isNative = task.questions && task.questions.length > 0;
+    const canSeeAnswers = submission && submission.status !== "PENDING" && (isNative || submission.attempt > 1 || submission.unlockedAnswers === true);
 
     // Sanitize correct options if student cannot see answers yet
     if (task.questions && task.questions.length > 0 && !canSeeAnswers) {

@@ -30,7 +30,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const [isGracePeriod, setIsGracePeriod] = useState(false);
   const [graceTimeLeft, setGraceTimeLeft] = useState(30);
 
-  useEffect(() => {
+  const fetchTaskDetails = useCallback(() => {
     // Fetch task and existing submission info
     fetch(`/api/estudiante/tareas/${taskId}`)
       .then(res => res.json())
@@ -51,6 +51,10 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
       .catch(() => setError("No se pudo cargar la tarea"))
       .finally(() => setInitialLoad(false));
   }, [taskId, router]);
+
+  useEffect(() => {
+    fetchTaskDetails();
+  }, [fetchTaskDetails]);
 
 
   const now = new Date();
@@ -486,7 +490,10 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
             taskId={taskId}
             questions={task.questions}
             submission={submission}
-            onSubmissionUpdated={(sub) => setSubmission(sub)}
+            onSubmissionUpdated={(sub) => {
+              setSubmission(sub);
+              fetchTaskDetails();
+            }}
             timeLeft={timeLeft}
             isTimerExpired={isTimerExpired}
             triggerAutoSubmit={triggerAutoSubmit}
