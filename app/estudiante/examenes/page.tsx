@@ -1,7 +1,7 @@
 import prisma from '@/lib/prisma';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
-import { ClipboardList, Clock, CheckCircle } from "lucide-react";
+import { ClipboardList, CheckCircle } from "lucide-react";
 import ExamenCardAcciones from "./ExamenCardAcciones";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
@@ -125,12 +125,7 @@ export default async function ExamenesEstudiantePage() {
                 </div>
 
                 <div className="flex flex-col md:items-end gap-2 min-w-[200px]">
-                  <div className="text-sm text-muted flex items-center gap-1">
-                    <Clock size={16} /> 
-                    Vence: {new Date(exam.dueDate).toLocaleString()}
-                  </div>
-
-                  {/* Interactive actions rendered client-side only (avoids SSR portal issues) */}
+                  {/* Interactive actions rendered client-side only (correct local timezone + portal support) */}
                   <ExamenCardAcciones
                     examId={exam.id}
                     examTitle={exam.title}
