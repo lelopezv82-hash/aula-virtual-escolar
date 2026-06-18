@@ -1295,13 +1295,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
             </div>
 
             {taskForm.type === "EXAM" ? (
-              <div className="input-group mb-4">
-                <label className="text-xs font-bold mb-1">Enlace del Examen (Google Forms, etc.)</label>
-                <input type="url" className="input-field py-1.5 px-3 text-xs" placeholder="Ej. https://docs.google.com/forms/.../viewform?usp=pp_url&entry.123=__ESTUDIANTE__"
-                  value={taskForm.externalUrl} onChange={e => setTaskForm({ ...taskForm, externalUrl: e.target.value })} />
-                <p className="text-[10px] text-muted mt-1">
-                  Para Google Forms, recuerda usar <strong>__ESTUDIANTE__</strong> en el enlace prellenado para la calificación automática.
-                </p>
+              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/50 rounded-lg p-3 text-[11px] text-blue-700 dark:text-blue-300 mb-4">
+                <strong>💡 Examen Nativo:</strong> Este examen se creará directamente en la plataforma. Una vez creado, haz clic en <strong>Ver/Calificar</strong> en la lista de exámenes para ingresar las preguntas y opciones de respuesta.
               </div>
             ) : (
               <>
