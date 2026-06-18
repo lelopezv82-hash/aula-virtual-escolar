@@ -83,8 +83,15 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   useEffect(() => {
     if (!task || !isGoogleForm) return;
 
-    // Stop polling if the submission is already GRADED
-    if (submission?.status === "GRADED") return;
+    // Stop polling only if already GRADED with a real grade (not the auto-submit placeholder 1.0).
+    // If grade is exactly 1.0, keep polling for up to 2 min to capture the real webhook grade.
+    const isDefinitivelyGraded = submission?.status === "GRADED" && submission?.grade !== null && submission?.grade !== 1.0;
+    if (isDefinitivelyGraded) return;
+
+    // Also stop if GRADED for more than 2 minutes (webhook likely won't come)
+    const gradedAt = submission?.submittedAt ? new Date(submission.submittedAt).getTime() : null;
+    const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
+    if (submission?.status === "GRADED" && gradedAt && gradedAt < twoMinutesAgo) return;
 
     const interval = setInterval(() => {
       fetch(`/api/estudiante/tareas/${taskId}`)
@@ -94,7 +101,8 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
             const sub = data.task.submissions[0];
             setSubmission(sub);
             if (data.feedbackTemplate) setFeedbackTemplate(data.feedbackTemplate);
-            if (sub.status === "GRADED") {
+            // Stop polling when we have a definitive non-1.0 grade
+            if (sub.status === "GRADED" && sub.grade !== null && sub.grade !== 1.0) {
               clearInterval(interval);
             }
           }
@@ -103,7 +111,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [task, taskId, isGoogleForm, submission?.status]);
+  }, [task, taskId, isGoogleForm, submission?.status, submission?.grade]);
 
   const triggerAutoSubmit = useCallback(async () => {
     setIsTimerExpired(true);
