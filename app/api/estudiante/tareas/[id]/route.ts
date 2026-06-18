@@ -62,10 +62,30 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Tarea no encontrada' }, { status: 404 });
     }
 
+    // Fetch feedbackTemplate if the student has no submission or has a submission with no feedback
+    let feedbackTemplate = null;
+    const submission = task.submissions[0];
+    const isGoogleForm = !!(task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));
+    
+    if (isGoogleForm && (!submission || !submission.feedback)) {
+      const templateSub = await prisma.submission.findFirst({
+        where: {
+          taskId: task.id,
+          feedback: { not: null }
+        },
+        select: { feedback: true }
+      });
+      feedbackTemplate = templateSub?.feedback || null;
+    }
+
     // Remove groups from response to keep payload clean if needed, or keep it
     const { groups: _groups, ...taskData } = task;
 
-    return NextResponse.json({ task: taskData, studentName: student?.name || "Estudiante" });
+    return NextResponse.json({ 
+      task: taskData, 
+      studentName: student?.name || "Estudiante",
+      feedbackTemplate
+    });
   } catch {
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }

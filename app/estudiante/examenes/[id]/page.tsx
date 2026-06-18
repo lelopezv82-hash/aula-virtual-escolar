@@ -15,6 +15,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const [task, setTask] = useState<any>(null);
   const [studentName, setStudentName] = useState("");
   const [submission, setSubmission] = useState<any>(null);
+  const [feedbackTemplate, setFeedbackTemplate] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [startingExam, setStartingExam] = useState(false);
@@ -39,6 +40,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
           }
           setTask(data.task);
           if (data.studentName) setStudentName(data.studentName);
+          if (data.feedbackTemplate) setFeedbackTemplate(data.feedbackTemplate);
           if (data.task.submissions && data.task.submissions.length > 0) {
             setSubmission(data.task.submissions[0]);
           }
@@ -49,9 +51,32 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   }, [taskId, router]);
 
 
+  const now = new Date();
   const isGoogleForm = !!(task?.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));
-  const isGraded = submission?.status === "GRADED";
-  const isSubmitted = submission?.status === "SUBMITTED" || isGraded;
+  
+  // Detect if the student's individual timer has expired
+  const timerHasExpired = isTimerExpired || !!(submission?.startedAt && task?.duration && 
+    (new Date(submission.startedAt).getTime() + task.duration * 60 * 1000 < now.getTime()));
+
+  // Check if late submissions are blocked (overdue and no extensions)
+  const isOverdue = task ? new Date(task.dueDate) < now : false;
+  const generalLateUntil = task?.lateSubmissionUntil ? new Date(task.lateSubmissionUntil) : null;
+  const studentLateUntil = submission?.lateSubmissionUntil ? new Date(submission.lateSubmissionUntil) : null;
+  const hasGeneralExtension = task?.allowLateSubmission || (generalLateUntil && generalLateUntil > now);
+  const hasStudentExtension = submission?.allowLateSubmission || (studentLateUntil && studentLateUntil > now);
+  const isLateSubmissionAllowed = task ? (hasGeneralExtension || hasStudentExtension) : false;
+  const isClosed = isOverdue && !isLateSubmissionAllowed;
+
+  // If the Google Form exam is closed/expired and never finished/submitted, virtually grade it as 1.0
+  const virtualSubmission = ((!submission || submission.status === "PENDING") && isClosed && isGoogleForm) ||
+                            (submission && submission.status === "PENDING" && timerHasExpired && isGoogleForm)
+    ? { status: "GRADED", grade: 1.0, feedback: null, submittedAt: null, fileUrl: null }
+    : null;
+
+  const activeSubmission = (submission && submission.status !== "PENDING") ? submission : (virtualSubmission || submission);
+
+  const isGraded = activeSubmission?.status === "GRADED";
+  const isSubmitted = activeSubmission?.status === "SUBMITTED" || isGraded;
 
   // Polling to check if webhook has graded the exam
   useEffect(() => {
@@ -67,6 +92,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
           if (data.task && data.task.submissions && data.task.submissions.length > 0) {
             const sub = data.task.submissions[0];
             setSubmission(sub);
+            if (data.feedbackTemplate) setFeedbackTemplate(data.feedbackTemplate);
             if (sub.status === "GRADED") {
               clearInterval(interval);
             }
@@ -265,23 +291,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
     return <div className="alert alert-danger">No se encontró la tarea o no tienes acceso.</div>;
   }
   
-  const now = new Date();
-  const isOverdue = task ? new Date(task.dueDate) < now : false;
-  
-  // Prórroga activa general o individual
-  const generalLateUntil = task?.lateSubmissionUntil ? new Date(task.lateSubmissionUntil) : null;
-  const studentLateUntil = submission?.lateSubmissionUntil ? new Date(submission.lateSubmissionUntil) : null;
-  
-  const hasGeneralExtension = task?.allowLateSubmission || (generalLateUntil && generalLateUntil > now);
-  const hasStudentExtension = submission?.allowLateSubmission || (studentLateUntil && studentLateUntil > now);
-  
-  const isLateSubmissionAllowed = task ? (hasGeneralExtension || hasStudentExtension) : false;
-  const isSubmissionBlocked = isOverdue && !isLateSubmissionAllowed;
-  
-  // Determinar la fecha límite de la prórroga si existe y no ha expirado
-  const activeExtensionDate = studentLateUntil && studentLateUntil > now 
-    ? studentLateUntil 
-    : (generalLateUntil && generalLateUntil > now ? generalLateUntil : null);
+  // Variables computed early
 
   // Splash screen for timed tasks that haven't started yet
   if (task.duration && (!submission || !submission.startedAt)) {
@@ -407,7 +417,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
         <div className="card mb-6 flex flex-col gap-4">
           <h2 className="text-lg font-bold">Examen en Línea</h2>
           
-          {!isSubmitted && !isTimerExpired && !isGoogleForm && (
+          {!isSubmitted && !timerHasExpired && !isGoogleForm && (
             <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 text-amber-900 dark:text-amber-200 rounded-lg p-4 text-sm flex flex-col gap-2">
               <p className="font-bold flex items-center gap-1">💡 Enlace Externo:</p>
               <p>Si el examen no carga correctamente abajo, puedes abrirlo directamente en una nueva pestaña:</p>
@@ -418,7 +428,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
           )}
 
           <div className="relative border rounded-lg overflow-hidden bg-white" style={{ height: "650px", borderColor: "var(--border-color)" }}>
-            {submission?.status === "GRADED" ? (
+            {activeSubmission?.status === "GRADED" ? (
               <div className="absolute inset-0 bg-green-50 dark:bg-green-950/20 flex flex-col items-center justify-center p-6 text-center overflow-y-auto">
                 <CheckCircle className="text-green-500 mb-2 shrink-0" size={48} />
                 <h3 className="text-xl font-bold text-green-600">Examen Calificado</h3>
@@ -428,7 +438,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                 
                 <div className="my-4 p-4 rounded-full bg-white dark:bg-gray-800 shadow-md border-2 border-green-500 flex flex-col items-center justify-center w-32 h-32 mx-auto shrink-0 animate-fade-in">
                   <span className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider">Nota</span>
-                  <span className="text-2xl font-black text-green-600 dark:text-green-400">{submission.grade}</span>
+                  <span className="text-2xl font-black text-green-600 dark:text-green-400">{activeSubmission.grade}</span>
                   <span className="text-[10px] text-gray-400">/ 5.0</span>
                 </div>
 
@@ -440,17 +450,19 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                       course: { name: task.course?.name || "Curso" }
                     }}
                     submission={{
-                      grade: submission.grade,
-                      status: submission.status,
-                      fileUrl: submission.fileUrl,
-                      submittedAt: submission.submittedAt,
-                      feedback: submission.feedback
+                      grade: activeSubmission.grade,
+                      status: activeSubmission.status,
+                      fileUrl: activeSubmission.fileUrl,
+                      submittedAt: activeSubmission.submittedAt,
+                      feedback: activeSubmission.feedback,
+                      feedbackTemplate: feedbackTemplate,
+                      studentName: studentName
                     }}
                     isGoogleForm={isGoogleForm}
                   />
                 </div>
               </div>
-            ) : (submission?.status === "SUBMITTED" && isGoogleForm && !isTimerExpired) ? (
+            ) : (activeSubmission?.status === "SUBMITTED" && isGoogleForm && !timerHasExpired) ? (
               <div className="absolute inset-0 bg-blue-50 dark:bg-blue-950/20 flex flex-col items-center justify-center p-6 text-center">
                 <Loader2 className="animate-spin text-blue-500 mb-4" size={48} />
                 <h3 className="text-xl font-bold text-blue-600">Procesando respuestas</h3>
@@ -461,7 +473,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                   Si ya presionaste "Enviar" en el formulario, esta página se actualizará automáticamente.
                 </p>
               </div>
-            ) : (submission?.status === "SUBMITTED" && isGoogleForm && isTimerExpired) ? (
+            ) : (activeSubmission?.status === "SUBMITTED" && isGoogleForm && timerHasExpired) ? (
               <div className="absolute inset-0 bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-6 text-center">
                 <AlertTriangle className="text-red-500 mb-4 animate-bounce" size={48} />
                 <h3 className="text-xl font-bold text-red-600">Tiempo Expirado</h3>
@@ -484,7 +496,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                   Has completado y entregado este examen con éxito.
                 </p>
               </div>
-            ) : (isTimerExpired && !isGracePeriod) ? (
+            ) : (timerHasExpired && !isGracePeriod) ? (
               <div className="absolute inset-0 bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-6 text-center">
                 <AlertTriangle className="text-red-500 mb-4 animate-bounce" size={48} />
                 <h3 className="text-xl font-bold text-red-600">Tiempo Expirado</h3>
@@ -505,7 +517,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
             )}
           </div>
 
-          {!isSubmitted && !isTimerExpired && !isGoogleForm && (
+          {!isSubmitted && !timerHasExpired && !isGoogleForm && (
             <div className="flex flex-col gap-3 mt-2 border-t pt-4" style={{ borderColor: "var(--border-color)" }}>
               <div className="flex justify-between items-center flex-wrap gap-2">
                 <p className="text-xs text-muted">⚠️ Una vez que completes tu examen en el enlace de arriba, haz clic aquí para registrar tu entrega en el aula virtual.</p>
