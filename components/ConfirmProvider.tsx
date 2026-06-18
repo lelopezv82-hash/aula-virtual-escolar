@@ -7,7 +7,7 @@ interface ConfirmOptions {
   title: string;
   message: string;
   confirmText?: string;
-  cancelText?: string;
+  cancelText?: string | null;
   type?: 'danger' | 'warning' | 'info';
 }
 
@@ -23,7 +23,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
     title: string;
     message: string;
     confirmText?: string;
-    cancelText?: string;
+    cancelText?: string | null;
     type?: 'danger' | 'warning' | 'info';
   }>({
     isOpen: false,

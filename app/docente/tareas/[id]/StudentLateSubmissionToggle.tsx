@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Clock, Calendar, Check, X } from "lucide-react";
+import { useConfirm } from "@/components/ConfirmProvider";
 
 interface StudentLateSubmissionToggleProps {
   taskId: string;
@@ -22,6 +23,7 @@ export default function StudentLateSubmissionToggle({
   disabled
 }: StudentLateSubmissionToggleProps) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [showModal, setShowModal] = useState(false);
   const [allowLate, setAllowLate] = useState(initialAllowLate);
   const [lateUntil, setLateUntil] = useState<string>(
@@ -46,11 +48,23 @@ export default function StudentLateSubmissionToggle({
         router.refresh();
         setShowModal(false);
       } else {
-        alert("Error al actualizar el permiso");
+        await confirm({
+          title: "Error",
+          message: "Error al actualizar el permiso de entrega tardía.",
+          confirmText: "Aceptar",
+          cancelText: null,
+          type: "danger"
+        });
       }
     } catch (err) {
       console.error(err);
-      alert("Error de red");
+      await confirm({
+        title: "Error de Red",
+        message: "Error de red al intentar guardar los cambios.",
+        confirmText: "Aceptar",
+        cancelText: null,
+        type: "danger"
+      });
     } finally {
       setLoading(false);
     }

@@ -5,11 +5,13 @@ import { ArrowLeft, UploadCloud, Loader2, CheckCircle, FileText, Clock, AlertTri
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import EvidenciaBotones from "../EvidenciaBotones";
+import { useConfirm } from "@/components/ConfirmProvider";
 
 export default function TareaDetallePage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const taskId = resolvedParams.id;
   const router = useRouter();
+  const confirm = useConfirm();
 
   
   const [task, setTask] = useState<any>(null);
@@ -261,11 +263,15 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   };
 
   const handleMarkAsFinished = async () => {
-    const confirmSubmit = window.confirm(
-      "¿Estás seguro de que deseas finalizar y entregar el examen?\n\n" +
-      "⚠️ IMPORTANTE: Asegúrate de haber presionado el botón 'Enviar' (Submit) DENTRO del formulario de Google antes de hacer clic en Aceptar.\n\n" +
-      "Si entregas el examen ahora sin haber enviado tus respuestas en Google Forms, no quedarán registradas y no podrás volver a abrir el examen."
-    );
+    const confirmSubmit = await confirm({
+      title: "Finalizar y Entregar Examen",
+      message: "¿Estás seguro de que deseas finalizar y entregar el examen?\n\n" +
+        "⚠️ IMPORTANTE: Asegúrate de haber presionado el botón 'Enviar' (Submit) DENTRO del formulario de Google antes de hacer clic en Aceptar.\n\n" +
+        "Si entregas el examen ahora sin haber enviado tus respuestas en Google Forms, no quedarán registradas y no podrás volver a abrir el examen.",
+      confirmText: "Aceptar",
+      cancelText: "Cancelar",
+      type: "warning"
+    });
     if (!confirmSubmit) return;
 
     setLoading(true);
