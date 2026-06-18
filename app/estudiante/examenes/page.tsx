@@ -2,11 +2,7 @@ import prisma from '@/lib/prisma';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { ClipboardList, Clock, CheckCircle } from "lucide-react";
-import dynamic from "next/dynamic";
-
-// Load the interactive card actions (Ver Respuestas button, Resolver Examen link)
-// with ssr:false so createPortal in EvidenciaBotones works correctly
-const ExamenCardAcciones = dynamic(() => import("./ExamenCardAcciones"), { ssr: false });
+import ExamenCardAcciones from "./ExamenCardAcciones";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
