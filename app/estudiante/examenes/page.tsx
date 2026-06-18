@@ -146,6 +146,7 @@ export default async function ExamenesEstudiantePage() {
                       lateSubmissionUntil: submission.lateSubmissionUntil,
                       attempt: submission.attempt ?? 1,
                       unlockedAnswers: submission.unlockedAnswers ?? false,
+                      answers: submission.answers,
                     } : null}
                     studentName={studentName}
                   />

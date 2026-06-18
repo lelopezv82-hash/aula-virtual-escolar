@@ -25,6 +25,7 @@ interface ExamenCardAccionesProps {
     lateSubmissionUntil: Date | null;
     attempt: number;
     unlockedAnswers: boolean;
+    answers?: any;
   } | null;
   studentName: string;
 }
