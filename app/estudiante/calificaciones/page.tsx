@@ -62,7 +62,8 @@ export default async function CalificacionesEstudiantePage() {
   });
 
   // Map tasks to their submissions, adding virtual 1.0 graded submissions for expired/closed Google Forms exams
-  const activeSubmissions = tasks.map(task => {
+  // Map tasks to their submissions, adding virtual 1.0 graded submissions for expired/closed Google Forms exams
+  const activeSubmissions = (await Promise.all(tasks.map(async task => {
     const sub = task.submissions[0];
     const isLate = now > new Date(task.dueDate);
     
@@ -74,6 +75,18 @@ export default async function CalificacionesEstudiantePage() {
     const isClosed = isLate && !task.allowLateSubmission && !(task.lateSubmissionUntil && new Date(task.lateSubmissionUntil) > now) && !hasStudentExtension;
     const isGoogleForm = !!(task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));
 
+    let feedbackTemplate = null;
+    if (task.type === "EXAM" && isGoogleForm && (!sub || !sub.feedback)) {
+      const templateSub = await prisma.submission.findFirst({
+        where: {
+          taskId: task.id,
+          feedback: { not: null }
+        },
+        select: { feedback: true }
+      });
+      feedbackTemplate = templateSub?.feedback || null;
+    }
+
     if (sub) {
       // Detect if the student's individual timer has expired
       const isTimerExpired = sub.startedAt && task.duration && 
@@ -84,11 +97,13 @@ export default async function CalificacionesEstudiantePage() {
           ...sub,
           status: "GRADED",
           grade: 1.0,
+          feedbackTemplate,
           task
         };
       }
       return {
         ...sub,
+        feedbackTemplate,
         task
       };
     }
@@ -102,6 +117,7 @@ export default async function CalificacionesEstudiantePage() {
         status: "GRADED",
         grade: 1.0,
         feedback: null,
+        feedbackTemplate,
         fileUrl: null,
         submittedAt: null,
         createdAt: task.dueDate,
@@ -115,7 +131,7 @@ export default async function CalificacionesEstudiantePage() {
     }
 
     return null;
-  }).filter((sub): sub is any => sub !== null);
+  }))).filter((sub): sub is any => sub !== null);
 
   // Sort by updatedAt desc (using task updatedAt fallback for virtual ones)
   activeSubmissions.sort((a, b) => new Date(b.updatedAt || b.task.updatedAt).getTime() - new Date(a.updatedAt || a.task.updatedAt).getTime());
@@ -201,7 +217,7 @@ export default async function CalificacionesEstudiantePage() {
                             <p className="text-sm text-muted mt-1">Tu docente aún no ha calificado esta entrega.</p>
                           )}
                           
-                          {sub.feedback && (sub.task.attachmentUrl?.includes("docs.google.com/forms") || sub.task.attachmentUrl?.includes("forms.gle")) && (
+                          {(sub.feedback || sub.feedbackTemplate) && (sub.task.attachmentUrl?.includes("docs.google.com/forms") || sub.task.attachmentUrl?.includes("forms.gle")) && (
                             <div className="mt-3">
                               <EvidenciaBotones 
                                 exam={{
@@ -214,7 +230,8 @@ export default async function CalificacionesEstudiantePage() {
                                   status: sub.status,
                                   fileUrl: sub.fileUrl,
                                   submittedAt: sub.submittedAt,
-                                  feedback: sub.feedback
+                                  feedback: sub.feedback,
+                                  feedbackTemplate: sub.feedbackTemplate
                                 }}
                                 isGoogleForm={true}
                               />

@@ -59,6 +59,29 @@ export default async function ExamenesEstudiantePage() {
     orderBy: { createdAt: "desc" }
   });
 
+  // Fetch feedback templates for exams that need them
+  const examsWithTemplates = await Promise.all(exams.map(async exam => {
+    const submission = exam.submissions[0];
+    let feedbackTemplate = null;
+    const isGoogleForm = !!(exam.attachmentUrl && (exam.attachmentUrl.includes("docs.google.com/forms") || exam.attachmentUrl.includes("forms.gle")));
+    
+    if (isGoogleForm && (!submission || !submission.feedback)) {
+      const templateSub = await prisma.submission.findFirst({
+        where: {
+          taskId: exam.id,
+          feedback: { not: null }
+        },
+        select: { feedback: true }
+      });
+      feedbackTemplate = templateSub?.feedback || null;
+    }
+    
+    return {
+      ...exam,
+      feedbackTemplate
+    };
+  }));
+
   return (
     <div className="animate-fade-in">
       <div className="dashboard-header">
@@ -67,13 +90,13 @@ export default async function ExamenesEstudiantePage() {
       </div>
 
       <div className="flex flex-col gap-4">
-        {exams.length === 0 ? (
+        {examsWithTemplates.length === 0 ? (
           <div className="card text-center py-8 text-muted">
             <ClipboardList size={48} className="mx-auto mb-4 opacity-50" />
             <p>No tienes exámenes asignados en este momento.</p>
           </div>
         ) : (
-          exams.map(exam => {
+          examsWithTemplates.map(exam => {
             const submission = exam.submissions[0];
             const isLate = new Date() > new Date(exam.dueDate);
             const isGoogleForm = !!(exam.attachmentUrl && (exam.attachmentUrl.includes("docs.google.com/forms") || exam.attachmentUrl.includes("forms.gle")));
@@ -147,7 +170,8 @@ export default async function ExamenesEstudiantePage() {
                         status: activeSubmission.status,
                         fileUrl: activeSubmission.fileUrl,
                         submittedAt: activeSubmission.submittedAt,
-                        feedback: activeSubmission.feedback
+                        feedback: activeSubmission.feedback,
+                        feedbackTemplate: exam.feedbackTemplate
                       }}
                       isGoogleForm={isGoogleForm}
                     />

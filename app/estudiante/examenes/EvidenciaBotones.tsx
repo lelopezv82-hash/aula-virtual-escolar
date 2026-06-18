@@ -16,6 +16,7 @@ interface EvidenciaModalProps {
     fileUrl?: string | null;
     submittedAt?: Date | null;
     feedback?: string | null;
+    feedbackTemplate?: string | null;
   };
   isGoogleForm: boolean;
 }
@@ -23,7 +24,7 @@ interface EvidenciaModalProps {
 export default function EvidenciaBotones({ exam, submission, isGoogleForm }: EvidenciaModalProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  // Intentamos parsear las respuestas guardadas en feedback (que ahora deberían venir como JSON string)
+  // Intentamos parsear las respuestas guardadas en feedback o feedbackTemplate (JSON string)
   let answersData: { 
     question: string; 
     answer: string;
@@ -34,11 +35,27 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
     correctAnswer?: string;
     options?: string[];
   }[] | null = null;
-  if (isGoogleForm && submission.feedback) {
+  
+  const hasOwnFeedback = !!submission.feedback;
+
+  if (isGoogleForm && (submission.feedback || submission.feedbackTemplate)) {
     try {
-      const parsed = JSON.parse(submission.feedback);
+      const rawFeedback = submission.feedback || submission.feedbackTemplate;
+      const parsed = JSON.parse(rawFeedback!);
       if (Array.isArray(parsed)) {
-        answersData = parsed;
+        answersData = parsed.map(item => {
+          if (!hasOwnFeedback) {
+            // Si es una plantilla (no la entrega propia del estudiante),
+            // limpiamos su respuesta y ponemos puntaje en 0 e isCorrect en false.
+            return {
+              ...item,
+              answer: "", // Sin respuesta
+              score: 0,   // 0 puntos
+              isCorrect: false // Incorrecto
+            };
+          }
+          return item;
+        });
       }
     } catch (e) {
       // No es un JSON válido o es feedback antiguo del profesor
