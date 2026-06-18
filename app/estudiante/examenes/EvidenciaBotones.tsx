@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Eye, X, CheckCircle, FileText, XCircle, CheckCircle2, CircleDot } from "lucide-react";
+import { useConfirm } from "@/components/ConfirmProvider";
 
 interface EvidenciaModalProps {
   exam: {
@@ -18,12 +19,24 @@ interface EvidenciaModalProps {
     feedback?: string | null;
     feedbackTemplate?: string | null;
     studentName?: string | null;
+    attempt?: number;
+    unlockedAnswers?: boolean;
   };
   isGoogleForm: boolean;
+  onUnlock?: () => void;
 }
 
-export default function EvidenciaBotones({ exam, submission, isGoogleForm }: EvidenciaModalProps) {
+export default function EvidenciaBotones({ exam, submission, isGoogleForm, onUnlock }: EvidenciaModalProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const confirm = useConfirm();
+  const [loadingUnlock, setLoadingUnlock] = useState(false);
+  const [localFeedback, setLocalFeedback] = useState<string | null>(submission.feedback || null);
+  const [localTemplate, setLocalTemplate] = useState<string | null>(submission.feedbackTemplate || null);
+
+  useEffect(() => {
+    setLocalFeedback(submission.feedback || null);
+    setLocalTemplate(submission.feedbackTemplate || null);
+  }, [submission.feedback, submission.feedbackTemplate]);
 
   // Intentamos parsear las respuestas guardadas en feedback o feedbackTemplate (JSON string)
   let answersData: { 
@@ -37,11 +50,11 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
     options?: string[];
   }[] | null = null;
   
-  const hasOwnFeedback = !!submission.feedback;
+  const hasOwnFeedback = !!localFeedback;
 
-  if (isGoogleForm && (submission.feedback || submission.feedbackTemplate)) {
+  if (isGoogleForm && (localFeedback || localTemplate)) {
     try {
-      const rawFeedback = submission.feedback || submission.feedbackTemplate;
+      const rawFeedback = localFeedback || localTemplate;
       const parsed = JSON.parse(rawFeedback!);
       if (Array.isArray(parsed)) {
         answersData = parsed.map(item => {
@@ -253,16 +266,83 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
     document.body
   ) : null;
 
+  const handleVerRespuestas = async () => {
+    // Check if locked: attempt is 1 (or undefined/null, default 1) and unlockedAnswers is false/undefined
+    const isLocked = (submission.attempt === 1 || !submission.attempt) && !submission.unlockedAnswers;
+
+    if (isGoogleForm && isLocked) {
+      const confirmUnlock = await confirm({
+        title: "Ver Respuestas y Finalizar Intentos",
+        message: "⚠️ IMPORTANTE: Si decides ver las respuestas de tu primer intento ahora, PERDERÁS la oportunidad de realizar un segundo intento de este examen.\n\n¿Estás seguro de que deseas desbloquear las respuestas?",
+        confirmText: "Ver Respuestas",
+        cancelText: "Cancelar",
+        type: "warning"
+      });
+      if (!confirmUnlock) return;
+
+      setLoadingUnlock(true);
+      try {
+        const res = await fetch(`/api/estudiante/tareas/${exam.id}/unlock-answers`, {
+          method: "POST"
+        });
+        if (res.ok) {
+          // Re-fetch task data to get the unlocked answers
+          const taskRes = await fetch(`/api/estudiante/tareas/${exam.id}`);
+          const taskData = await taskRes.json();
+          
+          if (taskData.task && taskData.task.submissions && taskData.task.submissions.length > 0) {
+            const sub = taskData.task.submissions[0];
+            setLocalFeedback(sub.feedback || null);
+          }
+          setLocalTemplate(taskData.feedbackTemplate || null);
+          
+          // Trigger parent callback/refresh in background
+          if (onUnlock) {
+            onUnlock();
+          } else {
+            window.location.reload();
+          }
+          setIsOpen(true);
+        } else {
+          await confirm({
+            title: "Error",
+            message: "No se pudieron desbloquear las respuestas. Intenta de nuevo.",
+            confirmText: "Aceptar",
+            cancelText: null,
+            type: "danger"
+          });
+        }
+      } catch (err) {
+        await confirm({
+          title: "Error de Red",
+          message: "Ocurrió un error de red al intentar desbloquear las respuestas.",
+          confirmText: "Aceptar",
+          cancelText: null,
+          type: "danger"
+        });
+      } finally {
+        setLoadingUnlock(false);
+      }
+    } else {
+      setIsOpen(true);
+    }
+  };
+
   return (
     <>
       <div className="flex flex-col gap-2 w-full md:items-end">
         <button 
-          onClick={() => setIsOpen(true)}
+          onClick={handleVerRespuestas}
+          disabled={loadingUnlock}
           className="btn flex items-center justify-center gap-2 w-full md:w-auto hover:opacity-90 transition-opacity" 
           style={{ backgroundColor: '#4facfe', color: 'white' }}
         >
-          <Eye size={16} />
-          Ver Respuestas
+          {loadingUnlock ? "Desbloqueando..." : (
+            <>
+              <Eye size={16} />
+              Ver Respuestas
+            </>
+          )}
         </button>
       </div>
       {modalContent}

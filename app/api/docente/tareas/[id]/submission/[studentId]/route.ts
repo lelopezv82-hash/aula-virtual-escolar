@@ -83,6 +83,8 @@ export async function DELETE(
         fileUrl: null,
         submittedAt: null,
         startedAt: null,
+        attempt: 1,
+        unlockedAnswers: false,
         allowLateSubmission: isLate ? true : false,
         lateSubmissionUntil: null
       },
@@ -94,6 +96,8 @@ export async function DELETE(
         fileUrl: null,
         submittedAt: null,
         startedAt: null,
+        attempt: 1,
+        unlockedAnswers: false,
         allowLateSubmission: isLate ? true : false,
         lateSubmissionUntil: null
       }

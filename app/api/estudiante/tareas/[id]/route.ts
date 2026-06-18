@@ -62,12 +62,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Tarea no encontrada' }, { status: 404 });
     }
 
-    // Fetch feedbackTemplate if the student has no submission or has a submission with no feedback
+    // Fetch feedbackTemplate if the student has finished and unlocked answers
     let feedbackTemplate = null;
     const submission = task.submissions[0];
     const isGoogleForm = !!(task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));
     
-    if (isGoogleForm && (!submission || submission.status === "PENDING" || !submission.feedback)) {
+    const canSeeAnswers = submission && submission.status !== "PENDING" && (submission.attempt > 1 || submission.unlockedAnswers === true);
+
+    if (isGoogleForm && canSeeAnswers) {
       const templateSub = await prisma.submission.findFirst({
         where: {
           taskId: task.id,
@@ -76,6 +78,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         select: { feedback: true }
       });
       feedbackTemplate = templateSub?.feedback || null;
+    }
+
+    // Strip feedback from submission if locked
+    if (submission && !canSeeAnswers) {
+      submission.feedback = null;
     }
 
     // Remove groups from response to keep payload clean if needed, or keep it

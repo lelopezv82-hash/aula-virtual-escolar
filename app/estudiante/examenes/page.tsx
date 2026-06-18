@@ -66,7 +66,9 @@ export default async function ExamenesEstudiantePage() {
     let feedbackTemplate = null;
     const isGoogleForm = !!(exam.attachmentUrl && (exam.attachmentUrl.includes("docs.google.com/forms") || exam.attachmentUrl.includes("forms.gle")));
     
-    if (isGoogleForm && (!submission || submission.status === "PENDING" || !submission.feedback)) {
+    const canSeeAnswers = submission && submission.status !== "PENDING" && (submission.attempt > 1 || submission.unlockedAnswers === true);
+
+    if (isGoogleForm && canSeeAnswers) {
       const templateSub = await prisma.submission.findFirst({
         where: {
           taskId: exam.id,
@@ -75,6 +77,10 @@ export default async function ExamenesEstudiantePage() {
         select: { feedback: true }
       });
       feedbackTemplate = templateSub?.feedback || null;
+    }
+
+    if (submission && !canSeeAnswers) {
+      submission.feedback = null;
     }
     
     return {
@@ -116,7 +122,7 @@ export default async function ExamenesEstudiantePage() {
             // If the Google Form exam is closed/expired and never finished/submitted, virtually grade it as 1.0
             const virtualSubmission = ((!submission || submission.status === "PENDING") && isClosed && isGoogleForm) ||
                                       (submission && submission.status === "PENDING" && isTimerExpired && isGoogleForm)
-              ? { status: "GRADED", grade: 1.0, feedback: null, submittedAt: null, fileUrl: null }
+              ? { status: "GRADED", grade: 1.0, feedback: null, submittedAt: null, fileUrl: null, attempt: submission?.attempt || 1, unlockedAnswers: submission?.unlockedAnswers || false }
               : null;
               
             const activeSubmission = (submission && submission.status !== "PENDING") ? submission : (virtualSubmission || submission);
@@ -173,7 +179,9 @@ export default async function ExamenesEstudiantePage() {
                         submittedAt: activeSubmission.submittedAt,
                         feedback: activeSubmission.feedback,
                         feedbackTemplate: exam.feedbackTemplate,
-                        studentName: studentName
+                        studentName: studentName,
+                        attempt: activeSubmission.attempt,
+                        unlockedAnswers: activeSubmission.unlockedAnswers
                       }}
                       isGoogleForm={isGoogleForm}
                     />

@@ -113,6 +113,8 @@ model Submission {
   lateSubmissionUntil DateTime?
   gdriveEmail         String?
   startedAt           DateTime?
+  attempt             Int       @default(1)
+  unlockedAnswers     Boolean   @default(false)
   student             User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
   task                Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
 

@@ -76,8 +76,10 @@ export default async function CalificacionesEstudiantePage() {
     const isClosed = isLate && !task.allowLateSubmission && !(task.lateSubmissionUntil && new Date(task.lateSubmissionUntil) > now) && !hasStudentExtension;
     const isGoogleForm = !!(task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));
 
+    const canSeeAnswers = sub && sub.status !== "PENDING" && (sub.attempt > 1 || sub.unlockedAnswers === true);
+
     let feedbackTemplate = null;
-    if (task.type === "EXAM" && isGoogleForm && (!sub || sub.status === "PENDING" || !sub.feedback)) {
+    if (task.type === "EXAM" && isGoogleForm && canSeeAnswers) {
       const templateSub = await prisma.submission.findFirst({
         where: {
           taskId: task.id,
@@ -93,9 +95,14 @@ export default async function CalificacionesEstudiantePage() {
       const isTimerExpired = sub.startedAt && task.duration && 
         (new Date(sub.startedAt).getTime() + task.duration * 60 * 1000 + 30000 < now.getTime());
 
+      const processedSub = {
+        ...sub,
+        feedback: canSeeAnswers ? sub.feedback : null
+      };
+
       if (sub.status === "PENDING" && (isClosed || isTimerExpired) && task.type === "EXAM" && isGoogleForm) {
         return {
-          ...sub,
+          ...processedSub,
           status: "GRADED",
           grade: 1.0,
           feedbackTemplate,
@@ -103,7 +110,7 @@ export default async function CalificacionesEstudiantePage() {
         };
       }
       return {
-        ...sub,
+        ...processedSub,
         feedbackTemplate,
         task
       };
@@ -127,6 +134,8 @@ export default async function CalificacionesEstudiantePage() {
         lateSubmissionUntil: null,
         gdriveEmail: null,
         startedAt: null,
+        attempt: 1,
+        unlockedAnswers: false,
         task
       };
     }
@@ -218,7 +227,7 @@ export default async function CalificacionesEstudiantePage() {
                             <p className="text-sm text-muted mt-1">Tu docente aún no ha calificado esta entrega.</p>
                           )}
                           
-                          {(sub.feedback || sub.feedbackTemplate) && (sub.task.attachmentUrl?.includes("docs.google.com/forms") || sub.task.attachmentUrl?.includes("forms.gle")) && (
+                          {sub.task.type === "EXAM" && (sub.task.attachmentUrl?.includes("docs.google.com/forms") || sub.task.attachmentUrl?.includes("forms.gle")) && (
                             <div className="mt-3">
                               <EvidenciaBotones 
                                 exam={{
@@ -233,7 +242,9 @@ export default async function CalificacionesEstudiantePage() {
                                   submittedAt: sub.submittedAt,
                                   feedback: sub.feedback,
                                   feedbackTemplate: sub.feedbackTemplate,
-                                  studentName: studentName
+                                  studentName: studentName,
+                                  attempt: sub.attempt,
+                                  unlockedAnswers: sub.unlockedAnswers
                                 }}
                                 isGoogleForm={true}
                               />

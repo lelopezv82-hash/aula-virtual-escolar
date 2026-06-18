@@ -72,7 +72,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   // If the Google Form exam is closed/expired and never finished/submitted, virtually grade it as 1.0
   const virtualSubmission = ((!submission || submission.status === "PENDING") && isClosed && isGoogleForm) ||
                             (submission && submission.status === "PENDING" && timerHasExpired && isGoogleForm)
-    ? { status: "GRADED", grade: 1.0, feedback: null, submittedAt: null, fileUrl: null }
+    ? { status: "GRADED", grade: 1.0, feedback: null, submittedAt: null, fileUrl: null, attempt: submission?.attempt || 1, unlockedAnswers: submission?.unlockedAnswers || false }
     : null;
 
   const activeSubmission = (submission && submission.status !== "PENDING") ? submission : (virtualSubmission || submission);
@@ -215,6 +215,36 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
       setError("Error de conexión");
     } finally {
       setStartingExam(false);
+    }
+  };
+
+  const handleStartSecondAttempt = async () => {
+    const confirmAttempt = await confirm({
+      title: "Realizar Segundo Intento",
+      message: "⚠️ IMPORTANTE: ¿Estás seguro de que deseas iniciar tu segundo intento? Tu calificación anterior será reemplazada y no podrás ver las respuestas del primer intento. El cronómetro iniciará de cero.",
+      confirmText: "Iniciar Intento",
+      cancelText: "Cancelar",
+      type: "warning"
+    });
+    if (!confirmAttempt) return;
+
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/estudiante/tareas/${taskId}/second-attempt`, {
+        method: "POST"
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSubmission(data.submission);
+        router.refresh();
+      } else {
+        setError(data.error || "No se pudo iniciar el segundo intento");
+      }
+    } catch {
+      setError("Error de conexión");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -455,7 +485,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                   <span className="text-[10px] text-gray-400">/ 5.0</span>
                 </div>
 
-                <div className="mt-2 shrink-0">
+                <div className="mt-2 shrink-0 flex flex-col items-center gap-3 w-full max-w-[200px]">
                   <EvidenciaBotones 
                     exam={{
                       id: task.id,
@@ -469,10 +499,29 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                       submittedAt: activeSubmission.submittedAt,
                       feedback: activeSubmission.feedback,
                       feedbackTemplate: feedbackTemplate,
-                      studentName: studentName
+                      studentName: studentName,
+                      attempt: activeSubmission.attempt,
+                      unlockedAnswers: activeSubmission.unlockedAnswers
                     }}
                     isGoogleForm={isGoogleForm}
+                    onUnlock={async () => {
+                      const res = await fetch(`/api/estudiante/tareas/${taskId}`);
+                      const data = await res.json();
+                      if (data.task && data.task.submissions && data.task.submissions.length > 0) {
+                        setSubmission(data.task.submissions[0]);
+                      }
+                      if (data.feedbackTemplate) setFeedbackTemplate(data.feedbackTemplate);
+                      router.refresh();
+                    }}
                   />
+                  {activeSubmission.attempt === 1 && !activeSubmission.unlockedAnswers && (
+                    <button
+                      onClick={handleStartSecondAttempt}
+                      className="btn btn-secondary w-full py-2 text-xs font-semibold tracking-wide border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-50/50 dark:hover:bg-amber-950/10 flex justify-center items-center gap-1.5 transition-colors mt-1"
+                    >
+                      Realizar Segundo Intento
+                    </button>
+                  )}
                 </div>
               </div>
             ) : (activeSubmission?.status === "SUBMITTED" && isGoogleForm && !timerHasExpired) ? (
@@ -502,12 +551,51 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                 </div>
               </div>
             ) : isSubmitted ? (
-              <div className="absolute inset-0 bg-green-50 dark:bg-green-950/20 flex flex-col items-center justify-center p-6 text-center">
+              <div className="absolute inset-0 bg-green-50 dark:bg-green-950/20 flex flex-col items-center justify-center p-6 text-center overflow-y-auto">
                 <CheckCircle className="text-green-500 mb-4" size={48} />
                 <h3 className="text-xl font-bold text-green-600">Examen Entregado</h3>
                 <p className="text-muted mt-2 max-w-md">
                   Has completado y entregado este examen con éxito.
                 </p>
+
+                <div className="mt-4 shrink-0 flex flex-col items-center gap-3 w-full max-w-[200px]">
+                  <EvidenciaBotones 
+                    exam={{
+                      id: task.id,
+                      title: task.title,
+                      course: { name: task.course?.name || "Curso" }
+                    }}
+                    submission={{
+                      grade: activeSubmission.grade,
+                      status: activeSubmission.status,
+                      fileUrl: activeSubmission.fileUrl,
+                      submittedAt: activeSubmission.submittedAt,
+                      feedback: activeSubmission.feedback,
+                      feedbackTemplate: feedbackTemplate,
+                      studentName: studentName,
+                      attempt: activeSubmission.attempt,
+                      unlockedAnswers: activeSubmission.unlockedAnswers
+                    }}
+                    isGoogleForm={isGoogleForm}
+                    onUnlock={async () => {
+                      const res = await fetch(`/api/estudiante/tareas/${taskId}`);
+                      const data = await res.json();
+                      if (data.task && data.task.submissions && data.task.submissions.length > 0) {
+                        setSubmission(data.task.submissions[0]);
+                      }
+                      if (data.feedbackTemplate) setFeedbackTemplate(data.feedbackTemplate);
+                      router.refresh();
+                    }}
+                  />
+                  {activeSubmission.attempt === 1 && !activeSubmission.unlockedAnswers && (
+                    <button
+                      onClick={handleStartSecondAttempt}
+                      className="btn btn-secondary w-full py-2 text-xs font-semibold tracking-wide border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-50/50 dark:hover:bg-amber-950/10 flex justify-center items-center gap-1.5 transition-colors mt-1"
+                    >
+                      Realizar Segundo Intento
+                    </button>
+                  )}
+                </div>
               </div>
             ) : (timerHasExpired && !isGracePeriod) ? (
               <div className="absolute inset-0 bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-6 text-center">
