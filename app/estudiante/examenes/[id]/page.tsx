@@ -4,7 +4,6 @@ import { useState, useEffect, use, useCallback } from "react";
 import { ArrowLeft, UploadCloud, Loader2, CheckCircle, FileText, Clock, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import EvidenciaBotones from "../EvidenciaBotones";
 import { useConfirm } from "@/components/ConfirmProvider";
 
 export default function TareaDetallePage({ params }: { params: Promise<{ id: string }> }) {
@@ -485,36 +484,6 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                   <span className="text-[10px] text-gray-400">/ 5.0</span>
                 </div>
 
-                <div className="mt-2 shrink-0 flex flex-col items-center gap-3 w-full max-w-[200px]">
-                  <EvidenciaBotones 
-                    exam={{
-                      id: task.id,
-                      title: task.title,
-                      course: { name: task.course?.name || "Curso" }
-                    }}
-                    submission={{
-                      grade: activeSubmission.grade,
-                      status: activeSubmission.status,
-                      fileUrl: activeSubmission.fileUrl,
-                      submittedAt: activeSubmission.submittedAt,
-                      feedback: activeSubmission.feedback,
-                      feedbackTemplate: feedbackTemplate,
-                      studentName: studentName,
-                      attempt: activeSubmission.attempt,
-                      unlockedAnswers: activeSubmission.unlockedAnswers
-                    }}
-                    isGoogleForm={isGoogleForm}
-                    onUnlock={async () => {
-                      const res = await fetch(`/api/estudiante/tareas/${taskId}`);
-                      const data = await res.json();
-                      if (data.task && data.task.submissions && data.task.submissions.length > 0) {
-                        setSubmission(data.task.submissions[0]);
-                      }
-                      if (data.feedbackTemplate) setFeedbackTemplate(data.feedbackTemplate);
-                      router.refresh();
-                    }}
-                  />
-                </div>
               </div>
             ) : (activeSubmission?.status === "SUBMITTED" && isGoogleForm && !timerHasExpired) ? (
               <div className="absolute inset-0 bg-blue-50 dark:bg-blue-950/20 flex flex-col items-center justify-center p-6 text-center">
@@ -550,36 +519,6 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                   Has completado y entregado este examen con éxito.
                 </p>
 
-                <div className="mt-4 shrink-0 flex flex-col items-center gap-3 w-full max-w-[200px]">
-                  <EvidenciaBotones 
-                    exam={{
-                      id: task.id,
-                      title: task.title,
-                      course: { name: task.course?.name || "Curso" }
-                    }}
-                    submission={{
-                      grade: activeSubmission.grade,
-                      status: activeSubmission.status,
-                      fileUrl: activeSubmission.fileUrl,
-                      submittedAt: activeSubmission.submittedAt,
-                      feedback: activeSubmission.feedback,
-                      feedbackTemplate: feedbackTemplate,
-                      studentName: studentName,
-                      attempt: activeSubmission.attempt,
-                      unlockedAnswers: activeSubmission.unlockedAnswers
-                    }}
-                    isGoogleForm={isGoogleForm}
-                    onUnlock={async () => {
-                      const res = await fetch(`/api/estudiante/tareas/${taskId}`);
-                      const data = await res.json();
-                      if (data.task && data.task.submissions && data.task.submissions.length > 0) {
-                        setSubmission(data.task.submissions[0]);
-                      }
-                      if (data.feedbackTemplate) setFeedbackTemplate(data.feedbackTemplate);
-                      router.refresh();
-                    }}
-                  />
-                </div>
               </div>
             ) : (timerHasExpired && !isGracePeriod) ? (
               <div className="absolute inset-0 bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-6 text-center">
