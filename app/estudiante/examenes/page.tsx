@@ -3,7 +3,6 @@ import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { ClipboardList, Clock, CheckCircle } from "lucide-react";
 import Link from "next/link";
-import EvidenciaBotones from "./EvidenciaBotones";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
@@ -60,35 +59,6 @@ export default async function ExamenesEstudiantePage() {
     orderBy: { createdAt: "desc" }
   });
 
-  // Fetch feedback templates for exams that need them
-  const examsWithTemplates = await Promise.all(exams.map(async exam => {
-    const submission = exam.submissions[0];
-    let feedbackTemplate = null;
-    const isGoogleForm = !!(exam.attachmentUrl && (exam.attachmentUrl.includes("docs.google.com/forms") || exam.attachmentUrl.includes("forms.gle")));
-    
-    const canSeeAnswers = submission && submission.status !== "PENDING" && (submission.attempt > 1 || submission.unlockedAnswers === true);
-
-    if (isGoogleForm && canSeeAnswers) {
-      const templateSub = await prisma.submission.findFirst({
-        where: {
-          taskId: exam.id,
-          feedback: { not: null }
-        },
-        select: { feedback: true }
-      });
-      feedbackTemplate = templateSub?.feedback || null;
-    }
-
-    if (submission && !canSeeAnswers) {
-      submission.feedback = null;
-    }
-    
-    return {
-      ...exam,
-      feedbackTemplate
-    };
-  }));
-
   return (
     <div className="animate-fade-in">
       <div className="dashboard-header">
@@ -97,13 +67,13 @@ export default async function ExamenesEstudiantePage() {
       </div>
 
       <div className="flex flex-col gap-4">
-        {examsWithTemplates.length === 0 ? (
+        {exams.length === 0 ? (
           <div className="card text-center py-8 text-muted">
             <ClipboardList size={48} className="mx-auto mb-4 opacity-50" />
             <p>No tienes exámenes asignados en este momento.</p>
           </div>
         ) : (
-          examsWithTemplates.map(exam => {
+          exams.map(exam => {
             const submission = exam.submissions[0];
             const isLate = new Date() > new Date(exam.dueDate);
             const isGoogleForm = !!(exam.attachmentUrl && (exam.attachmentUrl.includes("docs.google.com/forms") || exam.attachmentUrl.includes("forms.gle")));
@@ -162,29 +132,6 @@ export default async function ExamenesEstudiantePage() {
                     <Link href={`/estudiante/examenes/${exam.id}`} className="btn w-full md:w-auto" style={{ backgroundColor: '#8b5cf6', color: 'white' }}>
                       Resolver Examen
                     </Link>
-                  )}
-
-
-                  {isSubmitted && (
-                    <EvidenciaBotones 
-                      exam={{
-                        id: exam.id,
-                        title: exam.title,
-                        course: { name: exam.course.name }
-                      }}
-                      submission={{
-                        grade: activeSubmission.grade,
-                        status: activeSubmission.status,
-                        fileUrl: activeSubmission.fileUrl,
-                        submittedAt: activeSubmission.submittedAt,
-                        feedback: activeSubmission.feedback,
-                        feedbackTemplate: exam.feedbackTemplate,
-                        studentName: studentName,
-                        attempt: activeSubmission.attempt,
-                        unlockedAnswers: activeSubmission.unlockedAnswers
-                      }}
-                      isGoogleForm={isGoogleForm}
-                    />
                   )}
                 </div>
               </div>
