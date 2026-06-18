@@ -9,6 +9,7 @@ import StudentLateSubmissionToggle from "./StudentLateSubmissionToggle";
 import GDriveEmailDisplay from "@/components/GDriveEmailDisplay";
 import GDriveVisibilityToggle from "@/components/GDriveVisibilityToggle";
 import ResetSubmissionButton from "./ResetSubmissionButton";
+import ResetAllSubmissionsButton from "./ResetAllSubmissionsButton";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
@@ -139,7 +140,17 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
           return (
             <div key={group.id} className="card w-full mb-6">
               <div className="mb-4">
-                <h2 className="text-lg font-bold">Estado de las entregas: Grado {group.grade?.name || "Sin Grado"} - Grupo {group.name}</h2>
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <h2 className="text-lg font-bold">Estado de las entregas: Grado {group.grade?.name || "Sin Grado"} - Grupo {group.name}</h2>
+                  {task.type === "EXAM" && (
+                    <ResetAllSubmissionsButton
+                      taskId={task.id}
+                      groupId={group.id}
+                      groupName={`${group.grade?.name || ""}-${group.name}`}
+                      studentCount={groupStudents.length}
+                    />
+                  )}
+                </div>
                 <div className="flex flex-wrap gap-x-2.5 gap-y-1 text-xs mt-1.5 text-muted font-medium no-print">
                   <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Periodo: {task.period?.replace(/periodo\s*/i, "") || "Sin Periodo"}</span>
                   <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Grado: {group.grade?.name || "Sin Grado"}</span>
@@ -239,7 +250,15 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
       ) : (
         <div className="card w-full">
           <div className="mb-4 no-print">
-            <h2 className="text-lg font-bold">Estado de las entregas</h2>
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <h2 className="text-lg font-bold">Estado de las entregas</h2>
+              {task.type === "EXAM" && (
+                <ResetAllSubmissionsButton
+                  taskId={task.id}
+                  studentCount={allStudents.length}
+                />
+              )}
+            </div>
             <div className="flex flex-wrap gap-x-2.5 gap-y-1 text-xs mt-1.5 text-muted font-medium">
               <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Periodo: {task.period?.replace(/periodo\s*/i, "") || "Sin Periodo"}</span>
               <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Grado: Sin Grado</span>

@@ -514,14 +514,6 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                       router.refresh();
                     }}
                   />
-                  {activeSubmission.attempt === 1 && !activeSubmission.unlockedAnswers && (
-                    <button
-                      onClick={handleStartSecondAttempt}
-                      className="btn btn-secondary w-full py-2 text-xs font-semibold tracking-wide border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-50/50 dark:hover:bg-amber-950/10 flex justify-center items-center gap-1.5 transition-colors mt-1"
-                    >
-                      Realizar Segundo Intento
-                    </button>
-                  )}
                 </div>
               </div>
             ) : (activeSubmission?.status === "SUBMITTED" && isGoogleForm && !timerHasExpired) ? (
@@ -587,14 +579,6 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                       router.refresh();
                     }}
                   />
-                  {activeSubmission.attempt === 1 && !activeSubmission.unlockedAnswers && (
-                    <button
-                      onClick={handleStartSecondAttempt}
-                      className="btn btn-secondary w-full py-2 text-xs font-semibold tracking-wide border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-50/50 dark:hover:bg-amber-950/10 flex justify-center items-center gap-1.5 transition-colors mt-1"
-                    >
-                      Realizar Segundo Intento
-                    </button>
-                  )}
                 </div>
               </div>
             ) : (timerHasExpired && !isGracePeriod) ? (
