@@ -222,7 +222,7 @@ export default function QuestionEditor({ taskId, initialQuestions }: QuestionEdi
             Examen Nativo de la Plataforma
           </h2>
           <p className="text-muted text-xs font-medium">
-            Agrega preguntas y opciones. Si hay preguntas creadas, los estudiantes tomarán el examen nativamente en lugar del formulario de Google.
+            Agrega preguntas y opciones. Si hay preguntas creadas, los estudiantes tomarán el examen nativamente.
           </p>
         </div>
         {editingId !== "new" && (
