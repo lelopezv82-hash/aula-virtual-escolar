@@ -5,6 +5,7 @@ import { ArrowLeft, UploadCloud, Loader2, CheckCircle, FileText, Clock, AlertTri
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useConfirm } from "@/components/ConfirmProvider";
+import ExamenNativo from "../ExamenNativo";
 
 export default function TareaDetallePage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -53,7 +54,8 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
 
 
   const now = new Date();
-  const isGoogleForm = !!(task?.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));
+  const isNativeExam = !!(task?.questions && task.questions.length > 0);
+  const isGoogleForm = !isNativeExam && !!(task?.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));
   
   // Detect if the student's individual timer has expired (including 30s grace period)
   const timerHasExpired = isTimerExpired || !!(submission?.startedAt && task?.duration && 
@@ -118,12 +120,22 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
     setIsGracePeriod(false);
     setLoading(true);
     try {
-      const formData = new FormData();
-      formData.append("taskId", taskId);
-      const res = await fetch("/api/estudiante/submissions", {
-        method: "POST",
-        body: formData,
-      });
+      const isNative = !!(task?.questions && task.questions.length > 0);
+      let res;
+      if (isNative) {
+        res = await fetch(`/api/estudiante/tareas/${taskId}/answers`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ answers: {} })
+        });
+      } else {
+        const formData = new FormData();
+        formData.append("taskId", taskId);
+        res = await fetch("/api/estudiante/submissions", {
+          method: "POST",
+          body: formData,
+        });
+      }
       const data = await res.json();
       if (res.ok) {
         setSubmission(data.submission);
@@ -135,7 +147,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
     } finally {
       setLoading(false);
     }
-  }, [taskId]);
+  }, [taskId, task]);
 
   // Timer countdown hook
   useEffect(() => {
@@ -428,7 +440,11 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
              }}>
           <div className="flex items-center gap-2">
             <Clock size={20} className="text-red-500 animate-spin" />
-            <span className="font-black text-sm text-red-600">⚠️ ¡TIEMPO AGOTADO! Por favor, haz clic en el botón "Enviar" (Submit) dentro del formulario de Google Forms de inmediato.</span>
+            <span className="font-black text-sm text-red-600">
+              {isNativeExam 
+                ? "⚠️ ¡TIEMPO AGOTADO! Tus respuestas se están guardando y enviando automáticamente..." 
+                : "⚠️ ¡TIEMPO AGOTADO! Por favor, haz clic en el botón \"Enviar\" (Submit) dentro del formulario de Google Forms de inmediato."}
+            </span>
           </div>
           <div className="text-xl font-black font-mono text-red-600">
             Cerrando en: {graceTimeLeft}s
@@ -463,7 +479,20 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
       </div>
 
       {/* Exam Iframe or normal upload area */}
-      {task.attachmentUrl ? (
+      {isNativeExam ? (
+        <div className="card mb-6 flex flex-col gap-4">
+          <h2 className="text-lg font-bold">Evaluación del Examen</h2>
+          <ExamenNativo
+            taskId={taskId}
+            questions={task.questions}
+            submission={submission}
+            onSubmissionUpdated={(sub) => setSubmission(sub)}
+            timeLeft={timeLeft}
+            isTimerExpired={isTimerExpired}
+            triggerAutoSubmit={triggerAutoSubmit}
+          />
+        </div>
+      ) : task.attachmentUrl ? (
         <div className="card mb-6 flex flex-col gap-4">
           <h2 className="text-lg font-bold">Examen en Línea</h2>
           

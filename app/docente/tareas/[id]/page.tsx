@@ -10,6 +10,7 @@ import GDriveEmailDisplay from "@/components/GDriveEmailDisplay";
 import GDriveVisibilityToggle from "@/components/GDriveVisibilityToggle";
 import ResetSubmissionButton from "./ResetSubmissionButton";
 import ResetAllSubmissionsButton from "./ResetAllSubmissionsButton";
+import QuestionEditor from "./QuestionEditor";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
@@ -40,6 +41,16 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
   if (!task || task.course.teacherId !== teacherId) {
     return <div className="alert alert-danger">No tienes acceso a esta tarea.</div>;
   }
+
+  const questions = await prisma.question.findMany({
+    where: { taskId: resolvedParams.id },
+    orderBy: { order: 'asc' },
+    include: {
+      options: {
+        orderBy: { id: 'asc' }
+      }
+    }
+  });
 
   // Get students who belong to any of the task's groups
   const studentWhereClause: any = { role: "STUDENT" };
@@ -132,6 +143,10 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
           };
         })}
       />
+
+      {task.type === "EXAM" && (
+        <QuestionEditor taskId={task.id} initialQuestions={questions} />
+      )}
 
       {task.groups && task.groups.length > 0 ? (
         task.groups.map(group => {

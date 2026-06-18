@@ -29,6 +29,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       where: { id: resolvedParams.id },
       include: {
         groups: true,
+        questions: {
+          orderBy: { order: 'asc' },
+          include: {
+            options: {
+              orderBy: { id: 'asc' }
+            }
+          }
+        },
         submissions: {
           where: { studentId }
         }
@@ -68,6 +76,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const isGoogleForm = !!(task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));
     
     const canSeeAnswers = submission && submission.status !== "PENDING" && (submission.attempt > 1 || submission.unlockedAnswers === true);
+
+    // Sanitize correct options if student cannot see answers yet
+    if (task.questions && task.questions.length > 0 && !canSeeAnswers) {
+      (task as any).questions = task.questions.map((q: any) => ({
+        ...q,
+        options: q.options.map((o: any) => {
+          const { isCorrect, ...rest } = o;
+          return rest;
+        })
+      }));
+    }
 
     if (isGoogleForm && canSeeAnswers) {
       const templateSub = await prisma.submission.findFirst({
