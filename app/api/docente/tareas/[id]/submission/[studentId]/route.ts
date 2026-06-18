@@ -85,6 +85,7 @@ export async function DELETE(
         startedAt: null,
         attempt: 1,
         unlockedAnswers: false,
+        answers: {},
         allowLateSubmission: isLate ? true : false,
         lateSubmissionUntil: null
       },
@@ -98,6 +99,7 @@ export async function DELETE(
         startedAt: null,
         attempt: 1,
         unlockedAnswers: false,
+        answers: {},
         allowLateSubmission: isLate ? true : false,
         lateSubmissionUntil: null
       }

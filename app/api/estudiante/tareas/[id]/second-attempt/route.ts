@@ -64,6 +64,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         submittedAt: null,
         startedAt: null,
         attempt: 2,
+        answers: {},
         allowLateSubmission: isLate ? true : submission.allowLateSubmission,
         lateSubmissionUntil: null
       }
