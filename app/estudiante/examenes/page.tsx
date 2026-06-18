@@ -109,9 +109,9 @@ export default async function ExamenesEstudiantePage() {
             );
             const isClosed = isLate && !exam.allowLateSubmission && !(exam.lateSubmissionUntil && new Date(exam.lateSubmissionUntil) > new Date()) && !hasStudentExtension;
             
-            // Detect if the student's individual timer has expired
+            // Detect if the student's individual timer has expired (including 30s grace period)
             const isTimerExpired = submission?.startedAt && exam.duration && 
-              (new Date(submission.startedAt).getTime() + exam.duration * 60 * 1000 < new Date().getTime());
+              (new Date(submission.startedAt).getTime() + exam.duration * 60 * 1000 + 30000 < new Date().getTime());
 
             // If the Google Form exam is closed/expired and never finished/submitted, virtually grade it as 1.0
             const virtualSubmission = ((!submission || submission.status === "PENDING") && isClosed && isGoogleForm) ||

@@ -54,9 +54,9 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const now = new Date();
   const isGoogleForm = !!(task?.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));
   
-  // Detect if the student's individual timer has expired
+  // Detect if the student's individual timer has expired (including 30s grace period)
   const timerHasExpired = isTimerExpired || !!(submission?.startedAt && task?.duration && 
-    (new Date(submission.startedAt).getTime() + task.duration * 60 * 1000 < now.getTime()));
+    (new Date(submission.startedAt).getTime() + task.duration * 60 * 1000 + 30000 < now.getTime()));
 
   // Check if late submissions are blocked (overdue and no extensions)
   const isOverdue = task ? new Date(task.dueDate) < now : false;
