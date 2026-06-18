@@ -198,9 +198,11 @@ export async function POST(request: Request) {
     if (isGoogleFormExam) {
       statusToSave = "GRADED";
       if (existingSubmission && existingSubmission.status === "GRADED") {
-        gradeToSave = existingSubmission.grade ?? 0;
+        gradeToSave = existingSubmission.grade !== null && existingSubmission.grade !== undefined 
+          ? Math.max(existingSubmission.grade, 1.0) 
+          : 1.0;
       } else {
-        gradeToSave = 0; // Default grade is 0 when timer expires or manual finishing occurs without webhook
+        gradeToSave = 1.0; // Default grade is 1.0 when timer expires or manual finishing occurs without webhook
       }
     }
 
