@@ -2,7 +2,11 @@ import prisma from '@/lib/prisma';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { ClipboardList, Clock, CheckCircle } from "lucide-react";
-import Link from "next/link";
+import dynamic from "next/dynamic";
+
+// Load the interactive card actions (Ver Respuestas button, Resolver Examen link)
+// with ssr:false so createPortal in EvidenciaBotones works correctly
+const ExamenCardAcciones = dynamic(() => import("./ExamenCardAcciones"), { ssr: false });
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
@@ -74,30 +78,32 @@ export default async function ExamenesEstudiantePage() {
           </div>
         ) : (
           exams.map(exam => {
-            const submission = exam.submissions[0];
-            const isLate = new Date() > new Date(exam.dueDate);
+            const submission = exam.submissions[0] || null;
+            const isLate = now > new Date(exam.dueDate);
             const isGoogleForm = !!(exam.attachmentUrl && (exam.attachmentUrl.includes("docs.google.com/forms") || exam.attachmentUrl.includes("forms.gle")));
-            
-            // Check if late submissions are blocked (overdue and no extensions)
-            const hasStudentExtension = submission && (
-              submission.allowLateSubmission || 
-              (submission.lateSubmissionUntil && new Date(submission.lateSubmissionUntil) > new Date())
-            );
-            const isClosed = isLate && !exam.allowLateSubmission && !(exam.lateSubmissionUntil && new Date(exam.lateSubmissionUntil) > new Date()) && !hasStudentExtension;
-            
-            // Detect if the student's individual timer has expired (including 30s grace period)
-            const isTimerExpired = submission?.startedAt && exam.duration && 
-              (new Date(submission.startedAt).getTime() + exam.duration * 60 * 1000 + 30000 < new Date().getTime());
 
-            // If the Google Form exam is closed/expired and never finished/submitted, virtually grade it as 1.0
-            const virtualSubmission = ((!submission || submission.status === "PENDING") && isClosed && isGoogleForm) ||
-                                      (submission && submission.status === "PENDING" && isTimerExpired && isGoogleForm)
-              ? { status: "GRADED", grade: 1.0, feedback: null, submittedAt: null, fileUrl: null, attempt: submission?.attempt || 1, unlockedAnswers: submission?.unlockedAnswers || false }
-              : null;
-              
-            const activeSubmission = (submission && submission.status !== "PENDING") ? submission : (virtualSubmission || submission);
-            const isSubmitted = activeSubmission && activeSubmission.status !== "PENDING";
-            const isGraded = activeSubmission && activeSubmission.status === "GRADED";
+            // For badge display only (server-side simple check)
+            const hasStudentExtension = submission && (
+              submission.allowLateSubmission ||
+              (submission.lateSubmissionUntil && new Date(submission.lateSubmissionUntil) > now)
+            );
+            const isClosed = isLate && !exam.allowLateSubmission && !(exam.lateSubmissionUntil && new Date(exam.lateSubmissionUntil) > now) && !hasStudentExtension;
+            const isTimerExpired = !!(submission?.startedAt && exam.duration &&
+              (new Date(submission.startedAt).getTime() + exam.duration * 60 * 1000 + 30000 < now.getTime()));
+
+            const virtualGraded =
+              ((!submission || submission.status === "PENDING") && isClosed && isGoogleForm) ||
+              (submission && submission.status === "PENDING" && isTimerExpired && isGoogleForm);
+
+            const activeStatus = submission && submission.status !== "PENDING"
+              ? submission.status
+              : virtualGraded ? "GRADED" : (submission?.status || null);
+            const activeGrade = submission && submission.status !== "PENDING"
+              ? submission.grade
+              : virtualGraded ? 1.0 : null;
+
+            const isSubmitted = activeStatus && activeStatus !== "PENDING";
+            const isGraded = activeStatus === "GRADED";
 
             return (
               <div key={exam.id} className="card flex flex-col md:flex-row md:items-center justify-between gap-4" style={{ borderLeft: isSubmitted ? '4px solid var(--success)' : isLate ? '4px solid var(--danger)' : '4px solid #8b5cf6' }}>
@@ -108,7 +114,7 @@ export default async function ExamenesEstudiantePage() {
                     </span>
                     {isGraded && (
                       <span className="badge badge-success flex items-center gap-1">
-                        <CheckCircle size={12} /> Calificado: {activeSubmission.grade}
+                        <CheckCircle size={12} /> Calificado: {activeGrade}
                       </span>
                     )}
                     {isSubmitted && !isGraded && (
@@ -127,12 +133,31 @@ export default async function ExamenesEstudiantePage() {
                     <Clock size={16} /> 
                     Vence: {new Date(exam.dueDate).toLocaleString()}
                   </div>
-                  
-                  {!isSubmitted && (
-                    <Link href={`/estudiante/examenes/${exam.id}`} className="btn w-full md:w-auto" style={{ backgroundColor: '#8b5cf6', color: 'white' }}>
-                      Resolver Examen
-                    </Link>
-                  )}
+
+                  {/* Interactive actions rendered client-side only (avoids SSR portal issues) */}
+                  <ExamenCardAcciones
+                    examId={exam.id}
+                    examTitle={exam.title}
+                    courseName={exam.course.name}
+                    attachmentUrl={exam.attachmentUrl}
+                    dueDate={exam.dueDate.toISOString()}
+                    duration={exam.duration}
+                    allowLateSubmission={exam.allowLateSubmission}
+                    lateSubmissionUntil={exam.lateSubmissionUntil ? exam.lateSubmissionUntil.toISOString() : null}
+                    submission={submission ? {
+                      status: submission.status,
+                      grade: submission.grade,
+                      feedback: submission.feedback,
+                      fileUrl: submission.fileUrl,
+                      submittedAt: submission.submittedAt,
+                      startedAt: submission.startedAt,
+                      allowLateSubmission: submission.allowLateSubmission,
+                      lateSubmissionUntil: submission.lateSubmissionUntil,
+                      attempt: submission.attempt ?? 1,
+                      unlockedAnswers: submission.unlockedAnswers ?? false,
+                    } : null}
+                    studentName={studentName}
+                  />
                 </div>
               </div>
             );
