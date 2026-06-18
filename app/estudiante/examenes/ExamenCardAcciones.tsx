@@ -129,6 +129,7 @@ export default function ExamenCardAcciones({
             studentName: studentName,
             attempt: activeSubmission.attempt,
             unlockedAnswers: activeSubmission.unlockedAnswers,
+            answers: (activeSubmission as any).answers,
           }}
           isGoogleForm={isGoogleForm}
         />

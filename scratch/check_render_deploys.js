@@ -2,7 +2,7 @@ const https = require('https');
 
 const RENDER_API_KEY = 'rnd_4OnCVuMVqth46XeVlb7kGVW9Aez9';
 const SERVICE_ID = 'srv-d8avvkegvqtc73a4bqa0';
-const DEPLOY_ID = 'dep-d8q7ktgk1i2s73fsn98g';
+const DEPLOY_ID = 'dep-d8q7mua8qa3s73c2d490';
 
 const options = {
   hostname: 'api.render.com',

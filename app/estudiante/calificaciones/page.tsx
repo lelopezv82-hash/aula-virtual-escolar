@@ -227,7 +227,7 @@ export default async function CalificacionesEstudiantePage() {
                             <p className="text-sm text-muted mt-1">Tu docente aún no ha calificado esta entrega.</p>
                           )}
                           
-                          {sub.task.type === "EXAM" && (sub.task.attachmentUrl?.includes("docs.google.com/forms") || sub.task.attachmentUrl?.includes("forms.gle")) && (
+                          {sub.task.type === "EXAM" && (
                             <div className="mt-3">
                               <EvidenciaBotones 
                                 exam={{
@@ -244,9 +244,10 @@ export default async function CalificacionesEstudiantePage() {
                                   feedbackTemplate: sub.feedbackTemplate,
                                   studentName: studentName,
                                   attempt: sub.attempt,
-                                  unlockedAnswers: sub.unlockedAnswers
+                                  unlockedAnswers: sub.unlockedAnswers,
+                                  answers: (sub as any).answers
                                 }}
-                                isGoogleForm={true}
+                                isGoogleForm={!!(sub.task.attachmentUrl?.includes("docs.google.com/forms") || sub.task.attachmentUrl?.includes("forms.gle"))}
                               />
                             </div>
                           )}
