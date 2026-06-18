@@ -67,7 +67,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const submission = task.submissions[0];
     const isGoogleForm = !!(task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));
     
-    if (isGoogleForm && (!submission || !submission.feedback)) {
+    if (isGoogleForm && (!submission || submission.status === "PENDING" || !submission.feedback)) {
       const templateSub = await prisma.submission.findFirst({
         where: {
           taskId: task.id,

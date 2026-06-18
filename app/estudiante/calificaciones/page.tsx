@@ -77,7 +77,7 @@ export default async function CalificacionesEstudiantePage() {
     const isGoogleForm = !!(task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));
 
     let feedbackTemplate = null;
-    if (task.type === "EXAM" && isGoogleForm && (!sub || !sub.feedback)) {
+    if (task.type === "EXAM" && isGoogleForm && (!sub || sub.status === "PENDING" || !sub.feedback)) {
       const templateSub = await prisma.submission.findFirst({
         where: {
           taskId: task.id,

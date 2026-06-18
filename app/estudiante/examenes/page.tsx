@@ -66,7 +66,7 @@ export default async function ExamenesEstudiantePage() {
     let feedbackTemplate = null;
     const isGoogleForm = !!(exam.attachmentUrl && (exam.attachmentUrl.includes("docs.google.com/forms") || exam.attachmentUrl.includes("forms.gle")));
     
-    if (isGoogleForm && (!submission || !submission.feedback)) {
+    if (isGoogleForm && (!submission || submission.status === "PENDING" || !submission.feedback)) {
       const templateSub = await prisma.submission.findFirst({
         where: {
           taskId: exam.id,

@@ -80,7 +80,6 @@ export async function DELETE(
       update: {
         status: "PENDING",
         grade: null,
-        feedback: null,
         fileUrl: null,
         submittedAt: null,
         startedAt: null,
@@ -92,7 +91,6 @@ export async function DELETE(
         studentId: resolvedParams.studentId,
         status: "PENDING",
         grade: null,
-        feedback: null,
         fileUrl: null,
         submittedAt: null,
         startedAt: null,
