@@ -66,13 +66,26 @@ export async function DELETE(
       return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 });
     }
 
-    // Delete the submission record
-    await prisma.submission.delete({
+    const now = new Date();
+    const isLate = now > new Date(task.dueDate);
+
+    // Update the submission record to reset state instead of deleting it
+    await prisma.submission.update({
       where: {
         taskId_studentId: {
           taskId: resolvedParams.id,
           studentId: resolvedParams.studentId,
         }
+      },
+      data: {
+        status: "PENDING",
+        grade: null,
+        feedback: null,
+        fileUrl: null,
+        submittedAt: null,
+        startedAt: null,
+        allowLateSubmission: isLate ? true : false,
+        lateSubmissionUntil: null
       }
     });
 

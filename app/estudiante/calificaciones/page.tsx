@@ -65,11 +65,21 @@ export default async function CalificacionesEstudiantePage() {
   const activeSubmissions = tasks.map(task => {
     const sub = task.submissions[0];
     const isLate = now > new Date(task.dueDate);
-    const isClosed = isLate && !task.allowLateSubmission && !(task.lateSubmissionUntil && new Date(task.lateSubmissionUntil) > now);
+    
+    // Check if late submissions are blocked (overdue and no extensions)
+    const hasStudentExtension = sub && (
+      sub.allowLateSubmission || 
+      (sub.lateSubmissionUntil && new Date(sub.lateSubmissionUntil) > now)
+    );
+    const isClosed = isLate && !task.allowLateSubmission && !(task.lateSubmissionUntil && new Date(task.lateSubmissionUntil) > now) && !hasStudentExtension;
     const isGoogleForm = !!(task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));
 
     if (sub) {
-      if (sub.status === "PENDING" && isClosed && task.type === "EXAM" && isGoogleForm) {
+      // Detect if the student's individual timer has expired
+      const isTimerExpired = sub.startedAt && task.duration && 
+        (new Date(sub.startedAt).getTime() + task.duration * 60 * 1000 < now.getTime());
+
+      if (sub.status === "PENDING" && (isClosed || isTimerExpired) && task.type === "EXAM" && isGoogleForm) {
         return {
           ...sub,
           status: "GRADED",

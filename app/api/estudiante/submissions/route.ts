@@ -116,7 +116,7 @@ export async function POST(request: Request) {
 
     const isLate = now > new Date(task.dueDate);
 
-    if (isLate) {
+    if (isLate && task.type !== "EXAM") {
       // Comprobar si la entrega tardía general está permitida (indefinidamente o plazo de fecha no vencido)
       const isGeneralLateAllowed = task.allowLateSubmission || (task.lateSubmissionUntil && new Date(task.lateSubmissionUntil) > now);
 

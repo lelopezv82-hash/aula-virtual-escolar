@@ -79,14 +79,23 @@ export default async function ExamenesEstudiantePage() {
             const isGoogleForm = !!(exam.attachmentUrl && (exam.attachmentUrl.includes("docs.google.com/forms") || exam.attachmentUrl.includes("forms.gle")));
             
             // Check if late submissions are blocked (overdue and no extensions)
-            const isClosed = isLate && !exam.allowLateSubmission && !(exam.lateSubmissionUntil && new Date(exam.lateSubmissionUntil) > new Date());
+            const hasStudentExtension = submission && (
+              submission.allowLateSubmission || 
+              (submission.lateSubmissionUntil && new Date(submission.lateSubmissionUntil) > new Date())
+            );
+            const isClosed = isLate && !exam.allowLateSubmission && !(exam.lateSubmissionUntil && new Date(exam.lateSubmissionUntil) > new Date()) && !hasStudentExtension;
             
-            // If the Google Form exam is closed and never finished/submitted, virtually grade it as 1.0
-            const virtualSubmission = (!submission || submission.status === "PENDING") && isClosed && isGoogleForm
+            // Detect if the student's individual timer has expired
+            const isTimerExpired = submission?.startedAt && exam.duration && 
+              (new Date(submission.startedAt).getTime() + exam.duration * 60 * 1000 < new Date().getTime());
+
+            // If the Google Form exam is closed/expired and never finished/submitted, virtually grade it as 1.0
+            const virtualSubmission = ((!submission || submission.status === "PENDING") && isClosed && isGoogleForm) ||
+                                      (submission && submission.status === "PENDING" && isTimerExpired && isGoogleForm)
               ? { status: "GRADED", grade: 1.0, feedback: null, submittedAt: null, fileUrl: null }
               : null;
               
-            const activeSubmission = submission || virtualSubmission;
+            const activeSubmission = (submission && submission.status !== "PENDING") ? submission : (virtualSubmission || submission);
             const isSubmitted = activeSubmission && activeSubmission.status !== "PENDING";
             const isGraded = activeSubmission && activeSubmission.status === "GRADED";
 

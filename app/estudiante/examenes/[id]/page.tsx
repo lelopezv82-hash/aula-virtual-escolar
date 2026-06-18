@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, use, useCallback } from "react";
 import { ArrowLeft, UploadCloud, Loader2, CheckCircle, FileText, Clock, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -78,7 +78,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
     return () => clearInterval(interval);
   }, [task, taskId, isGoogleForm, submission?.status]);
 
-  const triggerAutoSubmit = async () => {
+  const triggerAutoSubmit = useCallback(async () => {
     setIsTimerExpired(true);
     setIsGracePeriod(false);
     setLoading(true);
@@ -100,7 +100,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
     } finally {
       setLoading(false);
     }
-  };
+  }, [taskId]);
 
   // Timer countdown hook
   useEffect(() => {
@@ -120,6 +120,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
     if (initialLeft <= 0) {
       setIsTimerExpired(true);
       setTimeLeft(0);
+      triggerAutoSubmit();
       return;
     } else {
       setTimeLeft(initialLeft);
@@ -137,7 +138,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [task, submission, isSubmitted]);
+  }, [task, submission, isSubmitted, triggerAutoSubmit]);
 
   // Grace period countdown hook
   useEffect(() => {
