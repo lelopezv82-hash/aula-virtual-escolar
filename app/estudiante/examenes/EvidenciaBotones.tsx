@@ -42,7 +42,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
   useEffect(() => {
     if (isOpen && !isGoogleForm && !nativeTask) {
       setLoadingTask(true);
-      fetch(`/api/estudiante/tareas/${exam.id}`)
+      fetch(`/api/estudiante/tareas/${exam.id}?_=${Date.now()}`)
         .then(res => res.json())
         .then(data => {
           if (data.task) setNativeTask(data.task);
@@ -312,7 +312,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
                                  <span className="font-bold text-[#137333]">Respuesta correcta:</span>
                                  <span className="text-[#202124] dark:text-[#f9fafb] font-medium">
                                    {q.type === "MULTIPLE_CHOICE" 
-                                     ? q.options.find((o: any) => o.id === detail.correctOptionId)?.text || q.options.find((o: any) => o.isCorrect)?.text || "(Sin especificar)"
+                                     ? detail.correctOptionText || q.options.find((o: any) => o.id === detail.correctOptionId)?.text || q.options.find((o: any) => o.isCorrect)?.text || "(Sin especificar)"
                                      : detail.correctText || q.options[0]?.text || "(Sin especificar)"}
                                  </span>
                                </div>

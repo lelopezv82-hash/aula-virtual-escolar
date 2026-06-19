@@ -136,6 +136,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           questionText: q.text,
           studentAnswer: studentAns,
           correctOptionId: correctOpt?.id,
+          correctOptionText: correctOpt?.text || '',
           isCorrect,
           points: isCorrect ? q.points : 0,
           maxPoints: q.points

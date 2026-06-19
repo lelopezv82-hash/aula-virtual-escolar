@@ -31,7 +31,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
 
   const fetchTaskDetails = useCallback(() => {
     // Fetch task and existing submission info
-    fetch(`/api/estudiante/tareas/${taskId}`)
+    fetch(`/api/estudiante/tareas/${taskId}?_=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
         if (data.task) {
@@ -99,7 +99,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
     if (submission?.status === "GRADED" && gradedAt && gradedAt < twoMinutesAgo) return;
 
     const interval = setInterval(() => {
-      fetch(`/api/estudiante/tareas/${taskId}`)
+      fetch(`/api/estudiante/tareas/${taskId}?_=${Date.now()}`)
         .then(res => res.json())
         .then(data => {
           if (data.task && data.task.submissions && data.task.submissions.length > 0) {

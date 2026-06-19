@@ -245,7 +245,7 @@ export default function ExamenNativo({
                     <span className="font-bold text-green-600 dark:text-green-400">Respuesta correcta:</span>
                     <span className="text-gray-700 dark:text-gray-300 font-medium">
                       {q.type === "MULTIPLE_CHOICE" 
-                        ? q.options.find(o => o.id === detail.correctOptionId)?.text || q.options.find(o => o.isCorrect)?.text || "(Sin especificar)"
+                        ? detail.correctOptionText || q.options.find(o => o.id === detail.correctOptionId)?.text || q.options.find(o => o.isCorrect)?.text || "(Sin especificar)"
                         : detail.correctText || q.options[0]?.text || "(Sin especificar)"}
                     </span>
                   </div>
