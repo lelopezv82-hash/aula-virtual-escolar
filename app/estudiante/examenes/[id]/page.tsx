@@ -27,8 +27,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const [errorType, setErrorType] = useState<"danger" | "warning">("danger");
   const [initialLoad, setInitialLoad] = useState(true);
   const [hasSentGoogleForm, setHasSentGoogleForm] = useState(false);
-  const [isGracePeriod, setIsGracePeriod] = useState(false);
-  const [graceTimeLeft, setGraceTimeLeft] = useState(30);
+
 
   const fetchTaskDetails = useCallback(() => {
     // Fetch task and existing submission info
@@ -61,9 +60,9 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const isNativeExam = !!(task?.questions && task.questions.length > 0);
   const isGoogleForm = !isNativeExam && !!(task?.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));
   
-  // Detect if the student's individual timer has expired (including 30s grace period)
+  // Detect if the student's individual timer has expired
   const timerHasExpired = isTimerExpired || !!(submission?.startedAt && task?.duration && 
-    (new Date(submission.startedAt).getTime() + task.duration * 60 * 1000 + 30000 < now.getTime()));
+    (new Date(submission.startedAt).getTime() + task.duration * 60 * 1000 < now.getTime()));
 
   // Check if late submissions are blocked (overdue and no extensions)
   const isOverdue = task ? new Date(task.dueDate) < now : false;
@@ -121,7 +120,6 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
 
   const triggerAutoSubmit = useCallback(async () => {
     setIsTimerExpired(true);
-    setIsGracePeriod(false);
     setLoading(true);
     try {
       const isNative = !!(task?.questions && task.questions.length > 0);
@@ -155,7 +153,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
 
   // Timer countdown hook
   useEffect(() => {
-    if (!task || !task.duration || !submission || !submission.startedAt || isSubmitted || isGracePeriod || isTimerExpired) {
+    if (!task || !task.duration || !submission || !submission.startedAt || isSubmitted || isTimerExpired) {
       return;
     }
 
@@ -169,16 +167,9 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
 
     const initialLeft = calculateTimeLeft();
     if (initialLeft <= 0) {
-      const graceTimeRemaining = 30 + initialLeft; // initialLeft is negative
-      if (graceTimeRemaining > 0) {
-        setIsGracePeriod(true);
-        setGraceTimeLeft(graceTimeRemaining);
-        setTimeLeft(0);
-      } else {
-        setIsTimerExpired(true);
-        setTimeLeft(0);
-        triggerAutoSubmit();
-      }
+      setIsTimerExpired(true);
+      setTimeLeft(0);
+      triggerAutoSubmit();
       return;
     } else {
       setTimeLeft(initialLeft);
@@ -189,37 +180,15 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
       if (left <= 0) {
         clearInterval(interval);
         setTimeLeft(0);
-        setIsGracePeriod(true);
+        setIsTimerExpired(true);
+        triggerAutoSubmit();
       } else {
         setTimeLeft(left);
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [task, submission, isSubmitted, isGracePeriod, isTimerExpired, triggerAutoSubmit]);
-
-  // Grace period countdown hook
-  useEffect(() => {
-    if (!isGracePeriod || isSubmitted) return;
-
-    if (graceTimeLeft <= 0) {
-      triggerAutoSubmit();
-      return;
-    }
-
-    const interval = setInterval(() => {
-      setGraceTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          triggerAutoSubmit();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isGracePeriod, graceTimeLeft, isSubmitted]);
+  }, [task, submission, isSubmitted, isTimerExpired, triggerAutoSubmit]);
 
   const handleStartExam = async () => {
     setStartingExam(true);
@@ -434,27 +403,6 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
         </div>
       )}
 
-      {/* Grace Period Warning Banner */}
-      {isGracePeriod && !isSubmitted && (
-        <div className="mb-6 p-4 rounded-xl border flex flex-col sm:flex-row items-center justify-between gap-4 animate-pulse" 
-             style={{ 
-               background: 'rgba(239, 68, 68, 0.15)',
-               borderColor: 'rgba(239, 68, 68, 0.5)',
-               color: 'var(--danger)'
-             }}>
-          <div className="flex items-center gap-2">
-            <Clock size={20} className="text-red-500 animate-spin" />
-            <span className="font-black text-sm text-red-600">
-              {isNativeExam 
-                ? "⚠️ ¡TIEMPO AGOTADO! Tus respuestas se están guardando y enviando automáticamente..." 
-                : "⚠️ ¡TIEMPO AGOTADO! Por favor, haz clic en el botón \"Enviar\" (Submit) dentro del formulario de Google Forms de inmediato."}
-            </span>
-          </div>
-          <div className="text-xl font-black font-mono text-red-600">
-            Cerrando en: {graceTimeLeft}s
-          </div>
-        </div>
-      )}
 
       <div className="card mb-6">
         <h2 className="text-lg font-bold mb-2">Instrucciones</h2>
@@ -564,7 +512,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                 </p>
 
               </div>
-            ) : (timerHasExpired && !isGracePeriod) ? (
+            ) : timerHasExpired ? (
               <div className="absolute inset-0 bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-6 text-center">
                 <AlertTriangle className="text-red-500 mb-4 animate-bounce" size={48} />
                 <h3 className="text-xl font-bold text-red-600">Tiempo Expirado</h3>
