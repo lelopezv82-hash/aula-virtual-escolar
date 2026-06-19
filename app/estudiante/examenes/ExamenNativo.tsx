@@ -203,7 +203,7 @@ export default function ExamenNativo({
                       let optStyle = "border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900";
                       let icon = null;
 
-                      if (isOptCorrect) {
+                      if (isSelected && isOptCorrect) {
                         optStyle = "border-green-500 bg-green-50/30 dark:border-green-900/50 dark:bg-green-950/20 font-bold text-green-700 dark:text-green-600";
                         icon = <Check size={14} className="text-green-500" />;
                       } else if (isSelected && !isOptCorrect) {
@@ -216,11 +216,9 @@ export default function ExamenNativo({
                           <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${
                             isSelected && !isOptCorrect 
                               ? "bg-red-500 border-red-500" 
-                              : isOptCorrect 
+                              : isSelected && isOptCorrect 
                                 ? "bg-green-500 border-green-500" 
-                                : isSelected 
-                                  ? "bg-blue-500 border-blue-500" 
-                                  : "border-gray-300"
+                                : "border-gray-300"
                           }`}>
                             {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
                           </div>
