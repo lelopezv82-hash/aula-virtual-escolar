@@ -219,10 +219,10 @@ export default function QuestionEditor({ taskId, initialQuestions }: QuestionEdi
       <div className="flex justify-between items-center mb-4 pb-2 border-b" style={{ borderColor: "var(--border-color)" }}>
         <div>
           <h2 className="text-lg font-bold flex items-center gap-2">
-            Examen Nativo de la Plataforma
+            Examen de la Plataforma
           </h2>
           <p className="text-muted text-xs font-medium">
-            Agrega preguntas y opciones. Si hay preguntas creadas, los estudiantes tomarán el examen nativamente.
+            Agrega preguntas y opciones. Si hay preguntas creadas, los estudiantes tomarán el examen directamente en la plataforma.
           </p>
         </div>
         {editingId !== "new" && (
@@ -293,13 +293,29 @@ export default function QuestionEditor({ taskId, initialQuestions }: QuestionEdi
             <div className="flex flex-col gap-2.5 mt-2">
               <div className="flex justify-between items-center">
                 <label className="text-xs font-bold text-muted">Opciones (Selecciona la correcta)</label>
-                <button 
-                  type="button" 
-                  onClick={handleAddOption}
-                  className="text-xs text-blue-500 hover:text-blue-600 font-bold flex items-center gap-0.5"
-                >
-                  <Plus size={14} /> Añadir opción
-                </button>
+                <div className="flex items-center gap-2">
+                  <button 
+                    type="button" 
+                    onClick={handleAddOption}
+                    className="text-xs text-blue-500 hover:text-blue-600 font-bold flex items-center gap-0.5"
+                  >
+                    <Plus size={14} /> Añadir opción
+                  </button>
+                  <span className="text-[10px] text-muted">|</span>
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      setFormOptions([
+                        { text: "Verdadero", isCorrect: true },
+                        { text: "Falso", isCorrect: false }
+                      ]);
+                    }}
+                    className="text-xs text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 font-bold flex items-center gap-1 bg-green-50 dark:bg-green-950/20 px-2 py-0.5 rounded border border-green-200 dark:border-green-900/40"
+                    title="Configurar opciones rápidas como Verdadero / Falso"
+                  >
+                    Verdadero / Falso
+                  </button>
+                </div>
               </div>
 
               <div className="flex flex-col gap-2">

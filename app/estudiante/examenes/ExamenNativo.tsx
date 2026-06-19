@@ -150,7 +150,7 @@ export default function ExamenNativo({
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
               <h3 className="text-xl font-bold text-green-600 dark:text-green-400 flex items-center gap-2">
-                <CheckCircle size={24} /> Examen Calificado Nativamente
+                <CheckCircle size={24} /> Examen Calificado
               </h3>
               <p className="text-muted text-sm mt-1">
                 Tus respuestas han sido procesadas. Revisa la corrección detallada a continuación.
@@ -245,8 +245,8 @@ export default function ExamenNativo({
                     <span className="font-bold text-green-600 dark:text-green-400">Respuesta correcta:</span>
                     <span className="text-gray-700 dark:text-gray-300 font-medium">
                       {q.type === "MULTIPLE_CHOICE" 
-                        ? q.options.find(o => o.isCorrect)?.text 
-                        : q.options[0]?.text || "(Sin especificar)"}
+                        ? q.options.find(o => o.id === detail.correctOptionId)?.text || q.options.find(o => o.isCorrect)?.text || "(Sin especificar)"
+                        : detail.correctText || q.options[0]?.text || "(Sin especificar)"}
                     </span>
                   </div>
                 )}

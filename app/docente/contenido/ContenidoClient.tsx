@@ -1296,7 +1296,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
 
             {taskForm.type === "EXAM" ? (
               <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/50 rounded-lg p-3 text-[11px] text-blue-700 dark:text-blue-300 mb-4">
-                <strong>💡 Examen Nativo:</strong> Este examen se creará directamente en la plataforma. Una vez creado, haz clic en <strong>Ver/Calificar</strong> en la lista de exámenes para ingresar las preguntas y opciones de respuesta.
+                <strong>💡 Examen en la Plataforma:</strong> Este examen se creará directamente aquí. Una vez creado, haz clic en <strong>Ver/Calificar</strong> en la lista de exámenes para ingresar las preguntas y opciones de respuesta.
               </div>
             ) : (
               <>

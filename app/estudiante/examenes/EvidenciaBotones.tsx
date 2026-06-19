@@ -103,6 +103,13 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
 
   const studentAnswers = submission.answers || {};
 
+  let feedbackDetails: any[] = [];
+  if (submission && submission.feedback) {
+    try {
+      feedbackDetails = JSON.parse(submission.feedback);
+    } catch {}
+  }
+
   const modalContent = isOpen && mounted ? createPortal(
     <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm overflow-y-auto">
       <button 
@@ -231,9 +238,10 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
                     <div className="flex flex-col gap-3" style={{ gap: '12px' }}>
                       {nativeTask.questions.map((q: any, index: number) => {
                         const studentAns = studentAnswers[q.id];
-                        const isCorrect = q.type === "MULTIPLE_CHOICE"
+                        const detail = feedbackDetails.find((d: any) => d.questionId === q.id) || {};
+                        const isCorrect = detail.isCorrect ?? (q.type === "MULTIPLE_CHOICE"
                           ? q.options.find((o: any) => o.isCorrect)?.id === studentAns
-                          : q.options[0]?.text?.trim().toLowerCase() === studentAns?.trim().toLowerCase();
+                          : q.options[0]?.text?.trim().toLowerCase() === studentAns?.trim().toLowerCase());
 
                         return (
                           <div key={q.id} className={`bg-white p-6 rounded-[8px] border border-[#dadce0] shadow-sm flex flex-col gap-3 ${
@@ -300,15 +308,15 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
                             )}
 
                             {!isCorrect && (
-                              <div className="p-3 rounded-r-[4px] rounded-l-none bg-[#f8f9fa] border-l-4 border-l-[#137333] text-xs mt-2 flex flex-col gap-1">
-                                <span className="font-bold text-[#137333]">Respuesta correcta:</span>
-                                <span className="text-[#202124] dark:text-[#f9fafb] font-medium">
-                                  {q.type === "MULTIPLE_CHOICE" 
-                                    ? q.options.find((o: any) => o.isCorrect)?.text 
-                                    : q.options[0]?.text || "(Sin especificar)"}
-                                </span>
-                              </div>
-                            )}
+                               <div className="p-3 rounded-r-[4px] rounded-l-none bg-[#f8f9fa] border-l-4 border-l-[#137333] text-xs mt-2 flex flex-col gap-1">
+                                 <span className="font-bold text-[#137333]">Respuesta correcta:</span>
+                                 <span className="text-[#202124] dark:text-[#f9fafb] font-medium">
+                                   {q.type === "MULTIPLE_CHOICE" 
+                                     ? q.options.find((o: any) => o.id === detail.correctOptionId)?.text || q.options.find((o: any) => o.isCorrect)?.text || "(Sin especificar)"
+                                     : detail.correctText || q.options[0]?.text || "(Sin especificar)"}
+                                 </span>
+                               </div>
+                             )}
                           </div>
                         );
                       })}
