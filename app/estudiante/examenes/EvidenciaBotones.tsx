@@ -304,7 +304,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
                             {!isCorrect && (
                               <div className="p-3 rounded-[4px] bg-[#f8f9fa] border-l-4 border-l-[#137333] text-xs mt-2 flex flex-col gap-1">
                                 <span className="font-bold text-[#137333]">Respuesta correcta:</span>
-                                <span className="text-muted">
+                                <span className="text-[#202124] dark:text-[#f9fafb] font-medium">
                                   {q.type === "MULTIPLE_CHOICE" 
                                     ? q.options.find((o: any) => o.isCorrect)?.text 
                                     : q.options[0]?.text || "(Sin especificar)"}
