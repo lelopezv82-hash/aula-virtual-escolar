@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { CheckCircle, Clock, AlertCircle } from "lucide-react";
 import EvidenciaBotones from "@/app/estudiante/examenes/EvidenciaBotones";
+import { getTaskDeadlineStatus } from '@/lib/dateUtils';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -74,14 +75,7 @@ export default async function CalificacionesEstudiantePage() {
   // Map tasks to their submissions, adding virtual 1.0 graded submissions for expired/closed Google Forms exams
   const activeSubmissions = (await Promise.all(tasks.map(async task => {
     const sub = task.submissions[0];
-    const isLate = now > new Date(task.dueDate);
-    
-    // Check if late submissions are blocked (overdue and no extensions)
-    const hasStudentExtension = sub && (
-      sub.allowLateSubmission || 
-      (sub.lateSubmissionUntil && new Date(sub.lateSubmissionUntil) > now)
-    );
-    const isClosed = isLate && !task.allowLateSubmission && !(task.lateSubmissionUntil && new Date(task.lateSubmissionUntil) > now) && !hasStudentExtension;
+    const { isClosed } = getTaskDeadlineStatus(task, sub);
     const isGoogleForm = !!(task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));
 
     const isNative = task.questions && task.questions.length > 0;
@@ -223,7 +217,13 @@ export default async function CalificacionesEstudiantePage() {
                             <span className="text-xs font-bold px-2 py-1 bg-gray-100 rounded text-gray-600">
                               {sub.task.course.name}
                             </span>
-                            {isGraded && <span className="badge badge-success flex items-center gap-1"><CheckCircle size={12} /> Calificada</span>}
+                            {isGraded && (
+                              sub.submittedAt === null ? (
+                                <span className="badge badge-danger flex items-center gap-1"><AlertCircle size={12} /> Plazo vencido</span>
+                              ) : (
+                                <span className="badge badge-success flex items-center gap-1"><CheckCircle size={12} /> Calificada</span>
+                              )
+                            )}
                             {isPending && <span className="badge badge-info flex items-center gap-1"><Clock size={12} /> En revisión</span>}
                           </div>
                           <h3 className="font-bold text-lg">{sub.task.title}</h3>
@@ -231,6 +231,9 @@ export default async function CalificacionesEstudiantePage() {
                             <div className="mt-2 p-3 rounded-lg text-sm italic" style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)", borderLeft: "3px solid var(--primary-color)" }}>
                               💬 &quot;{sub.feedback}&quot;
                             </div>
+                          )}
+                          {isGraded && sub.submittedAt === null && (
+                            <p className="text-sm text-red-500 mt-1 font-medium">Calificación automática por falta de entrega.</p>
                           )}
                           {!isGraded && (
                             <p className="text-sm text-muted mt-1">Tu docente aún no ha calificado esta entrega.</p>
