@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Clock } from "lucide-react";
+import { formatToColombiaString } from "@/lib/dateUtils";
 import EvidenciaBotones from "./EvidenciaBotones";
 
 interface ExamenCardAccionesProps {
@@ -104,7 +105,7 @@ export default function ExamenCardAcciones({
       {/* Due date rendered client-side so it shows the student's local timezone */}
       <div className="text-sm text-muted flex items-center gap-1">
         <Clock size={16} />
-        Vence: {new Date(dueDate).toLocaleString()}
+        Vence: {formatToColombiaString(dueDate)}
       </div>
 
       {!isSubmitted && (

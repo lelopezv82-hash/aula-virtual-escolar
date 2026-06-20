@@ -4,6 +4,7 @@ import { useState, useEffect, use } from "react";
 import { ArrowLeft, UploadCloud, Loader2, CheckCircle, FileText, Clock, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { formatToColombiaString } from "@/lib/dateUtils";
 
 export default function TareaDetallePage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -273,7 +274,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
         </Link>
         <div>
           <h1 className="text-2xl font-bold">{task.title}</h1>
-          <p className="text-muted text-sm">Vence: {new Date(task.dueDate).toLocaleString()}</p>
+          <p className="text-muted text-sm">Vence: {formatToColombiaString(task.dueDate)}</p>
         </div>
       </div>
 
@@ -394,7 +395,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
               <FileText className="text-blue-500" size={32} />
               <div>
                 <p className="font-medium">Archivo entregado</p>
-                <p className="text-sm text-muted">Enviado el {new Date(submission.submittedAt).toLocaleString()}</p>
+                <p className="text-sm text-muted">Enviado el {formatToColombiaString(submission.submittedAt)}</p>
               </div>
               {submission.fileUrl && (
                 <a 
@@ -429,7 +430,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                     </h3>
                     <p className="text-xs">
                       El plazo de entrega original ha vencido, pero tienes permiso para entregar tu tarea tarde
-                      {activeExtensionDate ? ` hasta el ${activeExtensionDate.toLocaleString()}.` : " sin límite de tiempo definido."}
+                      {activeExtensionDate ? ` hasta el ${formatToColombiaString(activeExtensionDate)}.` : " sin límite de tiempo definido."}
                     </p>
                   </div>
                 )}

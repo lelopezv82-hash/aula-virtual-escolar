@@ -4,6 +4,7 @@ import { useState, useEffect, use, useCallback } from "react";
 import { ArrowLeft, UploadCloud, Loader2, CheckCircle, FileText, Clock, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { formatToColombiaString } from "@/lib/dateUtils";
 import { useConfirm } from "@/components/ConfirmProvider";
 import ExamenNativo from "../ExamenNativo";
 
@@ -380,7 +381,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
 
         <div>
           <h1 className="text-2xl font-bold">{task.title}</h1>
-          <p className="text-muted text-sm">Vence: {new Date(task.dueDate).toLocaleString()}</p>
+          <p className="text-muted text-sm">Vence: {formatToColombiaString(task.dueDate)}</p>
         </div>
       </div>
 

@@ -32,3 +32,22 @@ export function fromColombiaLocalStringToDate(localStr: string | null | undefine
   const formattedStr = hasSeconds ? `${str}-05:00` : `${str}:00-05:00`;
   return new Date(formattedStr);
 }
+
+/**
+ * Formats a Date object or ISO string as a human-readable string in Colombia's Timezone (UTC-5).
+ * e.g., "20/6/2026, 9:36:00 a. m."
+ */
+export function formatToColombiaString(
+  dateInput: Date | string | null | undefined, 
+  includeTime: boolean = true
+): string {
+  if (!dateInput) return "";
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return "";
+  
+  if (includeTime) {
+    return d.toLocaleString('es-CO', { timeZone: 'America/Bogota' });
+  } else {
+    return d.toLocaleDateString('es-CO', { timeZone: 'America/Bogota' });
+  }
+}

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { ArrowLeft, BookOpen, Download, ClipboardList, Clock, CheckCircle, AlertCircle, FileText, Link as LinkIcon, HelpCircle } from "lucide-react";
 import Link from "next/link";
+import { formatToColombiaString } from "@/lib/dateUtils";
 
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
@@ -207,7 +208,7 @@ export default async function EstudianteCursoDetallePage({
                               </span>
                             )}
                             <span className="text-xs text-muted">
-                              Vence: {new Date(task.dueDate).toLocaleDateString()}
+                              Vence: {formatToColombiaString(task.dueDate, false)}
                             </span>
                             {task.weight !== undefined && task.weight !== null && task.weight > 0 && (
                               <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
@@ -272,7 +273,7 @@ export default async function EstudianteCursoDetallePage({
                               </span>
                             )}
                             <span className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">
-                              Vence: {new Date(task.dueDate).toLocaleDateString()}
+                              Vence: {formatToColombiaString(task.dueDate, false)}
                             </span>
                             {task.weight !== undefined && task.weight !== null && task.weight > 0 && (
                               <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300">

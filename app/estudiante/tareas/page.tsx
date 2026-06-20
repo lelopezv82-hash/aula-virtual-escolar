@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { ClipboardList, Clock, CheckCircle } from "lucide-react";
 import Link from "next/link";
+import { formatToColombiaString } from '@/lib/dateUtils';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -122,7 +123,7 @@ export default async function TareasEstudiantePage() {
                 <div className="flex flex-col md:items-end gap-2 min-w-[200px]">
                   <div className="text-sm text-muted flex items-center gap-1">
                     <Clock size={16} /> 
-                    Vence: {new Date(task.dueDate).toLocaleString()}
+                    Vence: {formatToColombiaString(task.dueDate)}
                   </div>
                   
                   <Link href={`/estudiante/tareas/${task.id}`} className={`btn w-full md:w-auto ${isSubmitted ? 'btn-secondary' : 'btn-primary'}`}>
