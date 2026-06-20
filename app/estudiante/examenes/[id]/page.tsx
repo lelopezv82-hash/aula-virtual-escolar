@@ -82,6 +82,20 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const isGraded = activeSubmission?.status === "GRADED";
   const isSubmitted = activeSubmission?.status === "SUBMITTED" || isGraded;
 
+  // Determine the reason for minimum grade (1.0)
+  const neverStarted = !submission || (submission.status === "PENDING" && !submission.startedAt);
+  const hasAnswers = submission?.answers && Object.keys(submission.answers as Record<string, unknown>).length > 0;
+  const startedButEmpty = submission && submission.startedAt && submission.status !== "PENDING"
+    && submission.grade !== null && submission.grade <= 1.0
+    && !hasAnswers;
+  const gradeReason = (virtualSubmission && neverStarted)
+    ? "No presentaste el examen a tiempo"
+    : (virtualSubmission && !neverStarted && !hasAnswers)
+      ? "No respondiste ninguna pregunta"
+      : startedButEmpty
+        ? "No respondiste ninguna pregunta"
+        : null;
+
   // Polling to check if webhook has graded the exam
   useEffect(() => {
     if (!task || !isGoogleForm) return;
@@ -469,17 +483,26 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
 
           <div className="relative border rounded-lg overflow-hidden bg-white" style={{ height: "650px", borderColor: "var(--border-color)" }}>
             {activeSubmission?.status === "GRADED" ? (
-              <div className="absolute inset-0 bg-green-50 dark:bg-green-950/20 flex flex-col items-center justify-center p-6 text-center overflow-y-auto">
-                <CheckCircle className="text-green-500 mb-2 shrink-0" size={48} />
-                <h3 className="text-xl font-bold text-green-600">Examen Calificado</h3>
+              <div className={`absolute inset-0 flex flex-col items-center justify-center p-6 text-center overflow-y-auto ${gradeReason ? 'bg-red-50 dark:bg-red-950/20' : 'bg-green-50 dark:bg-green-950/20'}`}>
+                {gradeReason ? (
+                  <AlertTriangle className="text-red-500 mb-2 shrink-0" size={48} />
+                ) : (
+                  <CheckCircle className="text-green-500 mb-2 shrink-0" size={48} />
+                )}
+                <h3 className={`text-xl font-bold ${gradeReason ? 'text-red-600' : 'text-green-600'}`}>
+                  {gradeReason ? gradeReason : 'Examen Calificado'}
+                </h3>
                 <p className="text-muted mt-1 max-w-md text-sm">
-                  Has completado y entregado este examen con éxito. Tu calificación ya está registrada.
+                  {gradeReason
+                    ? 'Se ha asignado la nota mínima (1.0) de forma automática.'
+                    : 'Has completado y entregado este examen con éxito. Tu calificación ya está registrada.'
+                  }
                 </p>
                 
-                <div className="my-4 p-4 rounded-full bg-white dark:bg-gray-800 shadow-md border-2 border-green-500 flex flex-col items-center justify-center w-32 h-32 mx-auto shrink-0 animate-fade-in">
+                <div className={`my-4 p-4 rounded-full bg-white dark:bg-gray-800 shadow-md border-2 flex flex-col items-center justify-center w-32 h-32 mx-auto shrink-0 animate-fade-in ${gradeReason ? 'border-red-500' : 'border-green-500'}`}>
                   <span className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider">Nota</span>
-                  <span className="text-3xl font-black text-green-600 dark:text-green-400">
-                    {activeSubmission.grade !== null && activeSubmission.grade !== undefined ? Number(activeSubmission.grade).toFixed(1) : ""}
+                  <span className={`text-3xl font-black ${gradeReason ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                    {activeSubmission.grade !== null && activeSubmission.grade !== undefined ? Math.max(1.0, Number(activeSubmission.grade)).toFixed(1) : ""}
                   </span>
                 </div>
 

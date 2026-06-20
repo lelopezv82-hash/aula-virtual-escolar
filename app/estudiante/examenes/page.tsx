@@ -96,6 +96,20 @@ export default async function ExamenesEstudiantePage() {
               ? (submission.grade !== null && submission.grade !== undefined ? Math.max(1.0, submission.grade) : null)
               : virtualGraded ? 1.0 : null;
 
+            // Determine reason for minimum grade
+            const neverStarted = !submission || (submission.status === "PENDING" && !submission.startedAt);
+            const hasAnswers = submission?.answers && Object.keys(submission.answers as Record<string, unknown>).length > 0;
+            const startedButEmpty = submission && submission.startedAt && submission.status !== "PENDING"
+              && submission.grade !== null && submission.grade <= 1.0
+              && !hasAnswers;
+            const gradeReason = virtualGraded && neverStarted
+              ? "No presentó"
+              : (virtualGraded && !neverStarted && !hasAnswers)
+                ? "No respondió"
+                : startedButEmpty
+                  ? "No respondió"
+                  : null;
+
             const isSubmitted = activeStatus && activeStatus !== "PENDING";
             const isGraded = activeStatus === "GRADED";
 
@@ -107,8 +121,13 @@ export default async function ExamenesEstudiantePage() {
                       {exam.course.name}
                     </span>
                     {isGraded && (
-                      <span className="badge badge-success flex items-center gap-1">
+                      <span className={`badge flex items-center gap-1 ${gradeReason ? 'badge-danger' : 'badge-success'}`}>
                         <CheckCircle size={12} /> Calificado: {activeGrade}
+                      </span>
+                    )}
+                    {isGraded && gradeReason && (
+                      <span className="text-xs text-red-500 dark:text-red-400 font-semibold">
+                        — {gradeReason}
                       </span>
                     )}
                     {isSubmitted && !isGraded && (
