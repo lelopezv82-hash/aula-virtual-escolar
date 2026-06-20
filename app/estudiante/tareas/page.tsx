@@ -86,8 +86,12 @@ export default async function TareasEstudiantePage() {
               ? submission.status
               : virtualGraded ? "GRADED" : (submission?.status || null);
             const activeGrade = submission && submission.status !== "PENDING"
-              ? submission.grade
+              ? (submission.grade !== null && submission.grade !== undefined ? Math.max(1.0, submission.grade) : null)
               : virtualGraded ? 1.0 : null;
+
+            // Determine reason for minimum grade
+            const neverSubmitted = !submission || submission.status === "PENDING";
+            const gradeReason = virtualGraded && neverSubmitted ? "No entregó" : null;
 
             const isSubmitted = activeStatus && activeStatus !== "PENDING";
             const isGraded = activeStatus === "GRADED";
@@ -100,8 +104,13 @@ export default async function TareasEstudiantePage() {
                       {task.course.name}
                     </span>
                     {isGraded && (
-                      <span className="badge badge-success flex items-center gap-1">
+                      <span className={`badge flex items-center gap-1 ${gradeReason ? 'badge-danger' : 'badge-success'}`}>
                         <CheckCircle size={12} /> Calificada: {activeGrade !== null ? Number(activeGrade).toFixed(1) : ""}
+                      </span>
+                    )}
+                    {isGraded && gradeReason && (
+                      <span className="text-xs text-red-500 dark:text-red-400 font-semibold">
+                        — {gradeReason}
                       </span>
                     )}
                     {isSubmitted && !isGraded && (

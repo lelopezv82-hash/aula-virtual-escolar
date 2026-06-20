@@ -49,6 +49,12 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const isGraded = submission?.status === "GRADED";
   const isSubmitted = submission?.status === "SUBMITTED" || isGraded;
 
+  // Check deadline status for grade reason
+  const { isClosed: isDeadlinePassed } = task ? getTaskDeadlineStatus(task, submission) : { isClosed: false };
+  const neverSubmitted = !submission || submission.status === "PENDING";
+  const virtualGraded = neverSubmitted && isDeadlinePassed;
+  const gradeReason = virtualGraded ? "No entregaste la tarea a tiempo" : null;
+
   const triggerAutoSubmit = async () => {
     setIsTimerExpired(true);
     setLoading(true);
@@ -362,13 +368,19 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
           <h2 className="text-lg font-bold mb-4">Tu Entrega</h2>
 
           {isGraded && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-              <h3 className="font-bold text-green-800 mb-1 flex items-center gap-2">
-                <CheckCircle size={18} /> Tarea Calificada
+            <div className={`${gradeReason ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'} border rounded-lg p-4 mb-6`}>
+              <h3 className={`font-bold mb-1 flex items-center gap-2 ${gradeReason ? 'text-red-800' : 'text-green-800'}`}>
+                {gradeReason ? <AlertTriangle size={18} /> : <CheckCircle size={18} />}
+                {gradeReason ? gradeReason : 'Tarea Calificada'}
               </h3>
-              <p className="text-2xl font-black text-green-700 my-2">Nota: {submission.grade}</p>
+              {gradeReason && (
+                <p className="text-sm text-red-700 mb-2">Se ha asignado la nota mínima (1.0) de forma automática.</p>
+              )}
+              <p className={`text-2xl font-black my-2 ${gradeReason ? 'text-red-700' : 'text-green-700'}`}>
+                Nota: {submission.grade !== null && submission.grade !== undefined ? Math.max(1.0, Number(submission.grade)).toFixed(1) : submission.grade}
+              </p>
               {submission.feedback && (
-                <div className="mt-2 text-green-900">
+                <div className={`mt-2 ${gradeReason ? 'text-red-900' : 'text-green-900'}`}>
                   <strong>Comentario del docente:</strong>
                   <p className="italic mt-1">&quot;{submission.feedback}&quot;</p>
                 </div>
