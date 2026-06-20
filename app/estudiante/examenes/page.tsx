@@ -4,6 +4,9 @@ import { jwtVerify } from "jose";
 import { ClipboardList, CheckCircle } from "lucide-react";
 import ExamenCardAcciones from "./ExamenCardAcciones";
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
 export default async function ExamenesEstudiantePage() {

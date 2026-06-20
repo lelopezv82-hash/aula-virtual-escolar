@@ -4,6 +4,9 @@ import { jwtVerify } from "jose";
 import { CheckCircle, Clock, AlertCircle } from "lucide-react";
 import EvidenciaBotones from "@/app/estudiante/examenes/EvidenciaBotones";
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
