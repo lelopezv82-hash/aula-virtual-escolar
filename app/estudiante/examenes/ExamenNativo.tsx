@@ -34,6 +34,7 @@ interface ExamenNativoProps {
   onSubmissionUpdated: (sub: any) => void;
   timeLeft: number | null;
   isTimerExpired: boolean;
+  isClosed?: boolean;
   triggerAutoSubmit: () => void;
 }
 
@@ -44,12 +45,15 @@ export default function ExamenNativo({
   onSubmissionUpdated,
   timeLeft,
   isTimerExpired,
+  isClosed = false,
   triggerAutoSubmit
 }: ExamenNativoProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [savingStatus, setSavingStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const isDisabled = isSubmitting || isTimerExpired || isClosed;
 
   // Initialize answers from submission if it exists
   useEffect(() => {
@@ -316,8 +320,10 @@ export default function ExamenNativo({
                     return (
                       <label 
                         key={opt.id} 
-                        onClick={() => handleAnswerChange(q.id, opt.id)}
-                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                        onClick={() => !isDisabled && handleAnswerChange(q.id, opt.id)}
+                        className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                          isDisabled ? "cursor-not-allowed opacity-75" : "cursor-pointer"
+                        } ${
                           isSelected 
                             ? "bg-blue-50/50 border-blue-400 text-blue-800 dark:bg-blue-950/20 dark:border-blue-900" 
                             : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:bg-gray-50/80 dark:hover:bg-gray-800/30"
@@ -327,8 +333,10 @@ export default function ExamenNativo({
                           type="radio"
                           name={`q-${q.id}`}
                           checked={isSelected}
+                          disabled={isDisabled}
                           readOnly
-                          className="h-4 w-4 text-blue-600 cursor-pointer"
+                          className="h-4 w-4 text-blue-600"
+                          style={{ cursor: isDisabled ? "not-allowed" : "pointer" }}
                         />
                         <span>{opt.text}</span>
                       </label>
@@ -340,10 +348,15 @@ export default function ExamenNativo({
                   <input
                     type="text"
                     value={studentAns}
+                    disabled={isDisabled}
                     onChange={(e) => handleAnswerChange(q.id, e.target.value)}
                     placeholder="Escribe tu respuesta aquí..."
                     className="w-full p-3 rounded-lg border focus:outline-none"
-                    style={{ backgroundColor: "var(--bg-primary)", borderColor: "var(--border-color)" }}
+                    style={{ 
+                      backgroundColor: "var(--bg-primary)", 
+                      borderColor: "var(--border-color)",
+                      cursor: isDisabled ? "not-allowed" : "text"
+                    }}
                   />
                 </div>
               )}
@@ -356,7 +369,7 @@ export default function ExamenNativo({
       <div className="flex justify-end pt-4 border-t" style={{ borderColor: "var(--border-color)" }}>
         <button
           onClick={handleSubmitExam}
-          disabled={isSubmitting}
+          disabled={isDisabled}
           className="btn btn-primary flex items-center gap-2 py-3 px-8 text-sm font-bold"
         >
           {isSubmitting ? (

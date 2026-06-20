@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import prisma from '@/lib/prisma';
+import { getTaskDeadlineStatus } from '@/lib/dateUtils';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
@@ -49,6 +50,20 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     if (answers === undefined) {
       return NextResponse.json({ error: 'Falta el campo answers' }, { status: 400 });
+    }
+
+    const existingSubmission = await prisma.submission.findUnique({
+      where: {
+        taskId_studentId: {
+          taskId: task.id,
+          studentId
+        }
+      }
+    });
+
+    const { isClosed } = getTaskDeadlineStatus(task, existingSubmission);
+    if (isClosed) {
+      return NextResponse.json({ error: 'El plazo de entrega ha vencido. No se pueden guardar más respuestas.' }, { status: 400 });
     }
 
     const submission = await prisma.submission.upsert({
@@ -104,10 +119,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       }
     });
 
-    const finalAnswers = {
-      ...(submission && typeof submission.answers === 'object' ? (submission.answers as Record<string, any>) : {}),
-      ...answers
-    };
+    const { isClosed } = getTaskDeadlineStatus(task, submission);
+
+    // If closed, ignore the answers from the body, only grade the answers already saved in the DB.
+    const finalAnswers = isClosed
+      ? (submission && typeof submission.answers === 'object' ? (submission.answers as Record<string, any>) : {})
+      : {
+          ...(submission && typeof submission.answers === 'object' ? (submission.answers as Record<string, any>) : {}),
+          ...answers
+        };
 
     // Retrieve questions and options to perform grading
     const questions = await prisma.question.findMany({

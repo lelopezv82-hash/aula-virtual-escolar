@@ -68,9 +68,12 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   // Check if late submissions are blocked (overdue and no extensions)
   const { isClosed, isLate: isOverdue } = getTaskDeadlineStatus(task, submission);
 
-  // If the Google Form exam is closed/expired and never finished/submitted, virtually grade it as 1.0
+  // If the exam is closed/expired and never finished/submitted:
+  // For Google Forms: virtual 1.0 if closed or timer expired.
+  // For Native Exams: virtual 1.0 only if never started and closed. If started, we will submit their saved answers.
   const virtualSubmission = ((!submission || submission.status === "PENDING") && isClosed && isGoogleForm) ||
-                            (submission && submission.status === "PENDING" && timerHasExpired && isGoogleForm)
+                            (submission && submission.status === "PENDING" && timerHasExpired && isGoogleForm) ||
+                            (!submission && isClosed && isNativeExam)
     ? { status: "GRADED", grade: 1.0, feedback: null, submittedAt: null, fileUrl: null, attempt: submission?.attempt || 1, unlockedAnswers: submission?.unlockedAnswers || false }
     : null;
 
@@ -145,6 +148,13 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
       setLoading(false);
     }
   }, [taskId, task]);
+
+  // If the native exam is closed and the student has a PENDING submission, trigger auto-submit immediately
+  useEffect(() => {
+    if (task && isNativeExam && submission && submission.status === "PENDING" && isClosed && !loading && !isSubmitted) {
+      triggerAutoSubmit();
+    }
+  }, [task, isNativeExam, submission?.status, isClosed, loading, isSubmitted, triggerAutoSubmit]);
 
   // Timer countdown hook
   useEffect(() => {
@@ -439,6 +449,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
             }}
             timeLeft={timeLeft}
             isTimerExpired={isTimerExpired}
+            isClosed={isClosed}
             triggerAutoSubmit={triggerAutoSubmit}
           />
         </div>

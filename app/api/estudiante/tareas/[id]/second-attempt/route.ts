@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import prisma from '@/lib/prisma';
+import { getTaskDeadlineStatus } from '@/lib/dateUtils';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
@@ -40,6 +41,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     if (!submission) {
       return NextResponse.json({ error: 'Entrega no encontrada' }, { status: 404 });
+    }
+
+    const { isClosed } = getTaskDeadlineStatus(task, submission);
+    if (isClosed) {
+      return NextResponse.json({ error: 'El plazo de entrega ha vencido. No puedes iniciar un segundo intento.' }, { status: 400 });
     }
 
     if (submission.attempt !== 1) {
