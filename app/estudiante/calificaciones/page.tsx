@@ -151,7 +151,7 @@ export default async function CalificacionesEstudiantePage() {
 
   const graded = activeSubmissions.filter(s => s.status === "GRADED");
   const avg = graded.length > 0
-    ? graded.reduce((sum, s) => sum + (s.grade ?? 0), 0) / graded.length
+    ? graded.reduce((sum, s) => sum + Math.max(1.0, s.grade ?? 0), 0) / graded.length
     : null;
 
   return (
@@ -205,8 +205,9 @@ export default async function CalificacionesEstudiantePage() {
                   {periodSubs.map(sub => {
                     const isGraded = sub.status === "GRADED";
                     const isPending = sub.status === "SUBMITTED";
+                    const currentGrade = sub.grade !== null && sub.grade !== undefined ? Math.max(1.0, sub.grade) : 0;
                     const gradeColor = isGraded
-                      ? sub.grade! >= 3 ? "var(--success)" : "var(--danger)"
+                      ? currentGrade >= 3 ? "var(--success)" : "var(--danger)"
                       : "var(--text-muted)";
 
                     return (
@@ -248,7 +249,7 @@ export default async function CalificacionesEstudiantePage() {
                                   course: { name: sub.task.course?.name || "Asignatura" }
                                 }}
                                 submission={{
-                                  grade: sub.grade,
+                                  grade: sub.grade !== null && sub.grade !== undefined ? Math.max(1.0, sub.grade) : null,
                                   status: sub.status,
                                   fileUrl: sub.fileUrl,
                                   submittedAt: sub.submittedAt,
@@ -269,7 +270,7 @@ export default async function CalificacionesEstudiantePage() {
                           {isGraded ? (
                             <>
                               <div style={{ fontSize: "2.5rem", fontWeight: 800, color: gradeColor, lineHeight: 1 }}>
-                                {sub.grade?.toFixed(1)}
+                                {sub.grade !== null && sub.grade !== undefined ? Math.max(1.0, sub.grade).toFixed(1) : ""}
                               </div>
                             </>
                           ) : (

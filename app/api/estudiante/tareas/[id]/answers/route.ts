@@ -181,9 +181,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       }
     }
 
-    // Grade: scale 0.0 to 5.0. If no questions exist, default to 5.0
+    // Grade: scale 1.0 to 5.0. If no questions exist, default to 5.0
     const rawGrade = totalPoints > 0 ? (earnedPoints / totalPoints) * 5.0 : 5.0;
-    const finalGrade = parseFloat(rawGrade.toFixed(1));
+    const finalGrade = Math.max(1.0, parseFloat(rawGrade.toFixed(1)));
 
     const updatedSubmission = await prisma.submission.upsert({
       where: {

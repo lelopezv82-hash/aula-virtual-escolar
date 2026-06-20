@@ -194,7 +194,7 @@ export default async function EstudianteCursoDetallePage({
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
                             {isGraded ? (
                               <span className="badge badge-success flex items-center gap-1">
-                                <CheckCircle size={12} /> Nota: {submission.grade?.toFixed(1)}
+                                <CheckCircle size={12} /> Nota: {submission.grade !== null && submission.grade !== undefined ? Math.max(1.0, submission.grade).toFixed(1) : ""}
                               </span>
                             ) : isSubmitted ? (
                               <span className="badge badge-info">Entregada</span>
@@ -260,7 +260,7 @@ export default async function EstudianteCursoDetallePage({
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
                             {isGraded ? (
                               <span className="badge badge-success flex items-center gap-1">
-                                <CheckCircle size={12} /> Nota: {submission.grade?.toFixed(1)}
+                                <CheckCircle size={12} /> Nota: {submission.grade !== null && submission.grade !== undefined ? Math.max(1.0, submission.grade).toFixed(1) : ""}
                               </span>
                             ) : isSubmitted ? (
                               <span className="badge badge-info">Entregado</span>

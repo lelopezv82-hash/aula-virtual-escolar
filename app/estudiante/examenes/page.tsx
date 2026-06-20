@@ -93,7 +93,7 @@ export default async function ExamenesEstudiantePage() {
               ? submission.status
               : virtualGraded ? "GRADED" : (submission?.status || null);
             const activeGrade = submission && submission.status !== "PENDING"
-              ? submission.grade
+              ? (submission.grade !== null && submission.grade !== undefined ? Math.max(1.0, submission.grade) : null)
               : virtualGraded ? 1.0 : null;
 
             const isSubmitted = activeStatus && activeStatus !== "PENDING";
