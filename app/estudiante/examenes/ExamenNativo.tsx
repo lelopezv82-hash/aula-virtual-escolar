@@ -243,7 +243,7 @@ export default function ExamenNativo({
                 {!isCorrect && (
                   <div className="p-3 rounded-r-lg rounded-l-none bg-gray-100 dark:bg-gray-800 border-l-4 border-l-green-500 text-xs mt-2 flex flex-col gap-1">
                     <span className="font-bold text-green-600 dark:text-green-400">Respuesta correcta:</span>
-                    <span className="text-gray-700 dark:text-gray-300 font-medium">
+                    <span className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
                       {q.type === "MULTIPLE_CHOICE" 
                         ? detail.correctOptionText || q.options.find(o => o.id === detail.correctOptionId)?.text || q.options.find(o => o.isCorrect)?.text || "(Sin especificar)"
                         : detail.correctText || q.options[0]?.text || "(Sin especificar)"}
