@@ -178,7 +178,17 @@ export default async function EstudianteCursoDetallePage({
                     const submission = task.submissions[0];
                     const isSubmitted = submission && submission.status !== "PENDING";
                     const isGraded = submission && submission.status === "GRADED";
-                    const isOverdue = new Date(task.dueDate) < new Date() && !isSubmitted;
+                    let activeDeadline = new Date(task.dueDate);
+                    let hasExtension = false;
+                    if (submission && submission.allowLateSubmission && submission.lateSubmissionUntil) {
+                      activeDeadline = new Date(submission.lateSubmissionUntil);
+                      hasExtension = true;
+                    } else if (task.allowLateSubmission && task.lateSubmissionUntil) {
+                      activeDeadline = new Date(task.lateSubmissionUntil);
+                      hasExtension = true;
+                    }
+
+                    const isOverdue = activeDeadline < new Date() && !isSubmitted;
 
                     return (
                       <div
@@ -208,7 +218,7 @@ export default async function EstudianteCursoDetallePage({
                               </span>
                             )}
                             <span className="text-xs text-muted">
-                              Vence: {formatToColombiaString(task.dueDate, false)}
+                              Vence: {formatToColombiaString(activeDeadline)} {hasExtension && "(Prórroga)"}
                             </span>
                             {task.weight !== undefined && task.weight !== null && task.weight > 0 && (
                               <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
@@ -245,7 +255,18 @@ export default async function EstudianteCursoDetallePage({
                     const submission = task.submissions[0];
                     const isSubmitted = submission && submission.status !== "PENDING";
                     const isGraded = submission && submission.status === "GRADED";
-                    const isOverdue = new Date(task.dueDate) < new Date() && !isSubmitted;
+
+                    let activeDeadline = new Date(task.dueDate);
+                    let hasExtension = false;
+                    if (submission && submission.allowLateSubmission && submission.lateSubmissionUntil) {
+                      activeDeadline = new Date(submission.lateSubmissionUntil);
+                      hasExtension = true;
+                    } else if (task.allowLateSubmission && task.lateSubmissionUntil) {
+                      activeDeadline = new Date(task.lateSubmissionUntil);
+                      hasExtension = true;
+                    }
+
+                    const isOverdue = activeDeadline < new Date() && !isSubmitted;
 
                     return (
                       <div
@@ -273,7 +294,7 @@ export default async function EstudianteCursoDetallePage({
                               </span>
                             )}
                             <span className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">
-                              Vence: {formatToColombiaString(task.dueDate, false)}
+                              Vence: {formatToColombiaString(activeDeadline)} {hasExtension && "(Prórroga)"}
                             </span>
                             {task.weight !== undefined && task.weight !== null && task.weight > 0 && (
                               <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300">

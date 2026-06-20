@@ -79,12 +79,19 @@ export default async function TareasEstudiantePage() {
         ) : (
           tasks.map(task => {
             const submission = task.submissions[0];
+            
+            let activeDeadline = new Date(task.dueDate);
+            let hasExtension = false;
+            if (submission && submission.allowLateSubmission && submission.lateSubmissionUntil) {
+              activeDeadline = new Date(submission.lateSubmissionUntil);
+              hasExtension = true;
+            } else if (task.allowLateSubmission && task.lateSubmissionUntil) {
+              activeDeadline = new Date(task.lateSubmissionUntil);
+              hasExtension = true;
+            }
+            
             const isLate = now > new Date(task.dueDate);
-            const hasStudentExtension = submission && (
-              submission.allowLateSubmission ||
-              (submission.lateSubmissionUntil && new Date(submission.lateSubmissionUntil) > now)
-            );
-            const isClosed = isLate && !task.allowLateSubmission && !(task.lateSubmissionUntil && new Date(task.lateSubmissionUntil) > now) && !hasStudentExtension;
+            const isClosed = now > activeDeadline;
             const virtualGraded = (!submission && isClosed) || (submission && submission.status === "PENDING" && isClosed);
 
             const activeStatus = submission && submission.status !== "PENDING"
@@ -123,7 +130,7 @@ export default async function TareasEstudiantePage() {
                 <div className="flex flex-col md:items-end gap-2 min-w-[200px]">
                   <div className="text-sm text-muted flex items-center gap-1">
                     <Clock size={16} /> 
-                    Vence: {formatToColombiaString(task.dueDate)}
+                    Vence: {formatToColombiaString(activeDeadline)} {hasExtension && "(Prórroga)"}
                   </div>
                   
                   <Link href={`/estudiante/tareas/${task.id}`} className={`btn w-full md:w-auto ${isSubmitted ? 'btn-secondary' : 'btn-primary'}`}>
