@@ -2,38 +2,59 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
-  const tasks = await prisma.task.findMany({
-    where: {
-      questions: {
-        some: {}
-      }
-    },
+  const taskId = 'fa4d0856-3814-47b9-aa80-59eb32ce6542';
+  
+  // Find a student submission for this task
+  const submission = await prisma.submission.findFirst({
+    where: { taskId },
+    include: { student: true }
+  });
+
+  if (!submission) {
+    console.log("No submission found for this task.");
+    return;
+  }
+
+  const studentId = submission.studentId;
+  console.log(`Simulating GET for Student: ${submission.student.name} (ID: ${studentId})`);
+
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
     include: {
       questions: {
+        orderBy: { order: 'asc' },
         include: {
-          options: true
+          options: {
+            orderBy: { id: 'asc' }
+          }
         }
       },
-      submissions: true
+      submissions: {
+        where: { studentId }
+      }
     }
   });
 
-  console.log(`Found ${tasks.length} tasks with questions.`);
-  for (const t of tasks) {
-    console.log(`\n===================================`);
-    console.log(`Task: ${t.title} (ID: ${t.id})`);
-    console.log(`Questions:`);
-    for (const q of t.questions) {
-      console.log(`  Question ID: ${q.id} - Text: "${q.text}"`);
+  const sub = task.submissions[0];
+  const isNative = task.questions && task.questions.length > 0;
+  const canSeeAnswers = sub && sub.status !== "PENDING" && (isNative || sub.attempt > 1 || sub.unlockedAnswers === true);
+
+  console.log("isNative:", isNative);
+  console.log("submission status:", sub ? sub.status : "NO SUBMISSION");
+  console.log("submission attempt:", sub ? sub.attempt : "N/A");
+  console.log("submission unlockedAnswers:", sub ? sub.unlockedAnswers : "N/A");
+  console.log("canSeeAnswers:", canSeeAnswers);
+
+  if (!canSeeAnswers) {
+    console.log("ANSWERS STRIPPED!");
+  } else {
+    console.log("ANSWERS NOT STRIPPED!");
+    console.log("First question options (isCorrect flags):");
+    for (const q of task.questions) {
+      console.log(`  Question: ${q.text}`);
       for (const o of q.options) {
-        console.log(`    Option ID: ${o.id} - Text: "${o.text}" - isCorrect: ${o.isCorrect}`);
+        console.log(`    Option: ${o.text} - isCorrect: ${o.isCorrect}`);
       }
-    }
-    console.log(`Submissions:`);
-    for (const s of t.submissions) {
-      console.log(`  Sub ID: ${s.id} - Grade: ${s.grade} - Status: ${s.status}`);
-      console.log(`  Feedback: ${s.feedback}`);
-      console.log(`  Answers: ${JSON.stringify(s.answers)}`);
     }
   }
 }

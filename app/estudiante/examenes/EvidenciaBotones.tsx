@@ -310,10 +310,17 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
                             {!isCorrect && (
                                <div className="p-3 rounded-r-[4px] rounded-l-none bg-[#f8f9fa] border-l-4 border-l-[#137333] text-xs mt-2 flex flex-col gap-1">
                                  <span className="font-bold text-[#137333]">Respuesta correcta:</span>
-                                 <span className="text-[#202124] dark:text-[#f9fafb] font-medium">
-                                   {q.type === "MULTIPLE_CHOICE" 
-                                     ? detail.correctOptionText || q.options.find((o: any) => o.id === detail.correctOptionId)?.text || q.options.find((o: any) => o.isCorrect)?.text || "(Sin especificar)"
-                                     : detail.correctText || q.options[0]?.text || "(Sin especificar)"}
+                                 <span className="text-[#202124] dark:text-[#f9fafb] font-medium flex flex-col gap-1">
+                                   <span className="text-gray-700 dark:text-gray-300 font-medium flex flex-col gap-1">
+                                     <span>
+                                       {q.type === "MULTIPLE_CHOICE" 
+                                         ? detail.correctOptionText || q.options.find((o: any) => o.id === detail.correctOptionId)?.text || q.options.find((o: any) => o.isCorrect)?.text || "(Sin especificar)"
+                                         : detail.correctText || q.options[0]?.text || "(Sin especificar)"}
+                                     </span>
+                                     <span className="text-[9px] text-red-500 font-mono block">
+                                       [DEBUG: detail={JSON.stringify(detail)} opts={JSON.stringify(q.options.map((o: any) => ({ id: o.id, text: o.text, isCorrect: o.isCorrect })))}]
+                                     </span>
+                                   </span>
                                  </span>
                                </div>
                              )}
