@@ -60,12 +60,22 @@ export function getTaskDeadlineStatus(
     dueDate: Date | string;
     allowLateSubmission: boolean;
     lateSubmissionUntil?: Date | string | null;
-  },
+  } | null | undefined,
   submission?: {
     allowLateSubmission: boolean;
     lateSubmissionUntil?: Date | string | null;
   } | null
 ) {
+  if (!task) {
+    return {
+      activeDeadline: new Date(),
+      hasExtension: false,
+      isClosed: false,
+      isLate: false,
+      isUnlimitedExtension: false
+    };
+  }
+
   const now = new Date();
   let activeDeadline = new Date(task.dueDate);
   let hasExtension = false;
