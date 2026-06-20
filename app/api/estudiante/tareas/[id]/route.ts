@@ -115,7 +115,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ 
       task: taskData, 
       studentName: student?.name || "Estudiante",
-      feedbackTemplate
+      feedbackTemplate,
+      canSeeAnswers
     });
   } catch {
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
