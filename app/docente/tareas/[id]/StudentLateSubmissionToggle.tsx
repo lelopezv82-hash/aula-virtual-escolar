@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Clock, Calendar, Check, X } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
+import { toColombiaISOString, fromColombiaLocalStringToDate } from "@/lib/dateUtils";
 
 interface StudentLateSubmissionToggleProps {
   taskId: string;
@@ -26,9 +27,7 @@ export default function StudentLateSubmissionToggle({
   const confirm = useConfirm();
   const [showModal, setShowModal] = useState(false);
   const [allowLate, setAllowLate] = useState(initialAllowLate);
-  const [lateUntil, setLateUntil] = useState<string>(
-    initialLateUntil ? new Date(new Date(initialLateUntil).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().substring(0, 16) : ""
-  );
+  const [lateUntil, setLateUntil] = useState<string>(toColombiaISOString(initialLateUntil));
   const [loading, setLoading] = useState(false);
 
   const handleSave = async () => {
@@ -41,7 +40,7 @@ export default function StudentLateSubmissionToggle({
           taskId,
           studentId,
           allowLateSubmission: allowLate,
-          lateSubmissionUntil: allowLate && lateUntil ? new Date(lateUntil).toISOString() : null
+          lateSubmissionUntil: allowLate && lateUntil ? fromColombiaLocalStringToDate(lateUntil)?.toISOString() : null
         })
       });
       if (res.ok) {

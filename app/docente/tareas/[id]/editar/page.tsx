@@ -4,6 +4,7 @@ import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, Save, UploadCloud } from "lucide-react";
 import Link from "next/link";
+import { toColombiaISOString } from "@/lib/dateUtils";
 
 export default function EditarTareaPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -66,11 +67,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
           setDuration(data.task.duration !== null && data.task.duration !== undefined ? String(data.task.duration) : "");
           setGroupIds(data.task.groups ? data.task.groups.map((g: any) => g.id) : []);
           // Convert date to local string for datetime-local input (yyyy-MM-ddThh:mm)
-          const date = new Date(data.task.dueDate);
-          const localDateTime = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
-            .toISOString()
-            .slice(0, 16);
-          setDueDate(localDateTime);
+          setDueDate(toColombiaISOString(data.task.dueDate));
           setExistingAttachment(data.task.attachmentUrl || null);
         } else {
           setError("No se pudo cargar la tarea");

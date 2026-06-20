@@ -6,6 +6,8 @@ import { supabase } from '@/lib/supabase';
 import { getGoogleAccessToken, uploadToGoogleDrive } from '@/lib/gdrive';
 import { enqueueFailedDriveUpload } from '@/lib/driveQueue';
 
+import { fromColombiaLocalStringToDate } from '@/lib/dateUtils';
+
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
 export async function POST(request: Request) {
@@ -36,7 +38,7 @@ export async function POST(request: Request) {
     const weight = weightRaw ? parseInt(weightRaw, 10) : 0;
     const groupIdsJson = formData.get('groupIds') as string | null;
     const publishAtRaw = formData.get('publishAt') as string | null;
-    const publishAt = publishAtRaw && publishAtRaw.trim() !== "" ? new Date(publishAtRaw) : null;
+    const publishAt = fromColombiaLocalStringToDate(publishAtRaw);
     const durationRaw = formData.get('duration') as string | null;
     const duration = durationRaw && durationRaw.trim() !== "" ? parseInt(durationRaw, 10) : null;
     const type = formData.get('type') as string | null;
@@ -122,7 +124,7 @@ export async function POST(request: Request) {
       data: {
         title,
         description,
-        dueDate: new Date(dueDate),
+        dueDate: fromColombiaLocalStringToDate(dueDate) || new Date(),
         attachmentUrl,
         gdriveEmail,
         courseId,

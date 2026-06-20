@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import prisma from '@/lib/prisma';
+import { fromColombiaLocalStringToDate } from '@/lib/dateUtils';
 
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
@@ -31,7 +32,7 @@ export async function PATCH(request: Request) {
     }
 
     if (lateSubmissionUntil !== undefined) {
-      updateData.lateSubmissionUntil = lateSubmissionUntil ? new Date(lateSubmissionUntil) : null;
+      updateData.lateSubmissionUntil = fromColombiaLocalStringToDate(lateSubmissionUntil);
     }
 
     if (grade !== undefined && grade !== null) {

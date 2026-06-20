@@ -10,6 +10,7 @@ import { useConfirm } from "@/components/ConfirmProvider";
 import Link from "next/link";
 import GDriveEmailDisplay from "@/components/GDriveEmailDisplay";
 import GDriveVisibilityToggle from "@/components/GDriveVisibilityToggle";
+import { toColombiaISOString, fromColombiaLocalStringToDate } from "@/lib/dateUtils";
 
 
 interface Group {
@@ -457,10 +458,10 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     setError("");
     setEditingTask(task);
     
-    // Format date for datetime-local input (YYYY-MM-DDTHH:MM)
-    const formattedDueDate = task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 16) : "";
-    const formattedLateUntil = task.lateSubmissionUntil ? new Date(task.lateSubmissionUntil).toISOString().slice(0, 16) : "";
-    const formattedPublishAt = task.publishAt ? new Date(task.publishAt).toISOString().slice(0, 16) : "";
+    // Format date for datetime-local input (YYYY-MM-DDTHH:MM) using Colombia timezone
+    const formattedDueDate = toColombiaISOString(task.dueDate);
+    const formattedLateUntil = toColombiaISOString(task.lateSubmissionUntil);
+    const formattedPublishAt = toColombiaISOString(task.publishAt);
 
     setTaskForm({
       courseId,
@@ -497,7 +498,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     fd.append("courseId", taskForm.courseId);
     fd.append("title", taskForm.title);
     fd.append("description", taskForm.description);
-    fd.append("dueDate", new Date(taskForm.dueDate).toISOString());
+    const dueDateParsed = fromColombiaLocalStringToDate(taskForm.dueDate);
+    fd.append("dueDate", dueDateParsed ? dueDateParsed.toISOString() : "");
     fd.append("theme", taskForm.theme);
     fd.append("period", taskForm.period);
     fd.append("weight", taskForm.weight.toString());
@@ -505,11 +507,13 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     fd.append("type", taskForm.type);
     fd.append("duration", taskForm.duration);
     if (taskForm.allowLateSubmission && taskForm.lateSubmissionUntil) {
-      fd.append("lateSubmissionUntil", new Date(taskForm.lateSubmissionUntil).toISOString());
+      const lateParsed = fromColombiaLocalStringToDate(taskForm.lateSubmissionUntil);
+      fd.append("lateSubmissionUntil", lateParsed ? lateParsed.toISOString() : "");
     }
     fd.append("groupIds", JSON.stringify(taskForm.groupIds));
     if (taskForm.publishAt) {
-      fd.append("publishAt", new Date(taskForm.publishAt).toISOString());
+      const publishParsed = fromColombiaLocalStringToDate(taskForm.publishAt);
+      fd.append("publishAt", publishParsed ? publishParsed.toISOString() : "");
     } else {
       fd.append("publishAt", "");
     }

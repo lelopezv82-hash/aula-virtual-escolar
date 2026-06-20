@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Clock, Check, AlertCircle, Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useConfirm } from "@/components/ConfirmProvider";
+import { toColombiaISOString, fromColombiaLocalStringToDate } from "@/lib/dateUtils";
 
 interface Student {
   id: string;
@@ -28,8 +29,7 @@ export default function LateSubmissionManager({
   const router = useRouter();
   const confirm = useConfirm();
   const getFormattedDate = (dateStr?: string | null) => {
-    if (!dateStr) return "";
-    return new Date(new Date(dateStr).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().substring(0, 16);
+    return toColombiaISOString(dateStr);
   };
 
   const [taskAllowLate, setTaskAllowLate] = useState(initialTaskAllowLate);
@@ -105,7 +105,7 @@ export default function LateSubmissionManager({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           allowLateSubmission: allowLate,
-          lateSubmissionUntil: allowLate && untilDate ? new Date(untilDate).toISOString() : null
+          lateSubmissionUntil: allowLate && untilDate ? fromColombiaLocalStringToDate(untilDate)?.toISOString() : null
         })
       });
       if (res.ok) {
