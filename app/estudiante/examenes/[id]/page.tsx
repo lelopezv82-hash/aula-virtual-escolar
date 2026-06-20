@@ -4,7 +4,7 @@ import { useState, useEffect, use, useCallback } from "react";
 import { ArrowLeft, UploadCloud, Loader2, CheckCircle, FileText, Clock, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { formatToColombiaString } from "@/lib/dateUtils";
+import { formatToColombiaString, getTaskDeadlineStatus } from "@/lib/dateUtils";
 import { useConfirm } from "@/components/ConfirmProvider";
 import ExamenNativo from "../ExamenNativo";
 
@@ -66,13 +66,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
     (new Date(submission.startedAt).getTime() + task.duration * 60 * 1000 < now.getTime()));
 
   // Check if late submissions are blocked (overdue and no extensions)
-  const isOverdue = task ? new Date(task.dueDate) < now : false;
-  const generalLateUntil = task?.lateSubmissionUntil ? new Date(task.lateSubmissionUntil) : null;
-  const studentLateUntil = submission?.lateSubmissionUntil ? new Date(submission.lateSubmissionUntil) : null;
-  const hasGeneralExtension = task?.allowLateSubmission || (generalLateUntil && generalLateUntil > now);
-  const hasStudentExtension = submission?.allowLateSubmission || (studentLateUntil && studentLateUntil > now);
-  const isLateSubmissionAllowed = task ? (hasGeneralExtension || hasStudentExtension) : false;
-  const isClosed = isOverdue && !isLateSubmissionAllowed;
+  const { isClosed, isLate: isOverdue } = getTaskDeadlineStatus(task, submission);
 
   // If the Google Form exam is closed/expired and never finished/submitted, virtually grade it as 1.0
   const virtualSubmission = ((!submission || submission.status === "PENDING") && isClosed && isGoogleForm) ||

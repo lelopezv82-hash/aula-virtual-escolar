@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Clock } from "lucide-react";
-import { formatToColombiaString } from "@/lib/dateUtils";
+import { formatToColombiaString, getTaskDeadlineStatus } from "@/lib/dateUtils";
 import EvidenciaBotones from "./EvidenciaBotones";
 
 interface ExamenCardAccionesProps {
@@ -57,17 +57,10 @@ export default function ExamenCardAcciones({
       attachmentUrl.includes("forms.gle"))
   );
 
-  const isLate = now > new Date(dueDate);
-  const hasStudentExtension =
-    submission &&
-    (submission.allowLateSubmission ||
-      (submission.lateSubmissionUntil &&
-        new Date(submission.lateSubmissionUntil) > now));
-  const isClosed =
-    isLate &&
-    !allowLateSubmission &&
-    !(lateSubmissionUntil && new Date(lateSubmissionUntil) > now) &&
-    !hasStudentExtension;
+  const { activeDeadline, hasExtension, isClosed, isLate } = getTaskDeadlineStatus(
+    { dueDate, allowLateSubmission, lateSubmissionUntil },
+    submission
+  );
 
   const isTimerExpired =
     submission?.startedAt &&
@@ -105,7 +98,7 @@ export default function ExamenCardAcciones({
       {/* Due date rendered client-side so it shows the student's local timezone */}
       <div className="text-sm text-muted flex items-center gap-1">
         <Clock size={16} />
-        Vence: {formatToColombiaString(dueDate)}
+        Vence: {formatToColombiaString(activeDeadline)} {hasExtension && "(Prórroga)"}
       </div>
 
       {!isSubmitted && (

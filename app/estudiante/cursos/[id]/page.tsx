@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { ArrowLeft, BookOpen, Download, ClipboardList, Clock, CheckCircle, AlertCircle, FileText, Link as LinkIcon, HelpCircle } from "lucide-react";
 import Link from "next/link";
-import { formatToColombiaString } from "@/lib/dateUtils";
+import { formatToColombiaString, getTaskDeadlineStatus } from "@/lib/dateUtils";
 
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
@@ -178,17 +178,7 @@ export default async function EstudianteCursoDetallePage({
                     const submission = task.submissions[0];
                     const isSubmitted = submission && submission.status !== "PENDING";
                     const isGraded = submission && submission.status === "GRADED";
-                    let activeDeadline = new Date(task.dueDate);
-                    let hasExtension = false;
-                    if (submission && submission.allowLateSubmission && submission.lateSubmissionUntil) {
-                      activeDeadline = new Date(submission.lateSubmissionUntil);
-                      hasExtension = true;
-                    } else if (task.allowLateSubmission && task.lateSubmissionUntil) {
-                      activeDeadline = new Date(task.lateSubmissionUntil);
-                      hasExtension = true;
-                    }
-
-                    const isOverdue = activeDeadline < new Date() && !isSubmitted;
+                    const { activeDeadline, hasExtension, isClosed: isOverdue } = getTaskDeadlineStatus(task, submission);
 
                     return (
                       <div
@@ -256,17 +246,7 @@ export default async function EstudianteCursoDetallePage({
                     const isSubmitted = submission && submission.status !== "PENDING";
                     const isGraded = submission && submission.status === "GRADED";
 
-                    let activeDeadline = new Date(task.dueDate);
-                    let hasExtension = false;
-                    if (submission && submission.allowLateSubmission && submission.lateSubmissionUntil) {
-                      activeDeadline = new Date(submission.lateSubmissionUntil);
-                      hasExtension = true;
-                    } else if (task.allowLateSubmission && task.lateSubmissionUntil) {
-                      activeDeadline = new Date(task.lateSubmissionUntil);
-                      hasExtension = true;
-                    }
-
-                    const isOverdue = activeDeadline < new Date() && !isSubmitted;
+                    const { activeDeadline, hasExtension, isClosed: isOverdue } = getTaskDeadlineStatus(task, submission);
 
                     return (
                       <div

@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { ClipboardList, Clock, CheckCircle } from "lucide-react";
 import Link from "next/link";
-import { formatToColombiaString } from '@/lib/dateUtils';
+import { formatToColombiaString, getTaskDeadlineStatus } from '@/lib/dateUtils';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -79,19 +79,7 @@ export default async function TareasEstudiantePage() {
         ) : (
           tasks.map(task => {
             const submission = task.submissions[0];
-            
-            let activeDeadline = new Date(task.dueDate);
-            let hasExtension = false;
-            if (submission && submission.allowLateSubmission && submission.lateSubmissionUntil) {
-              activeDeadline = new Date(submission.lateSubmissionUntil);
-              hasExtension = true;
-            } else if (task.allowLateSubmission && task.lateSubmissionUntil) {
-              activeDeadline = new Date(task.lateSubmissionUntil);
-              hasExtension = true;
-            }
-            
-            const isLate = now > new Date(task.dueDate);
-            const isClosed = now > activeDeadline;
+            const { activeDeadline, hasExtension, isClosed, isLate } = getTaskDeadlineStatus(task, submission);
             const virtualGraded = (!submission && isClosed) || (submission && submission.status === "PENDING" && isClosed);
 
             const activeStatus = submission && submission.status !== "PENDING"

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { ClipboardList, CheckCircle } from "lucide-react";
 import ExamenCardAcciones from "./ExamenCardAcciones";
+import { getTaskDeadlineStatus } from '@/lib/dateUtils';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -78,15 +79,9 @@ export default async function ExamenesEstudiantePage() {
         ) : (
           exams.map(exam => {
             const submission = exam.submissions[0] || null;
-            const isLate = now > new Date(exam.dueDate);
             const isGoogleForm = !!(exam.attachmentUrl && (exam.attachmentUrl.includes("docs.google.com/forms") || exam.attachmentUrl.includes("forms.gle")));
 
-            // For badge display only (server-side simple check)
-            const hasStudentExtension = submission && (
-              submission.allowLateSubmission ||
-              (submission.lateSubmissionUntil && new Date(submission.lateSubmissionUntil) > now)
-            );
-            const isClosed = isLate && !exam.allowLateSubmission && !(exam.lateSubmissionUntil && new Date(exam.lateSubmissionUntil) > now) && !hasStudentExtension;
+            const { isClosed, isLate } = getTaskDeadlineStatus(exam, submission);
             const isTimerExpired = !!(submission?.startedAt && exam.duration &&
               (new Date(submission.startedAt).getTime() + exam.duration * 60 * 1000 + 30000 < now.getTime()));
 

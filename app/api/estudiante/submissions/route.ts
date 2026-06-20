@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { getGoogleAccessToken, uploadToGoogleDrive } from '@/lib/gdrive';
 import { enqueueFailedDriveUpload } from '@/lib/driveQueue';
 
-
+import { getTaskDeadlineStatus } from '@/lib/dateUtils';
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
 export async function POST(request: Request) {
@@ -114,23 +114,9 @@ export async function POST(request: Request) {
       }
     }
 
-    const isLate = now > new Date(task.dueDate);
-
-    if (isLate && task.type !== "EXAM") {
-      // Comprobar si la entrega tardía general está permitida (indefinidamente o plazo de fecha no vencido)
-      const isGeneralLateAllowed = task.allowLateSubmission || (task.lateSubmissionUntil && new Date(task.lateSubmissionUntil) > now);
-
-      if (!isGeneralLateAllowed) {
-        // Comprobar si hay un permiso individual extemporáneo para este estudiante
-        const isStudentLateAllowed = existingSubmission && (
-          existingSubmission.allowLateSubmission || 
-          (existingSubmission.lateSubmissionUntil && new Date(existingSubmission.lateSubmissionUntil) > now)
-        );
-
-        if (!isStudentLateAllowed) {
-          return NextResponse.json({ error: 'El plazo de entrega ha vencido para esta tarea.' }, { status: 400 });
-        }
-      }
+    const { isClosed } = getTaskDeadlineStatus(task, existingSubmission);
+    if (isClosed && task.type !== "EXAM") {
+      return NextResponse.json({ error: 'El plazo de entrega ha vencido para esta tarea.' }, { status: 400 });
     }
 
     const teacherId = task.course.teacherId;

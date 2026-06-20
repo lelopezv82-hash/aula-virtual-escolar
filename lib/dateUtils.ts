@@ -51,3 +51,50 @@ export function formatToColombiaString(
     return d.toLocaleDateString('es-CO', { timeZone: 'America/Bogota' });
   }
 }
+
+/**
+ * Calculates the active deadline and whether a task or exam is closed for submission.
+ */
+export function getTaskDeadlineStatus(
+  task: {
+    dueDate: Date | string;
+    allowLateSubmission: boolean;
+    lateSubmissionUntil?: Date | string | null;
+  },
+  submission?: {
+    allowLateSubmission: boolean;
+    lateSubmissionUntil?: Date | string | null;
+  } | null
+) {
+  const now = new Date();
+  let activeDeadline = new Date(task.dueDate);
+  let hasExtension = false;
+  let isUnlimitedExtension = false;
+
+  if (submission && submission.allowLateSubmission) {
+    if (submission.lateSubmissionUntil) {
+      activeDeadline = new Date(submission.lateSubmissionUntil);
+      hasExtension = true;
+    } else {
+      isUnlimitedExtension = true;
+    }
+  } else if (task.allowLateSubmission) {
+    if (task.lateSubmissionUntil) {
+      activeDeadline = new Date(task.lateSubmissionUntil);
+      hasExtension = true;
+    } else {
+      isUnlimitedExtension = true;
+    }
+  }
+
+  const isClosed = !isUnlimitedExtension && now > activeDeadline;
+  const isLate = now > new Date(task.dueDate);
+
+  return {
+    activeDeadline,
+    hasExtension,
+    isClosed,
+    isLate,
+    isUnlimitedExtension
+  };
+}

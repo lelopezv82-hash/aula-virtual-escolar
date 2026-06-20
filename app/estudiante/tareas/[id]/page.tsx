@@ -4,7 +4,7 @@ import { useState, useEffect, use } from "react";
 import { ArrowLeft, UploadCloud, Loader2, CheckCircle, FileText, Clock, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { formatToColombiaString } from "@/lib/dateUtils";
+import { formatToColombiaString, getTaskDeadlineStatus } from "@/lib/dateUtils";
 
 export default function TareaDetallePage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -205,22 +205,8 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   }
   
   const now = new Date();
-  const isOverdue = task ? new Date(task.dueDate) < now : false;
-  
-  // Prórroga activa general o individual
-  const generalLateUntil = task?.lateSubmissionUntil ? new Date(task.lateSubmissionUntil) : null;
-  const studentLateUntil = submission?.lateSubmissionUntil ? new Date(submission.lateSubmissionUntil) : null;
-  
-  const hasGeneralExtension = task?.allowLateSubmission || (generalLateUntil && generalLateUntil > now);
-  const hasStudentExtension = submission?.allowLateSubmission || (studentLateUntil && studentLateUntil > now);
-  
-  const isLateSubmissionAllowed = task ? (hasGeneralExtension || hasStudentExtension) : false;
-  const isSubmissionBlocked = isOverdue && !isLateSubmissionAllowed;
-  
-  // Determinar la fecha límite de la prórroga si existe y no ha expirado
-  const activeExtensionDate = studentLateUntil && studentLateUntil > now 
-    ? studentLateUntil 
-    : (generalLateUntil && generalLateUntil > now ? generalLateUntil : null);
+  const { activeDeadline, hasExtension, isClosed: isSubmissionBlocked, isLate: isOverdue, isUnlimitedExtension } = getTaskDeadlineStatus(task, submission);
+  const activeExtensionDate = hasExtension && !isUnlimitedExtension ? activeDeadline : null;
 
   // Splash screen for timed tasks that haven't started yet
   if (task.duration && (!submission || !submission.startedAt)) {
