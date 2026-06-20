@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, X, ChevronLeft, ChevronRight, BookOpen } from "lucide-react";
+import { Menu, X, ChevronLeft, ChevronRight, BookOpen, Clock } from "lucide-react";
 import LogoutButton from "./LogoutButton";
 import ActiveLink from "./ActiveLink";
 
@@ -36,6 +36,26 @@ export default function DashboardShell({
   const [desktopCollapsed, setDesktopCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const pathname = usePathname();
+  const [timeStr, setTimeStr] = useState("");
+
+  useEffect(() => {
+    const updateTime = () => {
+      const options: Intl.DateTimeFormatOptions = { 
+        weekday: 'long', 
+        day: 'numeric',
+        month: 'long', 
+        year: 'numeric',
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit',
+        hour12: true 
+      };
+      setTimeStr(new Date().toLocaleDateString('es-CO', options));
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     // Check local storage for desktop state
@@ -147,8 +167,32 @@ export default function DashboardShell({
       </aside>
 
       {/* Main Content Area */}
-      <main className="dashboard-main">
-        {children}
+      <main className="dashboard-main" style={{ display: "flex", flexDirection: "column", padding: 0 }}>
+        <header className="dashboard-topbar no-print" style={{ 
+          display: "flex", 
+          justifyContent: isMobile ? "center" : "space-between", 
+          alignItems: "center", 
+          padding: isMobile ? "0.5rem 1rem" : "1rem 2rem", 
+          borderBottom: "1px solid var(--border-color)",
+          background: "var(--bg-secondary)",
+          minHeight: isMobile ? "40px" : "60px"
+        }}>
+          {!isMobile && <div></div>}
+          <div style={{ 
+            fontSize: isMobile ? "0.75rem" : "0.825rem", 
+            color: "var(--text-secondary)", 
+            fontWeight: "600",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem"
+          }}>
+            <Clock size={isMobile ? 14 : 16} style={{ color: themeColor || "var(--primary-color)" }} />
+            <span className="capitalize">{timeStr}</span>
+          </div>
+        </header>
+        <div style={{ padding: isMobile ? "1rem" : "2rem", flex: 1, overflowY: "auto" }}>
+          {children}
+        </div>
       </main>
     </div>
   );
