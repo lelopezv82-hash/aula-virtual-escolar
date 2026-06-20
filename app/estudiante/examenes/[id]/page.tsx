@@ -386,9 +386,6 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
         <div>
           <h1 className="text-2xl font-bold">{task.title}</h1>
           <p className="text-muted text-sm">Vence: {formatToColombiaString(task.dueDate)}</p>
-          <div className="text-[10px] text-red-500 font-mono bg-red-50 dark:bg-red-950/20 p-2 rounded border border-red-200 mt-2">
-            DEBUG: isClosed={String(isClosed)} | isOverdue={String(isOverdue)} | now={new Date().toISOString()} | activeDeadline={activeDeadline ? new Date(activeDeadline).toISOString() : "null"} | isUnlimited={String(isUnlimitedExtension)} | taskType={task.type} | submissionStatus={submission?.status} | submissionAllowLate={String(submission?.allowLateSubmission)} | submissionLateUntil={submission?.lateSubmissionUntil}
-          </div>
         </div>
       </div>
 
