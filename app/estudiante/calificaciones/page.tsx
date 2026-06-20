@@ -109,7 +109,7 @@ export default async function CalificacionesEstudiantePage() {
         feedback: canSeeAnswers ? sub.feedback : null
       };
 
-      if (sub.status === "PENDING" && (isClosed || isTimerExpired) && task.type === "EXAM" && isGoogleForm) {
+      if (sub.status === "PENDING" && (isClosed || isTimerExpired)) {
         return {
           ...processedSub,
           status: "GRADED",
@@ -125,8 +125,8 @@ export default async function CalificacionesEstudiantePage() {
       };
     }
 
-    // If no submission and Google Form exam is closed, virtually grade as 1.0
-    if (isClosed && task.type === "EXAM" && isGoogleForm) {
+    // If no submission and task/exam is closed, virtually grade as 1.0
+    if (isClosed) {
       return {
         id: `virtual-${task.id}`,
         taskId: task.id,

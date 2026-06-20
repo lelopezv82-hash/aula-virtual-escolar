@@ -91,8 +91,8 @@ export default async function ExamenesEstudiantePage() {
               (new Date(submission.startedAt).getTime() + exam.duration * 60 * 1000 + 30000 < now.getTime()));
 
             const virtualGraded =
-              ((!submission || submission.status === "PENDING") && isClosed && isGoogleForm) ||
-              (submission && submission.status === "PENDING" && isTimerExpired && isGoogleForm);
+              (!submission && isClosed) ||
+              (submission && submission.status === "PENDING" && (isClosed || isTimerExpired));
 
             const activeStatus = submission && submission.status !== "PENDING"
               ? submission.status

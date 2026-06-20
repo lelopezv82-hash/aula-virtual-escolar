@@ -4,6 +4,9 @@ import { jwtVerify } from "jose";
 import { ClipboardList, Clock, CheckCircle } from "lucide-react";
 import Link from "next/link";
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
@@ -75,9 +78,23 @@ export default async function TareasEstudiantePage() {
         ) : (
           tasks.map(task => {
             const submission = task.submissions[0];
-            const isLate = new Date() > new Date(task.dueDate);
-            const isSubmitted = submission && submission.status !== "PENDING";
-            const isGraded = submission && submission.status === "GRADED";
+            const isLate = now > new Date(task.dueDate);
+            const hasStudentExtension = submission && (
+              submission.allowLateSubmission ||
+              (submission.lateSubmissionUntil && new Date(submission.lateSubmissionUntil) > now)
+            );
+            const isClosed = isLate && !task.allowLateSubmission && !(task.lateSubmissionUntil && new Date(task.lateSubmissionUntil) > now) && !hasStudentExtension;
+            const virtualGraded = (!submission && isClosed) || (submission && submission.status === "PENDING" && isClosed);
+
+            const activeStatus = submission && submission.status !== "PENDING"
+              ? submission.status
+              : virtualGraded ? "GRADED" : (submission?.status || null);
+            const activeGrade = submission && submission.status !== "PENDING"
+              ? submission.grade
+              : virtualGraded ? 1.0 : null;
+
+            const isSubmitted = activeStatus && activeStatus !== "PENDING";
+            const isGraded = activeStatus === "GRADED";
 
             return (
               <div key={task.id} className="card flex flex-col md:flex-row md:items-center justify-between gap-4" style={{ borderLeft: isSubmitted ? '4px solid var(--success)' : isLate ? '4px solid var(--danger)' : '4px solid var(--primary-color)' }}>
@@ -88,7 +105,7 @@ export default async function TareasEstudiantePage() {
                     </span>
                     {isGraded && (
                       <span className="badge badge-success flex items-center gap-1">
-                        <CheckCircle size={12} /> Calificada: {submission.grade}
+                        <CheckCircle size={12} /> Calificada: {activeGrade !== null ? Number(activeGrade).toFixed(1) : ""}
                       </span>
                     )}
                     {isSubmitted && !isGraded && (
