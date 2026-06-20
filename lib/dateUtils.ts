@@ -60,6 +60,7 @@ export function getTaskDeadlineStatus(
     dueDate: Date | string;
     allowLateSubmission: boolean;
     lateSubmissionUntil?: Date | string | null;
+    type?: string;
   } | null | undefined,
   submission?: {
     allowLateSubmission: boolean;
@@ -81,19 +82,25 @@ export function getTaskDeadlineStatus(
   let hasExtension = false;
   let isUnlimitedExtension = false;
 
+  const isExam = task.type === "EXAM";
+
   if (submission && submission.allowLateSubmission) {
     if (submission.lateSubmissionUntil) {
       activeDeadline = new Date(submission.lateSubmissionUntil);
       hasExtension = true;
     } else {
-      isUnlimitedExtension = true;
+      if (!isExam) {
+        isUnlimitedExtension = true;
+      }
     }
   } else if (task.allowLateSubmission) {
     if (task.lateSubmissionUntil) {
       activeDeadline = new Date(task.lateSubmissionUntil);
       hasExtension = true;
     } else {
-      isUnlimitedExtension = true;
+      if (!isExam) {
+        isUnlimitedExtension = true;
+      }
     }
   }
 
