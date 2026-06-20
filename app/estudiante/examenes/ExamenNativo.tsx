@@ -158,8 +158,9 @@ export default function ExamenNativo({
             </div>
             <div className="p-4 rounded-full bg-white dark:bg-gray-800 shadow-sm border-2 border-green-500 flex flex-col items-center justify-center w-28 h-28 shrink-0">
               <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Nota</span>
-              <span className="text-2xl font-black text-green-600 dark:text-green-400">{submission.grade}</span>
-              <span className="text-[10px] text-gray-400">/ 5.0</span>
+              <span className="text-3xl font-black text-green-600 dark:text-green-400">
+                {submission.grade !== null && submission.grade !== undefined ? Number(submission.grade).toFixed(1) : ""}
+              </span>
             </div>
           </div>
         </div>

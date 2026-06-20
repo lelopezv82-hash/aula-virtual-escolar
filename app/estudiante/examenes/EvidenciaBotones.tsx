@@ -131,7 +131,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
                       <div className="flex flex-col items-end shrink-0 gap-1 mt-2">
                         <span className="text-sm text-[#202124]">Calificación</span>
                         <div className="bg-[#1a73e8] text-white px-3 py-1 rounded-[4px] font-medium text-sm">
-                          {submission.grade !== null && submission.grade !== undefined ? `${submission.grade}/5.0` : '?/5.0'}
+                          {submission.grade !== null && submission.grade !== undefined ? Number(submission.grade).toFixed(1) : '?'}
                         </div>
                       </div>
                     </div>

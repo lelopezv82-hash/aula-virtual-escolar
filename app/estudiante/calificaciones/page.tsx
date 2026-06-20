@@ -268,7 +268,6 @@ export default async function CalificacionesEstudiantePage() {
                               <div style={{ fontSize: "2.5rem", fontWeight: 800, color: gradeColor, lineHeight: 1 }}>
                                 {sub.grade?.toFixed(1)}
                               </div>
-                              <div className="text-muted text-xs mt-1">/ 5.0</div>
                             </>
                           ) : (
                             <div className="text-muted text-sm">—</div>

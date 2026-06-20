@@ -472,8 +472,9 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                 
                 <div className="my-4 p-4 rounded-full bg-white dark:bg-gray-800 shadow-md border-2 border-green-500 flex flex-col items-center justify-center w-32 h-32 mx-auto shrink-0 animate-fade-in">
                   <span className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider">Nota</span>
-                  <span className="text-2xl font-black text-green-600 dark:text-green-400">{activeSubmission.grade}</span>
-                  <span className="text-[10px] text-gray-400">/ 5.0</span>
+                  <span className="text-3xl font-black text-green-600 dark:text-green-400">
+                    {activeSubmission.grade !== null && activeSubmission.grade !== undefined ? Number(activeSubmission.grade).toFixed(1) : ""}
+                  </span>
                 </div>
 
               </div>
