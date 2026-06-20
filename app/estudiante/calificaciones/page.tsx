@@ -56,6 +56,11 @@ export default async function CalificacionesEstudiantePage() {
     },
     include: {
       course: true,
+      questions: {
+        include: {
+          options: true
+        }
+      },
       submissions: {
         where: { studentId }
       }
@@ -76,7 +81,8 @@ export default async function CalificacionesEstudiantePage() {
     const isClosed = isLate && !task.allowLateSubmission && !(task.lateSubmissionUntil && new Date(task.lateSubmissionUntil) > now) && !hasStudentExtension;
     const isGoogleForm = !!(task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));
 
-    const canSeeAnswers = sub && sub.status !== "PENDING" && (sub.attempt > 1 || sub.unlockedAnswers === true);
+    const isNative = task.questions && task.questions.length > 0;
+    const canSeeAnswers = sub && sub.status !== "PENDING" && (isNative || sub.attempt > 1 || sub.unlockedAnswers === true);
 
     let feedbackTemplate = null;
     if (task.type === "EXAM" && isGoogleForm && canSeeAnswers) {
