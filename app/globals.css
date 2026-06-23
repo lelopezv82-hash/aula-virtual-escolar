@@ -17,8 +17,8 @@
   --text-secondary: #495057;
   --text-muted: #6c757d;
 
-  --primary-color: #0f6cbf;      /* Azul Moodle clásico/moderno */
-  --primary-hover: #0b508f;
+  --primary-color: #f98012;      /* Naranja moderno Moodle */
+  --primary-hover: #e06d09;
   --secondary-color: #6c757d;    
   --secondary-hover: #5a6268;
 
@@ -29,8 +29,8 @@
 
   --border-color: #dee2e6;
 
-  --primary-light: rgba(15, 108, 191, 0.1);
-  --primary-light-hover: rgba(15, 108, 191, 0.15);
+  --primary-light: rgba(249, 128, 18, 0.1);
+  --primary-light-hover: rgba(249, 128, 18, 0.15);
 
   /* ── Tipografía ── */
   --font-sans: 'Inter', system-ui, sans-serif;
@@ -40,7 +40,7 @@
   --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
   --shadow-md: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
   --shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
-  --shadow-glow: 0 0 0 0.25rem rgba(15, 108, 191, 0.25);
+  --shadow-glow: 0 0 0 0.25rem rgba(249, 128, 18, 0.25);
 
   /* ── Radios (Más cuadrados, estilo Moodle 4) ── */
   --radius-sm: 0.2rem;
@@ -69,16 +69,16 @@
     --text-secondary: #ced4da;
     --text-muted: #adb5bd;
 
-    --primary-color: #0d6efd;      /* Azul algo más claro para contraste en dark mode */
-    --primary-hover: #3d8bfd;
+    --primary-color: #f98012;      /* Naranja moderno Moodle en dark mode */
+    --primary-hover: #fd9b3e;
     --secondary-color: #6c757d;
     --secondary-hover: #5a6268;
 
     --border-color: #495057;
 
-    --primary-light: rgba(13, 110, 253, 0.15);
-    --primary-light-hover: rgba(13, 110, 253, 0.2);
-    --shadow-glow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    --primary-light: rgba(249, 128, 18, 0.15);
+    --primary-light-hover: rgba(249, 128, 18, 0.2);
+    --shadow-glow: 0 0 0 0.25rem rgba(249, 128, 18, 0.25);
 
     --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.25);
     --shadow-md: 0 0.5rem 1rem rgba(0, 0, 0, 0.35);
