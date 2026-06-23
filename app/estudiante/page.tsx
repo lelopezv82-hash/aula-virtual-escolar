@@ -83,7 +83,7 @@ export default async function EstudianteDashboard() {
         {coursesWithCount.map(course => (
           <div key={course.id} className="card">
             <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 rounded-lg" style={{ background: "rgba(37, 99, 235, 0.1)", color: "var(--primary-color)" }}>
+              <div className="p-3 rounded-lg" style={{ background: "var(--primary-light)", color: "var(--primary-color)" }}>
                 <BookOpen size={24} />
               </div>
               <div>
@@ -104,10 +104,10 @@ export default async function EstudianteDashboard() {
                 <span className="flex items-center gap-1"><FileText size={14}/> {course._count.resources} recursos</span>
                 <span className="flex items-center gap-1"><Clock size={14}/> {course._count.tasks} tareas</span>
                 {course._count.exams > 0 && (
-                  <span className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-medium"><ClipboardList size={14}/> {course._count.exams} exámenes</span>
+                  <span className="flex items-center gap-1" style={{ color: 'var(--primary-color)', fontWeight: 500 }}><ClipboardList size={14}/> {course._count.exams} exámenes</span>
                 )}
               </div>
-              <Link href={`/estudiante/cursos/${course.id}`} className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.875rem' }}>
+              <Link href={`/estudiante/cursos/${course.id}`} className="btn btn-primary" style={{ display: 'inline-block', width: '100%' }}>
                 Ver Asignatura
               </Link>
             </div>
