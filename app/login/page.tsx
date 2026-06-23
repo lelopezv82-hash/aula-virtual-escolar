@@ -51,7 +51,7 @@ export default function LoginPage() {
       <div className="login-card glass-panel animate-fade-in">
         <div className="login-header text-center">
           <Link href="/" className="inline-flex justify-center mb-4">
-            <div className="p-3 rounded-full" style={{ background: "rgba(96, 165, 250, 0.15)", color: "#60a5fa", border: "1px solid rgba(96, 165, 250, 0.3)" }}>
+            <div className="p-3 rounded-full" style={{ background: "var(--primary-light)", color: "var(--primary-color)" }}>
               <BookOpen size={40} />
             </div>
           </Link>
