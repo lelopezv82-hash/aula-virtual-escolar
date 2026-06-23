@@ -124,11 +124,24 @@ export default async function TareasEstudiantePage() {
                   <p className="text-sm text-muted line-clamp-2 mt-1">{task.description}</p>
                 </div>
 
-                <div className="flex flex-col md:items-end gap-2 min-w-[200px]">
+                <div className="flex flex-col md:items-end gap-2 min-w-[180px]">
                   <div className="text-sm text-muted flex items-center gap-1">
                     <Clock size={16} /> 
                     Vence: {formatToColombiaString(activeDeadline)} {hasExtension && "(Prórroga)"}
                   </div>
+
+                  {/* Grade display */}
+                  {isGraded && activeGrade !== null && (
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '2rem', fontWeight: 800, lineHeight: 1, color: Number(activeGrade) >= 3 ? 'var(--success)' : 'var(--danger)' }}>
+                        {Number(activeGrade).toFixed(1)}
+                      </div>
+                      <div className="text-xs text-muted">nota</div>
+                    </div>
+                  )}
+                  {isSubmitted && !isGraded && (
+                    <div className="text-xs text-muted italic">Pendiente de revisión</div>
+                  )}
                   
                   {!(isClosed && neverSubmitted) && (
                     <Link href={`/estudiante/tareas/${task.id}`} className={`btn w-full md:w-auto ${isSubmitted ? 'btn-secondary' : 'btn-primary'}`}>
