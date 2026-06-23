@@ -45,17 +45,25 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
   }, [submission.feedback, submission.feedbackTemplate]);
 
   useEffect(() => {
-    if (isOpen && !isGoogleForm && !nativeTask) {
+    const needsNative = !isGoogleForm && !nativeTask;
+    const needsTemplate = isGoogleForm && !localFeedback && !localTemplate;
+
+    if (isOpen && (needsNative || needsTemplate)) {
       setLoadingTask(true);
       fetch(`/api/estudiante/tareas/${exam.id}?_=${Date.now()}`)
         .then(res => res.json())
         .then(data => {
-          if (data.task) setNativeTask(data.task);
+          if (data.feedbackTemplate) {
+            setLocalTemplate(data.feedbackTemplate);
+          }
+          if (data.task) {
+            setNativeTask(data.task);
+          }
         })
         .catch(err => console.error("Error loading task in EvidenciaBotones:", err))
         .finally(() => setLoadingTask(false));
     }
-  }, [isOpen, isGoogleForm, exam.id, nativeTask]);
+  }, [isOpen, isGoogleForm, exam.id, nativeTask, localFeedback, localTemplate]);
 
   // Intentamos parsear las respuestas guardadas en feedback o feedbackTemplate (JSON string)
   let answersData: { 
@@ -144,7 +152,11 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
                 </div>
 
                 {/* Preguntas */}
-                {isGoogleForm ? (
+                {loadingTask ? (
+                  <div className="bg-white rounded-[8px] p-12 border border-[#dadce0] flex justify-center items-center">
+                    <Loader2 className="animate-spin text-[#1a73e8]" size={36} />
+                  </div>
+                ) : isGoogleForm ? (
                   answersData && answersData.length > 0 ? (
                     <div className="flex flex-col gap-3" style={{ gap: '12px' }}>
                       {answersData.map((item, index) => {
@@ -230,16 +242,27 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
                           Este examen fue calificado con la nota mínima de <strong>1.0</strong> debido a que el plazo venció o el tiempo expiró sin que se registraran respuestas en la plataforma.
                         </p>
                       ) : (
-                        <p>No se encontró información detallada de esta entrega.</p>
+                        <div className="flex flex-col gap-3">
+                          <p>No se encontró información detallada de esta entrega en la plataforma.</p>
+                          {nativeTask?.attachmentUrl && (
+                            <div className="mt-2">
+                              <p className="mb-2 text-sm text-[#5f6368]">Puedes acceder al formulario del examen utilizando el siguiente enlace:</p>
+                              <a 
+                                href={nativeTask.attachmentUrl} 
+                                target="_blank" 
+                                className="inline-flex items-center justify-center px-4 py-2 text-white rounded-[4px] font-medium text-[14px] hover:opacity-90 transition-opacity"
+                                style={{ backgroundColor: 'var(--primary-color)' }}
+                              >
+                                Abrir Formulario de Google Forms
+                              </a>
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
                   )
                 ) : (
-                  loadingTask ? (
-                    <div className="bg-white rounded-[8px] p-12 border border-[#dadce0] flex justify-center items-center">
-                      <Loader2 className="animate-spin text-[#1a73e8]" size={36} />
-                    </div>
-                  ) : nativeTask && nativeTask.questions && nativeTask.questions.length > 0 ? (
+                  nativeTask && nativeTask.questions && nativeTask.questions.length > 0 ? (
                     <div className="flex flex-col gap-3" style={{ gap: '12px' }}>
                       {nativeTask.questions.map((q: any, index: number) => {
                         const studentAns = studentAnswers[q.id];
