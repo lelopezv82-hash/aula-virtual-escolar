@@ -269,12 +269,13 @@ export default async function CalificacionesEstudiantePage() {
                         <div style={{ minWidth: "100px", textAlign: "center" }}>
                           {isGraded ? (
                             <>
-                              <div style={{ fontSize: "2.5rem", fontWeight: 800, color: gradeColor, lineHeight: 1 }}>
+                              <div style={{ fontSize: "2rem", fontWeight: 800, color: gradeColor, lineHeight: 1 }}>
                                 {sub.grade !== null && sub.grade !== undefined ? Math.max(1.0, sub.grade).toFixed(1) : ""}
                               </div>
+                              <div className="text-xs text-muted">nota</div>
                             </>
                           ) : (
-                            <div className="text-muted text-sm">—</div>
+                            <div className="text-xs text-muted italic">Pendiente de revisión</div>
                           )}
                         </div>
                       </div>
