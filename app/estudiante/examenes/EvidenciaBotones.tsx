@@ -29,6 +29,11 @@ interface EvidenciaModalProps {
 export default function EvidenciaBotones({ exam, submission, isGoogleForm }: EvidenciaModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [loadingUnlock, setLoadingUnlock] = useState(false);
+
+  // If the student never submitted anything (automatically graded due to deadline)
+  if (submission.submittedAt === null) {
+    return null;
+  }
   const [localFeedback, setLocalFeedback] = useState<string | null>(submission.feedback || null);
   const [localTemplate, setLocalTemplate] = useState<string | null>(submission.feedbackTemplate || null);
   const [nativeTask, setNativeTask] = useState<any>(null);

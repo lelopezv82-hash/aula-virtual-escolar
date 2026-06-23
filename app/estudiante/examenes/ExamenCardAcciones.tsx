@@ -58,7 +58,7 @@ export default function ExamenCardAcciones({
   );
 
   const { activeDeadline, hasExtension, isClosed, isLate } = getTaskDeadlineStatus(
-    { dueDate, allowLateSubmission, lateSubmissionUntil },
+    { dueDate, allowLateSubmission, lateSubmissionUntil, type: "EXAM" },
     submission
   );
 
