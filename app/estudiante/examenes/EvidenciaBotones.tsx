@@ -357,7 +357,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
         <button 
           onClick={handleVerRespuestas}
           className="btn flex items-center justify-center gap-2 w-full md:w-auto hover:opacity-90 transition-opacity" 
-          style={{ backgroundColor: '#4facfe', color: 'white' }}
+          style={{ backgroundColor: 'var(--primary-color)', color: 'white' }}
         >
           <Eye size={16} />
           Ver Respuestas
