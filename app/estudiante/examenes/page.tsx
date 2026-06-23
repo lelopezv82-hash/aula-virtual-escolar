@@ -152,7 +152,7 @@ export default async function ExamenesEstudiantePage() {
                     </div>
                   )}
                   {isSubmitted && !isGraded && (
-                    <div className="text-xs text-muted italic">Pendiente de revisión</div>
+                    <div className="text-xs text-muted italic">En proceso de calificación...</div>
                   )}
 
                   {/* Interactive actions rendered client-side only (correct local timezone + portal support) */}

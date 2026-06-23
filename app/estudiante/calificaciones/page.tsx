@@ -275,7 +275,9 @@ export default async function CalificacionesEstudiantePage() {
                               <div className="text-xs text-muted">nota</div>
                             </>
                           ) : (
-                            <div className="text-xs text-muted italic">Pendiente de revisión</div>
+                            <div className="text-xs text-muted italic">
+                              {sub.task.type === "EXAM" ? "En proceso de calificación..." : "Pendiente de revisión"}
+                            </div>
                           )}
                         </div>
                       </div>
