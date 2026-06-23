@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, X, ChevronLeft, ChevronRight, BookOpen, Clock } from "lucide-react";
+import { Menu, X, BookOpen, Clock, User } from "lucide-react";
 import LogoutButton from "./LogoutButton";
 import ActiveLink from "./ActiveLink";
 
@@ -32,8 +32,7 @@ export default function DashboardShell({
   children,
   themeColor,
 }: DashboardShellProps) {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [desktopCollapsed, setDesktopCollapsed] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const pathname = usePathname();
   const [timeStr, setTimeStr] = useState("");
@@ -58,14 +57,20 @@ export default function DashboardShell({
   }, []);
 
   useEffect(() => {
-    // Check local storage for desktop state
-    const savedCollapsed = localStorage.getItem("sidebar_collapsed");
-    if (savedCollapsed === "true") {
-      setDesktopCollapsed(true);
+    const savedState = localStorage.getItem("moodle_drawer_open");
+    if (savedState === "false") {
+      setDrawerOpen(false);
     }
 
     const checkSize = () => {
-      setIsMobile(window.innerWidth < 768);
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        setDrawerOpen(false);
+      } else {
+        const saved = localStorage.getItem("moodle_drawer_open");
+        setDrawerOpen(saved !== "false");
+      }
     };
 
     checkSize();
@@ -73,127 +78,98 @@ export default function DashboardShell({
     return () => window.removeEventListener("resize", checkSize);
   }, []);
 
-  // Close mobile sidebar on route change
   useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
+    if (isMobile) {
+      setDrawerOpen(false);
+    }
+  }, [pathname, isMobile]);
 
-  const toggleDesktopCollapse = () => {
-    const nextState = !desktopCollapsed;
-    setDesktopCollapsed(nextState);
-    localStorage.setItem("sidebar_collapsed", String(nextState));
+  const toggleDrawer = () => {
+    const nextState = !drawerOpen;
+    setDrawerOpen(nextState);
+    if (!isMobile) {
+      localStorage.setItem("moodle_drawer_open", String(nextState));
+    }
   };
 
   return (
-    <div className={`dashboard-layout ${isMobile ? "mobile-mode" : "desktop-mode"} ${desktopCollapsed ? "sidebar-collapsed" : ""}`}>
-      {/* Mobile Top Navbar */}
-      {isMobile && (
-        <header className="mobile-header">
+    <div className={`moodle-layout ${isMobile ? "mobile" : "desktop"} ${drawerOpen ? "drawer-open" : "drawer-closed"}`}>
+      {/* Top Navbar (Moodle style) */}
+      <header className="moodle-navbar">
+        <div className="navbar-left">
           <button 
-            onClick={() => setMobileOpen(true)} 
-            className="mobile-menu-btn" 
-            aria-label="Abrir menú"
+            onClick={toggleDrawer} 
+            className="navbar-toggler" 
+            aria-label="Toggle navigation"
           >
             <Menu size={24} />
           </button>
-          <div className="mobile-header-brand">
+          <div className="navbar-brand">
             <BookOpen size={24} color="var(--primary-color)" />
-            <span>{sidebarTitle}</span>
+            <span className="brand-title">{sidebarTitle}</span>
           </div>
-          <div className="mobile-header-user">
-            <div className="avatar" style={{ width: 32, height: 32, fontSize: "0.875rem", background: themeColor || "var(--primary-color)" }}>
-              {user?.name ? user.name.charAt(0).toUpperCase() : ""}
+        </div>
+
+        <div className="navbar-right">
+          {!isMobile && (
+            <div className="navbar-time">
+              <Clock size={16} />
+              <span className="capitalize">{timeStr}</span>
             </div>
-          </div>
-        </header>
-      )}
-
-      {/* Backdrop for mobile drawer */}
-      {isMobile && mobileOpen && (
-        <div 
-          className="sidebar-backdrop" 
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
-
-      {/* Sidebar Aside */}
-      <aside className={`sidebar ${isMobile ? "mobile" : ""} ${isMobile && mobileOpen ? "open" : ""} ${!isMobile && desktopCollapsed ? "collapsed" : ""}`}>
-        <div className="sidebar-header">
-          <div className="brand-container">
-            <BookOpen size={32} color="var(--primary-color)" className="brand-logo" />
-            <h2 className="brand-text">{sidebarTitle}</h2>
-          </div>
-          {isMobile ? (
-            <button 
-              onClick={() => setMobileOpen(false)} 
-              className="close-sidebar-btn" 
-              aria-label="Cerrar menú"
-            >
-              <X size={20} />
-            </button>
-          ) : (
-            <button 
-              onClick={toggleDesktopCollapse} 
-              className="collapse-sidebar-btn" 
-              title={desktopCollapsed ? "Expandir menú" : "Colapsar menú"}
-              aria-label={desktopCollapsed ? "Expandir menú" : "Colapsar menú"}
-            >
-              {desktopCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-            </button>
           )}
-        </div>
-        
-        <nav className="sidebar-nav">
-          {links.map((link) => (
-            <ActiveLink key={link.href} href={link.href}>
-              {link.icon}
-              <span className="nav-label">{link.label}</span>
-            </ActiveLink>
-          ))}
-        </nav>
-
-        <div className="sidebar-footer">
-          <div className="user-info">
-            <div className="avatar" style={{ background: themeColor || "var(--primary-color)" }}>
-              {user?.name ? user.name.charAt(0).toUpperCase() : ""}
+          
+          <div className="navbar-user">
+            <div className="user-text hidden md:block">
+              <span className="user-name">{user?.name || "Usuario"}</span>
             </div>
-            <div className="details">
-              <strong className="user-name">{user?.name || ""}</strong>
-              <span className="user-role">{roleTitle}</span>
+            <div className="user-avatar" style={{ background: themeColor || "var(--primary-color)" }}>
+              {user?.name ? user.name.charAt(0).toUpperCase() : <User size={16} />}
             </div>
           </div>
-          <LogoutButton />
-        </div>
-      </aside>
-
-      {/* Main Content Area */}
-      <main className="dashboard-main" style={{ display: "flex", flexDirection: "column", padding: 0 }}>
-        <header className="dashboard-topbar no-print" style={{ 
-          display: "flex", 
-          justifyContent: isMobile ? "center" : "space-between", 
-          alignItems: "center", 
-          padding: isMobile ? "0.5rem 1rem" : "1rem 2rem", 
-          borderBottom: "1px solid var(--border-color)",
-          background: "var(--bg-secondary)",
-          minHeight: isMobile ? "40px" : "60px"
-        }}>
-          {!isMobile && <div></div>}
-          <div style={{ 
-            fontSize: isMobile ? "0.75rem" : "0.825rem", 
-            color: "var(--text-secondary)", 
-            fontWeight: "600",
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem"
-          }}>
-            <Clock size={isMobile ? 14 : 16} style={{ color: themeColor || "var(--primary-color)" }} />
-            <span className="capitalize">{timeStr}</span>
+          
+          <div className="navbar-actions">
+            <LogoutButton />
           </div>
-        </header>
-        <div style={{ padding: isMobile ? "1rem" : "2rem", flex: 1, overflowY: "auto" }}>
-          {children}
         </div>
-      </main>
+      </header>
+
+      <div className="moodle-body">
+        {/* Backdrop for mobile */}
+        {isMobile && drawerOpen && (
+          <div className="moodle-backdrop" onClick={() => setDrawerOpen(false)} />
+        )}
+
+        {/* Side Drawer */}
+        <aside className="moodle-drawer">
+          {isMobile && (
+            <div className="drawer-header-mobile">
+              <span>Menú de Navegación</span>
+              <button onClick={() => setDrawerOpen(false)} className="close-drawer">
+                <X size={20} />
+              </button>
+            </div>
+          )}
+          <nav className="drawer-nav">
+            <ul className="nav-list">
+              {links.map((link) => (
+                <li key={link.href} className="nav-item-container">
+                  <ActiveLink href={link.href}>
+                    {link.icon}
+                    <span className="nav-label">{link.label}</span>
+                  </ActiveLink>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </aside>
+
+        {/* Main Content Area */}
+        <main className="moodle-main">
+          <div className="moodle-content-wrapper">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
