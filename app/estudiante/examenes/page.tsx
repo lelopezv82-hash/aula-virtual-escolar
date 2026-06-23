@@ -122,7 +122,7 @@ export default async function ExamenesEstudiantePage() {
                     </span>
                     {isGraded && (
                       <span className={`badge flex items-center gap-1 ${gradeReason ? 'badge-danger' : 'badge-success'}`}>
-                        <CheckCircle size={12} /> Calificado: {activeGrade}
+                        <CheckCircle size={12} /> Calificado: {activeGrade !== null ? Number(activeGrade).toFixed(1) : ""}
                       </span>
                     )}
                     {isGraded && gradeReason && (
@@ -141,7 +141,20 @@ export default async function ExamenesEstudiantePage() {
                   <p className="text-sm text-muted line-clamp-2 mt-1">{exam.description}</p>
                 </div>
 
-                <div className="flex flex-col md:items-end gap-2 min-w-[200px]">
+                <div className="flex flex-col md:items-end gap-2 min-w-[180px]">
+                  {/* Grade number display */}
+                  {isGraded && activeGrade !== null && (
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '2rem', fontWeight: 800, lineHeight: 1, color: Number(activeGrade) >= 3 ? 'var(--success)' : 'var(--danger)' }}>
+                        {Number(activeGrade).toFixed(1)}
+                      </div>
+                      <div className="text-xs text-muted">nota</div>
+                    </div>
+                  )}
+                  {isSubmitted && !isGraded && (
+                    <div className="text-xs text-muted italic">Pendiente de revisión</div>
+                  )}
+
                   {/* Interactive actions rendered client-side only (correct local timezone + portal support) */}
                   <ExamenCardAcciones
                     examId={exam.id}
