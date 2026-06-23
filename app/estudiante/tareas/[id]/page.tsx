@@ -231,7 +231,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
         <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 text-amber-900 dark:text-amber-200 rounded-lg p-4 text-left text-sm flex flex-col gap-2">
           <p className="font-bold flex items-center gap-1">⚠️ IMPORTANTE:</p>
           <ul className="list-disc pl-5 flex flex-col gap-1">
-            <li>Una vez que hagas clic en "Iniciar Examen", el cronómetro comenzará a correr y no podrá pausarse.</li>
+            <li>Una vez que hagas clic en &quot;Iniciar Examen&quot;, el cronómetro comenzará a correr y no podrá pausarse.</li>
             <li>Al terminarse el tiempo, tus respuestas se guardarán y enviarán automáticamente.</li>
             <li>Asegúrate de tener buena conexión y terminar antes de que el reloj llegue a cero.</li>
           </ul>
@@ -351,7 +351,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
 
           {!isSubmitted && !isTimerExpired && (
             <div className="flex justify-between items-center mt-2 border-t pt-4" style={{ borderColor: "var(--border-color)" }}>
-              <p className="text-xs text-muted">⚠️ Recuerda dar clic en "Enviar" dentro de Google Forms antes de dar clic aquí.</p>
+              <p className="text-xs text-muted">⚠️ Recuerda dar clic en &quot;Enviar&quot; dentro de Google Forms antes de dar clic aquí.</p>
               <button 
                 onClick={handleMarkAsFinished} 
                 disabled={loading}

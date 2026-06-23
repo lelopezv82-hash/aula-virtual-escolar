@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { CheckCircle, AlertTriangle, Save, Loader2, Check, X, Clock } from "lucide-react";
+import { CheckCircle, AlertTriangle, Save, Loader2, Check, X } from "lucide-react";
 
 interface Option {
   id: string;
@@ -32,10 +32,8 @@ interface ExamenNativoProps {
   questions: Question[];
   submission: Submission | null;
   onSubmissionUpdated: (sub: any) => void;
-  timeLeft: number | null;
   isTimerExpired: boolean;
   isClosed?: boolean;
-  triggerAutoSubmit: () => void;
 }
 
 export default function ExamenNativo({
@@ -43,10 +41,8 @@ export default function ExamenNativo({
   questions,
   submission,
   onSubmissionUpdated,
-  timeLeft,
   isTimerExpired,
-  isClosed = false,
-  triggerAutoSubmit
+  isClosed = false
 }: ExamenNativoProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [savingStatus, setSavingStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -132,6 +128,7 @@ export default function ExamenNativo({
     if (isTimerExpired && submission?.status !== "GRADED" && !isSubmitting) {
       executeFinalSubmit();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isTimerExpired]);
 
   const isGraded = submission?.status === "GRADED";

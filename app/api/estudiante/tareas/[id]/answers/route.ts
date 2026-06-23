@@ -184,6 +184,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     // Grade: scale 1.0 to 5.0. If no questions exist, default to 5.0
     const rawGrade = totalPoints > 0 ? (earnedPoints / totalPoints) * 5.0 : 5.0;
     const finalGrade = Math.max(1.0, parseFloat(rawGrade.toFixed(1)));
+    
+    // Explicit feedback if no questions were answered
+    let finalFeedback = JSON.stringify(details);
+    if (Object.keys(answers).length === 0 && questions.length > 0) {
+      finalFeedback = JSON.stringify([{
+        type: "EMPTY_SUBMISSION",
+        message: "El estudiante no respondió ninguna pregunta o el tiempo expiró antes de contestar. Se asigna la calificación mínima (1.0)."
+      }]);
+    }
 
     const updatedSubmission = await prisma.submission.upsert({
       where: {
@@ -197,7 +206,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         grade: finalGrade,
         status: "GRADED",
         submittedAt: new Date(),
-        feedback: JSON.stringify(details)
+        feedback: finalFeedback
       },
       create: {
         taskId: task.id,

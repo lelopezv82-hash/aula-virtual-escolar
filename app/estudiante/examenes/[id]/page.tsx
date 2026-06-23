@@ -126,8 +126,8 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
         })
         .catch(err => console.error("Error polling submission status:", err));
     }, 3000);
-
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [task, taskId, isGoogleForm, submission?.status, submission?.grade]);
 
   const triggerAutoSubmit = useCallback(async () => {
@@ -168,7 +168,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
     if (task && isNativeExam && submission && submission.status === "PENDING" && isClosed && !loading && !isSubmitted) {
       triggerAutoSubmit();
     }
-  }, [task, isNativeExam, submission?.status, isClosed, loading, isSubmitted, triggerAutoSubmit]);
+  }, [task, isNativeExam, submission, submission?.status, isClosed, loading, isSubmitted, triggerAutoSubmit]);
 
   // Timer countdown hook
   useEffect(() => {
@@ -364,7 +364,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
         <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 text-amber-900 dark:text-amber-200 rounded-lg p-4 text-left text-sm flex flex-col gap-2">
           <p className="font-bold flex items-center gap-1">⚠️ IMPORTANTE:</p>
           <ul className="list-disc pl-5 flex flex-col gap-1">
-            <li>Una vez que hagas clic en "Iniciar Examen", el cronómetro comenzará a correr y no podrá pausarse.</li>
+            <li>Una vez que hagas clic en &quot;Iniciar Examen&quot;, el cronómetro comenzará a correr y no podrá pausarse.</li>
             <li>Al terminarse el tiempo, tus respuestas se guardarán y enviarán automáticamente.</li>
             <li>Asegúrate de tener buena conexión y terminar antes de que el reloj llegue a cero.</li>
           </ul>
@@ -461,10 +461,8 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
               setSubmission(sub);
               fetchTaskDetails();
             }}
-            timeLeft={timeLeft}
             isTimerExpired={isTimerExpired}
             isClosed={isClosed}
-            triggerAutoSubmit={triggerAutoSubmit}
           />
         </div>
       ) : task.attachmentUrl ? (
@@ -515,7 +513,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                   Estamos recuperando tu nota y respuestas de Google Forms. Esto puede tomar unos segundos...
                 </p>
                 <p className="text-xs text-gray-400 mt-4 max-w-xs">
-                  Si ya presionaste "Enviar" en el formulario, esta página se actualizará automáticamente.
+                  Si ya presionaste &quot;Enviar&quot; en el formulario, esta página se actualizará automáticamente.
                 </p>
               </div>
             ) : (activeSubmission?.status === "SUBMITTED" && isGoogleForm && timerHasExpired) ? (
@@ -526,7 +524,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                   El tiempo límite ha finalizado y el formulario ha sido bloqueado.
                 </p>
                 <p className="text-sm text-muted mt-2 max-w-md">
-                  Si presionaste "Enviar" en Google Forms durante el tiempo límite o el período de gracia, tus respuestas se procesarán en breve.
+                  Si presionaste &quot;Enviar&quot; en Google Forms durante el tiempo límite o el período de gracia, tus respuestas se procesarán en breve.
                 </p>
                 <div className="mt-6 flex flex-col items-center gap-2">
                   <Loader2 className="animate-spin text-gray-400" size={24} />
