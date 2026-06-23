@@ -1,6 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
+/* Desactivar dark mode automático del OS (Tailwind v4) para forzar aspecto Moodle claro */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ══════════════════════════════════════════════════════════════
    Design System — Aula Virtual
    Paleta: Moodle Moderno (Boost Theme / Bootstrap)
@@ -57,36 +60,7 @@
   --bg-gradient: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* ── Modo Oscuro (Bootstrap dark-mode standard) ── */
-    --bg-primary: #212529;
-    --bg-secondary: #2b3035;
-    --bg-glass: rgba(33, 37, 41, 0.95);
-    --bg-tertiary: #343a40;
 
-    --text-primary: #f8f9fa;
-    --text-secondary: #ced4da;
-    --text-muted: #adb5bd;
-
-    --primary-color: #f98012;      /* Naranja moderno Moodle en dark mode */
-    --primary-hover: #fd9b3e;
-    --secondary-color: #6c757d;
-    --secondary-hover: #5a6268;
-
-    --border-color: #495057;
-
-    --primary-light: rgba(249, 128, 18, 0.15);
-    --primary-light-hover: rgba(249, 128, 18, 0.2);
-    --shadow-glow: 0 0 0 0.25rem rgba(249, 128, 18, 0.25);
-
-    --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.25);
-    --shadow-md: 0 0.5rem 1rem rgba(0, 0, 0, 0.35);
-    --shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.5);
-
-    --bg-gradient: none;
-  }
-}
 
 * {
   box-sizing: border-box;
