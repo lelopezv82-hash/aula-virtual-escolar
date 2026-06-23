@@ -211,9 +211,9 @@ export default async function CalificacionesEstudiantePage() {
                       : "var(--text-muted)";
 
                     return (
-                      <div key={sub.id} className="card flex flex-col md:flex-row md:items-center gap-4"
+                      <div key={sub.id} className="card flex flex-col md:flex-row md:items-center justify-between gap-4"
                         style={{ background: "var(--bg-primary)", borderLeft: `4px solid ${isGraded ? gradeColor : "var(--border-color)"}` }}>
-                        <div className="flex-1">
+                        <div className="flex-1 text-left">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="text-xs font-bold px-2 py-1 bg-gray-100 rounded text-gray-600">
                               {sub.task.course.name}
