@@ -101,7 +101,7 @@ export default function ExamenCardAcciones({
         Vence: {formatToColombiaString(activeDeadline)} {hasExtension && "(Prórroga)"}
       </div>
 
-      {!isSubmitted && (
+      {!isSubmitted && !isClosed && (
         <Link
           href={`/estudiante/examenes/${examId}`}
           className="btn w-full md:w-auto"
