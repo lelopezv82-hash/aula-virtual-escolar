@@ -1,83 +1,87 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
-/* Design System - Aula Virtual */
+/* Design System - Aula Virtual Escolar — Paleta Premium Académica */
 
 :root {
-  /* Color Palette - Light Mode */
-  --bg-primary: #f5f7fb;
+  /* ── Modo Claro: Blanco académico, azul real, dorado suave ── */
+  --bg-primary: #f0f4f9;         /* Azul-gris muy suave, no blanco puro */
   --bg-secondary: #ffffff;
-  --bg-glass: rgba(255, 255, 255, 0.75);
-  
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
-  
-  --primary-color: #6366f1; /* Premium Violet-Indigo */
-  --primary-hover: #4f46e5;
-  --secondary-color: #0d9488; /* Modern Teal */
-  --secondary-hover: #0f766e;
-  
-  --success: #10b981;
-  --danger: #f43f5e;
-  --warning: #f59e0b;
-  --info: #06b6d4;
+  --bg-glass: rgba(255, 255, 255, 0.88);
 
-  --border-color: #e0e7ff; /* Indigo-tinted border */
-  
-  --primary-light: rgba(99, 102, 241, 0.1);
-  --primary-light-hover: rgba(99, 102, 241, 0.05);
-  
-  /* Typography */
+  --text-primary: #0c1a2e;       /* Azul marino profundo para texto */
+  --text-secondary: #3d5a80;     /* Azul pizarrón medio */
+  --text-muted: #7b96b2;         /* Azul-gris apagado */
+
+  --primary-color: #1d4ed8;      /* Azul real — color bandera académica */
+  --primary-hover: #1e40af;
+  --secondary-color: #0369a1;    /* Azul océano suave */
+  --secondary-hover: #075985;
+
+  --success: #16a34a;
+  --danger: #dc2626;
+  --warning: #ca8a04;
+  --info: #0284c7;
+
+  --border-color: #d4e0f0;       /* Azul-gris claro, no gris neutro */
+
+  --primary-light: rgba(29, 78, 216, 0.1);
+  --primary-light-hover: rgba(29, 78, 216, 0.06);
+
+  /* ── Tipografía ── */
   --font-sans: 'Inter', system-ui, sans-serif;
-  --font-heading: 'Outfit', system-ui, sans-serif;
-  
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
-  --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.25);
-  
-  /* Radii */
+  --font-heading: 'Poppins', system-ui, sans-serif;
+
+  /* ── Sombras ── */
+  --shadow-sm: 0 1px 3px 0 rgba(12, 26, 46, 0.07);
+  --shadow-md: 0 4px 8px -2px rgba(12, 26, 46, 0.08), 0 2px 4px -1px rgba(12, 26, 46, 0.04);
+  --shadow-lg: 0 12px 20px -4px rgba(12, 26, 46, 0.1), 0 4px 8px -2px rgba(12, 26, 46, 0.05);
+  --shadow-glow: 0 0 24px rgba(29, 78, 216, 0.2);
+
+  /* ── Radios ── */
   --radius-md: 0.5rem;
   --radius-lg: 1rem;
   --radius-xl: 1.5rem;
   --radius-full: 9999px;
 
-  /* Transitions */
+  /* ── Transiciones ── */
   --transition-fast: 150ms ease-in-out;
   --transition-normal: 250ms ease-in-out;
 
-  /* Background Gradient */
-  --bg-gradient: radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.06) 0px, transparent 50%), 
-                 radial-gradient(at 50% 0%, rgba(20, 184, 166, 0.04) 0px, transparent 50%),
-                 radial-gradient(at 100% 0%, rgba(244, 63, 94, 0.04) 0px, transparent 50%);
+  /* ── Degradado de fondo: Azul académico sutil ── */
+  --bg-gradient:
+    radial-gradient(ellipse at 0% 0%, rgba(29, 78, 216, 0.06) 0px, transparent 55%),
+    radial-gradient(ellipse at 100% 0%, rgba(3, 105, 161, 0.05) 0px, transparent 55%),
+    radial-gradient(ellipse at 50% 100%, rgba(29, 78, 216, 0.04) 0px, transparent 55%);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg-primary: #0b0f19;
-    --bg-secondary: #111827;
-    --bg-glass: rgba(17, 24, 39, 0.75);
-    
-    --text-primary: #f9fafb;
-    --text-secondary: #d1d5db;
-    --text-muted: #9ca3af;
-    
-    --primary-color: #818cf8;
-    --primary-hover: #a5b4fc;
-    --secondary-color: #2dd4bf;
-    --secondary-hover: #99f6e4;
-    
-    --border-color: #1f2937;
-    --primary-light: rgba(129, 140, 248, 0.15);
-    --primary-light-hover: rgba(129, 140, 248, 0.08);
-    --shadow-glow: 0 0 20px rgba(129, 140, 248, 0.4);
+    /* ── Modo Oscuro: Azul naval profundo — NO negro puro ── */
+    --bg-primary: #111d2e;         /* Azul naval oscuro, suave y elegante */
+    --bg-secondary: #172034;       /* Panel/card: ligeramente más claro que el fondo */
+    --bg-glass: rgba(17, 29, 46, 0.90);
 
-    /* Background Gradient */
-    --bg-gradient: radial-gradient(at 0% 0%, rgba(129, 140, 248, 0.08) 0px, transparent 50%), 
-                   radial-gradient(at 50% 0%, rgba(45, 212, 191, 0.05) 0px, transparent 50%),
-                   radial-gradient(at 100% 0%, rgba(244, 63, 94, 0.05) 0px, transparent 50%);
+    --text-primary: #e8eef6;       /* Blanco azulado suave para texto */
+    --text-secondary: #96b0cc;     /* Azul-gris medio */
+    --text-muted: #56789a;         /* Azul-gris apagado */
+
+    --primary-color: #60a5fa;      /* Azul claro vibrante */
+    --primary-hover: #93c5fd;
+    --secondary-color: #38bdf8;    /* Azul cielo */
+    --secondary-hover: #7dd3fc;
+
+    --border-color: #1e3050;       /* Azul profundo visible */
+
+    --primary-light: rgba(96, 165, 250, 0.14);
+    --primary-light-hover: rgba(96, 165, 250, 0.08);
+    --shadow-glow: 0 0 24px rgba(96, 165, 250, 0.25);
+
+    /* ── Degradado de fondo oscuro: Aura azul naval ── */
+    --bg-gradient:
+      radial-gradient(ellipse at 0% 0%, rgba(29, 78, 216, 0.12) 0px, transparent 55%),
+      radial-gradient(ellipse at 100% 0%, rgba(3, 105, 161, 0.10) 0px, transparent 55%),
+      radial-gradient(ellipse at 50% 100%, rgba(96, 165, 250, 0.06) 0px, transparent 55%);
   }
 }
 
@@ -139,12 +143,13 @@ a:hover {
 }
 
 .btn-primary {
-  background-color: var(--primary-color);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
   color: white;
+  box-shadow: 0 2px 8px rgba(29, 78, 216, 0.25);
 }
 
 .btn-primary:hover {
-  background-color: var(--primary-hover);
+  background: linear-gradient(135deg, var(--primary-hover) 0%, var(--primary-color) 100%);
   transform: translateY(-1px);
   box-shadow: var(--shadow-glow);
 }
@@ -157,7 +162,8 @@ a:hover {
 
 .btn-secondary:hover {
   background-color: var(--bg-primary);
-  border-color: var(--text-muted);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
 }
 
 .input-field {
