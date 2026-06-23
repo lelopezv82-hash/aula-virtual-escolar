@@ -95,12 +95,6 @@ export default function ExamenCardAcciones({
 
   return (
     <>
-      {/* Due date rendered client-side so it shows the student's local timezone */}
-      <div className="text-sm text-muted flex items-center gap-1">
-        <Clock size={16} />
-        Vence: {formatToColombiaString(activeDeadline)} {hasExtension && "(Prórroga)"}
-      </div>
-
       {!isSubmitted && !isClosed && (
         <Link
           href={`/estudiante/examenes/${examId}`}

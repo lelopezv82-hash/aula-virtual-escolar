@@ -1,9 +1,9 @@
 import prisma from '@/lib/prisma';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
-import { ClipboardList, CheckCircle } from "lucide-react";
+import { ClipboardList, CheckCircle, Clock } from "lucide-react";
 import ExamenCardAcciones from "./ExamenCardAcciones";
-import { getTaskDeadlineStatus } from '@/lib/dateUtils';
+import { getTaskDeadlineStatus, formatToColombiaString } from '@/lib/dateUtils';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -113,16 +113,41 @@ export default async function ExamenesEstudiantePage() {
             const isSubmitted = activeStatus && activeStatus !== "PENDING";
             const isGraded = activeStatus === "GRADED";
 
+            const { activeDeadline, hasExtension, isClosed, isLate } = getTaskDeadlineStatus(exam, submission);
+
+            const leftBorderColor = isSubmitted
+              ? (isGraded && activeGrade !== null && Number(activeGrade) < 3.0 ? 'var(--danger)' : 'var(--success)')
+              : isLate ? 'var(--danger)' : '#8b5cf6';
+
+            const gradeColor = isGraded
+              ? (activeGrade !== null && Number(activeGrade) >= 3 ? 'var(--success)' : 'var(--danger)')
+              : 'var(--text-muted)';
+
             return (
-              <div key={exam.id} className="card flex flex-col md:flex-row md:items-center justify-between gap-4" style={{ borderLeft: isSubmitted ? '4px solid var(--success)' : isLate ? '4px solid var(--danger)' : '4px solid #8b5cf6' }}>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-bold px-2 py-1 bg-purple-100 rounded text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+              <div key={exam.id}
+                style={{
+                  background: "var(--bg-primary)",
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "1rem",
+                  padding: "1rem",
+                  borderRadius: "var(--radius-lg)",
+                  border: `1px solid var(--border-color)`,
+                  borderLeft: `4px solid ${leftBorderColor}`,
+                  boxShadow: "var(--shadow-sm)",
+                }}
+              >
+                {/* Left: info */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem", flexWrap: "wrap" }}>
+                    <span style={{ fontSize: "0.75rem", fontWeight: 700, padding: "2px 8px", background: "#f3e8ff", borderRadius: "4px", color: "#6b21a8" }}>
                       {exam.course.name}
                     </span>
                     {isGraded && (
                       <span className={`badge flex items-center gap-1 ${gradeReason ? 'badge-danger' : 'badge-success'}`}>
-                        <CheckCircle size={12} /> Calificado: {activeGrade !== null ? Number(activeGrade).toFixed(1) : ""}
+                        <CheckCircle size={12} /> Calificado
                       </span>
                     )}
                     {isGraded && gradeReason && (
@@ -131,29 +156,34 @@ export default async function ExamenesEstudiantePage() {
                       </span>
                     )}
                     {isSubmitted && !isGraded && (
-                      <span className="badge badge-info">Entregado</span>
+                      <span className="badge badge-info flex items-center gap-1"><Clock size={12} /> Entregado</span>
                     )}
                     {!isSubmitted && isLate && (
                       <span className="badge badge-danger">Atrasado</span>
                     )}
                   </div>
-                  <h3 className="text-lg font-bold" style={{ color: '#8b5cf6' }}>{exam.title}</h3>
-                  <p className="text-sm text-muted line-clamp-2 mt-1">{exam.description}</p>
+                  <h3 style={{ fontWeight: 700, fontSize: "1.1rem", margin: "0 0 0.25rem", color: "#8b5cf6" }}>{exam.title}</h3>
+                  <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", margin: "0 0 0.5rem 0", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{exam.description}</p>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                    <Clock size={12} />
+                    <span>Vence: {formatToColombiaString(activeDeadline)} {hasExtension && "(Prórroga)"}</span>
+                  </div>
                 </div>
 
-                <div className="flex flex-col md:items-end gap-2 min-w-[180px]">
-                  {/* Grade number display */}
-                  {isGraded && activeGrade !== null && (
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '2rem', fontWeight: 800, lineHeight: 1, color: Number(activeGrade) >= 3 ? 'var(--success)' : 'var(--danger)' }}>
+                {/* Right: grade + action */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem", minWidth: "120px", textAlign: "center" }}>
+                  {isGraded && activeGrade !== null ? (
+                    <>
+                      <div style={{ fontSize: "2rem", fontWeight: 800, color: gradeColor, lineHeight: 1 }}>
                         {Number(activeGrade).toFixed(1)}
                       </div>
-                      <div className="text-xs text-muted">nota</div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>nota</div>
+                    </>
+                  ) : isSubmitted && !isGraded ? (
+                    <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontStyle: "italic" }}>
+                      En proceso de calificación...
                     </div>
-                  )}
-                  {isSubmitted && !isGraded && (
-                    <div className="text-xs text-muted italic">En proceso de calificación...</div>
-                  )}
+                  ) : null}
 
                   {/* Interactive actions rendered client-side only (correct local timezone + portal support) */}
                   <ExamenCardAcciones
