@@ -211,11 +211,26 @@ export default async function CalificacionesEstudiantePage() {
                       : "var(--text-muted)";
 
                     return (
-                      <div key={sub.id} className="card flex flex-col md:flex-row md:items-center justify-between gap-4"
-                        style={{ background: "var(--bg-primary)", borderLeft: `4px solid ${isGraded ? gradeColor : "var(--border-color)"}` }}>
-                        <div className="flex-1 text-left">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs font-bold px-2 py-1 bg-gray-100 rounded text-gray-600">
+                      <div key={sub.id}
+                        style={{
+                          background: "var(--bg-primary)",
+                          borderLeft: `4px solid ${isGraded ? gradeColor : "var(--border-color)"}`,
+                          display: "flex",
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: "1rem",
+                          padding: "1rem",
+                          borderRadius: "var(--radius-lg)",
+                          border: `1px solid var(--border-color)`,
+                          borderLeftWidth: "4px",
+                          boxShadow: "var(--shadow-sm)",
+                        }}
+                      >
+                        {/* Left: info */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem", flexWrap: "wrap" }}>
+                            <span style={{ fontSize: "0.75rem", fontWeight: 700, padding: "2px 8px", background: "#f3f4f6", borderRadius: "4px", color: "#4b5563" }}>
                               {sub.task.course.name}
                             </span>
                             {isGraded && (
@@ -227,57 +242,55 @@ export default async function CalificacionesEstudiantePage() {
                             )}
                             {isPending && <span className="badge badge-info flex items-center gap-1"><Clock size={12} /> En revisión</span>}
                           </div>
-                          <h3 className="font-bold text-lg">{sub.task.title}</h3>
+                          <h3 style={{ fontWeight: 700, fontSize: "1.1rem", margin: "0 0 0.25rem" }}>{sub.task.title}</h3>
                           {isGraded && sub.feedback && !sub.feedback.includes("Calificado automáticamente por Google Forms") && !sub.feedback.trim().startsWith("[") && (
-                            <div className="mt-2 p-3 rounded-lg text-sm italic" style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)", borderLeft: "3px solid var(--primary-color)" }}>
+                            <div style={{ marginTop: "0.5rem", padding: "0.75rem", borderRadius: "0.5rem", fontSize: "0.875rem", fontStyle: "italic", background: "var(--bg-secondary)", color: "var(--text-secondary)", borderLeft: "3px solid var(--primary-color)" }}>
                               💬 &quot;{sub.feedback}&quot;
                             </div>
                           )}
                           {isGraded && sub.submittedAt === null && (
-                            <p className="text-sm text-red-500 mt-1 font-medium">Calificación automática por falta de entrega.</p>
+                            <p style={{ fontSize: "0.875rem", color: "var(--danger)", marginTop: "0.25rem", fontWeight: 500 }}>Calificación automática por falta de entrega.</p>
                           )}
                           {!isGraded && (
-                            <p className="text-sm text-muted mt-1">Tu docente aún no ha calificado esta entrega.</p>
-                          )}
-                          
-                          {sub.task.type === "EXAM" && (
-                            <div className="mt-3">
-                              <EvidenciaBotones 
-                                exam={{
-                                  id: sub.task.id,
-                                  title: sub.task.title,
-                                  course: { name: sub.task.course?.name || "Asignatura" }
-                                }}
-                                submission={{
-                                  grade: sub.grade !== null && sub.grade !== undefined ? Math.max(1.0, sub.grade) : null,
-                                  status: sub.status,
-                                  fileUrl: sub.fileUrl,
-                                  submittedAt: sub.submittedAt,
-                                  feedback: sub.feedback,
-                                  feedbackTemplate: sub.feedbackTemplate,
-                                  studentName: studentName,
-                                  attempt: sub.attempt,
-                                  unlockedAnswers: sub.unlockedAnswers,
-                                  answers: (sub as any).answers
-                                }}
-                                isGoogleForm={!!(sub.task.attachmentUrl?.includes("docs.google.com/forms") || sub.task.attachmentUrl?.includes("forms.gle"))}
-                              />
-                            </div>
+                            <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>Tu docente aún no ha calificado esta entrega.</p>
                           )}
                         </div>
 
-                        <div style={{ minWidth: "100px", textAlign: "center" }}>
+                        {/* Right: grade + action */}
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem", minWidth: "120px", textAlign: "center" }}>
                           {isGraded ? (
                             <>
                               <div style={{ fontSize: "2rem", fontWeight: 800, color: gradeColor, lineHeight: 1 }}>
                                 {sub.grade !== null && sub.grade !== undefined ? Math.max(1.0, sub.grade).toFixed(1) : ""}
                               </div>
-                              <div className="text-xs text-muted">nota</div>
+                              <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>nota</div>
                             </>
                           ) : (
-                            <div className="text-xs text-muted italic">
+                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontStyle: "italic" }}>
                               {sub.task.type === "EXAM" ? "En proceso de calificación..." : "Pendiente de revisión"}
                             </div>
+                          )}
+                          {sub.task.type === "EXAM" && (
+                            <EvidenciaBotones
+                              exam={{
+                                id: sub.task.id,
+                                title: sub.task.title,
+                                course: { name: sub.task.course?.name || "Asignatura" }
+                              }}
+                              submission={{
+                                grade: sub.grade !== null && sub.grade !== undefined ? Math.max(1.0, sub.grade) : null,
+                                status: sub.status,
+                                fileUrl: sub.fileUrl,
+                                submittedAt: sub.submittedAt,
+                                feedback: sub.feedback,
+                                feedbackTemplate: sub.feedbackTemplate,
+                                studentName: studentName,
+                                attempt: sub.attempt,
+                                unlockedAnswers: sub.unlockedAnswers,
+                                answers: (sub as any).answers
+                              }}
+                              isGoogleForm={!!(sub.task.attachmentUrl?.includes("docs.google.com/forms") || sub.task.attachmentUrl?.includes("forms.gle"))}
+                            />
                           )}
                         </div>
                       </div>
