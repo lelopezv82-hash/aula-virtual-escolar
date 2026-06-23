@@ -130,7 +130,7 @@ export default async function TareasEstudiantePage() {
                     Vence: {formatToColombiaString(activeDeadline)} {hasExtension && "(Prórroga)"}
                   </div>
                   
-                  {!(isClosed && !isSubmitted) && (
+                  {!(isClosed && neverSubmitted) && (
                     <Link href={`/estudiante/tareas/${task.id}`} className={`btn w-full md:w-auto ${isSubmitted ? 'btn-secondary' : 'btn-primary'}`}>
                       {isSubmitted ? 'Ver Entrega' : 'Subir Tarea'}
                     </Link>
