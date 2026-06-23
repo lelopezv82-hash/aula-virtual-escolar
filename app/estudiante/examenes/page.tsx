@@ -81,7 +81,7 @@ export default async function ExamenesEstudiantePage() {
             const submission = exam.submissions[0] || null;
             const isGoogleForm = !!(exam.attachmentUrl && (exam.attachmentUrl.includes("docs.google.com/forms") || exam.attachmentUrl.includes("forms.gle")));
 
-            const { isClosed, isLate } = getTaskDeadlineStatus(exam, submission);
+            const { activeDeadline, hasExtension, isClosed, isLate } = getTaskDeadlineStatus(exam, submission);
             const isTimerExpired = !!(submission?.startedAt && exam.duration &&
               (new Date(submission.startedAt).getTime() + exam.duration * 60 * 1000 + 30000 < now.getTime()));
 
@@ -112,8 +112,6 @@ export default async function ExamenesEstudiantePage() {
 
             const isSubmitted = activeStatus && activeStatus !== "PENDING";
             const isGraded = activeStatus === "GRADED";
-
-            const { activeDeadline, hasExtension, isClosed, isLate } = getTaskDeadlineStatus(exam, submission);
 
             const leftBorderColor = isSubmitted
               ? (isGraded && activeGrade !== null && Number(activeGrade) < 3.0 ? 'var(--danger)' : 'var(--success)')
