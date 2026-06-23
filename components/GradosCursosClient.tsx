@@ -710,10 +710,10 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
       {/* Grade Modal */}
       {showGradeModal && (
         <div
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "1rem" }}
+          className="modal-overlay"
           onClick={(e) => e.target === e.currentTarget && setShowGradeModal(false)}
         >
-          <form onSubmit={handleAddGrade} className="card animate-fade-in" style={{ width: "100%", maxWidth: "440px", borderRadius: "1.25rem" }}>
+          <form onSubmit={handleAddGrade} className="modal-content" style={{ maxWidth: "440px" }}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Crear Nuevo Grado</h2>
               <button type="button" onClick={() => setShowGradeModal(false)} className="p-1 rounded-lg hover:bg-gray-100">
@@ -749,10 +749,10 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
       {/* Group Modal */}
       {showGroupModal && selectedGrade && (
         <div
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "1rem" }}
+          className="modal-overlay"
           onClick={(e) => e.target === e.currentTarget && setShowGroupModal(false)}
         >
-          <form onSubmit={handleAddGroup} className="card animate-fade-in" style={{ width: "100%", maxWidth: "440px", borderRadius: "1.25rem" }}>
+          <form onSubmit={handleAddGroup} className="modal-content" style={{ maxWidth: "440px" }}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Nuevo Curso / Grupo ({selectedGrade.name})</h2>
               <button type="button" onClick={() => setShowGroupModal(false)} className="p-1 rounded-lg hover:bg-gray-100">
@@ -788,10 +788,10 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
       {/* Students in Group Modal */}
       {showStudentListModal && selectedGroupForStudents && parentGradeOfSelectedGroup && (
         <div
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "1rem" }}
+          className="modal-overlay"
           onClick={(e) => e.target === e.currentTarget && !showCreateStudentInGroupModal && setShowStudentListModal(false)}
         >
-          <div className="card animate-fade-in flex flex-col max-h-[85vh]" style={{ width: "100%", maxWidth: "700px", borderRadius: "1.25rem", background: "var(--bg-primary)" }}>
+          <div className="modal-content flex flex-col max-h-[85vh]" style={{ maxWidth: "700px" }}>
             <div className="flex justify-between items-center border-b pb-4 mb-4" style={{ borderColor: "var(--border-color)" }}>
               <div>
                 <h2 className="text-xl font-extrabold flex items-center gap-2">
@@ -1121,10 +1121,10 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
       {/* Edit Grade Modal */}
       {showEditGradeModal && editingGrade && (
         <div
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "1rem" }}
+          className="modal-overlay"
           onClick={(e) => e.target === e.currentTarget && setShowEditGradeModal(false)}
         >
-          <form onSubmit={handleEditGrade} className="card animate-fade-in" style={{ width: "100%", maxWidth: "440px", borderRadius: "1.25rem" }}>
+          <form onSubmit={handleEditGrade} className="modal-content" style={{ maxWidth: "440px" }}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Editar Grado</h2>
               <button type="button" onClick={() => setShowEditGradeModal(false)} className="p-1 rounded-lg hover:bg-gray-100">
@@ -1160,10 +1160,10 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
       {/* Edit Group Modal */}
       {showEditGroupModal && editingGroup && (
         <div
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "1rem" }}
+          className="modal-overlay"
           onClick={(e) => e.target === e.currentTarget && setShowEditGroupModal(false)}
         >
-          <form onSubmit={handleEditGroup} className="card animate-fade-in" style={{ width: "100%", maxWidth: "440px", borderRadius: "1.25rem" }}>
+          <form onSubmit={handleEditGroup} className="modal-content" style={{ maxWidth: "440px" }}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Editar Curso / Grupo</h2>
               <button type="button" onClick={() => setShowEditGroupModal(false)} className="p-1 rounded-lg hover:bg-gray-100">
@@ -1199,10 +1199,11 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
       {/* Edit Student Modal */}
       {showEditStudentModal && editingStudent && selectedGroupForStudents && (
         <div
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 110, padding: "1rem" }}
+          className="modal-overlay"
+          style={{ zIndex: 110 }}
           onClick={(e) => e.target === e.currentTarget && setShowEditStudentModal(false)}
         >
-          <form onSubmit={handleEditStudent} className="card animate-fade-in" style={{ width: "100%", maxWidth: "440px", borderRadius: "1.25rem", background: "var(--bg-primary)" }}>
+          <form onSubmit={handleEditStudent} className="modal-content" style={{ maxWidth: "440px" }}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold flex items-center gap-2">
                 <Edit2 className="text-blue-500" size={20} />
@@ -1252,10 +1253,11 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
       {/* Bulk Import Modal */}
       {showImportModal && selectedGroupForStudents && (
         <div
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 120, padding: "1rem" }}
+          className="modal-overlay"
+          style={{ zIndex: 120 }}
           onClick={(e) => e.target === e.currentTarget && !importingStudents && setShowImportModal(false)}
         >
-          <div className="card animate-fade-in flex flex-col max-h-[85vh]" style={{ width: "100%", maxWidth: "550px", borderRadius: "1.25rem", background: "var(--bg-primary)" }}>
+          <div className="modal-content flex flex-col max-h-[85vh]" style={{ maxWidth: "550px" }}>
             <div className="flex justify-between items-center border-b pb-4 mb-4" style={{ borderColor: "var(--border-color)" }}>
               <div>
                 <h2 className="text-xl font-bold flex items-center gap-2">

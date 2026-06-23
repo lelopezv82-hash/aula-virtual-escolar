@@ -502,9 +502,9 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
 
       {/* Resource Upload / Edit Modal */}
       {showResourceModal && selectedCourse && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "1rem" }}
+        <div className="modal-overlay"
           onClick={e => e.target === e.currentTarget && setShowResourceModal(false)}>
-          <form onSubmit={handleSaveResource} className="card animate-fade-in" style={{ width: "100%", maxWidth: "500px", borderRadius: "1.25rem", boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)" }}>
+          <form onSubmit={handleSaveResource} className="modal-content" style={{ maxWidth: "500px" }}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">
                 {editingResource ? "Editar Recurso" : "Subir Recurso"} ({selectedCourse.name})

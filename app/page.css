@@ -22,7 +22,7 @@
   display: inline-flex;
   padding: 1rem;
   border-radius: 50%;
-  background: rgba(37, 99, 235, 0.1);
+  background: var(--primary-light);
   margin-bottom: 1rem;
 }
 

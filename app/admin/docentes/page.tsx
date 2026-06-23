@@ -423,14 +423,10 @@ export default function DocentesPage() {
       {/* Single Teacher Modal */}
       {showModal && (
         <div
-          style={{
-            position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            zIndex: 100, padding: "1rem"
-          }}
+          className="modal-overlay"
           onClick={(e) => e.target === e.currentTarget && closeModal()}
         >
-          <div className="card" style={{ width: "100%", maxWidth: "480px", maxHeight: "90vh", overflowY: "auto" }}>
+          <div className="modal-content" style={{ maxWidth: "480px", maxHeight: "90vh", overflowY: "auto" }}>
             {/* Credentials Display */}
             {newCredentials ? (
               <div>
@@ -537,14 +533,10 @@ export default function DocentesPage() {
       {/* CSV/Excel Import Modal */}
       {showImportModal && (
         <div
-          style={{
-            position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            zIndex: 100, padding: "1rem"
-          }}
+          className="modal-overlay"
           onClick={(e) => e.target === e.currentTarget && closeImportModal()}
         >
-          <div className="card" style={{ width: "100%", maxWidth: "600px", maxHeight: "90vh", overflowY: "auto" }}>
+          <div className="modal-content" style={{ maxWidth: "600px", maxHeight: "90vh", overflowY: "auto" }}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold flex items-center gap-2">
                 <FileSpreadsheet className="text-emerald-600" />

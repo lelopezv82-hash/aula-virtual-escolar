@@ -222,10 +222,10 @@ export default function CursosPage() {
       {/* Course Modal */}
       {showCourseModal && (
         <div
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "1rem" }}
+          className="modal-overlay"
           onClick={(e) => e.target === e.currentTarget && setShowCourseModal(false)}
         >
-          <form onSubmit={saveCourse} className="card animate-fade-in" style={{ width: "100%", maxWidth: "480px", borderRadius: "1.25rem" }}>
+          <form onSubmit={saveCourse} className="modal-content" style={{ maxWidth: "480px" }}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">{editCourse ? "Editar Asignatura" : "Nueva Asignatura"}</h2>
               <button type="button" onClick={() => setShowCourseModal(false)} className="p-1 rounded-lg hover:bg-gray-100">

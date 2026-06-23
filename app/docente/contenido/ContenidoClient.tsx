@@ -1171,9 +1171,9 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
 
       {/* Task Modal (Create & Edit) */}
       {showTaskModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "1rem" }}
+        <div className="modal-overlay"
           onClick={e => e.target === e.currentTarget && setShowTaskModal(false)}>
-          <form onSubmit={handleSaveTask} className="card w-full max-w-lg animate-fade-in" style={{ borderRadius: "1rem" }}>
+          <form onSubmit={handleSaveTask} className="modal-content w-full max-w-lg" style={{ borderRadius: "1rem" }}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-bold">
                 {editingTask 
@@ -1333,9 +1333,9 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
 
       {/* Resource Modal (Create & Edit) */}
       {showResourceModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "1rem" }}
+        <div className="modal-overlay"
           onClick={e => e.target === e.currentTarget && setShowResourceModal(false)}>
-          <form onSubmit={handleSaveResource} className="card w-full max-w-lg animate-fade-in" style={{ borderRadius: "1rem" }}>
+          <form onSubmit={handleSaveResource} className="modal-content w-full max-w-lg" style={{ borderRadius: "1rem" }}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-bold">{editingResource ? "Editar Material" : "Nuevo Material"}</h2>
               <button type="button" onClick={() => setShowResourceModal(false)} className="p-1 rounded hover:bg-slate-150"><X size={20} /></button>
@@ -1453,9 +1453,9 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
 
       {/* Period Modal (Create & Edit) */}
       {showPeriodModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "1rem" }}
+        <div className="modal-overlay"
           onClick={e => e.target === e.currentTarget && setShowPeriodModal(false)}>
-          <form onSubmit={handleCreateOrUpdatePeriod} className="card w-full max-w-md animate-fade-in" style={{ borderRadius: "1rem" }}>
+          <form onSubmit={handleCreateOrUpdatePeriod} className="modal-content w-full max-w-md" style={{ borderRadius: "1rem" }}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-bold">{editingPeriod ? "Editar Periodo" : "Nuevo Periodo"}</h2>
               <button type="button" onClick={() => setShowPeriodModal(false)} className="p-1 rounded hover:bg-slate-150"><X size={20} /></button>
@@ -1487,9 +1487,9 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
 
       {/* Script Modal */}
       {scriptModalTask && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "1rem" }}
+        <div className="modal-overlay"
           onClick={e => e.target === e.currentTarget && setScriptModalTask(null)}>
-          <div className="card w-full max-w-2xl animate-fade-in" style={{ borderRadius: "1rem" }}>
+          <div className="modal-content w-full max-w-2xl" style={{ borderRadius: "1rem" }}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-bold flex items-center gap-2">
                 <Code className="text-amber-500" />

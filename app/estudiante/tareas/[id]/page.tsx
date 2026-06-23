@@ -218,7 +218,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   if (task.duration && (!submission || !submission.startedAt)) {
     return (
       <div className="animate-fade-in max-w-xl mx-auto card p-8 text-center flex flex-col gap-6 mt-10" style={{ borderColor: "var(--border-color)" }}>
-        <div className="p-4 rounded-full bg-blue-50 text-blue-600 mx-auto w-16 h-16 flex items-center justify-center">
+        <div className="p-4 rounded-full bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 mx-auto w-16 h-16 flex items-center justify-center">
           <Clock size={36} />
         </div>
         <div>

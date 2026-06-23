@@ -415,9 +415,9 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
 
       {/* Resource Upload Modal */}
       {showResourceModal && selectedCourse && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "1rem" }}
+        <div className="modal-overlay"
           onClick={e => e.target === e.currentTarget && setShowResourceModal(false)}>
-          <form onSubmit={handleSaveResource} className="card" style={{ width: "100%", maxWidth: "500px" }}>
+          <form onSubmit={handleSaveResource} className="modal-content" style={{ maxWidth: "500px" }}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">{editingResource ? "Editar Recurso" : "Subir Recurso"} ({selectedCourse.name})</h2>
               <button type="button" onClick={() => setShowResourceModal(false)} className="p-1 rounded hover:bg-gray-100"><X size={20} /></button>

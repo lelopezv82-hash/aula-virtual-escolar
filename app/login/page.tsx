@@ -51,8 +51,8 @@ export default function LoginPage() {
       <div className="login-card glass-panel animate-fade-in">
         <div className="login-header text-center">
           <Link href="/" className="inline-flex justify-center mb-4">
-            <div className="p-3 bg-blue-50 rounded-full text-blue-600">
-              <BookOpen size={40} color="var(--primary-color)" />
+            <div className="p-3 rounded-full" style={{ background: "var(--primary-light)", color: "var(--primary-color)" }}>
+              <BookOpen size={40} />
             </div>
           </Link>
           <h2 className="text-2xl font-bold mb-2">Bienvenido de nuevo</h2>

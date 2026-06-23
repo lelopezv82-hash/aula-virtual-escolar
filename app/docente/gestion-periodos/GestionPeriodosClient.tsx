@@ -282,23 +282,14 @@ export default function GestionPeriodosClient({ initialPeriods }: GestionPeriodo
       {/* Modal */}
       {showPeriodModal && (
         <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 100,
-            padding: "1rem",
-          }}
+          className="modal-overlay"
           onClick={(e) =>
             e.target === e.currentTarget && setShowPeriodModal(false)
           }
         >
           <form
             onSubmit={handleCreateOrUpdate}
-            className="card w-full max-w-md animate-fade-in"
+            className="modal-content w-full max-w-md"
             style={{ borderRadius: "1rem" }}
           >
             <div className="flex justify-between items-center mb-4">
