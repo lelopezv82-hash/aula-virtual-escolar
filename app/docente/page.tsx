@@ -3,6 +3,7 @@ import { jwtVerify } from "jose";
 import prisma from '@/lib/prisma';
 import { Users, BookOpen, ClipboardList, TrendingUp, CheckCircle, Clock } from "lucide-react";
 import Link from "next/link";
+import EntregasRecientes from "./EntregasRecientes";
 
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
@@ -94,7 +95,10 @@ export default async function DocenteDashboard() {
     include: {
       student: true,
       task: {
-        include: { course: true }
+        include: {
+          course: true,
+          questions: { select: { id: true }, take: 1 }
+        }
       }
     },
     orderBy: { updatedAt: "desc" },
@@ -246,45 +250,22 @@ export default async function DocenteDashboard() {
       {/* Activity Timeline */}
       <div className="card w-full">
         <h2 className="text-lg font-bold mb-4">Entregas y Actividad Reciente</h2>
-        {recentSubmissions.length === 0 ? (
-          <div className="p-4 border rounded-md text-center text-muted text-sm" style={{ borderColor: "var(--border-color)" }}>
-            Aún no hay entregas de estudiantes para calificar o mostrar.
-          </div>
-        ) : (
-          <div className="flex flex-col gap-4">
-            {recentSubmissions.map(sub => {
-              const isGraded = sub.status === "GRADED";
-              return (
-                <div key={sub.id} className="flex justify-between items-center p-3 rounded-lg border" style={{
-                  background: "var(--bg-primary)",
-                  borderColor: "var(--border-color)"
-                }}>
-                  <div>
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="font-semibold text-sm">{sub.student.name}</span>
-                      <span className="text-xs text-muted">• {sub.task.course.name}</span>
-                    </div>
-                    <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                      Entregó la tarea: <strong style={{ color: "var(--text-primary)" }}>{sub.task.title}</strong>
-                    </p>
-                    <span className="text-[10px] text-muted">{sub.updatedAt ? new Date(sub.updatedAt).toLocaleString("es-CO") : ""}</span>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    {isGraded ? (
-                      <span className="badge badge-success flex items-center gap-1"><CheckCircle size={10} /> Nota: {sub.grade}</span>
-                    ) : (
-                      <span className="badge badge-info flex items-center gap-1"><Clock size={10} /> Por Calificar</span>
-                    )}
-                    <Link href={`/docente/tareas/${sub.taskId}`} className="btn btn-secondary text-xs px-2 py-1">
-                      Ver Tarea
-                    </Link>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <EntregasRecientes submissions={recentSubmissions.map(sub => ({
+          id: sub.id,
+          taskId: sub.taskId,
+          studentId: sub.studentId,
+          studentName: sub.student.name,
+          taskTitle: sub.task.title,
+          courseName: sub.task.course.name,
+          grade: sub.grade,
+          status: sub.status,
+          updatedAt: sub.updatedAt?.toISOString() ?? "",
+          feedback: (sub as any).feedback ?? null,
+          fileUrl: (sub as any).fileUrl ?? null,
+          submittedAt: sub.submittedAt?.toISOString() ?? null,
+          isExam: ((sub.task as any).questions?.length ?? 0) > 0 || !!((sub.task as any).attachmentUrl),
+          isGoogleForm: !!((sub.task as any).attachmentUrl && ((sub.task as any).attachmentUrl.includes("docs.google.com/forms") || (sub.task as any).attachmentUrl.includes("forms.gle")))
+        }))} />
       </div>
     </div>
   );

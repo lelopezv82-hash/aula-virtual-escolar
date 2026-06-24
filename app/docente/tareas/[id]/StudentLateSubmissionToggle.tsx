@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -91,13 +91,13 @@ export default function StudentLateSubmissionToggle({
         minute: "2-digit"
       });
       statusBadge = (
-        <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium bg-indigo-50 text-indigo-700 border border-indigo-100 dark:bg-indigo-950/20 dark:text-indigo-300 dark:border-indigo-900/30">
+        <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium bg-orange-50 text-[#e06d09] border border-indigo-100 dark:bg-orange-950/20 dark:text-[#f98012] dark:border-indigo-900/30">
           <Clock size={12} /> Prórroga: {dateFormatted}
         </span>
       );
     } else {
       statusBadge = (
-        <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium bg-indigo-50 text-indigo-700 border border-indigo-100 dark:bg-indigo-950/20 dark:text-indigo-300 dark:border-indigo-900/30">
+        <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium bg-orange-50 text-[#e06d09] border border-indigo-100 dark:bg-orange-950/20 dark:text-[#f98012] dark:border-indigo-900/30">
           <Check size={12} /> Habilitado Sin Límite
         </span>
       );
@@ -120,7 +120,7 @@ export default function StudentLateSubmissionToggle({
           <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-100 dark:border-zinc-800 animate-fade-in text-left">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-zinc-800">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <Clock className="text-indigo-500" size={20} />
+                <Clock className="text-[#f98012]" size={20} />
                 Prórroga de Entrega
               </h3>
               <button 
@@ -133,7 +133,7 @@ export default function StudentLateSubmissionToggle({
 
             <div className="mt-4">
               <p className="text-sm font-medium text-gray-700 dark:text-zinc-300">
-                Estudiante: <span className="text-indigo-600 dark:text-indigo-400 font-bold">{studentName}</span>
+                Estudiante: <span className="text-[#f98012] dark:text-[#f98012] font-bold">{studentName}</span>
               </p>
               
               <div className="mt-5 flex items-center justify-between p-3 rounded-xl bg-gray-50/50 dark:bg-zinc-800/40 border border-gray-100 dark:border-zinc-800">
@@ -148,7 +148,7 @@ export default function StudentLateSubmissionToggle({
                 <button
                   onClick={() => setAllowLate(!allowLate)}
                   className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    allowLate ? "bg-indigo-600" : "bg-gray-200 dark:bg-zinc-700"
+                    allowLate ? "bg-[#f98012]" : "bg-gray-200 dark:bg-zinc-700"
                   }`}
                 >
                   <span
@@ -162,14 +162,14 @@ export default function StudentLateSubmissionToggle({
               {allowLate && (
                 <div className="mt-4 animate-fade-in">
                   <label className="text-sm font-semibold text-gray-700 dark:text-zinc-300 flex items-center gap-1.5 mb-1.5">
-                    <Calendar size={16} className="text-indigo-500" />
+                    <Calendar size={16} className="text-[#f98012]" />
                     Fecha y hora límite de prórroga (Opcional):
                   </label>
                   <input
                     type="datetime-local"
                     value={lateUntil}
                     onChange={(e) => setLateUntil(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-zinc-850 dark:bg-zinc-950 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500"
+                    className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-zinc-850 dark:bg-zinc-950 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#f98012]/25 focus:border-[#f98012]"
                   />
                   <p className="text-[11px] text-muted mt-1.5 italic">
                     * Si no seleccionas una fecha, el alumno podrá entregar su tarea en cualquier momento sin fecha de expiración.

@@ -421,9 +421,9 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
             ) : (
               <form onSubmit={handleUpload} className="flex flex-col gap-4">
                 {isOverdue && (
-                  <div className="bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/50 rounded-lg p-4 text-indigo-900 dark:text-indigo-200 flex flex-col gap-1">
+                  <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-indigo-900/50 rounded-lg p-4 text-[#7c3d00] dark:text-[#f98012] flex flex-col gap-1">
                     <h3 className="font-bold flex items-center gap-2 text-sm">
-                      <Clock size={16} className="text-indigo-600 dark:text-indigo-400" />
+                      <Clock size={16} className="text-[#f98012] dark:text-[#f98012]" />
                       Plazo Extemporáneo Activo
                     </h3>
                     <p className="text-xs">

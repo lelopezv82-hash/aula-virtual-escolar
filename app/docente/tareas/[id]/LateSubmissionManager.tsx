@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { Clock, Check, AlertCircle, Calendar } from "lucide-react";
@@ -147,7 +147,7 @@ export default function LateSubmissionManager({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h3 className="text-base font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
-            <Clock className="text-indigo-500" size={18} />
+            <Clock className="text-[#f98012]" size={18} />
             Control de Entregas Fuera de Plazo
           </h3>
           <p className="text-sm text-muted mt-1">
@@ -162,7 +162,7 @@ export default function LateSubmissionManager({
             onClick={handleToggleSwitch}
             disabled={loadingTask}
             className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-              taskAllowLate ? "bg-indigo-600" : "bg-gray-200 dark:bg-zinc-700"
+              taskAllowLate ? "bg-[#f98012]" : "bg-gray-200 dark:bg-zinc-700"
             } ${loadingTask ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             <span
@@ -221,10 +221,10 @@ export default function LateSubmissionManager({
 
       {/* Panel de configuración de fecha extemporánea cuando la entrega tardía está activada */}
       {taskAllowLate && (
-        <div className="mt-4 p-4 border border-indigo-100/50 dark:border-indigo-900/20 bg-indigo-50/30 dark:bg-indigo-950/10 rounded-xl animate-fade-in flex flex-col md:flex-row md:items-end gap-4 justify-between">
+        <div className="mt-4 p-4 border border-orange-100/50 dark:border-indigo-900/20 bg-orange-50/30 dark:bg-orange-950/10 rounded-xl animate-fade-in flex flex-col md:flex-row md:items-end gap-4 justify-between">
           <div className="flex-1">
-            <label className="text-xs font-semibold text-indigo-950 dark:text-indigo-200 flex items-center gap-1.5 mb-1.5">
-              <Calendar size={14} className="text-indigo-500" />
+            <label className="text-xs font-semibold text-indigo-950 dark:text-[#f98012] flex items-center gap-1.5 mb-1.5">
+              <Calendar size={14} className="text-[#f98012]" />
               Fecha y hora límite de prórroga general (Opcional):
             </label>
             <div className="relative flex items-center gap-2.5">
@@ -232,10 +232,10 @@ export default function LateSubmissionManager({
                 type="datetime-local"
                 value={lateUntil}
                 onChange={handleDateChange}
-                className="w-full max-w-md px-3.5 py-2 text-sm rounded-lg border border-gray-200 dark:border-zinc-800 dark:bg-zinc-950 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500"
+                className="w-full max-w-md px-3.5 py-2 text-sm rounded-lg border border-gray-200 dark:border-zinc-800 dark:bg-zinc-950 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#f98012]/25 focus:border-[#f98012]"
               />
             </div>
-            <p className="text-[11px] text-indigo-700/80 dark:text-indigo-300/60 mt-1">
+            <p className="text-[11px] text-[#e06d09]/80 dark:text-[#f98012]/60 mt-1">
               * Si no defines fecha/hora, la prórroga estará activa indefinidamente. Recuerda hacer clic en &quot;Guardar configuración&quot; para aplicar los cambios.
             </p>
           </div>

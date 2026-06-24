@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
@@ -24,9 +24,10 @@ interface EvidenciaModalProps {
   };
   isGoogleForm: boolean;
   onUnlock?: () => void;
+  label?: string;
 }
 
-export default function EvidenciaBotones({ exam, submission, isGoogleForm }: EvidenciaModalProps) {
+export default function EvidenciaBotones({ exam, submission, isGoogleForm, label = "Ver Respuestas" }: EvidenciaModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [loadingUnlock, setLoadingUnlock] = useState(false);
 
@@ -392,8 +393,8 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
           className="btn flex items-center justify-center gap-2 w-full md:w-auto hover:opacity-90 transition-opacity" 
           style={{ backgroundColor: 'var(--primary-color)', color: 'white' }}
         >
-          <Eye size={16} />
-          Ver Respuestas
+          <Eye size={18} />
+          {label}
         </button>
       </div>
       {modalContent}

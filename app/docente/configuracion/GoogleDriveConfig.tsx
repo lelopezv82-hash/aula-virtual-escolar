@@ -223,7 +223,7 @@ function GoogleDriveConfigContent() {
             onChange={handleToggle}
             className="sr-only peer"
           />
-          <div className="w-11 h-6 bg-gray-250 dark:bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+          <div className="w-11 h-6 bg-gray-250 dark:bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#f98012]"></div>
         </label>
       </div>
 
@@ -449,7 +449,7 @@ function GoogleDriveConfigContent() {
               ? `Pool activo con ${accounts.length} ${accounts.length === 1 ? 'cuenta' : 'cuentas'} (${formatBytes(poolStats.totalUsage)} / ${poolStats.hasPooled ? 'Compartido' : formatBytes(poolStats.totalLimit)} usados)`
               : "Almacenamiento Local Activo"}
           </span>
-          <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+          <span className="font-semibold text-[#f98012] dark:text-[#f98012]">
             {isConnected 
               ? `${combinedUsePercentage.toFixed(1)}% usado | ${Math.max(0, 100 - combinedUsePercentage).toFixed(1)}% disponible` 
               : "0% usado | 100% disponible"}
