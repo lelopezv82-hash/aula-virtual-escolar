@@ -264,7 +264,8 @@ export default async function DocenteDashboard() {
           fileUrl: (sub as any).fileUrl ?? null,
           submittedAt: sub.submittedAt?.toISOString() ?? null,
           isExam: ((sub.task as any).questions?.length ?? 0) > 0 || !!((sub.task as any).attachmentUrl && ((sub.task as any).attachmentUrl.includes("docs.google.com/forms") || (sub.task as any).attachmentUrl.includes("forms.gle"))),
-          isGoogleForm: !!((sub.task as any).attachmentUrl && ((sub.task as any).attachmentUrl.includes("docs.google.com/forms") || (sub.task as any).attachmentUrl.includes("forms.gle")))
+          isGoogleForm: !!((sub.task as any).attachmentUrl && ((sub.task as any).attachmentUrl.includes("docs.google.com/forms") || (sub.task as any).attachmentUrl.includes("forms.gle"))),
+          answers: (sub as any).answers ?? {}
         }))} />
       </div>
     </div>

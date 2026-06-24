@@ -21,6 +21,7 @@ interface SubItem {
   submittedAt: string | null;
   isExam: boolean;
   isGoogleForm: boolean;
+  answers?: any;
 }
 
 export default function EntregasRecientes({ submissions }: { submissions: SubItem[] }) {
@@ -84,6 +85,7 @@ function SubRow({ sub }: { sub: SubItem }) {
               submittedAt: sub.submittedAt ? new Date(sub.submittedAt) : null,
               feedback: sub.feedback,
               studentName: sub.studentName,
+              answers: sub.answers,
             }}
             isGoogleForm={sub.isGoogleForm}
             label="Ver Examen"

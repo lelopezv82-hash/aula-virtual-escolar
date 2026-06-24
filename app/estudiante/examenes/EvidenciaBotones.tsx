@@ -132,7 +132,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm, label
     <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm overflow-y-auto">
       <button 
         onClick={() => setIsOpen(false)}
-        className="fixed top-2 right-2 md:top-6 md:right-6 z-[110] bg-white/20 hover:bg-white text-white hover:text-gray-800 rounded-full p-2 transition-all shadow-lg backdrop-blur-md"
+        className="fixed top-2 right-2 md:top-6 md:right-6 z-[110] bg-white hover:bg-gray-100 text-gray-600 hover:text-gray-900 rounded-full p-2 transition-all shadow-md border border-gray-200"
         title="Cerrar"
       >
         <X size={28} />
@@ -308,7 +308,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm, label
                                   let optBorder = "border-[#dadce0]";
                                   let optText = "text-[#202124]";
 
-                                  if (isSelected && isOptCorrect) {
+                                  if (isOptCorrect) {
                                     optBg = "bg-[#e6f4ea]";
                                     optBorder = "border-[#137333]";
                                     optText = "text-[#137333] font-semibold";
@@ -323,14 +323,14 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm, label
                                       <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${
                                         isSelected && !isOptCorrect 
                                           ? "bg-[#c5221f] border-[#c5221f]" 
-                                          : isSelected && isOptCorrect 
+                                          : isOptCorrect 
                                             ? "bg-[#137333] border-[#137333]" 
                                             : "border-[#dadce0]"
                                       }`}>
-                                        {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                                        {(isSelected || isOptCorrect) && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
                                       </div>
                                       <span className={`text-[14px] ${optText}`}>{opt.text}</span>
-                                      {isSelected && isOptCorrect && <CheckCircle2 size={16} className="text-[#137333] ml-auto shrink-0" />}
+                                      {isOptCorrect && <CheckCircle2 size={16} className="text-[#137333] ml-auto shrink-0" />}
                                       {isSelected && !isOptCorrect && <X size={16} className="text-[#c5221f] ml-auto shrink-0" />}
                                     </div>
                                   );
