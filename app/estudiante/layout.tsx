@@ -66,7 +66,7 @@ export default async function EstudianteLayout({ children }: { children: React.R
       roleTitle="Estudiante"
       sidebarTitle="Aula Estudiante"
       links={links}
-      themeColor="var(--success)"
+      themeColor="var(--primary-color)"
     >
       {children}
     </DashboardShell>
