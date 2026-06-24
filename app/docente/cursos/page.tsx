@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { BookOpen, Plus, Edit2, Trash2, X, Save, Loader2 } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
 
@@ -32,6 +33,11 @@ export default function CursosPage() {
   const [courseForm, setCourseForm] = useState({ name: "", description: "", groupIds: [] as string[] });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     fetch("/api/grados")
@@ -220,7 +226,7 @@ export default function CursosPage() {
       )}
 
       {/* Course Modal */}
-      {showCourseModal && (
+      {showCourseModal && mounted && createPortal(
         <div
           className="modal-overlay"
           onClick={(e) => e.target === e.currentTarget && setShowCourseModal(false)}
@@ -315,7 +321,8 @@ export default function CursosPage() {
               </button>
             </div>
           </form>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
