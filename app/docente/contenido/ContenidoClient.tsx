@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { 
@@ -913,7 +913,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                                                  width: "42px",
                                                  height: "22px",
                                                  borderRadius: "9999px",
-                                                 background: task.active !== false ? "var(--success, #10b981)" : "#cbd5e1",
+                                                 background: task.active !== false ? "var(--primary-color, #f98012)" : "#cbd5e1",
                                                  border: "none",
                                                  padding: 0,
                                                  outline: "none"
@@ -1098,7 +1098,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                                                  width: "42px",
                                                  height: "22px",
                                                  borderRadius: "9999px",
-                                                 background: res.active !== false ? "var(--success, #10b981)" : "#cbd5e1",
+                                                 background: res.active !== false ? "var(--primary-color, #f98012)" : "#cbd5e1",
                                                  border: "none",
                                                  padding: 0,
                                                  outline: "none"

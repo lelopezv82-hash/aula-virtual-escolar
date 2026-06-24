@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { ClipboardList, Plus } from "lucide-react";
@@ -208,7 +208,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                                           width: "42px",
                                           height: "22px",
                                           borderRadius: "9999px",
-                                          background: task.active !== false ? "var(--success, #10b981)" : "#cbd5e1",
+                                          background: task.active !== false ? "var(--primary-color, #f98012)" : "#cbd5e1",
                                           border: "none",
                                           padding: 0,
                                           outline: "none"

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { Plus, Edit2, Trash2, Layers, X, Save, Loader2 } from "lucide-react";
@@ -210,7 +210,7 @@ export default function GestionPeriodosClient({ initialPeriods }: GestionPeriodo
                           height: "22px",
                           borderRadius: "9999px",
                           background: period.active
-                            ? "var(--success, #10b981)"
+                            ? "var(--primary-color, #f98012)"
                             : "#cbd5e1",
                           border: "none",
                           padding: 0,
