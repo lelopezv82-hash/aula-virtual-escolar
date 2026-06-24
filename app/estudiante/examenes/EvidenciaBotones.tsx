@@ -202,7 +202,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm, label
                                   let optBorder = "border-[#dadce0]";
                                   let optText = "text-[#202124]";
 
-                                  if (isOptCorrect) {
+                                  if (isSelected && isOptCorrect) {
                                     optBg = "bg-[#e6f4ea]";
                                     optBorder = "border-[#137333]";
                                     optText = "text-[#137333] font-semibold";
@@ -218,7 +218,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm, label
                                         {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
                                       </div>
                                       <span className={`text-[14px] ${optText}`}>{option}</span>
-                                      {isOptCorrect && <CheckCircle2 size={16} className="text-[#137333] ml-auto shrink-0" />}
+                                      {isSelected && isOptCorrect && <CheckCircle2 size={16} className="text-[#137333] ml-auto shrink-0" />}
                                       {isSelected && isIncorrect && <X size={16} className="text-[#c5221f] ml-auto shrink-0" />}
                                     </div>
                                   );
@@ -308,7 +308,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm, label
                                   let optBorder = "border-[#dadce0]";
                                   let optText = "text-[#202124]";
 
-                                  if (isOptCorrect) {
+                                  if (isSelected && isOptCorrect) {
                                     optBg = "bg-[#e6f4ea]";
                                     optBorder = "border-[#137333]";
                                     optText = "text-[#137333] font-semibold";
@@ -323,14 +323,14 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm, label
                                       <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${
                                         isSelected && !isOptCorrect 
                                           ? "bg-[#c5221f] border-[#c5221f]" 
-                                          : isOptCorrect 
+                                          : isSelected && isOptCorrect 
                                             ? "bg-[#137333] border-[#137333]" 
                                             : "border-[#dadce0]"
                                       }`}>
-                                        {(isSelected || isOptCorrect) && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                                        {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
                                       </div>
                                       <span className={`text-[14px] ${optText}`}>{opt.text}</span>
-                                      {isOptCorrect && <CheckCircle2 size={16} className="text-[#137333] ml-auto shrink-0" />}
+                                      {isSelected && isOptCorrect && <CheckCircle2 size={16} className="text-[#137333] ml-auto shrink-0" />}
                                       {isSelected && !isOptCorrect && <X size={16} className="text-[#c5221f] ml-auto shrink-0" />}
                                     </div>
                                   );
