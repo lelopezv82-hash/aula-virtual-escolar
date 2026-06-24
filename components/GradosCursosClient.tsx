@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Trash2, Layers, Users, Loader2, Save, X, Copy, Check, UserPlus, Eye, EyeOff, Edit2, FileSpreadsheet, Upload } from "lucide-react";
+import { Plus, Trash2, Layers, Users, Loader2, Save, X, Copy, Check, UserPlus, Eye, EyeOff, Edit2, FileSpreadsheet, Upload, Key } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
 import * as XLSX from "xlsx";
 import mammoth from "mammoth";
@@ -27,6 +27,15 @@ interface Student {
   groupName: string | null;
   passwordPlain?: string | null;
 }
+
+const generateRandomPassword = () => {
+  const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let pwd = "";
+  for (let i = 0; i < 8; i++) {
+    pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return pwd;
+};
 
 interface GradosCursosClientProps {
   role: "admin" | "docente";
@@ -910,7 +919,16 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                           />
                         </div>
                         <div className="input-group">
-                          <label className="font-semibold text-xs mb-1 block">Contraseña (Opcional)</label>
+                          <div className="flex justify-between items-center mb-1">
+                            <label className="font-semibold text-xs block">Contraseña (Opcional)</label>
+                            <button
+                              type="button"
+                              onClick={() => setStudentPassword(generateRandomPassword())}
+                              className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"
+                            >
+                              <Key size={12} /> Generar aleatoria
+                            </button>
+                          </div>
                           <input
                             type="text"
                             className="input-field"
@@ -1226,7 +1244,16 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                 />
               </div>
               <div className="input-group">
-                <label className="font-semibold text-xs mb-1 block">Contraseña (Dejar vacío para no cambiar)</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="font-semibold text-xs block">Contraseña (Dejar vacío para no cambiar)</label>
+                  <button
+                    type="button"
+                    onClick={() => setEditStudentPassword(generateRandomPassword())}
+                    className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"
+                  >
+                    <Key size={12} /> Generar aleatoria
+                  </button>
+                </div>
                 <input
                   type="text"
                   className="input-field"
