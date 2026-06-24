@@ -138,7 +138,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm, label
         <X size={28} />
       </button>
 
-      <div className="min-h-screen flex justify-center items-start bg-[#e8f0fe]">
+      <div className="min-h-screen flex justify-center items-start bg-gray-100">
         <div className="w-full max-w-[770px] flex flex-col animate-fade-in relative mx-auto p-4 md:p-6 lg:py-8">
                 
                 <div className="bg-white border border-[#dadce0] rounded-[8px] overflow-hidden mb-3 border-t-8 border-t-[#f98012]" style={{ marginBottom: '12px' }}>
