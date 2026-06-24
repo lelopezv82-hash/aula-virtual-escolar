@@ -322,7 +322,7 @@ export default function ExamenNativo({
                           isDisabled ? "cursor-not-allowed opacity-75" : "cursor-pointer"
                         } ${
                           isSelected 
-                            ? "bg-orange-50/50 border-[#f98012] text-[#7c3d00] dark:bg-orange-950/20 dark:border-blue-900" 
+                            ? "bg-orange-50/50 border-[#f98012] text-[#7c3d00] dark:bg-orange-950/20 dark:border-orange-900" 
                             : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:bg-gray-50/80 dark:hover:bg-gray-800/30"
                         }`}
                       >

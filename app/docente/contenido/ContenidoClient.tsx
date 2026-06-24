@@ -708,13 +708,13 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       <div className="flex gap-4 border-b pb-1" style={{ borderColor: "var(--border-color)" }}>
         <button
           onClick={() => setActiveTab("tareas")}
-          className={`flex items-center gap-2 px-5 py-3 font-semibold transition-colors border-b-2 ${activeTab === "tareas" ? "text-[#f98012] border-blue-600 dark:text-[#f98012] dark:border-[#f98012]" : "text-muted border-transparent hover:text-foreground"}`}
+          className={`flex items-center gap-2 px-5 py-3 font-semibold transition-colors border-b-2 ${activeTab === "tareas" ? "text-[#f98012] border-[#f98012] dark:text-[#f98012] dark:border-[#f98012]" : "text-muted border-transparent hover:text-foreground"}`}
         >
           <ClipboardList size={18} /> Tareas
         </button>
         <button
           onClick={() => setActiveTab("examenes")}
-          className={`flex items-center gap-2 px-5 py-3 font-semibold transition-colors border-b-2 ${activeTab === "examenes" ? "text-[#f98012] border-blue-600 dark:text-[#f98012] dark:border-[#f98012]" : "text-muted border-transparent hover:text-foreground"}`}
+          className={`flex items-center gap-2 px-5 py-3 font-semibold transition-colors border-b-2 ${activeTab === "examenes" ? "text-[#f98012] border-[#f98012] dark:text-[#f98012] dark:border-[#f98012]" : "text-muted border-transparent hover:text-foreground"}`}
         >
           <ClipboardList size={18} /> Exámenes
         </button>
@@ -722,7 +722,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
           onClick={() => setActiveTab("materiales")}
           className={`pb-3 px-2 font-bold text-sm md:text-base border-b-2 transition-all ${
             activeTab === "materiales" 
-              ? "border-blue-600 text-[#f98012] font-extrabold" 
+              ? "border-[#f98012] text-[#f98012] font-extrabold" 
               : "border-transparent text-muted hover:text-primary"
           }`}
         >
@@ -1299,7 +1299,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
             </div>
 
             {taskForm.type === "EXAM" ? (
-              <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-blue-900/50 rounded-lg p-3 text-[11px] text-blue-700 dark:text-blue-300 mb-4">
+              <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/50 rounded-lg p-3 text-[11px] text-[#e06d09] dark:text-[#f98012] mb-4">
                 <strong>💡 Examen en la Plataforma:</strong> Este examen se creará directamente aquí. Una vez creado, haz clic en <strong>Ver/Calificar</strong> en la lista de exámenes para ingresar las preguntas y opciones de respuesta.
               </div>
             ) : (
@@ -1311,7 +1311,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                 </div>
                 <div className="mb-4">
                   <label className="block text-xs font-bold mb-1.5">{editingTask ? "Nuevo Archivo Adjunto (Opcional)" : "Archivo Adjunto (Opcional)"}</label>
-                  <label htmlFor="task-file" className="block border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-blue-500 transition-colors" style={{ borderColor: 'var(--border-color)' }}>
+                  <label htmlFor="task-file" className="block border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-[#f98012] transition-colors" style={{ borderColor: 'var(--border-color)' }}>
                     <UploadCloud size={24} className="mx-auto mb-1.5 text-[#f98012]" />
                     <p className="text-xs font-bold">{taskFile ? taskFile.name : "Selecciona una guía o archivo"}</p>
                     <input id="task-file" type="file" className="hidden" onChange={e => setTaskFile(e.target.files?.[0] || null)} />
@@ -1432,7 +1432,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
             ) : (
               <div className="mb-4">
                 <label className="block text-xs font-bold mb-1.5">{editingResource ? "Nuevo Archivo (Opcional)" : "Archivo de Recurso *"}</label>
-                <label htmlFor="resource-file" className="block border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-blue-500 transition-colors" style={{ borderColor: 'var(--border-color)' }}>
+                <label htmlFor="resource-file" className="block border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-[#f98012] transition-colors" style={{ borderColor: 'var(--border-color)' }}>
                   <UploadCloud size={24} className="mx-auto mb-1.5 text-[#f98012]" />
                   <p className="text-xs font-bold">{resourceFile ? resourceFile.name : "Selecciona un archivo para subir"}</p>
                   <input id="resource-file" type="file" className="hidden" onChange={e => setResourceFile(e.target.files?.[0] || null)} required={!editingResource} />

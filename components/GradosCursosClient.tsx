@@ -674,7 +674,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                               setStudentError("");
                               setShowStudentListModal(true);
                             }}
-                            className="text-xs text-[#f98012] dark:text-[#f98012] bg-orange-50 dark:bg-orange-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 px-2 py-1 rounded-lg flex items-center gap-1.5 transition-colors font-medium cursor-pointer"
+                            className="text-xs text-[#f98012] dark:text-[#f98012] bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/40 px-2 py-1 rounded-lg flex items-center gap-1.5 transition-colors font-medium cursor-pointer"
                           >
                             <Users size={13} /> {group._count.students}
                           </button>
@@ -1052,7 +1052,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                                       onClick={() => {
                                         navigator.clipboard.writeText(`Usuario: ${student.username}\nContraseña: ${student.passwordPlain}`);
                                       }}
-                                      className="p-1 rounded hover:bg-orange-50 dark:hover:bg-blue-900/20 text-[#f98012]"
+                                      className="p-1 rounded hover:bg-orange-50 dark:hover:bg-orange-900/20 text-[#f98012]"
                                       title="Copiar credenciales"
                                     >
                                       <Copy size={14} />
@@ -1066,7 +1066,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                                       setStudentError("");
                                       setShowEditStudentModal(true);
                                     }}
-                                    className="p-1 rounded hover:bg-orange-50 dark:hover:bg-blue-900/20 text-[#f98012]"
+                                    className="p-1 rounded hover:bg-orange-50 dark:hover:bg-orange-900/20 text-[#f98012]"
                                     title="Editar estudiante"
                                   >
                                     <Edit2 size={14} />

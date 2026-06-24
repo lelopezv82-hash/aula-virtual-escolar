@@ -409,7 +409,7 @@ export default function QuestionEditor({ taskId, initialQuestions }: QuestionEdi
                   <div className="flex-1">
                     <h4 className="font-bold text-sm text-primary flex items-center gap-1.5">
                       <span>{index + 1}. {q.text}</span>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-[#7c3d00] dark:bg-orange-900/40 dark:text-blue-300 font-medium">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-[#7c3d00] dark:bg-orange-900/40 dark:text-[#f98012] font-medium">
                         {q.points} pt{q.points !== 1 ? "s" : ""}
                       </span>
                       <span className="text-xs text-muted">

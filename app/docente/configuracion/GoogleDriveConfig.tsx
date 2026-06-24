@@ -352,7 +352,7 @@ function GoogleDriveConfigContent() {
                               setEditingAccountId(acc.id);
                               setEditLimitVal(acc.customLimitGB ? acc.customLimitGB.toString() : "");
                             }}
-                            className="text-[10px] text-[#f98012] hover:text-blue-700 hover:underline cursor-pointer ml-1.5 font-medium"
+                            className="text-[10px] text-[#f98012] hover:text-[#e06d09] hover:underline cursor-pointer ml-1.5 font-medium"
                           >
                             [Ajustar Límite]
                           </button>
@@ -421,7 +421,7 @@ function GoogleDriveConfigContent() {
 
           {/* Workspace Note */}
           {poolStats.hasPooled && (
-            <div className="mt-1 p-2.5 bg-orange-50/50 dark:bg-orange-950/10 border border-blue-150 dark:border-blue-900/40 rounded-lg text-[10px] text-muted leading-relaxed flex items-start gap-1.5">
+            <div className="mt-1 p-2.5 bg-orange-50/50 dark:bg-orange-950/10 border border-orange-200 dark:border-orange-900/40 rounded-lg text-[10px] text-muted leading-relaxed flex items-start gap-1.5">
               <span className="text-[#f98012] font-semibold shrink-0">ℹ</span>
               <span>
                 <strong>Nota sobre Google Workspace:</strong> Al usar un correo institucional, Google reporta el límite de almacenamiento total compartido de tu colegio (100 TB). Tu capacidad de subida personal está sujeta al límite asignado por el administrador de tu institución.

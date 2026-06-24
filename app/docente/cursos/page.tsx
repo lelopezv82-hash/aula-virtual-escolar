@@ -201,7 +201,7 @@ export default function CursosPage() {
                 {course.groups && course.groups.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-1.5">
                     {course.groups.map(group => (
-                      <span key={group.id} className="px-2 py-0.5 rounded bg-orange-50 text-blue-700 dark:bg-orange-900/30 text-[10px] font-semibold border border-orange-200/50">
+                      <span key={group.id} className="px-2 py-0.5 rounded bg-orange-50 text-[#e06d09] dark:bg-orange-900/30 text-[10px] font-semibold border border-orange-200/50">
                         {group.grade?.name ? `${group.grade.name} - ${group.name}` : group.name}
                       </span>
                     ))}

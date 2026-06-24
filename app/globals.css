@@ -158,6 +158,13 @@ a:hover {
   box-shadow: 0 0 0 3px var(--primary-light);
 }
 
+/* Checkbox, radio and range accent color — Moodle orange */
+input[type="checkbox"],
+input[type="radio"],
+input[type="range"] {
+  accent-color: var(--primary-color);
+}
+
 /* Custom Scrollbars */
 ::-webkit-scrollbar {
   width: 8px;
