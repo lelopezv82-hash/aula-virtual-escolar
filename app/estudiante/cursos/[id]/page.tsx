@@ -234,8 +234,8 @@ export default async function EstudianteCursoDetallePage({
 
             {/* Exams Section */}
             {filteredExams.length > 0 && (
-              <div className="card border-2 border-indigo-100 dark:border-indigo-900/50">
-                <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
+              <div className="card border-2 border-orange-100 dark:border-orange-900/50">
+                <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-[#f98012] dark:text-[#f98012]">
                   <ClipboardList size={22} />
                   Exámenes - {currentPeriod}
                 </h2>
@@ -251,7 +251,7 @@ export default async function EstudianteCursoDetallePage({
                     return (
                       <div
                         key={task.id}
-                        className="p-4 rounded-lg flex justify-between items-center flex-wrap gap-4 border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-900/20"
+                        className="p-4 rounded-lg flex justify-between items-center flex-wrap gap-4 border border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-900/20"
                         style={{
                           transition: "transform var(--transition-fast)"
                         }}
@@ -273,22 +273,22 @@ export default async function EstudianteCursoDetallePage({
                                 <Clock size={12} /> Pendiente
                               </span>
                             )}
-                            <span className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">
+                            <span className="text-xs text-[#f98012] dark:text-[#f98012] font-medium">
                               Vence: {formatToColombiaString(activeDeadline)} {hasExtension && "(Prórroga)"}
                             </span>
                             {task.weight !== undefined && task.weight !== null && task.weight > 0 && (
-                              <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300">
+                              <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-orange-100 text-[#f98012] dark:bg-orange-900/50 dark:text-[#f98012]">
                                 Peso: {task.weight}%
                               </span>
                             )}
                           </div>
-                          <h3 className="font-bold text-base text-indigo-900 dark:text-indigo-100">{task.title}</h3>
-                          <p className="text-sm text-indigo-700/70 dark:text-indigo-300/70 truncate mt-0.5">{task.description || "Sin descripción"}</p>
+                          <h3 className="font-bold text-base text-gray-900 dark:text-white">{task.title}</h3>
+                          <p className="text-sm text-gray-600/70 dark:text-gray-300/70 truncate mt-0.5">{task.description || "Sin descripción"}</p>
                         </div>
 
                         <div>
                           {!isSubmitted && (
-                            <Link href={`/estudiante/examenes/${task.id}`} className="btn btn-primary text-sm bg-indigo-600 hover:bg-indigo-700 text-white">
+                            <Link href={`/estudiante/examenes/${task.id}`} className="btn btn-primary text-sm ">
                               Resolver Examen
                             </Link>
                           )}

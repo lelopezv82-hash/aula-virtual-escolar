@@ -98,8 +98,7 @@ export default function ExamenCardAcciones({
       {!isSubmitted && !isClosed && (
         <Link
           href={`/estudiante/examenes/${examId}`}
-          className="btn w-full md:w-auto"
-          style={{ backgroundColor: "#8b5cf6", color: "white" }}
+          className="btn btn-primary w-full md:w-auto"
         >
           Resolver Examen
         </Link>
