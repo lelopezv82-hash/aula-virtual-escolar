@@ -229,6 +229,13 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
                               </div>
                             )}
                             
+                            {isIncorrect && item.correctAnswer && (
+                              <div className="p-3 rounded-r-[4px] rounded-l-none bg-[#f8f9fa] border-l-4 border-l-[#137333] text-xs mt-2 flex flex-col gap-1">
+                                <span className="font-bold text-[#137333]">Respuesta correcta:</span>
+                                <span className="font-semibold text-sm" style={{ color: "#202124" }}>{item.correctAnswer}</span>
+                              </div>
+                            )}
+
                             {!item.options && (
                               <div className="mt-4 text-[12px] text-[#bdc1c6] italic">
                                 * Solo se muestran la respuesta elegida y la correcta.
