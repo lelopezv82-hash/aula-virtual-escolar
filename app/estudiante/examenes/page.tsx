@@ -63,6 +63,18 @@ export default async function ExamenesEstudiantePage() {
     orderBy: { createdAt: "desc" }
   });
 
+  const pendingExams = exams.filter(exam => {
+    const submission = exam.submissions[0];
+    const { isClosed } = getTaskDeadlineStatus(exam, submission);
+    const isTimerExpired = !!(submission?.startedAt && exam.duration &&
+      (new Date(submission.startedAt).getTime() + exam.duration * 60 * 1000 + 30000 < now.getTime()));
+    const virtualGraded =
+      (!submission && isClosed) ||
+      (submission && submission.status === "PENDING" && (isClosed || isTimerExpired));
+    const isSubmitted = submission && submission.status !== "PENDING";
+    return !isSubmitted && !virtualGraded;
+  });
+
   return (
     <div className="animate-fade-in">
       <div className="dashboard-header">
@@ -71,13 +83,13 @@ export default async function ExamenesEstudiantePage() {
       </div>
 
       <div className="flex flex-col gap-4">
-        {exams.length === 0 ? (
+        {pendingExams.length === 0 ? (
           <div className="card text-center py-8 text-muted">
             <ClipboardList size={48} className="mx-auto mb-4 opacity-50" />
-            <p>No tienes exámenes asignados en este momento.</p>
+            <p>No tienes exámenes pendientes en este momento.</p>
           </div>
         ) : (
-          exams.map(exam => {
+          pendingExams.map(exam => {
             const submission = exam.submissions[0] || null;
             const isGoogleForm = !!(exam.attachmentUrl && (exam.attachmentUrl.includes("docs.google.com/forms") || exam.attachmentUrl.includes("forms.gle")));
 

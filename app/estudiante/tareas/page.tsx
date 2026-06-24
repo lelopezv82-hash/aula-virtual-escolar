@@ -63,6 +63,14 @@ export default async function TareasEstudiantePage() {
     orderBy: { createdAt: "desc" }
   });
 
+  const pendingTasks = tasks.filter(task => {
+    const submission = task.submissions[0];
+    const { isClosed } = getTaskDeadlineStatus(task, submission);
+    const virtualGraded = (!submission && isClosed) || (submission && submission.status === "PENDING" && isClosed);
+    const isSubmitted = submission && submission.status !== "PENDING";
+    return !isSubmitted && !virtualGraded;
+  });
+
   return (
     <div className="animate-fade-in">
       <div className="dashboard-header">
@@ -71,13 +79,13 @@ export default async function TareasEstudiantePage() {
       </div>
 
       <div className="flex flex-col gap-4">
-        {tasks.length === 0 ? (
+        {pendingTasks.length === 0 ? (
           <div className="card text-center py-8 text-muted">
             <ClipboardList size={48} className="mx-auto mb-4 opacity-50" />
-            <p>No tienes tareas asignadas en este momento.</p>
+            <p>No tienes tareas pendientes en este momento.</p>
           </div>
         ) : (
-          tasks.map(task => {
+          pendingTasks.map(task => {
             const submission = task.submissions[0];
             const { activeDeadline, hasExtension, isClosed, isLate } = getTaskDeadlineStatus(task, submission);
             const virtualGraded = (!submission && isClosed) || (submission && submission.status === "PENDING" && isClosed);

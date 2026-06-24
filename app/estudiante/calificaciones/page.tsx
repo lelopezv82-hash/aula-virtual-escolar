@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { CheckCircle, Clock, AlertCircle } from "lucide-react";
 import { getTaskDeadlineStatus } from '@/lib/dateUtils';
+import EvidenciaBotones from "@/app/estudiante/examenes/EvidenciaBotones";
+import Link from "next/link";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -265,10 +267,41 @@ export default async function CalificacionesEstudiantePage() {
                               <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>nota</div>
                             </>
                           ) : (
-                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontStyle: "italic" }}>
+                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontStyle: "italic", marginBottom: "0.5rem" }}>
                               {sub.task.type === "EXAM" ? "En proceso de calificación..." : "Pendiente de revisión"}
                             </div>
                           )}
+
+                          <div className="mt-1 w-full flex justify-center">
+                            {sub.task.type === "EXAM" ? (
+                              <EvidenciaBotones
+                                exam={{
+                                  id: sub.task.id,
+                                  title: sub.task.title,
+                                  course: { name: sub.task.course?.name || "Asignatura" }
+                                }}
+                                submission={{
+                                  grade: sub.grade !== null && sub.grade !== undefined ? Math.max(1.0, sub.grade) : null,
+                                  status: sub.status,
+                                  fileUrl: sub.fileUrl,
+                                  submittedAt: sub.submittedAt,
+                                  feedback: sub.feedback,
+                                  feedbackTemplate: sub.feedbackTemplate,
+                                  studentName: studentName,
+                                  attempt: sub.attempt,
+                                  unlockedAnswers: sub.unlockedAnswers,
+                                  answers: (sub as any).answers
+                                }}
+                                isGoogleForm={!!(sub.task.attachmentUrl?.includes("docs.google.com/forms") || sub.task.attachmentUrl?.includes("forms.gle"))}
+                                variant="secondary"
+                                label="Ver Respuestas"
+                              />
+                            ) : (
+                              <Link href={`/estudiante/tareas/${sub.task.id}`} className="btn btn-secondary text-xs px-2 py-1 w-full flex justify-center">
+                                Ver Entrega
+                              </Link>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
