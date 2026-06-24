@@ -29,17 +29,17 @@ export default async function EstudianteLayout({ children }: { children: React.R
   const links = [
     {
       href: "/estudiante",
-      label: "Mis Asignaturas",
+      label: "Asignaturas",
       icon: <Book size={20} />,
     },
     {
       href: "/estudiante/tareas",
-      label: "Mis Tareas",
+      label: "Tareas",
       icon: <ClipboardList size={20} />,
     },
     {
       href: "/estudiante/examenes",
-      label: "Mis Exámenes",
+      label: "Exámenes",
       icon: <ClipboardList size={20} />,
     },
     {
