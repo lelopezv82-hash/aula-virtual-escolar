@@ -15,15 +15,20 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    if (payload.role !== "STUDENT") {
+    if (payload.role !== "STUDENT" && payload.role !== "TEACHER") {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const studentId = payload.id as string;
-    const student = await prisma.user.findUnique({
-      where: { id: studentId },
-      select: { groupId: true, name: true }
-    });
+    const isTeacher = payload.role === "TEACHER";
+    const studentId = isTeacher ? null : payload.id as string;
+    
+    let student = null;
+    if (studentId) {
+      student = await prisma.user.findUnique({
+        where: { id: studentId },
+        select: { groupId: true, name: true }
+      });
+    }
 
     const task = await prisma.task.findUnique({
       where: { id: resolvedParams.id },
@@ -37,9 +42,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
             }
           }
         },
-        submissions: {
+        submissions: studentId ? {
           where: { studentId }
-        }
+        } : { take: 1 } // For teacher, just get one submission to extract feedbackTemplate if needed
       }
     });
 
@@ -66,7 +71,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       }
     }
 
-    if (task.groups.length > 0 && !task.groups.some(g => g.id === student?.groupId)) {
+    if (!isTeacher && task.groups.length > 0 && !task.groups.some(g => g.id === student?.groupId)) {
       return NextResponse.json({ error: 'Tarea no encontrada' }, { status: 404 });
     }
 
@@ -76,7 +81,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const isGoogleForm = !!(task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));
     
     const isNative = task.questions && task.questions.length > 0;
-    const canSeeAnswers = submission && submission.status !== "PENDING" && (isNative || submission.attempt > 1 || submission.unlockedAnswers === true);
+    const canSeeAnswers = isTeacher || (submission && submission.status !== "PENDING" && (isNative || submission.attempt > 1 || submission.unlockedAnswers === true));
 
     // Sanitize correct options if student cannot see answers yet
     if (task.questions && task.questions.length > 0 && !canSeeAnswers) {
