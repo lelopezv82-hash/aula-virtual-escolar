@@ -79,10 +79,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const canSeeAnswers = submission && submission.status !== "PENDING" && (isNative || submission.attempt > 1 || submission.unlockedAnswers === true);
 
     // Sanitize correct options if student cannot see answers yet
-    console.log("DEBUG Student Task ID:", task.id);
-    console.log("DEBUG canSeeAnswers:", canSeeAnswers);
-    console.log("DEBUG submissions count:", task.submissions.length);
-    console.log("DEBUG first question options:", JSON.stringify(task.questions[0]?.options));
     if (task.questions && task.questions.length > 0 && !canSeeAnswers) {
       (task as any).questions = task.questions.map((q: any) => ({
         ...q,
@@ -93,7 +89,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       }));
     }
 
-    if (isGoogleForm && canSeeAnswers) {
+    // For Google Forms: always show template/answers once the exam is GRADED
+    const googleFormGraded = isGoogleForm && submission && submission.status === "GRADED";
+    if (googleFormGraded || (isGoogleForm && canSeeAnswers)) {
       const templateSub = await prisma.submission.findFirst({
         where: {
           taskId: task.id,

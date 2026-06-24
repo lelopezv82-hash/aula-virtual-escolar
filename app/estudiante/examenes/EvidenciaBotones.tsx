@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Eye, X, CheckCircle2, Loader2 } from "lucide-react";
 
@@ -38,6 +38,8 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
   const [localTemplate, setLocalTemplate] = useState<string | null>(submission.feedbackTemplate || null);
   const [nativeTask, setNativeTask] = useState<any>(null);
   const [loadingTask, setLoadingTask] = useState(false);
+  // Guard: prevent re-fetching when API returns null (would cause infinite spinner)
+  const fetchedRef = useRef(false);
 
   useEffect(() => {
     setLocalFeedback(submission.feedback || null);
@@ -48,7 +50,8 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
     const needsNative = !isGoogleForm && !nativeTask;
     const needsTemplate = isGoogleForm && !localFeedback && !localTemplate;
 
-    if (isOpen && (needsNative || needsTemplate)) {
+    if (isOpen && (needsNative || needsTemplate) && !fetchedRef.current) {
+      fetchedRef.current = true;
       setLoadingTask(true);
       fetch(`/api/estudiante/tareas/${exam.id}?_=${Date.now()}`)
         .then(res => res.json())
