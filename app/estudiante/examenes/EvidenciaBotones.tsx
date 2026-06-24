@@ -25,9 +25,10 @@ interface EvidenciaModalProps {
   isGoogleForm: boolean;
   onUnlock?: () => void;
   label?: string;
+  variant?: 'primary' | 'secondary';
 }
 
-export default function EvidenciaBotones({ exam, submission, isGoogleForm, label = "Ver Respuestas" }: EvidenciaModalProps) {
+export default function EvidenciaBotones({ exam, submission, isGoogleForm, label = "Ver Respuestas", variant = "primary" }: EvidenciaModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [loadingUnlock, setLoadingUnlock] = useState(false);
 
@@ -390,10 +391,14 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm, label
       <div className="flex flex-col gap-2 w-full items-start">
         <button 
           onClick={handleVerRespuestas}
-          className="btn flex items-center justify-center gap-2 w-full md:w-auto hover:opacity-90 transition-opacity" 
-          style={{ backgroundColor: 'var(--primary-color)', color: 'white' }}
+          className={
+            variant === "primary"
+              ? "btn flex items-center justify-center gap-2 w-full md:w-auto hover:opacity-90 transition-opacity"
+              : "btn btn-secondary text-xs px-2 py-1 flex items-center justify-center gap-1.5"
+          }
+          style={variant === "primary" ? { backgroundColor: 'var(--primary-color)', color: 'white' } : {}}
         >
-          <Eye size={18} />
+          {variant === "primary" && <Eye size={18} />}
           {label}
         </button>
       </div>

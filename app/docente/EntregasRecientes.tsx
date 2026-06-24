@@ -87,6 +87,7 @@ function SubRow({ sub }: { sub: SubItem }) {
             }}
             isGoogleForm={sub.isGoogleForm}
             label="Ver Examen"
+            variant="secondary"
           />
         ) : (
           <Link href={`/docente/tareas/${sub.taskId}`} className="btn btn-secondary text-xs px-2 py-1">
