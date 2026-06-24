@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { ClipboardList, Plus } from "lucide-react";
@@ -114,7 +114,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
           return (
             <div key={course.id} className="card w-full">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <ClipboardList className="text-blue-600" />
+                <ClipboardList className="text-[#f98012]" />
                 {course.name}
               </h2>
               
@@ -138,7 +138,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                     <div key={periodName} className="p-3 rounded-lg border" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', opacity: isPeriodActive ? 1 : 0.6 }}>
                       <h4 className="font-bold text-xs uppercase tracking-wider mb-3 flex items-center justify-between" style={{ color: 'var(--text-secondary)' }}>
                         <span className="flex items-center gap-2">
-                          <span className={`w-2 h-2 rounded-full ${isPeriodActive ? 'bg-blue-500' : 'bg-gray-400'}`}></span>
+                          <span className={`w-2 h-2 rounded-full ${isPeriodActive ? 'bg-orange-500' : 'bg-gray-400'}`}></span>
                           {periodName}
                         </span>
                         <div className="flex items-center gap-2">

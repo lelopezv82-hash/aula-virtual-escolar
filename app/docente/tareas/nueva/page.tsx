@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -187,7 +187,7 @@ export default function NuevaTareaPage() {
                 const allSelected = allIds.every(id => groupIds.includes(id));
                 setGroupIds(allSelected ? [] : allIds);
               }}
-              className="text-xs font-bold text-blue-600 hover:underline"
+              className="text-xs font-bold text-[#f98012] hover:underline"
             >
               {gradeGroups.map(g => g.id).every(id => groupIds.includes(id)) 
                 ? "Desmarcar todos" 
@@ -212,7 +212,7 @@ export default function NuevaTareaPage() {
                         : [...groupIds, g.id];
                       setGroupIds(newIds);
                     }}
-                    className="rounded text-blue-600 focus:ring-blue-500"
+                    className="rounded text-[#f98012] focus:ring-[#f98012]"
                   />
                   <span>{g.name}</span>
                 </label>

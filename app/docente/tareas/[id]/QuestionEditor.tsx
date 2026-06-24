@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { Plus, Trash2, Check, Save, Loader2, ArrowUp, ArrowDown, Edit3, X } from "lucide-react";
@@ -297,7 +297,7 @@ export default function QuestionEditor({ taskId, initialQuestions }: QuestionEdi
                   <button 
                     type="button" 
                     onClick={handleAddOption}
-                    className="text-xs text-blue-500 hover:text-blue-600 font-bold flex items-center gap-0.5"
+                    className="text-xs text-[#f98012] hover:text-[#f98012] font-bold flex items-center gap-0.5"
                   >
                     <Plus size={14} /> Añadir opción
                   </button>
@@ -326,7 +326,7 @@ export default function QuestionEditor({ taskId, initialQuestions }: QuestionEdi
                       name="correct-option"
                       checked={opt.isCorrect}
                       onChange={() => handleOptionCorrectChange(index)}
-                      className="cursor-pointer h-4 w-4 text-blue-600"
+                      className="cursor-pointer h-4 w-4 text-[#f98012]"
                     />
                     <input
                       type="text"
@@ -409,7 +409,7 @@ export default function QuestionEditor({ taskId, initialQuestions }: QuestionEdi
                   <div className="flex-1">
                     <h4 className="font-bold text-sm text-primary flex items-center gap-1.5">
                       <span>{index + 1}. {q.text}</span>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 font-medium">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-[#7c3d00] dark:bg-orange-900/40 dark:text-blue-300 font-medium">
                         {q.points} pt{q.points !== 1 ? "s" : ""}
                       </span>
                       <span className="text-xs text-muted">
@@ -455,7 +455,7 @@ export default function QuestionEditor({ taskId, initialQuestions }: QuestionEdi
                     </button>
                     <button
                       onClick={() => handleStartEdit(q)}
-                      className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-blue-500"
+                      className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-[#f98012]"
                       title="Editar"
                     >
                       <Edit3 size={16} />

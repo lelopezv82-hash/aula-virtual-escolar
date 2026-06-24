@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef } from "react";
 import { CheckCircle, AlertTriangle, Save, Loader2, Check, X } from "lucide-react";
@@ -268,7 +268,7 @@ export default function ExamenNativo({
         <span className="text-muted flex items-center gap-1.5">
           {savingStatus === "saving" && (
             <>
-              <Loader2 className="animate-spin text-blue-500" size={14} />
+              <Loader2 className="animate-spin text-[#f98012]" size={14} />
               <span>Guardando respuestas automáticamente...</span>
             </>
           )}
@@ -322,7 +322,7 @@ export default function ExamenNativo({
                           isDisabled ? "cursor-not-allowed opacity-75" : "cursor-pointer"
                         } ${
                           isSelected 
-                            ? "bg-blue-50/50 border-blue-400 text-blue-800 dark:bg-blue-950/20 dark:border-blue-900" 
+                            ? "bg-orange-50/50 border-[#f98012] text-[#7c3d00] dark:bg-orange-950/20 dark:border-blue-900" 
                             : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:bg-gray-50/80 dark:hover:bg-gray-800/30"
                         }`}
                       >
@@ -332,7 +332,7 @@ export default function ExamenNativo({
                           checked={isSelected}
                           disabled={isDisabled}
                           readOnly
-                          className="h-4 w-4 text-blue-600"
+                          className="h-4 w-4 text-[#f98012]"
                           style={{ cursor: isDisabled ? "not-allowed" : "pointer" }}
                         />
                         <span>{opt.text}</span>

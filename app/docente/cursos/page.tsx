@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
@@ -155,7 +155,7 @@ export default function CursosPage() {
 
       {loading ? (
         <div className="flex justify-center py-20">
-          <Loader2 className="animate-spin text-blue-500" size={40} />
+          <Loader2 className="animate-spin text-[#f98012]" size={40} />
         </div>
       ) : courses.length === 0 ? (
         <div className="card text-center py-16 text-muted">
@@ -177,14 +177,14 @@ export default function CursosPage() {
             >
               <div>
                 <div className="flex justify-between items-start gap-4">
-                  <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-900/30">
+                  <div className="p-2.5 rounded-xl bg-orange-50 text-[#f98012] dark:bg-orange-900/30">
                     <BookOpen size={22} />
                   </div>
                   <div className="flex gap-1">
                     <button
                       title="Editar asignatura"
                       onClick={() => openEditCourse(course)}
-                      className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 text-muted hover:text-blue-600 transition-colors"
+                      className="p-1.5 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-950/30 text-muted hover:text-[#f98012] transition-colors"
                     >
                       <Edit2 size={16} />
                     </button>
@@ -201,7 +201,7 @@ export default function CursosPage() {
                 {course.groups && course.groups.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-1.5">
                     {course.groups.map(group => (
-                      <span key={group.id} className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 dark:bg-blue-900/30 text-[10px] font-semibold border border-blue-200/50">
+                      <span key={group.id} className="px-2 py-0.5 rounded bg-orange-50 text-blue-700 dark:bg-orange-900/30 text-[10px] font-semibold border border-orange-200/50">
                         {group.grade?.name ? `${group.grade.name} - ${group.name}` : group.name}
                       </span>
                     ))}
@@ -266,7 +266,7 @@ export default function CursosPage() {
                       groupIds: allSelected ? [] : allIds
                     });
                   }}
-                  className="text-xs font-bold text-blue-600 hover:underline"
+                  className="text-xs font-bold text-[#f98012] hover:underline"
                 >
                   {gradeGroups.map(g => g.id).every(id => courseForm.groupIds.includes(id)) 
                     ? "Desmarcar todos" 
@@ -291,7 +291,7 @@ export default function CursosPage() {
                             : [...courseForm.groupIds, g.id];
                           setCourseForm({ ...courseForm, groupIds: newIds });
                         }}
-                        className="rounded text-blue-600 focus:ring-blue-500"
+                        className="rounded text-[#f98012] focus:ring-[#f98012]"
                       />
                       <span>{g.name}</span>
                     </label>

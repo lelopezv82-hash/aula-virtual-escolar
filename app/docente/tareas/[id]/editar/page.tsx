@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
@@ -117,7 +117,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
   };
 
   if (fetching) {
-    return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-blue-500" size={40} /></div>;
+    return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#f98012]" size={40} /></div>;
   }
 
   return (
@@ -151,7 +151,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
                 const allSelected = allIds.every(id => groupIds.includes(id));
                 setGroupIds(allSelected ? [] : allIds);
               }}
-              className="text-xs font-bold text-blue-600 hover:underline"
+              className="text-xs font-bold text-[#f98012] hover:underline"
             >
               {gradeGroups.map(g => (g as any).id).every(id => groupIds.includes(id)) 
                 ? "Desmarcar todos" 
@@ -176,7 +176,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
                         : [...groupIds, g.id];
                       setGroupIds(newIds);
                     }}
-                    className="rounded text-blue-600 focus:ring-blue-500"
+                    className="rounded text-[#f98012] focus:ring-[#f98012]"
                   />
                   <span>{g.name}</span>
                 </label>

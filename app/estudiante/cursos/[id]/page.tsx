@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+﻿import prisma from '@/lib/prisma';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { ArrowLeft, BookOpen, Download, ClipboardList, Clock, CheckCircle, AlertCircle, FileText, Link as LinkIcon, HelpCircle } from "lucide-react";
@@ -163,7 +163,7 @@ export default async function EstudianteCursoDetallePage({
 
             <div className="card">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <ClipboardList size={22} className="text-blue-600" />
+                <ClipboardList size={22} className="text-[#f98012]" />
                 Tareas - {currentPeriod}
               </h2>
 

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { 
@@ -221,7 +221,7 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
                 <div className="flex flex-wrap justify-between items-start gap-4 border-b pb-4 mb-4" style={{ borderColor: "var(--border-color)" }}>
                   <div>
                     <h2 className="text-xl font-bold flex items-center gap-2">
-                      <BookOpen className={isPeriodActive ? "text-blue-600" : "text-gray-500"} />
+                      <BookOpen className={isPeriodActive ? "text-[#f98012]" : "text-gray-500"} />
                       {course.name}
                     </h2>
                     {course.description && (
@@ -301,7 +301,7 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
                                     <div className="flex flex-wrap gap-1.5 items-center text-[9px] text-muted mt-1">
                                       <span className="font-bold uppercase px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">{resource.type}</span>
                                       {resource.theme && (
-                                        <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 dark:bg-blue-950/20 dark:text-blue-400 font-medium">Tema: {resource.theme}</span>
+                                        <span className="px-1.5 py-0.5 rounded bg-orange-50 text-[#f98012] dark:bg-orange-950/20 dark:text-[#f98012] font-medium">Tema: {resource.theme}</span>
                                       )}
                                       <span className="px-1.5 py-0.5 rounded bg-slate-50 text-slate-600 dark:bg-slate-800/40 dark:text-slate-400 font-medium">Periodo: {resource.period || periodName}</span>
                                       <span className="px-1.5 py-0.5 rounded bg-slate-50 text-slate-600 dark:bg-slate-800/40 dark:text-slate-400 font-medium">Asignatura: {course.name}</span>
@@ -456,7 +456,7 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
                       groupIds: allSelected ? [] : allIds
                     });
                   }}
-                  className="text-xs font-bold text-blue-600 hover:underline"
+                  className="text-xs font-bold text-[#f98012] hover:underline"
                 >
                   {gradeGroups.map(g => g.id).every(id => resourceForm.groupIds.includes(id)) 
                     ? "Desmarcar todos" 
@@ -481,7 +481,7 @@ export default function PeriodoClient({ courses, periodName }: PeriodoClientProp
                             : [...resourceForm.groupIds, g.id];
                           setResourceForm({ ...resourceForm, groupIds: newIds });
                         }}
-                        className="rounded text-blue-600 focus:ring-blue-500"
+                        className="rounded text-[#f98012] focus:ring-[#f98012]"
                       />
                       <span>{g.name}</span>
                     </label>

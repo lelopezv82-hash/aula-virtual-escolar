@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { Plus, Trash2, Layers, Users, Loader2, Save, X, Copy, Check, UserPlus, Eye, EyeOff, Edit2, FileSpreadsheet, Upload, Key } from "lucide-react";
@@ -595,7 +595,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
 
       {loading ? (
         <div className="flex justify-center py-20">
-          <Loader2 className="animate-spin text-blue-500" size={40} />
+          <Loader2 className="animate-spin text-[#f98012]" size={40} />
         </div>
       ) : grades.length === 0 ? (
         <div className="card text-center py-16 text-muted">
@@ -618,7 +618,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
               <div>
                 <div className="flex justify-between items-start gap-4 mb-4">
                   <div className="flex items-center gap-2.5">
-                    <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-900/30">
+                    <div className="p-2.5 rounded-xl bg-orange-50 text-[#f98012] dark:bg-orange-900/30">
                       <Layers size={20} />
                     </div>
                     <h3 className="font-extrabold text-lg">{grade.name}</h3>
@@ -631,7 +631,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                         setEditGradeName(grade.name);
                         setShowEditGradeModal(true);
                       }}
-                      className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 text-muted hover:text-blue-600 transition-colors"
+                      className="p-1.5 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-950/30 text-muted hover:text-[#f98012] transition-colors"
                     >
                       <Edit2 size={15} />
                     </button>
@@ -657,7 +657,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                         style={{ borderColor: "var(--border-color)" }}
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-md">
+                          <span className="text-xs font-bold text-[#f98012] dark:text-[#f98012] bg-orange-50 dark:bg-orange-900/20 px-2 py-0.5 rounded-md">
                             Curso
                           </span>
                           <span className="font-semibold text-sm truncate">{group.name}</span>
@@ -674,7 +674,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                               setStudentError("");
                               setShowStudentListModal(true);
                             }}
-                            className="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 px-2 py-1 rounded-lg flex items-center gap-1.5 transition-colors font-medium cursor-pointer"
+                            className="text-xs text-[#f98012] dark:text-[#f98012] bg-orange-50 dark:bg-orange-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 px-2 py-1 rounded-lg flex items-center gap-1.5 transition-colors font-medium cursor-pointer"
                           >
                             <Users size={13} /> {group._count.students}
                           </button>
@@ -685,7 +685,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                               setEditGroupName(group.name);
                               setShowEditGroupModal(true);
                             }}
-                            className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-950/30 text-muted hover:text-blue-600 transition-colors"
+                            className="p-1 rounded hover:bg-orange-50 dark:hover:bg-orange-950/30 text-muted hover:text-[#f98012] transition-colors"
                           >
                             <Edit2 size={13} />
                           </button>
@@ -804,7 +804,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
             <div className="flex justify-between items-center border-b pb-4 mb-4" style={{ borderColor: "var(--border-color)" }}>
               <div>
                 <h2 className="text-xl font-extrabold flex items-center gap-2">
-                  <Users className="text-blue-500" size={24} />
+                  <Users className="text-[#f98012]" size={24} />
                   Estudiantes del Curso {parentGradeOfSelectedGroup.name} - {selectedGroupForStudents.name}
                 </h2>
                 <p className="text-xs text-muted mt-1">Registra y administra los estudiantes inscritos en esta sección.</p>
@@ -862,7 +862,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                   className="space-y-4 p-4 border rounded-xl bg-gray-50 dark:bg-gray-900/40"
                   style={{ borderColor: "var(--border-color)" }}
                 >
-                  <h3 className="font-bold text-md text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                  <h3 className="font-bold text-md text-[#f98012] dark:text-[#f98012] flex items-center gap-1.5">
                     <UserPlus size={18} /> Registrar Nuevo Estudiante
                   </h3>
                   
@@ -924,7 +924,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                             <button
                               type="button"
                               onClick={() => setStudentPassword(generateRandomPassword())}
-                              className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"
+                              className="text-xs font-bold text-[#f98012] hover:underline flex items-center gap-1"
                             >
                               <Key size={12} /> Generar aleatoria
                             </button>
@@ -1003,7 +1003,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
 
                   {loadingStudents ? (
                     <div className="flex justify-center py-12">
-                      <Loader2 className="animate-spin text-blue-500" size={30} />
+                      <Loader2 className="animate-spin text-[#f98012]" size={30} />
                     </div>
                   ) : students.length === 0 ? (
                     <div className="text-center py-12 border rounded-xl border-dashed" style={{ borderColor: "var(--border-color)" }}>
@@ -1052,7 +1052,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                                       onClick={() => {
                                         navigator.clipboard.writeText(`Usuario: ${student.username}\nContraseña: ${student.passwordPlain}`);
                                       }}
-                                      className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600"
+                                      className="p-1 rounded hover:bg-orange-50 dark:hover:bg-blue-900/20 text-[#f98012]"
                                       title="Copiar credenciales"
                                     >
                                       <Copy size={14} />
@@ -1066,7 +1066,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                                       setStudentError("");
                                       setShowEditStudentModal(true);
                                     }}
-                                    className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600"
+                                    className="p-1 rounded hover:bg-orange-50 dark:hover:bg-blue-900/20 text-[#f98012]"
                                     title="Editar estudiante"
                                   >
                                     <Edit2 size={14} />
@@ -1224,7 +1224,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
           <form onSubmit={handleEditStudent} className="modal-content" style={{ maxWidth: "440px" }}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold flex items-center gap-2">
-                <Edit2 className="text-blue-500" size={20} />
+                <Edit2 className="text-[#f98012]" size={20} />
                 Editar Estudiante
               </h2>
               <button type="button" onClick={() => setShowEditStudentModal(false)} className="p-1 rounded-lg hover:bg-gray-100">
@@ -1249,7 +1249,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                   <button
                     type="button"
                     onClick={() => setEditStudentPassword(generateRandomPassword())}
-                    className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"
+                    className="text-xs font-bold text-[#f98012] hover:underline flex items-center gap-1"
                   >
                     <Key size={12} /> Generar aleatoria
                   </button>
@@ -1288,7 +1288,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
             <div className="flex justify-between items-center border-b pb-4 mb-4" style={{ borderColor: "var(--border-color)" }}>
               <div>
                 <h2 className="text-xl font-bold flex items-center gap-2">
-                  <Upload className="text-blue-500" size={22} />
+                  <Upload className="text-[#f98012]" size={22} />
                   Importar Estudiantes
                 </h2>
                 <p className="text-xs text-muted mt-1">Sube un archivo Excel (.xlsx/.xls), Word (.docx) o PDF (.pdf) para registrar estudiantes.</p>

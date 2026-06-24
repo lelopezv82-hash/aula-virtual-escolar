@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { Plus, Edit2, Trash2, Layers, X, Save, Loader2 } from "lucide-react";
@@ -130,7 +130,7 @@ export default function GestionPeriodosClient({ initialPeriods }: GestionPeriodo
       <div className="flex justify-between items-center flex-wrap gap-4">
         <div>
           <h2 className="text-xl font-bold flex items-center gap-2">
-            <Layers size={22} className="text-blue-500" />
+            <Layers size={22} className="text-[#f98012]" />
             Periodos Lectivos
           </h2>
           <p className="text-muted text-sm mt-1">
@@ -255,7 +255,7 @@ export default function GestionPeriodosClient({ initialPeriods }: GestionPeriodo
                           setError("");
                           setShowPeriodModal(true);
                         }}
-                        className="p-1.5 rounded-lg border hover:bg-slate-100 text-blue-600 dark:text-blue-400 dark:hover:bg-gray-800 transition-all"
+                        className="p-1.5 rounded-lg border hover:bg-slate-100 text-[#f98012] dark:text-[#f98012] dark:hover:bg-gray-800 transition-all"
                         style={{ borderColor: "var(--border-color)" }}
                         title="Editar Nombre"
                       >

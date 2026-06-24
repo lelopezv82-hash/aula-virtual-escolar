@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, use } from "react";
 import { ArrowLeft, UploadCloud, Loader2, CheckCircle, FileText, Clock, AlertTriangle } from "lucide-react";
@@ -203,7 +203,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   };
 
   if (initialLoad) {
-    return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-blue-500" size={40} /></div>;
+    return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#f98012]" size={40} /></div>;
   }
 
   if (!task) {
@@ -218,7 +218,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   if (task.duration && (!submission || !submission.startedAt)) {
     return (
       <div className="animate-fade-in max-w-xl mx-auto card p-8 text-center flex flex-col gap-6 mt-10" style={{ borderColor: "var(--border-color)" }}>
-        <div className="p-4 rounded-full bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 mx-auto w-16 h-16 flex items-center justify-center">
+        <div className="p-4 rounded-full bg-orange-50 dark:bg-orange-950/30 text-[#f98012] dark:text-[#f98012] mx-auto w-16 h-16 flex items-center justify-center">
           <Clock size={36} />
         </div>
         <div>
@@ -279,7 +279,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                color: timeLeft < 60 ? 'var(--danger)' : 'var(--primary-color)'
              }}>
           <div className="flex items-center gap-2">
-            <Clock size={20} className={timeLeft < 60 ? "text-red-500" : "text-blue-500"} />
+            <Clock size={20} className={timeLeft < 60 ? "text-red-500" : "text-[#f98012]"} />
             <span className="font-bold text-sm">Tiempo restante para finalizar:</span>
           </div>
           <div className="text-xl font-black font-mono">
@@ -298,7 +298,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
         {/* Normal file link if it is not embedded as Google Form */}
         {task.attachmentUrl && !isGoogleForm && (
           <div className="flex items-center gap-3 p-4 border rounded-md" style={{ borderColor: "var(--border-color)", background: "var(--bg-primary)" }}>
-            <FileText className="text-blue-500" size={32} />
+            <FileText className="text-[#f98012]" size={32} />
             <div>
               <p className="font-medium">Guía / Archivo Adjunto</p>
               <p className="text-xs text-muted">Subido por el docente</p>
@@ -390,7 +390,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
 
           {isSubmitted && !isGoogleForm && (
             <div className="flex items-center gap-3 p-4 border rounded-md mb-6" style={{ borderColor: "var(--border-color)" }}>
-              <FileText className="text-blue-500" size={32} />
+              <FileText className="text-[#f98012]" size={32} />
               <div>
                 <p className="font-medium">Archivo entregado</p>
                 <p className="text-sm text-muted">Enviado el {formatToColombiaString(submission.submittedAt)}</p>

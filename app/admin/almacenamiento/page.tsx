@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { Database, Trash2, ShieldAlert, CheckCircle, RefreshCw } from "lucide-react";
@@ -73,7 +73,7 @@ export default function AlmacenamientoPage() {
       <div className="dashboard-header flex justify-between items-center mb-6">
         <div>
           <h1 className="flex items-center gap-2">
-            <Database className="text-blue-600" />
+            <Database className="text-[#f98012]" />
             Control de Almacenamiento
           </h1>
           <p className="text-muted text-sm">
@@ -95,7 +95,7 @@ export default function AlmacenamientoPage() {
 
       {loading ? (
         <div className="card text-center py-12">
-          <RefreshCw className="animate-spin text-blue-500 mx-auto mb-3" size={36} />
+          <RefreshCw className="animate-spin text-[#f98012] mx-auto mb-3" size={36} />
           <p className="text-muted">Calculando archivos almacenados...</p>
         </div>
       ) : (

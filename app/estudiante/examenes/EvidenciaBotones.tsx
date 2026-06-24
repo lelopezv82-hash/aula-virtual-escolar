@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
@@ -139,14 +139,14 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
       <div className="min-h-screen flex justify-center items-start bg-[#e8f0fe]">
         <div className="w-full max-w-[770px] flex flex-col animate-fade-in relative mx-auto p-4 md:p-6 lg:py-8">
                 
-                <div className="bg-white border border-[#dadce0] rounded-[8px] overflow-hidden mb-3 border-t-8 border-t-[#1a73e8]" style={{ marginBottom: '12px' }}>
+                <div className="bg-white border border-[#dadce0] rounded-[8px] overflow-hidden mb-3 border-t-8 border-t-[#f98012]" style={{ marginBottom: '12px' }}>
                   <div className="p-6" style={{ padding: '24px' }}>
                     <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
                       <h1 className="text-[24px] sm:text-[32px] text-[#202124] font-normal leading-tight break-words">{exam.title}</h1>
                       
                       <div className="flex flex-col items-end shrink-0 gap-1 mt-2">
                         <span className="text-sm text-[#202124]">Calificación</span>
-                        <div className="bg-[#1a73e8] text-white px-3 py-1 rounded-[4px] font-medium text-sm">
+                        <div className="bg-[#f98012] text-white px-3 py-1 rounded-[4px] font-medium text-sm">
                           {submission.grade !== null && submission.grade !== undefined ? Math.max(1.0, Number(submission.grade)).toFixed(1) : '?'}
                         </div>
                       </div>
@@ -157,7 +157,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
                 {/* Preguntas */}
                 {loadingTask ? (
                   <div className="bg-white rounded-[8px] p-12 border border-[#dadce0] flex justify-center items-center">
-                    <Loader2 className="animate-spin text-[#1a73e8]" size={36} />
+                    <Loader2 className="animate-spin text-[#f98012]" size={36} />
                   </div>
                 ) : isGoogleForm ? (
                   answersData && answersData.length > 0 ? (
@@ -364,7 +364,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm }: Evi
                       {submission.fileUrl ? (
                         <div className="flex flex-col gap-2 items-start">
                           <p>Has adjuntado un archivo con tus respuestas.</p>
-                          <a href={submission.fileUrl} target="_blank" className="text-[#1a73e8] hover:underline font-medium text-[14px]">
+                          <a href={submission.fileUrl} target="_blank" className="text-[#f98012] hover:underline font-medium text-[14px]">
                             Abrir archivo original
                           </a>
                         </div>

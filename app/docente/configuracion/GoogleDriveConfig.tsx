@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, Suspense, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -196,7 +196,7 @@ function GoogleDriveConfigContent() {
   if (loading) {
     return (
       <div className="flex items-center gap-2 py-4">
-        <Loader2 className="animate-spin text-blue-500" size={20} />
+        <Loader2 className="animate-spin text-[#f98012]" size={20} />
         <span className="text-sm text-muted">Cargando estado de almacenamiento...</span>
       </div>
     );
@@ -352,7 +352,7 @@ function GoogleDriveConfigContent() {
                               setEditingAccountId(acc.id);
                               setEditLimitVal(acc.customLimitGB ? acc.customLimitGB.toString() : "");
                             }}
-                            className="text-[10px] text-blue-500 hover:text-blue-700 hover:underline cursor-pointer ml-1.5 font-medium"
+                            className="text-[10px] text-[#f98012] hover:text-blue-700 hover:underline cursor-pointer ml-1.5 font-medium"
                           >
                             [Ajustar Límite]
                           </button>
@@ -421,8 +421,8 @@ function GoogleDriveConfigContent() {
 
           {/* Workspace Note */}
           {poolStats.hasPooled && (
-            <div className="mt-1 p-2.5 bg-blue-50/50 dark:bg-blue-950/10 border border-blue-150 dark:border-blue-900/40 rounded-lg text-[10px] text-muted leading-relaxed flex items-start gap-1.5">
-              <span className="text-blue-500 font-semibold shrink-0">ℹ</span>
+            <div className="mt-1 p-2.5 bg-orange-50/50 dark:bg-orange-950/10 border border-blue-150 dark:border-blue-900/40 rounded-lg text-[10px] text-muted leading-relaxed flex items-start gap-1.5">
+              <span className="text-[#f98012] font-semibold shrink-0">ℹ</span>
               <span>
                 <strong>Nota sobre Google Workspace:</strong> Al usar un correo institucional, Google reporta el límite de almacenamiento total compartido de tu colegio (100 TB). Tu capacidad de subida personal está sujeta al límite asignado por el administrador de tu institución.
               </span>
@@ -464,7 +464,7 @@ export default function GoogleDriveConfig() {
   return (
     <Suspense fallback={
       <div className="flex items-center gap-2 py-4">
-        <Loader2 className="animate-spin text-blue-500" size={20} />
+        <Loader2 className="animate-spin text-[#f98012]" size={20} />
         <span className="text-sm text-muted">Cargando...</span>
       </div>
     }>

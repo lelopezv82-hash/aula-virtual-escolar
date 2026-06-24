@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { X, AlertTriangle, Trash2, Info } from 'lucide-react';
 
 interface ConfirmModalProps {
@@ -45,9 +45,9 @@ export default function ConfirmModal({
       case 'info':
       default:
         return {
-          iconBg: 'bg-blue-50 dark:bg-blue-950/20 ring-4 ring-blue-500/10',
-          iconColor: 'text-blue-600 dark:text-blue-400',
-          btnBg: 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 focus:ring-blue-500',
+          iconBg: 'bg-orange-50 dark:bg-orange-950/20 ring-4 ring-orange-500/10',
+          iconColor: 'text-[#f98012] dark:text-[#f98012]',
+          btnBg: 'bg-[#f98012] hover:bg-[#e06d09] dark:bg-[#e06d09] dark:hover:bg-[#f98012] focus:ring-[#f98012]',
           btnShadow: 'shadow-[0_4px_12px_rgba(37,99,235,0.2)] hover:shadow-[0_6px_16px_rgba(37,99,235,0.3)]',
           icon: <Info className="w-5.5 h-5.5" />
         };

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -368,7 +368,7 @@ export default function EstudiantesPage() {
 
         {loading ? (
           <div className="flex justify-center py-12">
-            <Loader2 className="animate-spin text-blue-500" size={36} />
+            <Loader2 className="animate-spin text-[#f98012]" size={36} />
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -429,7 +429,7 @@ export default function EstudiantesPage() {
                       <td className="py-3 px-4">
                         <div className="flex justify-end gap-1">
                           <button title="Editar" onClick={() => openEdit(student)}
-                            className="p-2 rounded-md hover:bg-blue-50 transition-colors" style={{ color: "var(--primary-color)" }}>
+                            className="p-2 rounded-md hover:bg-orange-50 transition-colors" style={{ color: "var(--primary-color)" }}>
                             <Edit2 size={16} />
                           </button>
                           <button title="Reiniciar contraseña" onClick={() => handleResetPassword(student)}
@@ -652,7 +652,7 @@ export default function EstudiantesPage() {
                   <label htmlFor="csv-file" style={{ display: "block", border: "2px dashed var(--border-color)", borderRadius: "var(--radius-md)", padding: "2rem", textAlign: "center", cursor: "pointer" }}
                     onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--primary-color)")}
                     onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border-color)")}>
-                    <Upload size={32} className="mx-auto mb-2 text-blue-600" />
+                    <Upload size={32} className="mx-auto mb-2 text-[#f98012]" />
                     <p className="text-sm font-semibold">{importFile ? importFile.name : "Seleccionar Archivo CSV / Excel"}</p>
                     <p className="text-xs text-muted mt-1">Formatos soportados: .csv, .xlsx, .xls</p>
                     <input id="csv-file" type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleFileUpload} />

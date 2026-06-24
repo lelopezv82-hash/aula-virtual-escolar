@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { 
@@ -708,13 +708,13 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       <div className="flex gap-4 border-b pb-1" style={{ borderColor: "var(--border-color)" }}>
         <button
           onClick={() => setActiveTab("tareas")}
-          className={`flex items-center gap-2 px-5 py-3 font-semibold transition-colors border-b-2 ${activeTab === "tareas" ? "text-blue-600 border-blue-600 dark:text-blue-400 dark:border-blue-400" : "text-muted border-transparent hover:text-foreground"}`}
+          className={`flex items-center gap-2 px-5 py-3 font-semibold transition-colors border-b-2 ${activeTab === "tareas" ? "text-[#f98012] border-blue-600 dark:text-[#f98012] dark:border-[#f98012]" : "text-muted border-transparent hover:text-foreground"}`}
         >
           <ClipboardList size={18} /> Tareas
         </button>
         <button
           onClick={() => setActiveTab("examenes")}
-          className={`flex items-center gap-2 px-5 py-3 font-semibold transition-colors border-b-2 ${activeTab === "examenes" ? "text-blue-600 border-blue-600 dark:text-blue-400 dark:border-blue-400" : "text-muted border-transparent hover:text-foreground"}`}
+          className={`flex items-center gap-2 px-5 py-3 font-semibold transition-colors border-b-2 ${activeTab === "examenes" ? "text-[#f98012] border-blue-600 dark:text-[#f98012] dark:border-[#f98012]" : "text-muted border-transparent hover:text-foreground"}`}
         >
           <ClipboardList size={18} /> Exámenes
         </button>
@@ -722,7 +722,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
           onClick={() => setActiveTab("materiales")}
           className={`pb-3 px-2 font-bold text-sm md:text-base border-b-2 transition-all ${
             activeTab === "materiales" 
-              ? "border-blue-600 text-blue-600 font-extrabold" 
+              ? "border-blue-600 text-[#f98012] font-extrabold" 
               : "border-transparent text-muted hover:text-primary"
           }`}
         >
@@ -813,7 +813,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                 return (
                   <div key={course.id} className="card w-full">
                     <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                      <ClipboardList className="text-blue-600" />
+                      <ClipboardList className="text-[#f98012]" />
                       {course.name}
                     </h2>
                     
@@ -838,7 +838,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                           <div key={periodName} className="p-3 rounded-lg border" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', opacity: isPeriodActive ? 1 : 0.6 }}>
                             <h4 className="font-bold text-xs uppercase tracking-wider mb-3 flex items-center justify-between" style={{ color: 'var(--text-secondary)' }}>
                               <span className="flex items-center gap-2">
-                                <span className={`w-2 h-2 rounded-full ${isPeriodActive ? 'bg-blue-500' : 'bg-gray-400'}`}></span>
+                                <span className={`w-2 h-2 rounded-full ${isPeriodActive ? 'bg-orange-500' : 'bg-gray-400'}`}></span>
                                 {periodName}
                               </span>
                               <div className="flex items-center gap-2">
@@ -1010,7 +1010,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                 return (
                   <div key={course.id} className="card w-full">
                     <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                      <BookOpen className="text-blue-600" />
+                      <BookOpen className="text-[#f98012]" />
                       {course.name}
                     </h2>
                     
@@ -1034,7 +1034,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                           <div key={periodName} className="p-3 rounded-lg border" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', opacity: isPeriodActive ? 1 : 0.6 }}>
                             <h4 className="font-bold text-xs uppercase tracking-wider mb-3 flex items-center justify-between" style={{ color: 'var(--text-secondary)' }}>
                               <span className="flex items-center gap-2">
-                                <span className={`w-2 h-2 rounded-full ${isPeriodActive ? 'bg-blue-500' : 'bg-gray-400'}`}></span>
+                                <span className={`w-2 h-2 rounded-full ${isPeriodActive ? 'bg-orange-500' : 'bg-gray-400'}`}></span>
                                 {periodName}
                               </span>
                               <div className="flex items-center gap-2">
@@ -1129,7 +1129,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                                             </a>
                                             <button
                                               onClick={() => openEditResourceModal(res, course.id)}
-                                              className="p-1.5 rounded hover:bg-blue-50 text-slate-500 hover:text-blue-600"
+                                              className="p-1.5 rounded hover:bg-orange-50 text-slate-500 hover:text-[#f98012]"
                                               title="Editar"
                                             >
                                               <Edit2 size={16} />
@@ -1252,7 +1252,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                   type="checkbox"
                   checked={taskForm.allowLateSubmission}
                   onChange={e => setTaskForm({ ...taskForm, allowLateSubmission: e.target.checked })}
-                  className="rounded text-blue-600 focus:ring-blue-500"
+                  className="rounded text-[#f98012] focus:ring-[#f98012]"
                 />
                 <span>Permitir entregas tardías (Prórroga)</span>
               </label>
@@ -1282,7 +1282,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                             : [...taskForm.groupIds, g.id];
                           setTaskForm({ ...taskForm, groupIds: newIds });
                         }}
-                        className="rounded text-blue-600 focus:ring-blue-500"
+                        className="rounded text-[#f98012] focus:ring-[#f98012]"
                       />
                       <span>{g.grade.name} - {g.name}</span>
                     </label>
@@ -1299,7 +1299,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
             </div>
 
             {taskForm.type === "EXAM" ? (
-              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/50 rounded-lg p-3 text-[11px] text-blue-700 dark:text-blue-300 mb-4">
+              <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-blue-900/50 rounded-lg p-3 text-[11px] text-blue-700 dark:text-blue-300 mb-4">
                 <strong>💡 Examen en la Plataforma:</strong> Este examen se creará directamente aquí. Una vez creado, haz clic en <strong>Ver/Calificar</strong> en la lista de exámenes para ingresar las preguntas y opciones de respuesta.
               </div>
             ) : (
@@ -1312,7 +1312,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                 <div className="mb-4">
                   <label className="block text-xs font-bold mb-1.5">{editingTask ? "Nuevo Archivo Adjunto (Opcional)" : "Archivo Adjunto (Opcional)"}</label>
                   <label htmlFor="task-file" className="block border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-blue-500 transition-colors" style={{ borderColor: 'var(--border-color)' }}>
-                    <UploadCloud size={24} className="mx-auto mb-1.5 text-blue-500" />
+                    <UploadCloud size={24} className="mx-auto mb-1.5 text-[#f98012]" />
                     <p className="text-xs font-bold">{taskFile ? taskFile.name : "Selecciona una guía o archivo"}</p>
                     <input id="task-file" type="file" className="hidden" onChange={e => setTaskFile(e.target.files?.[0] || null)} />
                   </label>
@@ -1413,7 +1413,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                             : [...resourceForm.groupIds, g.id];
                           setResourceForm({ ...resourceForm, groupIds: newIds });
                         }}
-                        className="rounded text-blue-600 focus:ring-blue-500"
+                        className="rounded text-[#f98012] focus:ring-[#f98012]"
                       />
                       <span>{g.grade.name} - {g.name}</span>
                     </label>
@@ -1433,7 +1433,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
               <div className="mb-4">
                 <label className="block text-xs font-bold mb-1.5">{editingResource ? "Nuevo Archivo (Opcional)" : "Archivo de Recurso *"}</label>
                 <label htmlFor="resource-file" className="block border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-blue-500 transition-colors" style={{ borderColor: 'var(--border-color)' }}>
-                  <UploadCloud size={24} className="mx-auto mb-1.5 text-blue-500" />
+                  <UploadCloud size={24} className="mx-auto mb-1.5 text-[#f98012]" />
                   <p className="text-xs font-bold">{resourceFile ? resourceFile.name : "Selecciona un archivo para subir"}</p>
                   <input id="resource-file" type="file" className="hidden" onChange={e => setResourceFile(e.target.files?.[0] || null)} required={!editingResource} />
                 </label>

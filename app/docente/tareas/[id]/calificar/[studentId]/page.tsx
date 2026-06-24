@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
@@ -74,7 +74,7 @@ export default function CalificarPage({
   if (initialLoad)
     return (
       <div className="flex justify-center py-20">
-        <Loader2 className="animate-spin text-blue-500" size={40} />
+        <Loader2 className="animate-spin text-[#f98012]" size={40} />
       </div>
     );
 
@@ -99,7 +99,7 @@ export default function CalificarPage({
           className="card flex items-center gap-4 mb-6"
           style={{ borderLeft: "4px solid var(--primary-color)" }}
         >
-          <FileText size={40} className="text-blue-500 shrink-0" />
+          <FileText size={40} className="text-[#f98012] shrink-0" />
           <div className="flex-1">
             <p className="font-semibold">Archivo entregado</p>
             <p className="text-xs text-muted">
