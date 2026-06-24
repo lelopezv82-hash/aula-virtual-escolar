@@ -2,7 +2,6 @@ import prisma from '@/lib/prisma';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { CheckCircle, Clock, AlertCircle } from "lucide-react";
-import EvidenciaBotones from "@/app/estudiante/examenes/EvidenciaBotones";
 import { getTaskDeadlineStatus } from '@/lib/dateUtils';
 
 export const dynamic = 'force-dynamic';
@@ -269,28 +268,6 @@ export default async function CalificacionesEstudiantePage() {
                             <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontStyle: "italic" }}>
                               {sub.task.type === "EXAM" ? "En proceso de calificación..." : "Pendiente de revisión"}
                             </div>
-                          )}
-                          {sub.task.type === "EXAM" && (
-                            <EvidenciaBotones
-                              exam={{
-                                id: sub.task.id,
-                                title: sub.task.title,
-                                course: { name: sub.task.course?.name || "Asignatura" }
-                              }}
-                              submission={{
-                                grade: sub.grade !== null && sub.grade !== undefined ? Math.max(1.0, sub.grade) : null,
-                                status: sub.status,
-                                fileUrl: sub.fileUrl,
-                                submittedAt: sub.submittedAt,
-                                feedback: sub.feedback,
-                                feedbackTemplate: sub.feedbackTemplate,
-                                studentName: studentName,
-                                attempt: sub.attempt,
-                                unlockedAnswers: sub.unlockedAnswers,
-                                answers: (sub as any).answers
-                              }}
-                              isGoogleForm={!!(sub.task.attachmentUrl?.includes("docs.google.com/forms") || sub.task.attachmentUrl?.includes("forms.gle"))}
-                            />
                           )}
                         </div>
                       </div>
