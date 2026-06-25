@@ -87,9 +87,11 @@ export default function CursoSidebar({ courseId, courseName, periods = [] }: Cur
     >
       {/* Course Name Header */}
       <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid var(--border-color)", background: "var(--bg-secondary)" }}>
-        <h2 className="font-bold text-lg capitalize" style={{ color: "var(--text-primary)", letterSpacing: "-0.01em", marginBottom: "0.25rem" }}>
-          {courseName}
-        </h2>
+        <Link href={base} className="hover:text-[var(--primary-color)] transition-colors block" style={{ color: "var(--text-primary)", textDecoration: "none" }}>
+          <h2 className="font-bold text-lg capitalize" style={{ color: "inherit", letterSpacing: "-0.01em", marginBottom: "0.25rem" }}>
+            {courseName}
+          </h2>
+        </Link>
         {periods && periods.length > 0 && (
           <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: 500, marginTop: "0.15rem" }}>
             {periods.join(" • ")}
