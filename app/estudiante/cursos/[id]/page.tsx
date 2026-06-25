@@ -124,7 +124,7 @@ export default async function EstudianteCursoDetallePage({
       </div>
 
       <div className="card mt-6">
-        <h2 className="text-xl font-bold mb-2">Descripción del Curso</h2>
+        <h2 className="text-xl font-bold mb-2">Descripción de la Asignatura</h2>
         <p style={{ color: "var(--text-secondary)", whiteSpace: "pre-wrap" }}>
           {course.description || "Este curso no tiene una descripción detallada asignada por el docente."}
         </p>
