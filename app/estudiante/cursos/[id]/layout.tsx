@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import CursoSidebar from "./CursoSidebar";
+import { Suspense } from "react";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
@@ -72,7 +73,9 @@ export default async function CursoLayout({
       {/* Two-column layout: sidebar + content */}
       <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: "1.5rem", alignItems: "start" }}>
         {/* Sidebar */}
-        <CursoSidebar courseId={id} courseName={course.name} periods={periodNames} />
+        <Suspense fallback={<div className="card p-6 text-muted">Cargando menú...</div>}>
+          <CursoSidebar courseId={id} courseName={course.name} periods={periodNames} />
+        </Suspense>
 
         {/* Main content */}
         <div>

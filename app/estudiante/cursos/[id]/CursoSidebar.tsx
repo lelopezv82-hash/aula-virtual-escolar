@@ -1,12 +1,12 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Bell, FolderOpen, ClipboardList, FileText, Award } from "lucide-react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { FolderOpen, ClipboardList, FileText, Award } from "lucide-react";
 
 interface CursoSidebarProps {
   courseId: string;
   courseName: string;
-  periods: string[];
+  periods?: string[];
 }
 
 interface NavSection {
@@ -16,27 +16,20 @@ interface NavSection {
   subItems?: { label: string; href: string }[];
 }
 
-export default function CursoSidebar({ courseId, courseName, periods }: CursoSidebarProps) {
+export default function CursoSidebar({ courseId, courseName }: CursoSidebarProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const estado = searchParams.get("estado");
   const base = `/estudiante/cursos/${courseId}`;
 
   const sections: NavSection[] = [
     {
-      icon: <Bell size={18} />,
-      label: "Avisos",
-      href: `${base}/avisos`,
-    },
-    {
-      icon: <FolderOpen size={18} />,
+      icon: <FolderOpen size={20} />,
       label: "Recursos",
       href: `${base}/recursos`,
-      subItems: periods.map(p => ({
-        label: p,
-        href: `${base}/recursos?periodo=${encodeURIComponent(p)}`,
-      })),
     },
     {
-      icon: <ClipboardList size={18} />,
+      icon: <ClipboardList size={20} />,
       label: "Tareas",
       href: `${base}/tareas`,
       subItems: [
@@ -45,7 +38,7 @@ export default function CursoSidebar({ courseId, courseName, periods }: CursoSid
       ],
     },
     {
-      icon: <FileText size={18} />,
+      icon: <FileText size={20} />,
       label: "Exámenes",
       href: `${base}/examenes`,
       subItems: [
@@ -54,74 +47,113 @@ export default function CursoSidebar({ courseId, courseName, periods }: CursoSid
       ],
     },
     {
-      icon: <Award size={18} />,
+      icon: <Award size={20} />,
       label: "Calificaciones",
       href: `${base}/calificaciones`,
     },
   ];
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "?") || pathname.startsWith(href + "/");
   const isSectionActive = (section: NavSection) => {
-    if (pathname.startsWith(section.href)) return true;
-    if (section.subItems?.some(s => pathname.startsWith(s.href))) return true;
+    return pathname.startsWith(section.href);
+  };
+
+  const isSubActive = (subHref: string) => {
+    if (subHref.includes("estado=entregadas")) {
+      return pathname.endsWith("/tareas") && estado === "entregadas";
+    }
+    if (subHref.includes("estado=pendientes")) {
+      return pathname.endsWith("/tareas") && (estado === "pendientes" || !estado);
+    }
+    if (subHref.includes("estado=presentados")) {
+      return pathname.endsWith("/examenes") && estado === "presentados";
+    }
+    if (subHref.includes("estado=disponibles")) {
+      return pathname.endsWith("/examenes") && (estado === "disponibles" || !estado);
+    }
     return false;
   };
 
   return (
     <div
       className="card"
-      style={{ position: "sticky", top: "1rem", padding: 0, overflow: "hidden" }}
+      style={{
+        position: "sticky",
+        top: "1.5rem",
+        padding: 0,
+        overflow: "hidden",
+        border: "1px solid var(--border-color)",
+        boxShadow: "var(--shadow-md)",
+      }}
     >
       {/* Course Name Header */}
-      <div style={{ padding: "1.25rem 1.25rem 1rem", borderBottom: "1px solid var(--border-color)" }}>
-        <h2 className="font-bold text-base capitalize" style={{ color: "var(--text-primary)" }}>
+      <div style={{ padding: "1.5rem 1.5rem 1.25rem", borderBottom: "1px solid var(--border-color)", background: "var(--bg-secondary)" }}>
+        <h2 className="font-bold text-lg capitalize" style={{ color: "var(--text-primary)", letterSpacing: "-0.01em" }}>
           {courseName}
         </h2>
       </div>
 
       {/* Nav Sections */}
-      <nav style={{ padding: "0.5rem 0" }}>
+      <nav style={{ padding: "0.75rem 0" }}>
         {sections.map((section) => {
           const sectionActive = isSectionActive(section);
           return (
-            <div key={section.label}>
-              {/* Section header */}
+            <div key={section.label} style={{ marginBottom: "0.25rem" }}>
+              {/* Section Header Link */}
               <Link
                 href={section.href}
-                className="flex items-center gap-3 px-4 py-2.5 transition-colors"
+                className="flex items-center gap-3 px-5 py-3 transition-colors"
                 style={{
                   color: sectionActive ? "var(--primary-color)" : "var(--text-secondary)",
                   fontWeight: sectionActive ? 700 : 600,
-                  fontSize: "0.9rem",
-                  background: sectionActive && !section.subItems ? "rgba(249,128,18,0.07)" : "transparent",
-                  borderLeft: sectionActive && !section.subItems ? "3px solid var(--primary-color)" : "3px solid transparent",
+                  fontSize: "1.05rem",
+                  background: sectionActive && !section.subItems ? "rgba(249,128,18,0.08)" : "transparent",
+                  borderLeft: sectionActive ? "4px solid var(--primary-color)" : "4px solid transparent",
                 }}
               >
-                <span style={{ opacity: sectionActive ? 1 : 0.65 }}>{section.icon}</span>
-                {section.label}
+                <span style={{ opacity: sectionActive ? 1 : 0.7, display: "flex", alignItems: "center" }}>
+                  {section.icon}
+                </span>
+                <span>{section.label}</span>
               </Link>
 
-              {/* Sub-items — always visible */}
-              {section.subItems && section.subItems.map((sub) => {
-                const subActive = pathname.includes(section.href.split("/").pop() || "") &&
-                  (sub.href.includes("estado=") 
-                    ? pathname + "?" + (typeof window !== "undefined" ? window.location.search.slice(1) : "") === sub.href
-                    : pathname.startsWith(base + "/recursos"));
-
-                return (
-                  <Link
-                    key={sub.label}
-                    href={sub.href}
-                    className="flex items-center px-10 py-1.5 text-sm transition-colors"
-                    style={{
-                      color: "var(--text-secondary)",
-                      fontWeight: 400,
-                    }}
-                  >
-                    {sub.label}
-                  </Link>
-                );
-              })}
+              {/* Sub-items */}
+              {section.subItems && (
+                <div style={{ display: "flex", flexDirection: "column", paddingBottom: "0.5rem" }}>
+                  {section.subItems.map((sub) => {
+                    const active = isSubActive(sub.href);
+                    return (
+                      <Link
+                        key={sub.label}
+                        href={sub.href}
+                        className="flex items-center gap-2 py-2 transition-colors"
+                        style={{
+                          paddingLeft: "3.25rem",
+                          paddingRight: "1.5rem",
+                          fontSize: "0.95rem",
+                          color: active ? "var(--primary-color)" : "var(--text-muted)",
+                          fontWeight: active ? 600 : 500,
+                          background: active ? "rgba(249,128,18,0.04)" : "transparent",
+                        }}
+                      >
+                        {active && (
+                          <span
+                            style={{
+                              width: "6px",
+                              height: "6px",
+                              borderRadius: "50%",
+                              backgroundColor: "var(--primary-color)",
+                              display: "inline-block",
+                              marginLeft: "-10px",
+                              marginRight: "4px",
+                            }}
+                          />
+                        )}
+                        <span>{sub.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           );
         })}
