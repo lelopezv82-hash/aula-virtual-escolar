@@ -199,13 +199,7 @@ export default async function CursoCalificacionesPage({
             };
 
             return (
-              <div key={periodName} className="p-4 rounded-lg border" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
-                <h3 className="font-bold text-sm uppercase tracking-wider mb-4 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
-                  {periodName}
-                </h3>
-
-                <div className="flex flex-col gap-6">
+              <div key={periodName} className="flex flex-col gap-6">
                   {tareas.length > 0 && (
                     <div>
                       <div className="flex items-center gap-2 mb-3">
@@ -224,7 +218,6 @@ export default async function CursoCalificacionesPage({
                       <div className="flex flex-col gap-3">{examenes.map(renderCard)}</div>
                     </div>
                   )}
-                </div>
               </div>
             );
           })}
