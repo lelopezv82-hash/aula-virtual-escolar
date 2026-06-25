@@ -1,7 +1,7 @@
 import prisma from '@/lib/prisma';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
-import { CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { CheckCircle, Clock, AlertCircle, ClipboardList, FileText } from "lucide-react";
 import { getTaskDeadlineStatus } from '@/lib/dateUtils';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
@@ -129,76 +129,101 @@ export default async function CursoCalificacionesPage({
             });
             if (periodSubs.length === 0) return null;
 
+            const tareas = periodSubs.filter(s => s.task.type === "TASK");
+            const examenes = periodSubs.filter(s => s.task.type === "EXAM");
+
+            const renderCard = (sub: any) => {
+              const isGraded = sub.status === "GRADED";
+              const isPending = sub.status === "SUBMITTED";
+              const currentGrade = sub.grade !== null && sub.grade !== undefined ? Math.max(1.0, sub.grade) : 0;
+              const gradeColor = isGraded ? (currentGrade >= 3 ? "var(--success)" : "var(--danger)") : "var(--text-muted)";
+              const isExam = sub.task.type === "EXAM";
+              const accentColor = isExam ? "#8b5cf6" : "var(--primary-color)";
+
+              return (
+                <div
+                  key={sub.id}
+                  style={{
+                    background: "var(--bg-primary)",
+                    borderLeft: `4px solid ${isGraded ? gradeColor : "var(--border-color)"}`,
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "1rem",
+                    padding: "1rem",
+                    borderRadius: "var(--radius-lg)",
+                    border: "1px solid var(--border-color)",
+                    borderLeftWidth: "4px",
+                    boxShadow: "var(--shadow-sm)",
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      {isGraded && (
+                        sub.submittedAt === null
+                          ? <span className="badge badge-danger flex items-center gap-1"><AlertCircle size={12} /> Plazo vencido</span>
+                          : <span className="badge badge-success flex items-center gap-1"><CheckCircle size={12} /> Calificada</span>
+                      )}
+                      {isPending && <span className="badge badge-info flex items-center gap-1"><Clock size={12} /> En revisión</span>}
+                    </div>
+                    <h4 className="font-bold text-base mb-0.5" style={{ color: accentColor }}>{sub.task.title}</h4>
+                    {isGraded && sub.feedback && !sub.feedback.includes("Calificado automáticamente") && !sub.feedback.trim().startsWith("[") && (
+                      <div style={{ marginTop: "0.5rem", padding: "0.6rem 0.75rem", borderRadius: "0.5rem", fontSize: "0.875rem", fontStyle: "italic", background: "var(--bg-secondary)", color: "var(--text-secondary)", borderLeft: `3px solid ${accentColor}` }}>
+                        💬 &quot;{sub.feedback}&quot;
+                      </div>
+                    )}
+                    {isGraded && sub.submittedAt === null && (
+                      <p style={{ fontSize: "0.875rem", color: "var(--danger)", marginTop: "0.25rem", fontWeight: 500 }}>Calificación automática por falta de entrega.</p>
+                    )}
+                    {!isGraded && (
+                      <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>Tu docente aún no ha calificado esta entrega.</p>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "0.25rem", minWidth: "110px", textAlign: "center" }}>
+                    {isGraded ? (
+                      <>
+                        <div style={{ fontSize: "2rem", fontWeight: 800, color: gradeColor, lineHeight: 1 }}>
+                          {sub.grade !== null && sub.grade !== undefined ? Math.max(1.0, sub.grade).toFixed(1) : ""}
+                        </div>
+                        <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>nota</div>
+                      </>
+                    ) : (
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontStyle: "italic" }}>
+                        {sub.task.type === "EXAM" ? "En proceso de calificación..." : "Pendiente de revisión"}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            };
+
             return (
               <div key={periodName} className="p-4 rounded-lg border" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
                 <h3 className="font-bold text-sm uppercase tracking-wider mb-4 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
                   {periodName}
                 </h3>
-                <div className="flex flex-col gap-4">
-                  {periodSubs.map(sub => {
-                    const isGraded = sub.status === "GRADED";
-                    const isPending = sub.status === "SUBMITTED";
-                    const currentGrade = sub.grade !== null && sub.grade !== undefined ? Math.max(1.0, sub.grade) : 0;
-                    const gradeColor = isGraded ? (currentGrade >= 3 ? "var(--success)" : "var(--danger)") : "var(--text-muted)";
 
-                    return (
-                      <div
-                        key={sub.id}
-                        style={{
-                          background: "var(--bg-primary)",
-                          borderLeft: `4px solid ${isGraded ? gradeColor : "var(--border-color)"}`,
-                          display: "flex",
-                          flexDirection: "row",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          gap: "1rem",
-                          padding: "1rem",
-                          borderRadius: "var(--radius-lg)",
-                          border: "1px solid var(--border-color)",
-                          borderLeftWidth: "4px",
-                          boxShadow: "var(--shadow-sm)",
-                        }}
-                      >
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div className="flex items-center gap-2 flex-wrap mb-1">
-                            {isGraded && (
-                              sub.submittedAt === null
-                                ? <span className="badge badge-danger flex items-center gap-1"><AlertCircle size={12} /> Plazo vencido</span>
-                                : <span className="badge badge-success flex items-center gap-1"><CheckCircle size={12} /> Calificada</span>
-                            )}
-                            {isPending && <span className="badge badge-info flex items-center gap-1"><Clock size={12} /> En revisión</span>}
-                          </div>
-                          <h4 className="font-bold text-base mb-0.5">{sub.task.title}</h4>
-                          {isGraded && sub.feedback && !sub.feedback.includes("Calificado automáticamente") && !sub.feedback.trim().startsWith("[") && (
-                            <div style={{ marginTop: "0.5rem", padding: "0.6rem 0.75rem", borderRadius: "0.5rem", fontSize: "0.875rem", fontStyle: "italic", background: "var(--bg-secondary)", color: "var(--text-secondary)", borderLeft: "3px solid var(--primary-color)" }}>
-                              💬 &quot;{sub.feedback}&quot;
-                            </div>
-                          )}
-                          {isGraded && sub.submittedAt === null && (
-                            <p style={{ fontSize: "0.875rem", color: "var(--danger)", marginTop: "0.25rem", fontWeight: 500 }}>Calificación automática por falta de entrega.</p>
-                          )}
-                          {!isGraded && (
-                            <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>Tu docente aún no ha calificado esta entrega.</p>
-                          )}
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "0.25rem", minWidth: "110px", textAlign: "center" }}>
-                          {isGraded ? (
-                            <>
-                              <div style={{ fontSize: "2rem", fontWeight: 800, color: gradeColor, lineHeight: 1 }}>
-                                {sub.grade !== null && sub.grade !== undefined ? Math.max(1.0, sub.grade).toFixed(1) : ""}
-                              </div>
-                              <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>nota</div>
-                            </>
-                          ) : (
-                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontStyle: "italic" }}>
-                              {sub.task.type === "EXAM" ? "En proceso de calificación..." : "Pendiente de revisión"}
-                            </div>
-                          )}
-                        </div>
+                <div className="flex flex-col gap-6">
+                  {tareas.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <ClipboardList size={14} style={{ color: "var(--primary-color)" }} />
+                        <span style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--primary-color)" }}>Tareas</span>
                       </div>
-                    );
-                  })}
+                      <div className="flex flex-col gap-3">{tareas.map(renderCard)}</div>
+                    </div>
+                  )}
+                  {examenes.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <FileText size={14} style={{ color: "#8b5cf6" }} />
+                        <span style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#8b5cf6" }}>Exámenes</span>
+                      </div>
+                      <div className="flex flex-col gap-3">{examenes.map(renderCard)}</div>
+                    </div>
+                  )}
                 </div>
               </div>
             );
