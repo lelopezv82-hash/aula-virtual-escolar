@@ -99,10 +99,10 @@ export default function CursoSidebar({ courseId, courseName, periods = [] }: Cur
 
       {/* Nav Sections */}
       <nav style={{ padding: "0.75rem 0" }}>
-        {sections.map((section) => {
+        {sections.map((section, idx) => {
           const sectionActive = isSectionActive(section);
           return (
-            <div key={section.label} style={{ marginBottom: "0.25rem" }}>
+            <div key={section.label}>
               {/* Section Header Link */}
               <Link
                 href={section.href}
@@ -157,6 +157,13 @@ export default function CursoSidebar({ courseId, courseName, periods = [] }: Cur
                       </Link>
                     );
                   })}
+                </div>
+              )}
+
+              {/* Separator Line */}
+              {idx < sections.length - 1 && (
+                <div style={{ padding: "0.25rem 0" }}>
+                  <div style={{ height: "1px", background: "var(--border-color)", opacity: 0.6, margin: "0.25rem 1.25rem" }} />
                 </div>
               )}
             </div>
