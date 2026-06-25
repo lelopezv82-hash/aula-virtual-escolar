@@ -103,41 +103,23 @@ export default function CursoSidebar({ courseId, courseName, periods = [] }: Cur
           const sectionActive = isSectionActive(section);
           return (
             <div key={section.label}>
-              {/* Section Header Link or Div */}
-              {section.subItems ? (
-                <div
-                  className="flex items-center gap-3 px-5 py-3"
-                  style={{
-                    color: sectionActive ? "var(--primary-color)" : "var(--text-secondary)",
-                    fontWeight: sectionActive ? 700 : 600,
-                    fontSize: "1.05rem",
-                    background: sectionActive ? "rgba(249,128,18,0.08)" : "transparent",
-                    borderLeft: sectionActive ? "4px solid var(--primary-color)" : "4px solid transparent",
-                  }}
-                >
-                  <span style={{ opacity: sectionActive ? 1 : 0.7, display: "flex", alignItems: "center" }}>
-                    {section.icon}
-                  </span>
-                  <span>{section.label}</span>
-                </div>
-              ) : (
-                <Link
-                  href={section.href}
-                  className="flex items-center gap-3 px-5 py-3 transition-colors"
-                  style={{
-                    color: sectionActive ? "var(--primary-color)" : "var(--text-secondary)",
-                    fontWeight: sectionActive ? 700 : 600,
-                    fontSize: "1.05rem",
-                    background: sectionActive ? "rgba(249,128,18,0.08)" : "transparent",
-                    borderLeft: sectionActive ? "4px solid var(--primary-color)" : "4px solid transparent",
-                  }}
-                >
-                  <span style={{ opacity: sectionActive ? 1 : 0.7, display: "flex", alignItems: "center" }}>
-                    {section.icon}
-                  </span>
-                  <span>{section.label}</span>
-                </Link>
-              )}
+              {/* Section Header Link */}
+              <Link
+                href={section.href}
+                className="flex items-center gap-3 px-5 py-3 transition-colors"
+                style={{
+                  color: sectionActive ? "var(--primary-color)" : "var(--text-secondary)",
+                  fontWeight: sectionActive ? 700 : 600,
+                  fontSize: "1.05rem",
+                  background: sectionActive ? "rgba(249,128,18,0.08)" : "transparent",
+                  borderLeft: sectionActive ? "4px solid var(--primary-color)" : "4px solid transparent",
+                }}
+              >
+                <span style={{ opacity: sectionActive ? 1 : 0.7, display: "flex", alignItems: "center" }}>
+                  {section.icon}
+                </span>
+                <span>{section.label}</span>
+              </Link>
 
               {/* Sub-items */}
               {section.subItems && (
