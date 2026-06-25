@@ -124,10 +124,20 @@ export default async function CursoTareasPage({
                     <span>Vence: {formatToColombiaString(activeDeadline)} {hasExtension && "(Prórroga)"}</span>
                   </div>
                 </div>
-                <div>
-                  <Link href={`/estudiante/tareas/${task.id}`} className={`btn ${isSubmitted ? 'btn-secondary' : 'btn-primary'}`}>
-                    {isSubmitted ? 'Ver Entrega' : 'Subir Tarea'}
-                  </Link>
+                <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
+                  {isGraded && submission && submission.grade !== null && submission.grade !== undefined && (
+                    <div style={{ textAlign: "center", minWidth: "60px" }}>
+                      <div style={{ fontSize: "1.5rem", fontWeight: 800, color: leftBorderColor, lineHeight: 1 }}>
+                        {Number(submission.grade).toFixed(1)}
+                      </div>
+                      <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>nota</div>
+                    </div>
+                  )}
+                  <div>
+                    <Link href={`/estudiante/tareas/${task.id}`} className={`btn ${isSubmitted ? 'btn-secondary' : 'btn-primary'}`}>
+                      {isSubmitted ? 'Ver Entrega' : 'Subir Tarea'}
+                    </Link>
+                  </div>
                 </div>
               </div>
             );

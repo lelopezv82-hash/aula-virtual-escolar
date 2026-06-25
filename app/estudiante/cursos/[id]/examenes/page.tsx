@@ -86,12 +86,44 @@ export default async function CursoExamenesPage({
         <div className="flex flex-col gap-4">
           {filtered.map(exam => {
             const submission = exam.submissions[0] || null;
-            const { activeDeadline, hasExtension, isLate } = getTaskDeadlineStatus(exam, submission);
+            const { activeDeadline, hasExtension, isLate, isClosed } = getTaskDeadlineStatus(exam, submission);
             const isSubmitted = submission && submission.status !== "PENDING";
-            const isGraded = submission && submission.status === "GRADED";
+
+            const isGoogleForm = !!(
+              exam.attachmentUrl &&
+              (exam.attachmentUrl.includes("docs.google.com/forms") ||
+                exam.attachmentUrl.includes("forms.gle"))
+            );
+            const isTimerExpired = !!(
+              submission?.startedAt &&
+              exam.duration &&
+              new Date(submission.startedAt).getTime() + exam.duration * 60 * 1000 + 30000 < now.getTime()
+            );
+
+            const virtualSubmission =
+              ((!submission || submission.status === "PENDING") &&
+                isClosed &&
+                isGoogleForm) ||
+              (submission &&
+                submission.status === "PENDING" &&
+                isTimerExpired &&
+                isGoogleForm)
+                ? {
+                    status: "GRADED",
+                    grade: 1.0,
+                  }
+                : null;
+
+            const activeSubmission =
+              submission && submission.status !== "PENDING"
+                ? submission
+                : virtualSubmission || submission;
+
+            const isGraded = !!(activeSubmission && activeSubmission.status === "GRADED");
+            const grade = activeSubmission ? (activeSubmission.grade as number | null) : null;
 
             const leftBorderColor = isGraded
-              ? (submission.grade !== null && Number(submission.grade) < 3 ? 'var(--danger)' : 'var(--success)')
+              ? (grade !== null && Number(grade) < 3 ? 'var(--danger)' : 'var(--success)')
               : isLate ? 'var(--danger)' : '#8b5cf6';
 
             return (
@@ -132,31 +164,41 @@ export default async function CursoExamenesPage({
                     <span>Vence: {formatToColombiaString(activeDeadline)} {hasExtension && "(Prórroga)"}</span>
                   </div>
                 </div>
-                <div>
-                  <ExamenCardAcciones
-                    examId={exam.id}
-                    examTitle={exam.title}
-                    courseName={exam.course.name}
-                    attachmentUrl={exam.attachmentUrl}
-                    dueDate={exam.dueDate.toISOString()}
-                    duration={exam.duration}
-                    allowLateSubmission={exam.allowLateSubmission}
-                    lateSubmissionUntil={exam.lateSubmissionUntil ? exam.lateSubmissionUntil.toISOString() : null}
-                    submission={submission ? {
-                      status: submission.status,
-                      grade: submission.grade,
-                      feedback: submission.feedback,
-                      fileUrl: submission.fileUrl,
-                      submittedAt: submission.submittedAt,
-                      startedAt: submission.startedAt,
-                      allowLateSubmission: submission.allowLateSubmission,
-                      lateSubmissionUntil: submission.lateSubmissionUntil,
-                      attempt: submission.attempt ?? 1,
-                      unlockedAnswers: submission.unlockedAnswers ?? false,
-                      answers: (submission as any).answers,
-                    } : null}
-                    studentName={studentName}
-                  />
+                <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
+                  {isGraded && grade !== null && grade !== undefined && (
+                    <div style={{ textAlign: "center", minWidth: "60px" }}>
+                      <div style={{ fontSize: "1.5rem", fontWeight: 800, color: leftBorderColor, lineHeight: 1 }}>
+                        {Number(grade).toFixed(1)}
+                      </div>
+                      <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>nota</div>
+                    </div>
+                  )}
+                  <div>
+                    <ExamenCardAcciones
+                      examId={exam.id}
+                      examTitle={exam.title}
+                      courseName={exam.course.name}
+                      attachmentUrl={exam.attachmentUrl}
+                      dueDate={exam.dueDate.toISOString()}
+                      duration={exam.duration}
+                      allowLateSubmission={exam.allowLateSubmission}
+                      lateSubmissionUntil={exam.lateSubmissionUntil ? exam.lateSubmissionUntil.toISOString() : null}
+                      submission={submission ? {
+                        status: submission.status,
+                        grade: submission.grade,
+                        feedback: submission.feedback,
+                        fileUrl: submission.fileUrl,
+                        submittedAt: submission.submittedAt,
+                        startedAt: submission.startedAt,
+                        allowLateSubmission: submission.allowLateSubmission,
+                        lateSubmissionUntil: submission.lateSubmissionUntil,
+                        attempt: submission.attempt ?? 1,
+                        unlockedAnswers: submission.unlockedAnswers ?? false,
+                        answers: (submission as any).answers,
+                      } : null}
+                      studentName={studentName}
+                    />
+                  </div>
                 </div>
               </div>
             );
