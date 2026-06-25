@@ -3,8 +3,6 @@ import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { CheckCircle, Clock, AlertCircle } from "lucide-react";
 import { getTaskDeadlineStatus } from '@/lib/dateUtils';
-import EvidenciaBotones from "@/app/estudiante/examenes/EvidenciaBotones";
-import Link from "next/link";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
@@ -184,7 +182,7 @@ export default async function CursoCalificacionesPage({
                             <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>Tu docente aún no ha calificado esta entrega.</p>
                           )}
                         </div>
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem", minWidth: "110px", textAlign: "center" }}>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "0.25rem", minWidth: "110px", textAlign: "center" }}>
                           {isGraded ? (
                             <>
                               <div style={{ fontSize: "2rem", fontWeight: 800, color: gradeColor, lineHeight: 1 }}>
@@ -193,32 +191,10 @@ export default async function CursoCalificacionesPage({
                               <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>nota</div>
                             </>
                           ) : (
-                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontStyle: "italic", marginBottom: "0.5rem" }}>
+                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontStyle: "italic" }}>
                               {sub.task.type === "EXAM" ? "En proceso de calificación..." : "Pendiente de revisión"}
                             </div>
                           )}
-                          <div className="w-full flex justify-center">
-                            {sub.task.type === "EXAM" ? (
-                              <EvidenciaBotones
-                                exam={{ id: sub.task.id, title: sub.task.title, course: { name: sub.task.course?.name || "" } }}
-                                submission={{
-                                  grade: sub.grade !== null && sub.grade !== undefined ? Math.max(1.0, sub.grade) : null,
-                                  status: sub.status, fileUrl: sub.fileUrl,
-                                  submittedAt: sub.submittedAt, feedback: sub.feedback,
-                                  feedbackTemplate: sub.feedbackTemplate, studentName,
-                                  attempt: sub.attempt, unlockedAnswers: sub.unlockedAnswers,
-                                  answers: (sub as any).answers,
-                                }}
-                                isGoogleForm={!!(sub.task.attachmentUrl?.includes("docs.google.com/forms") || sub.task.attachmentUrl?.includes("forms.gle"))}
-                                variant="secondary"
-                                label="Ver Respuestas"
-                              />
-                            ) : (
-                              <Link href={`/estudiante/tareas/${sub.task.id}`} className="btn btn-secondary text-xs px-2 py-1 w-full flex justify-center">
-                                Ver Entrega
-                              </Link>
-                            )}
-                          </div>
                         </div>
                       </div>
                     );
