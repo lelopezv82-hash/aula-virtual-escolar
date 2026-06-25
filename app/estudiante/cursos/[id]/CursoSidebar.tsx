@@ -111,6 +111,7 @@ export default function CursoSidebar({ courseId, courseName, periods = [] }: Cur
                     color: sectionActive ? "var(--primary-color)" : "var(--text-secondary)",
                     fontWeight: sectionActive ? 700 : 600,
                     fontSize: "1.05rem",
+                    background: sectionActive ? "rgba(249,128,18,0.08)" : "transparent",
                     borderLeft: sectionActive ? "4px solid var(--primary-color)" : "4px solid transparent",
                   }}
                 >
