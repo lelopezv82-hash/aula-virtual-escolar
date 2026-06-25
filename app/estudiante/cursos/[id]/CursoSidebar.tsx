@@ -73,6 +73,8 @@ export default function CursoSidebar({ courseId, courseName, periods = [] }: Cur
     return false;
   };
 
+  const isHomeActive = pathname === base;
+
   return (
     <div
       className="card"
@@ -86,8 +88,15 @@ export default function CursoSidebar({ courseId, courseName, periods = [] }: Cur
       }}
     >
       {/* Course Name Header */}
-      <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid var(--border-color)", background: "var(--bg-secondary)" }}>
-        <Link href={base} className="hover:text-[var(--primary-color)] transition-colors block" style={{ color: "var(--text-primary)", textDecoration: "none" }}>
+      <div style={{ 
+        padding: "1.25rem 1.5rem", 
+        paddingLeft: isHomeActive ? "1.25rem" : "1.5rem",
+        borderBottom: "1px solid var(--border-color)", 
+        background: isHomeActive ? "rgba(249,128,18,0.08)" : "var(--bg-secondary)",
+        borderLeft: isHomeActive ? "4px solid var(--primary-color)" : "4px solid transparent",
+        transition: "all 0.2s ease"
+      }}>
+        <Link href={base} className="transition-colors block" style={{ color: isHomeActive ? "var(--primary-color)" : "var(--text-primary)", textDecoration: "none" }}>
           <h2 className="font-bold text-lg capitalize" style={{ color: "inherit", letterSpacing: "-0.01em", marginBottom: "0.25rem" }}>
             {courseName}
           </h2>
