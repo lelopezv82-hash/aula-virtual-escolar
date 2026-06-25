@@ -16,7 +16,7 @@ interface NavSection {
   subItems?: { label: string; href: string }[];
 }
 
-export default function CursoSidebar({ courseId, courseName }: CursoSidebarProps) {
+export default function CursoSidebar({ courseId, courseName, periods = [] }: CursoSidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const estado = searchParams.get("estado");
@@ -86,10 +86,15 @@ export default function CursoSidebar({ courseId, courseName }: CursoSidebarProps
       }}
     >
       {/* Course Name Header */}
-      <div style={{ padding: "1.5rem 1.5rem 1.25rem", borderBottom: "1px solid var(--border-color)", background: "var(--bg-secondary)" }}>
-        <h2 className="font-bold text-lg capitalize" style={{ color: "var(--text-primary)", letterSpacing: "-0.01em" }}>
+      <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid var(--border-color)", background: "var(--bg-secondary)" }}>
+        <h2 className="font-bold text-lg capitalize" style={{ color: "var(--text-primary)", letterSpacing: "-0.01em", marginBottom: "0.25rem" }}>
           {courseName}
         </h2>
+        {periods && periods.length > 0 && (
+          <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: 500, marginTop: "0.15rem" }}>
+            {periods.join(" • ")}
+          </div>
+        )}
       </div>
 
       {/* Nav Sections */}
