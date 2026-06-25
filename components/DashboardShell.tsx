@@ -149,6 +149,20 @@ export default function DashboardShell({
               </button>
             </div>
           )}
+
+          {/* Welcome message */}
+          <div style={{
+            padding: "1.25rem 1.25rem 1rem",
+            borderBottom: "1px solid var(--border-color)",
+          }}>
+            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 500, marginBottom: "0.2rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Bienvenido/a
+            </p>
+            <p style={{ fontSize: "0.95rem", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1.3 }}>
+              {user?.name || "Estudiante"}
+            </p>
+          </div>
+
           <nav className="drawer-nav">
             <ul className="nav-list">
               {links.map((link) => (
