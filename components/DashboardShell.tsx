@@ -165,14 +165,50 @@ export default function DashboardShell({
 
           <nav className="drawer-nav">
             <ul className="nav-list">
-              {links.map((link) => (
-                <li key={link.href} className="nav-item-container">
-                  <ActiveLink href={link.href}>
-                    {link.icon}
-                    <span className="nav-label">{link.label}</span>
-                  </ActiveLink>
-                </li>
-              ))}
+              {roleTitle === "Estudiante" && links.some(l => l.href.startsWith("/estudiante/cursos/")) ? (
+                <>
+                  <li style={{ 
+                    padding: "0.5rem 2rem 0.25rem", 
+                    fontSize: "0.75rem", 
+                    color: "var(--text-muted)", 
+                    fontWeight: 600, 
+                    textTransform: "uppercase", 
+                    letterSpacing: "0.05em" 
+                  }}>
+                    Asignaturas
+                  </li>
+                  {links.filter(l => l.href.startsWith("/estudiante/cursos/")).map((link) => (
+                    <li key={link.href} className="nav-item-container">
+                      <ActiveLink href={link.href}>
+                        {link.icon}
+                        <span className="nav-label">{link.label}</span>
+                      </ActiveLink>
+                    </li>
+                  ))}
+                  {links.some(l => !l.href.startsWith("/estudiante/cursos/")) && (
+                    <li style={{ padding: "0.25rem 2rem" }}>
+                      <div style={{ height: "1px", background: "var(--border-color)", margin: "0.25rem 0" }} />
+                    </li>
+                  )}
+                  {links.filter(l => !l.href.startsWith("/estudiante/cursos/")).map((link) => (
+                    <li key={link.href} className="nav-item-container">
+                      <ActiveLink href={link.href}>
+                        {link.icon}
+                        <span className="nav-label">{link.label}</span>
+                      </ActiveLink>
+                    </li>
+                  ))}
+                </>
+              ) : (
+                links.map((link) => (
+                  <li key={link.href} className="nav-item-container">
+                    <ActiveLink href={link.href}>
+                      {link.icon}
+                      <span className="nav-label">{link.label}</span>
+                    </ActiveLink>
+                  </li>
+                ))
+              )}
             </ul>
           </nav>
         </aside>

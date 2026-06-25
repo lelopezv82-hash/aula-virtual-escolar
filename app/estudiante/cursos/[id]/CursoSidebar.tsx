@@ -88,15 +88,18 @@ export default function CursoSidebar({ courseId, courseName, periods = [] }: Cur
       }}
     >
       {/* Course Name Header */}
-      <div style={{ 
-        padding: "1.25rem 1.5rem", 
-        paddingLeft: isHomeActive ? "1.25rem" : "1.5rem",
-        borderBottom: "1px solid var(--border-color)", 
-        background: isHomeActive ? "rgba(249,128,18,0.08)" : "var(--bg-secondary)",
-        borderLeft: isHomeActive ? "4px solid var(--primary-color)" : "4px solid transparent",
-        transition: "all 0.2s ease"
-      }}>
-        <Link href={base} className="transition-colors block" style={{ color: isHomeActive ? "var(--primary-color)" : "var(--text-primary)", textDecoration: "none" }}>
+      <div 
+        className="hover:bg-[rgba(249,128,18,0.04)]"
+        style={{ 
+          padding: "1.25rem 1.5rem", 
+          paddingLeft: isHomeActive ? "1.25rem" : "1.5rem",
+          borderBottom: "1px solid var(--border-color)", 
+          background: isHomeActive ? "rgba(249,128,18,0.08)" : undefined,
+          borderLeft: isHomeActive ? "4px solid var(--primary-color)" : "4px solid transparent",
+          transition: "all 0.2s ease"
+        }}
+      >
+        <Link href={base} className="transition-colors block hover:text-[var(--primary-color)]" style={{ color: isHomeActive ? "var(--primary-color)" : "var(--text-primary)", textDecoration: "none" }}>
           <h2 className="font-bold text-lg capitalize" style={{ color: "inherit", letterSpacing: "-0.01em", marginBottom: "0.25rem" }}>
             {courseName}
           </h2>
@@ -117,13 +120,16 @@ export default function CursoSidebar({ courseId, courseName, periods = [] }: Cur
               {/* Section Header Link */}
               <Link
                 href={section.href}
-                className="flex items-center gap-3 px-5 py-3 transition-colors"
+                className="flex items-center gap-3 py-3 text-[var(--text-secondary)] hover:bg-[rgba(249,128,18,0.04)] hover:text-[var(--primary-color)]"
                 style={{
-                  color: sectionActive ? "var(--primary-color)" : "var(--text-secondary)",
+                  paddingLeft: sectionActive ? "1.25rem" : "1.5rem",
+                  paddingRight: "1.5rem",
+                  color: sectionActive ? "var(--primary-color)" : undefined,
                   fontWeight: sectionActive ? 700 : 600,
                   fontSize: "1.05rem",
-                  background: sectionActive ? "rgba(249,128,18,0.08)" : "transparent",
+                  background: sectionActive ? "rgba(249,128,18,0.08)" : undefined,
                   borderLeft: sectionActive ? "4px solid var(--primary-color)" : "4px solid transparent",
+                  transition: "all 0.2s ease",
                 }}
               >
                 <span style={{ opacity: sectionActive ? 1 : 0.7, display: "flex", alignItems: "center" }}>
@@ -141,14 +147,15 @@ export default function CursoSidebar({ courseId, courseName, periods = [] }: Cur
                       <Link
                         key={sub.label}
                         href={sub.href}
-                        className="flex items-center gap-2 py-2 transition-colors"
+                        className="flex items-center gap-2 py-2 text-[var(--text-muted)] hover:bg-[rgba(249,128,18,0.02)] hover:text-[var(--primary-color)]"
                         style={{
                           paddingLeft: "3.25rem",
                           paddingRight: "1.5rem",
                           fontSize: "0.95rem",
-                          color: active ? "var(--primary-color)" : "var(--text-muted)",
+                          color: active ? "var(--primary-color)" : undefined,
                           fontWeight: active ? 600 : 500,
-                          background: active ? "rgba(249,128,18,0.04)" : "transparent",
+                          background: active ? "rgba(249,128,18,0.04)" : undefined,
+                          transition: "all 0.2s ease",
                         }}
                       >
                         {active && (
