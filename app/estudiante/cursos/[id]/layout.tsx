@@ -45,10 +45,10 @@ export default async function CursoLayout({
     },
   });
 
-  if (!course || !course.groups.some((g) => g.id === studentGroupId)) {
+  if (!course || !course.active || !course.groups.some((g) => g.id === studentGroupId)) {
     return (
       <div className="animate-fade-in">
-        <div className="alert alert-danger">El curso no existe o no tienes acceso a él.</div>
+        <div className="alert alert-danger">El curso no existe, no está activo o no tienes acceso a él.</div>
         <Link href="/estudiante" className="btn btn-secondary mt-4">
           <ArrowLeft size={16} /> Volver a Asignaturas
         </Link>

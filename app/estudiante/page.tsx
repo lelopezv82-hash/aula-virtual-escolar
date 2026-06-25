@@ -31,6 +31,7 @@ export default async function EstudianteDashboard() {
 
   const courses = await prisma.course.findMany({
     where: studentGroupId ? {
+      active: true,
       groups: {
         some: {
           id: studentGroupId

@@ -35,6 +35,7 @@ export default async function EstudianteLayout({ children }: { children: React.R
 
   const courses = await prisma.course.findMany({
     where: studentGroupId ? {
+      active: true,
       groups: {
         some: {
           id: studentGroupId

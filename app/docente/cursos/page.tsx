@@ -1,14 +1,15 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { BookOpen, Plus, Edit2, Trash2, X, Save, Loader2 } from "lucide-react";
+import { BookOpen, Plus, Edit2, Trash2, X, Save, Loader2, Eye, EyeOff } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
 
 interface Course {
   id: string;
   name: string;
   description: string | null;
+  active: boolean;
   groups?: {
     id: string;
     name: string;
@@ -141,6 +142,21 @@ export default function CursosPage() {
     }
   };
 
+  const toggleCourseActive = async (id: string, currentActive: boolean) => {
+    try {
+      const res = await fetch("/api/docente/cursos", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, active: !currentActive }),
+      });
+      if (res.ok) {
+        fetchCourses();
+      }
+    } catch (err) {
+      console.error("Error toggling course state:", err);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6 animate-fade-in">
       <div className="flex justify-between items-center border-b pb-4" style={{ borderColor: "var(--border-color)" }}>
@@ -177,10 +193,30 @@ export default function CursosPage() {
             >
               <div>
                 <div className="flex justify-between items-start gap-4">
-                  <div className="p-2.5 rounded-xl bg-orange-50 text-[#f98012] dark:bg-orange-900/30">
-                    <BookOpen size={22} />
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-orange-50 text-[#f98012] dark:bg-orange-900/30">
+                      <BookOpen size={22} />
+                    </div>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                      course.active 
+                        ? "bg-green-50 text-green-700 border border-green-200" 
+                        : "bg-gray-100 text-gray-500 border border-gray-200"
+                    }`}>
+                      {course.active ? "Activo" : "Inactivo"}
+                    </span>
                   </div>
                   <div className="flex gap-1">
+                    <button
+                      title={course.active ? "Desactivar asignatura" : "Activar asignatura"}
+                      onClick={() => toggleCourseActive(course.id, course.active)}
+                      className={`p-1.5 rounded-lg transition-colors ${
+                        course.active
+                          ? "hover:bg-orange-50 text-[#f98012]"
+                          : "hover:bg-gray-100 text-gray-400"
+                      }`}
+                    >
+                      {course.active ? <Eye size={16} /> : <EyeOff size={16} />}
+                    </button>
                     <button
                       title="Editar asignatura"
                       onClick={() => openEditCourse(course)}
