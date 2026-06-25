@@ -52,21 +52,13 @@ export default async function CursoRecursosPage({
     include: { groups: true },
   });
 
-  // Filter by selected period, or show all grouped by period
-  const filtered = periodo
-    ? resources.filter(r => r.period === periodo)
-    : resources.filter(r => activePeriodNames.includes(r.period || ""));
+  // Filter resources to display
+  const filtered = resources.filter(r => {
+    if (periodo) return r.period === periodo;
+    return !r.period || activePeriodNames.includes(r.period);
+  });
 
-  const groupedByPeriod = activePeriodNames.reduce((acc, p) => {
-    const items = filtered.filter(r => r.period === p);
-    if (items.length > 0) acc[p] = items;
-    return acc;
-  }, {} as Record<string, typeof resources>);
-
-  // Items with no period
-  const noPeriodItems = filtered.filter(r => !r.period);
-
-  const allEmpty = Object.keys(groupedByPeriod).length === 0 && noPeriodItems.length === 0;
+  const allEmpty = filtered.length === 0;
 
   return (
     <div>
@@ -80,67 +72,30 @@ export default async function CursoRecursosPage({
           <p>No hay materiales disponibles{periodo ? ` para ${periodo}` : ""} en esta asignatura.</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-6">
-          {Object.entries(groupedByPeriod).map(([periodName, items]) => (
-            <div key={periodName}>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-muted mb-3 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-orange-400 inline-block" />
-                {periodName}
-              </h3>
-              <div className="flex flex-col gap-2">
-                {items.map(resource => (
-                  <div
-                    key={resource.id}
-                    className="card flex items-center gap-4"
-                    style={{ background: "var(--bg-primary)", padding: "0.75rem 1rem" }}
-                  >
-                    <span style={{ fontSize: "1.5rem" }}>{TYPE_ICONS[resource.type] || "📁"}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm truncate" title={resource.title}>{resource.title}</p>
-                      <p className="text-xs text-muted">{resource.type}{resource.theme ? ` • ${resource.theme}` : ""}</p>
-                    </div>
-                    <a
-                      href={resource.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="btn btn-secondary p-2 rounded-full inline-flex items-center justify-center"
-                      style={{ color: "var(--primary-color)" }}
-                      title={resource.type === "LINK" ? "Abrir enlace" : "Descargar"}
-                    >
-                      {resource.type === "LINK" ? <LinkIcon size={16} /> : <Download size={16} />}
-                    </a>
-                  </div>
-                ))}
+        <div className="flex flex-col gap-2">
+          {filtered.map(resource => (
+            <div
+              key={resource.id}
+              className="card flex items-center gap-4"
+              style={{ background: "var(--bg-primary)", padding: "0.75rem 1rem" }}
+            >
+              <span style={{ fontSize: "1.5rem" }}>{TYPE_ICONS[resource.type] || "📁"}</span>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm truncate" title={resource.title}>{resource.title}</p>
+                <p className="text-xs text-muted">{resource.type}{resource.theme ? ` • ${resource.theme}` : ""}</p>
               </div>
+              <a
+                href={resource.url}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-secondary p-2 rounded-full inline-flex items-center justify-center"
+                style={{ color: "var(--primary-color)" }}
+                title={resource.type === "LINK" ? "Abrir enlace" : "Descargar"}
+              >
+                {resource.type === "LINK" ? <LinkIcon size={16} /> : <Download size={16} />}
+              </a>
             </div>
           ))}
-          {noPeriodItems.length > 0 && (
-            <div className="flex flex-col gap-2">
-              {noPeriodItems.map(resource => (
-                <div
-                  key={resource.id}
-                  className="card flex items-center gap-4"
-                  style={{ background: "var(--bg-primary)", padding: "0.75rem 1rem" }}
-                >
-                  <span style={{ fontSize: "1.5rem" }}>{TYPE_ICONS[resource.type] || "📁"}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm truncate" title={resource.title}>{resource.title}</p>
-                    <p className="text-xs text-muted">{resource.type}{resource.theme ? ` • ${resource.theme}` : ""}</p>
-                  </div>
-                  <a
-                    href={resource.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn btn-secondary p-2 rounded-full inline-flex items-center justify-center"
-                    style={{ color: "var(--primary-color)" }}
-                    title={resource.type === "LINK" ? "Abrir enlace" : "Descargar"}
-                  >
-                    {resource.type === "LINK" ? <LinkIcon size={16} /> : <Download size={16} />}
-                  </a>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       )}
     </div>

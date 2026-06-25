@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { jwtVerify } from "jose";
 import prisma from '@/lib/prisma';
 import { BookOpen, FileText, Clock, ClipboardList } from "lucide-react";
@@ -42,6 +43,10 @@ export default async function EstudianteDashboard() {
       resources: { where: { active: true } }
     }
   });
+
+  if (courses.length > 0) {
+    redirect(`/estudiante/cursos/${courses[0].id}`);
+  }
 
   const coursesWithCount = courses.map(c => {
     const { tasks, resources, ...courseData } = c;
