@@ -1,9 +1,9 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { jwtVerify } from "jose";
-import { BookOpen, Book, ClipboardList, Award, Settings } from "lucide-react";
+import { Book, Settings } from "lucide-react";
 import DashboardShell from "@/components/DashboardShell";
-import "../docente/docente.css"; // Reuse dashboard layout styles
+import "../docente/docente.css";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
@@ -32,27 +32,6 @@ export default async function EstudianteLayout({ children }: { children: React.R
       label: "Asignaturas",
       icon: <Book size={20} />,
     },
-    {
-      href: "/estudiante/tareas",
-      label: "Tareas",
-      icon: <ClipboardList size={20} />,
-    },
-    {
-      href: "/estudiante/examenes",
-      label: "Exámenes",
-      icon: <ClipboardList size={20} />,
-    },
-    {
-      href: "/estudiante/recursos",
-      label: "Recursos",
-      icon: <BookOpen size={20} />,
-    },
-    {
-      href: "/estudiante/calificaciones",
-      label: "Calificaciones",
-      icon: <Award size={20} />,
-    },
-
     {
       href: "/estudiante/configuracion",
       label: "Configuración",
