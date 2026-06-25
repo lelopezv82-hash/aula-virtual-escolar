@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, use, useCallback } from "react";
 import { ArrowLeft, UploadCloud, Loader2, CheckCircle, FileText, Clock, AlertTriangle } from "lucide-react";
@@ -393,7 +393,10 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   return (
     <div className="animate-fade-in max-w-3xl mx-auto">
       <div className="flex items-center gap-4 mb-6">
-        <Link href="/estudiante/examenes" className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+        <Link
+          href={task?.courseId ? `/estudiante/cursos/${task.courseId}/examenes?estado=${submission && submission.status !== "PENDING" ? "presentados" : "disponibles"}` : "/estudiante"}
+          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+        >
           <ArrowLeft size={24} />
         </Link>
 
