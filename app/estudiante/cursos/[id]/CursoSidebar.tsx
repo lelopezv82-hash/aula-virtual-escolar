@@ -124,7 +124,7 @@ export default function CursoSidebar({ courseId, courseName, periods = [] }: Cur
                 style={{
                   paddingLeft: sectionActive ? "1.25rem" : "1.5rem",
                   paddingRight: "1.5rem",
-                  color: sectionActive ? "var(--primary-color)" : undefined,
+                  color: sectionActive ? "var(--primary-color)" : "var(--text-secondary)",
                   fontWeight: sectionActive ? 700 : 600,
                   fontSize: "1.05rem",
                   background: sectionActive ? "rgba(249,128,18,0.08)" : undefined,
@@ -152,7 +152,7 @@ export default function CursoSidebar({ courseId, courseName, periods = [] }: Cur
                           paddingLeft: "3.25rem",
                           paddingRight: "1.5rem",
                           fontSize: "0.95rem",
-                          color: active ? "var(--primary-color)" : undefined,
+                          color: active ? "var(--primary-color)" : "var(--text-muted)",
                           fontWeight: active ? 600 : 500,
                           background: active ? "rgba(249,128,18,0.04)" : undefined,
                           transition: "all 0.2s ease",
