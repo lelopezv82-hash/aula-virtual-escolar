@@ -37,7 +37,6 @@ export default async function CursoDescripcionPage({
       <div className="card mt-4">
         <h3 className="text-sm font-bold uppercase tracking-wider text-muted mb-2">Docente</h3>
         <p className="font-semibold">{course.teacher.name}</p>
-        <p className="text-sm text-muted">{course.teacher.username}</p>
       </div>
     </div>
   );
