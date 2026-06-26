@@ -42,7 +42,6 @@ export default async function CursoTareasPage({
       courseId: id,
       active: true,
       type: "TASK",
-      isExternal: false,
       OR: [{ period: null }, { period: { in: activePeriodNames } }],
       AND: [{ OR: [{ publishAt: null }, { publishAt: { lte: now } }] }],
       groups: studentGroupId ? { some: { id: studentGroupId } } : undefined,
@@ -56,6 +55,12 @@ export default async function CursoTareasPage({
     const { isClosed } = getTaskDeadlineStatus(task, submission);
     const isSubmitted = submission && submission.status !== "PENDING";
     const isVirtuallyClosed = (!submission && isClosed) || (submission && submission.status === "PENDING" && isClosed);
+
+    // External tasks: only show when graded (in Entregadas), never in Pendientes
+    if (task.isExternal) {
+      if (estado === "entregadas") return isSubmitted;
+      return false;
+    }
 
     if (estado === "entregadas") return isSubmitted;
     // default: pendientes
@@ -117,11 +122,7 @@ export default async function CursoTareasPage({
                       </span>
                     )}
                     {!isSubmitted && isLate && <span className="badge badge-danger">Atrasada</span>}
-                    {task.isExternal && (
-                      <span className="badge bg-blue-50 text-blue-700 border border-blue-200" style={{ fontSize: "10px", fontWeight: "bold" }}>
-                        Presencial
-                      </span>
-                    )}
+
                   </div>
                   <h3 className="font-bold text-base mb-0.5" style={{ color: "var(--primary-color)" }}>{task.title}</h3>
                   <p className="text-sm text-muted truncate">{task.description || "Sin descripción"}</p>
@@ -140,8 +141,8 @@ export default async function CursoTareasPage({
                     </div>
                   )}
                   <div>
-                    <Link href={`/estudiante/tareas/${task.id}`} className={`btn ${isSubmitted || task.isExternal ? 'btn-secondary' : 'btn-primary'}`}>
-                      {isSubmitted ? 'Ver Calificación' : task.isExternal ? 'Ver Actividad' : 'Subir Tarea'}
+                    <Link href={`/estudiante/tareas/${task.id}`} className={`btn ${isSubmitted ? 'btn-secondary' : 'btn-primary'}`}>
+                      {isSubmitted ? 'Ver Calificación' : 'Subir Tarea'}
                     </Link>
                   </div>
                 </div>

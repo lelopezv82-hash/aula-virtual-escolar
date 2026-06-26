@@ -391,7 +391,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
             </div>
           )}
 
-          {isSubmitted && !isGoogleForm && (
+          {isSubmitted && !isGoogleForm && !task.isExternal && (
             <div className="flex items-center gap-3 p-4 border rounded-md mb-6" style={{ borderColor: "var(--border-color)" }}>
               <FileText className="text-[#f98012]" size={32} />
               <div>
@@ -413,16 +413,9 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
 
           {task.isExternal ? (
             !isGraded && (
-              <div className="bg-blue-50 border border-blue-200 text-blue-900 rounded-lg p-4 flex flex-col gap-2">
-                <h3 className="font-bold flex items-center gap-2">
-                  <Clock size={18} /> Actividad Presencial / Fuera de Plataforma
-                </h3>
-                <p className="text-sm">
-                  Esta actividad se realiza de manera física, presencial o externa a la plataforma. No requiere envíos en línea. Tu docente registrará tu calificación aquí una vez revisada.
-                </p>
-                <span className="text-xs font-semibold text-blue-700 bg-blue-100/50 px-2 py-1 rounded w-fit mt-1">
-                  Estado: Pendiente de Calificación
-                </span>
+              <div className="flex flex-col items-center justify-center py-8 text-center gap-3">
+                <Clock size={36} className="text-muted opacity-40" />
+                <p className="text-muted text-sm">Tu docente aún no ha registrado tu calificación.</p>
               </div>
             )
           ) : (

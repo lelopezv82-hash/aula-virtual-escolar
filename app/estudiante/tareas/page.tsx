@@ -36,7 +36,6 @@ export default async function TareasEstudiantePage() {
     where: {
       active: true,
       type: "TASK",
-      isExternal: false,
       OR: [
         { period: null },
         { period: { in: activePeriodNames } }
@@ -65,6 +64,8 @@ export default async function TareasEstudiantePage() {
   });
 
   const pendingTasks = tasks.filter(task => {
+    // External tasks have nothing to submit — never shown in Pendientes
+    if (task.isExternal) return false;
     const submission = task.submissions[0];
     const { isClosed } = getTaskDeadlineStatus(task, submission);
     const virtualGraded = (!submission && isClosed) || (submission && submission.status === "PENDING" && isClosed);
