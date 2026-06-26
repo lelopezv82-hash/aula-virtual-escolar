@@ -236,24 +236,7 @@ export default async function CursoCalificacionesPage({
                   >
                     <p className="text-xs font-bold uppercase tracking-wider text-muted mb-3">Resumen del {periodName}</p>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "1.5rem", alignItems: "flex-end" }}>
-                      {/* Avg Tareas */}
-                      {avgTareas !== null && (
-                        <div style={{ textAlign: "center", minWidth: "80px" }}>
-                          <div style={{ fontSize: "1.7rem", fontWeight: 800, color: gradeColor(avgTareas), lineHeight: 1 }}>
-                            {avgTareas.toFixed(1)}
-                          </div>
-                          <div className="flex items-center justify-center gap-1 mt-1">
-                            <ClipboardList size={11} style={{ color: "var(--primary-color)" }} />
-                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Prom. Tareas</span>
-                          </div>
-                        </div>
-                      )}
-
-                      {avgTareas !== null && (avgExamenes !== null || additionalGrade !== null) && (
-                        <div style={{ fontSize: "1.5rem", color: "var(--text-muted)", fontWeight: 300, lineHeight: 1 }}>+</div>
-                      )}
-
-                      {/* Avg Exámenes */}
+                      {/* Saber — Exámenes */}
                       {avgExamenes !== null && (
                         <div style={{ textAlign: "center", minWidth: "80px" }}>
                           <div style={{ fontSize: "1.7rem", fontWeight: 800, color: gradeColor(avgExamenes), lineHeight: 1 }}>
@@ -261,16 +244,33 @@ export default async function CursoCalificacionesPage({
                           </div>
                           <div className="flex items-center justify-center gap-1 mt-1">
                             <FileText size={11} style={{ color: "#8b5cf6" }} />
-                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Prom. Exámenes</span>
+                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Nota del Saber</span>
                           </div>
                         </div>
                       )}
 
-                      {additionalGrade !== null && (avgTareas !== null || avgExamenes !== null) && (
+                      {avgExamenes !== null && (avgTareas !== null || additionalGrade !== null) && (
                         <div style={{ fontSize: "1.5rem", color: "var(--text-muted)", fontWeight: 300, lineHeight: 1 }}>+</div>
                       )}
 
-                      {/* Additional Grade */}
+                      {/* Hacer — Tareas */}
+                      {avgTareas !== null && (
+                        <div style={{ textAlign: "center", minWidth: "80px" }}>
+                          <div style={{ fontSize: "1.7rem", fontWeight: 800, color: gradeColor(avgTareas), lineHeight: 1 }}>
+                            {avgTareas.toFixed(1)}
+                          </div>
+                          <div className="flex items-center justify-center gap-1 mt-1">
+                            <ClipboardList size={11} style={{ color: "var(--primary-color)" }} />
+                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Nota del Hacer</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {additionalGrade !== null && (avgExamenes !== null || avgTareas !== null) && (
+                        <div style={{ fontSize: "1.5rem", color: "var(--text-muted)", fontWeight: 300, lineHeight: 1 }}>+</div>
+                      )}
+
+                      {/* Ser — Nota Adicional */}
                       {additionalGrade !== null && (
                         <div style={{ textAlign: "center", minWidth: "80px" }}>
                           <div style={{ fontSize: "1.7rem", fontWeight: 800, color: gradeColor(additionalGrade), lineHeight: 1 }}>
@@ -278,7 +278,7 @@ export default async function CursoCalificacionesPage({
                           </div>
                           <div className="flex items-center justify-center gap-1 mt-1">
                             <Star size={11} style={{ color: "#f59e0b" }} />
-                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Nota Adicional</span>
+                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Nota del Ser</span>
                           </div>
                         </div>
                       )}
@@ -315,7 +315,7 @@ export default async function CursoCalificacionesPage({
 
                     {components.length > 1 && (
                       <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.75rem" }}>
-                        * La nota final es el promedio de: {[avgTareas !== null && "tareas", avgExamenes !== null && "exámenes", additionalGrade !== null && "nota adicional"].filter(Boolean).join(" + ")}.
+                        * La nota final es el promedio de: {[avgExamenes !== null && "Nota del Saber", avgTareas !== null && "Nota del Hacer", additionalGrade !== null && "Nota del Ser"].filter(Boolean).join(" + ")}.
                       </p>
                     )}
                   </div>
@@ -324,22 +324,22 @@ export default async function CursoCalificacionesPage({
                 {/* Task items */}
                 {hasSubs && (
                   <div className="flex flex-col gap-6">
-                    {tareas.length > 0 && (
-                      <div>
-                        <div className="flex items-center gap-2 mb-3">
-                          <ClipboardList size={14} style={{ color: "var(--primary-color)" }} />
-                          <span style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--primary-color)" }}>Tareas</span>
-                        </div>
-                        <div className="flex flex-col gap-3">{tareas.map(renderCard)}</div>
-                      </div>
-                    )}
                     {examenes.length > 0 && (
                       <div>
                         <div className="flex items-center gap-2 mb-3">
                           <FileText size={14} style={{ color: "#8b5cf6" }} />
-                          <span style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#8b5cf6" }}>Exámenes</span>
+                          <span style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#8b5cf6" }}>Saber — Exámenes</span>
                         </div>
                         <div className="flex flex-col gap-3">{examenes.map(renderCard)}</div>
+                      </div>
+                    )}
+                    {tareas.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <ClipboardList size={14} style={{ color: "var(--primary-color)" }} />
+                          <span style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--primary-color)" }}>Hacer — Tareas</span>
+                        </div>
+                        <div className="flex flex-col gap-3">{tareas.map(renderCard)}</div>
                       </div>
                     )}
                   </div>
