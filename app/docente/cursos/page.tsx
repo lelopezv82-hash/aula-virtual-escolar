@@ -349,7 +349,7 @@ export default function CursosPage() {
                 {activePeriods(course).length > 0 && (
                   <div className="mt-4 pt-4 border-t" style={{ borderColor: "var(--border-color)" }}>
                     <p className="text-xs font-bold uppercase tracking-wider text-muted mb-2 flex items-center gap-1">
-                      <Star size={11} /> Nota Adicional por Período
+                      <Star size={11} /> Nota del Ser por Período
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {activePeriods(course).map(period => (
