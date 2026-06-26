@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
@@ -19,6 +19,8 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
   const [weight, setWeight] = useState("0");
   const [duration, setDuration] = useState("");
   const [groupIds, setGroupIds] = useState<string[]>([]);
+  const [type, setType] = useState("TASK");
+  const [isExternal, setIsExternal] = useState(false);
   const [gradeGroups, setGradeGroups] = useState<{id: string, name: string}[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [existingAttachment, setExistingAttachment] = useState<string | null>(null);
@@ -66,6 +68,8 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
           setWeight(data.task.weight !== undefined ? String(data.task.weight) : "0");
           setDuration(data.task.duration !== null && data.task.duration !== undefined ? String(data.task.duration) : "");
           setGroupIds(data.task.groups ? data.task.groups.map((g: any) => g.id) : []);
+          setType(data.task.type || "TASK");
+          setIsExternal(data.task.isExternal || false);
           // Convert date to local string for datetime-local input (yyyy-MM-ddThh:mm)
           setDueDate(toColombiaISOString(data.task.dueDate));
           setExistingAttachment(data.task.attachmentUrl || null);
@@ -91,6 +95,8 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
     formData.append("weight", weight);
     if (duration) formData.append("duration", duration);
     formData.append("groupIds", JSON.stringify(groupIds));
+    formData.append("type", type);
+    formData.append("isExternal", String(isExternal));
     if (file) {
       formData.append("file", file);
     }
@@ -229,8 +235,37 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
 
+        <div className="flex gap-4">
+          <div className="input-group flex-1">
+            <label htmlFor="type">Tipo *</label>
+            <select
+              id="type"
+              className="input-field"
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+              required
+            >
+              <option value="TASK">Tarea (Hacer)</option>
+              <option value="EXAM">Examen (Saber)</option>
+            </select>
+          </div>
+          <div className="input-group flex-1 flex items-center gap-2 pt-6">
+            <input
+              id="isExternal"
+              type="checkbox"
+              className="w-4 h-4 rounded text-[#f98012] focus:ring-[#f98012]"
+              style={{ cursor: "pointer" }}
+              checked={isExternal}
+              onChange={(e) => setIsExternal(e.target.checked)}
+            />
+            <label htmlFor="isExternal" className="font-semibold text-sm cursor-pointer select-none">
+              Trabajo fuera de la plataforma (Calificación manual)
+            </label>
+          </div>
+        </div>
+
         <div className="input-group">
-          <label htmlFor="title">Título de la Tarea</label>
+          <label htmlFor="title">Título de la Tarea / Examen</label>
           <input
             id="title"
             type="text"

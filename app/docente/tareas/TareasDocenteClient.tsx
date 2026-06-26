@@ -20,6 +20,7 @@ interface Task {
   active?: boolean;
   publishAt?: string | null;
   gdriveEmail?: string | null;
+  isExternal?: boolean;
 }
 
 interface Course {
@@ -263,7 +264,14 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                                 <tr key={task.id} style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-primary)' }}>
                                   <td className="py-3 px-4 font-semibold text-sm text-slate-800">
                                     <div className="flex flex-col gap-0.5">
-                                      <span>{task.title}</span>
+                                      <div className="flex items-center gap-2">
+                                        <span>{task.title}</span>
+                                        {task.isExternal && (
+                                          <span className="text-[10px] font-bold bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-900/50">
+                                            Presencial
+                                          </span>
+                                        )}
+                                      </div>
                                       {task.gdriveEmail && (
                                         <GDriveEmailDisplay email={task.gdriveEmail} context="tasks" />
                                       )}

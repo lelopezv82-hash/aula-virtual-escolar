@@ -4,8 +4,11 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft, Loader2, Users, FileText, ClipboardList, Star, Award,
-  ChevronDown, ChevronUp, AlertCircle
+  ChevronDown, ChevronUp, AlertCircle, FileDown
 } from "lucide-react";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface PeriodGrades {
   saber: number | null;
@@ -68,6 +71,91 @@ export default function CalificacionesConsolidadoPage() {
   const [activePeriod, setActivePeriod] = useState<string>("");
   const [sortField, setSortField] = useState<"name" | "saber" | "hacer" | "ser" | "final">("name");
   const [sortAsc, setSortAsc] = useState(true);
+
+  const exportToExcel = () => {
+    if (!data || !activePeriod) return;
+    const worksheetData = sortedStudents.map(student => {
+      const pg = student.periods[activePeriod] ?? { saber: null, hacer: null, ser: null, final: null };
+      return {
+        "Estudiante": student.name,
+        "Grupo": student.groupName,
+        "Saber (Exámenes)": pg.saber !== null ? pg.saber : "—",
+        "Hacer (Tareas)": pg.hacer !== null ? pg.hacer : "—",
+        "Ser (Nota del Ser)": pg.ser !== null ? pg.ser : "—",
+        "Nota Final": pg.final !== null ? pg.final : "—"
+      };
+    });
+    
+    const ws = XLSX.utils.json_to_sheet(worksheetData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, activePeriod);
+    XLSX.writeFile(wb, `Consolidado_${data.course.name.replace(/\s+/g, '_')}_${activePeriod}.xlsx`);
+  };
+
+  const exportToPDF = () => {
+    if (!data || !activePeriod) return;
+    const doc = new jsPDF();
+    
+    doc.setFontSize(18);
+    doc.text("Consolidado de Calificaciones", 14, 20);
+    
+    doc.setFontSize(12);
+    doc.text(`Curso: ${data.course.name}`, 14, 28);
+    doc.text(`Periodo: ${activePeriod}`, 14, 34);
+    doc.text(`Fecha de exportacion: ${new Date().toLocaleDateString()}`, 14, 40);
+    
+    const tableColumn = ["Estudiante", "Grupo", "Saber (Examenes)", "Hacer (Tareas)", "Ser (Nota del Ser)", "Nota Final"];
+    const tableRows = sortedStudents.map(student => {
+      const pg = student.periods[activePeriod] ?? { saber: null, hacer: null, ser: null, final: null };
+      return [
+        student.name,
+        student.groupName,
+        pg.saber !== null ? pg.saber.toFixed(1) : "—",
+        pg.hacer !== null ? pg.hacer.toFixed(1) : "—",
+        pg.ser !== null ? pg.ser.toFixed(1) : "—",
+        pg.final !== null ? pg.final.toFixed(1) : "—"
+      ];
+    });
+    
+    if (periodStats) {
+      const statsRow = [
+        "PROMEDIO GENERAL",
+        "",
+        (() => {
+          const vals = data.students.map(s => s.periods[activePeriod]?.saber).filter((v): v is number => v !== null);
+          return vals.length > 0 ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : "—";
+        })(),
+        (() => {
+          const vals = data.students.map(s => s.periods[activePeriod]?.hacer).filter((v): v is number => v !== null);
+          return vals.length > 0 ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : "—";
+        })(),
+        (() => {
+          const vals = data.students.map(s => s.periods[activePeriod]?.ser).filter((v): v is number => v !== null);
+          return vals.length > 0 ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : "—";
+        })(),
+        (() => {
+          const vals = data.students.map(s => s.periods[activePeriod]?.final).filter((v): v is number => v !== null);
+          return vals.length > 0 ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : "—";
+        })()
+      ];
+      tableRows.push(statsRow);
+    }
+    
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 46,
+      theme: 'striped',
+      headStyles: { fillColor: [249, 128, 18] },
+      didParseCell: (cellData) => {
+        if (cellData.row.index === tableRows.length - 1) {
+          cellData.cell.styles.fontStyle = 'bold';
+        }
+      }
+    });
+    
+    doc.save(`Consolidado_${data.course.name.replace(/\s+/g, '_')}_${activePeriod}.pdf`);
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -148,9 +236,29 @@ export default function CalificacionesConsolidadoPage() {
           <h1 className="text-2xl font-bold">Consolidado de Calificaciones</h1>
           <p className="text-muted text-sm mt-0.5 capitalize">{data.course.name}</p>
         </div>
-        <div className="flex items-center gap-2 text-sm text-muted">
-          <Users size={16} />
-          <span><strong>{data.students.length}</strong> estudiantes</span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-sm text-muted mr-2">
+            <Users size={16} />
+            <span><strong>{data.students.length}</strong> estudiantes</span>
+          </div>
+          <button
+            onClick={exportToExcel}
+            className="btn btn-secondary py-1.5 px-3 text-xs flex items-center gap-1.5"
+            style={{ height: "auto" }}
+            title="Exportar a Excel"
+          >
+            <FileDown size={14} />
+            <span>Exportar Excel</span>
+          </button>
+          <button
+            onClick={exportToPDF}
+            className="btn btn-primary py-1.5 px-3 text-xs flex items-center gap-1.5"
+            style={{ height: "auto" }}
+            title="Exportar a PDF"
+          >
+            <FileDown size={14} />
+            <span>Exportar PDF</span>
+          </button>
         </div>
       </div>
 

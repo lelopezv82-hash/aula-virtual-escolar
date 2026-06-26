@@ -43,6 +43,8 @@ export async function POST(request: Request) {
     const duration = durationRaw && durationRaw.trim() !== "" ? parseInt(durationRaw, 10) : null;
     const type = formData.get('type') as string | null;
     const externalUrl = formData.get('externalUrl') as string | null;
+    const isExternalRaw = formData.get('isExternal') as string | null;
+    const isExternal = isExternalRaw === 'true';
 
     let groupIds: string[] = [];
 
@@ -136,7 +138,8 @@ export async function POST(request: Request) {
         },
         weight: isNaN(weight) ? 0 : weight,
         duration: duration && !isNaN(duration) ? duration : null,
-        type: type || "TASK"
+        type: type || "TASK",
+        isExternal: isExternal
       }
     });
 

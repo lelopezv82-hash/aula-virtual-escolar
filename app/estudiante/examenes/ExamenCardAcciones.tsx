@@ -29,6 +29,7 @@ interface ExamenCardAccionesProps {
     answers?: any;
   } | null;
   studentName: string;
+  isExternal?: boolean;
 }
 
 export default function ExamenCardAcciones({
@@ -42,6 +43,7 @@ export default function ExamenCardAcciones({
   lateSubmissionUntil,
   submission,
   studentName,
+  isExternal,
 }: ExamenCardAccionesProps) {
   const [now, setNow] = useState(new Date());
 
@@ -96,12 +98,21 @@ export default function ExamenCardAcciones({
   return (
     <>
       {!isSubmitted && !isClosed && (
-        <Link
-          href={`/estudiante/examenes/${examId}`}
-          className="btn btn-primary w-full md:w-auto"
-        >
-          Resolver Examen
-        </Link>
+        isExternal ? (
+          <Link
+            href={`/estudiante/tareas/${examId}`}
+            className="btn btn-secondary w-full md:w-auto"
+          >
+            Ver Actividad
+          </Link>
+        ) : (
+          <Link
+            href={`/estudiante/examenes/${examId}`}
+            className="btn btn-primary w-full md:w-auto"
+          >
+            Resolver Examen
+          </Link>
+        )
       )}
 
       {isSubmitted && activeSubmission && (

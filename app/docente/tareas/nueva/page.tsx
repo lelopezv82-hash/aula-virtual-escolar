@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -18,6 +18,8 @@ export default function NuevaTareaPage() {
   const [weight, setWeight] = useState("0");
   const [duration, setDuration] = useState("");
   const [groupIds, setGroupIds] = useState<string[]>([]);
+  const [type, setType] = useState("TASK");
+  const [isExternal, setIsExternal] = useState(false);
   const [courses, setCourses] = useState<{id: string, name: string}[]>([]);
   const [gradeGroups, setGradeGroups] = useState<{id: string, name: string}[]>([]);
   const [loading, setLoading] = useState(false);
@@ -103,6 +105,8 @@ export default function NuevaTareaPage() {
     formData.append("weight", weight);
     if (duration) formData.append("duration", duration);
     formData.append("groupIds", JSON.stringify(groupIds));
+    formData.append("type", type);
+    formData.append("isExternal", String(isExternal));
     if (file) {
       formData.append("file", file);
     }
@@ -275,8 +279,37 @@ export default function NuevaTareaPage() {
           </div>
         </div>
 
+        <div className="flex gap-4">
+          <div className="input-group flex-1">
+            <label htmlFor="type">Tipo *</label>
+            <select
+              id="type"
+              className="input-field"
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+              required
+            >
+              <option value="TASK">Tarea (Hacer)</option>
+              <option value="EXAM">Examen (Saber)</option>
+            </select>
+          </div>
+          <div className="input-group flex-1 flex items-center gap-2 pt-6">
+            <input
+              id="isExternal"
+              type="checkbox"
+              className="w-4 h-4 rounded text-[#f98012] focus:ring-[#f98012]"
+              style={{ cursor: "pointer" }}
+              checked={isExternal}
+              onChange={(e) => setIsExternal(e.target.checked)}
+            />
+            <label htmlFor="isExternal" className="font-semibold text-sm cursor-pointer select-none">
+              Trabajo fuera de la plataforma (Calificación manual)
+            </label>
+          </div>
+        </div>
+
         <div className="input-group">
-          <label htmlFor="title">Título de la Tarea</label>
+          <label htmlFor="title">Título de la Tarea / Examen</label>
           <input
             id="title"
             type="text"

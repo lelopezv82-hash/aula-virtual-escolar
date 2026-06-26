@@ -386,7 +386,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     publishAt: "",
     externalUrl: "",
     type: "TASK",
-    duration: ""
+    duration: "",
+    isExternal: false
   });
   const [taskFile, setTaskFile] = useState<File | null>(null);
 
@@ -448,7 +449,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       publishAt: "",
       externalUrl: "",
       type: activeTab === "examenes" ? "EXAM" : "TASK",
-      duration: ""
+      duration: "",
+      isExternal: false
     });
     setTaskFile(null);
     setShowTaskModal(true);
@@ -477,7 +479,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       publishAt: formattedPublishAt,
       externalUrl: task.attachmentUrl && !task.attachmentUrl.includes("supabase") && !task.attachmentUrl.includes("drive.google.com") ? task.attachmentUrl : "",
       type: task.type || "TASK",
-      duration: task.duration !== null && task.duration !== undefined ? String(task.duration) : ""
+      duration: task.duration !== null && task.duration !== undefined ? String(task.duration) : "",
+      isExternal: (task as any).isExternal || false
     });
     setTaskFile(null);
     setShowTaskModal(true);
@@ -506,6 +509,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     fd.append("allowLateSubmission", taskForm.allowLateSubmission ? "true" : "false");
     fd.append("type", taskForm.type);
     fd.append("duration", taskForm.duration);
+    fd.append("isExternal", taskForm.isExternal ? "true" : "false");
     if (taskForm.allowLateSubmission && taskForm.lateSubmissionUntil) {
       const lateParsed = fromColombiaLocalStringToDate(taskForm.lateSubmissionUntil);
       fd.append("lateSubmissionUntil", lateParsed ? lateParsed.toISOString() : "");
@@ -1244,6 +1248,19 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
               <input type="datetime-local" className="input-field py-1.5 px-3 text-xs"
                 value={taskForm.publishAt} onChange={e => setTaskForm({ ...taskForm, publishAt: e.target.value })} />
               <p className="text-[10px] text-muted mt-1">Dejar vacío para publicar inmediatamente. Si se define, la tarea se publicará automáticamente al llegar el momento.</p>
+            </div>
+
+            <div className="border rounded-lg p-3 bg-slate-50 dark:bg-slate-900 mb-3 flex flex-col gap-2">
+              <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={taskForm.isExternal}
+                  onChange={e => setTaskForm({ ...taskForm, isExternal: e.target.checked })}
+                  className="rounded text-[#f98012] focus:ring-[#f98012]"
+                />
+                <span>Trabajo fuera de la plataforma (Calificación manual)</span>
+              </label>
+              <p className="text-[10px] text-muted">Si se activa, los estudiantes no tendrán que entregar archivos ni responder cuestionarios. La calificación la registrarás tú directamente.</p>
             </div>
 
             <div className="border rounded-lg p-3 bg-slate-50 dark:bg-slate-900 mb-4 flex flex-col gap-2">

@@ -93,6 +93,7 @@ model Task {
   gdriveEmail         String?
   type                String       @default("TASK")
   duration            Int?
+  isExternal          Boolean      @default(false)
   submissions         Submission[]
   questions           Question[]
   course              Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)

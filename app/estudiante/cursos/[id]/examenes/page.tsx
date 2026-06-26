@@ -156,6 +156,11 @@ export default async function CursoExamenesPage({
                       </span>
                     )}
                     {!isSubmitted && isLate && <span className="badge badge-danger">Atrasado</span>}
+                    {exam.isExternal && (
+                      <span className="badge bg-blue-50 text-blue-700 border border-blue-200" style={{ fontSize: "10px", fontWeight: "bold" }}>
+                        Presencial
+                      </span>
+                    )}
                   </div>
                   <h3 className="font-bold text-base mb-0.5" style={{ color: "#8b5cf6" }}>{exam.title}</h3>
                   <p className="text-sm text-muted truncate">{exam.description || "Sin descripción"}</p>
@@ -197,6 +202,7 @@ export default async function CursoExamenesPage({
                         answers: (submission as any).answers,
                       } : null}
                       studentName={studentName}
+                      isExternal={exam.isExternal}
                     />
                   </div>
                 </div>

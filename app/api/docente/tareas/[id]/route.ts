@@ -106,6 +106,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const duration = durationRaw && durationRaw.trim() !== "" ? parseInt(durationRaw, 10) : null;
     const type = formData.get('type') as string | null;
     const externalUrl = formData.get('externalUrl') as string | null;
+    const isExternalRaw = formData.get('isExternal') as string | null;
+    const isExternal = isExternalRaw === 'true';
 
     let groupIds: string[] = [];
 
@@ -191,7 +193,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         },
         weight: isNaN(weight) ? 0 : weight,
         duration: duration && !isNaN(duration) ? duration : null,
-        type: type || undefined
+        type: type || undefined,
+        isExternal: isExternal
       }
     });
 

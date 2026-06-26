@@ -215,7 +215,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const activeExtensionDate = hasExtension && !isUnlimitedExtension ? activeDeadline : null;
 
   // Splash screen for timed tasks that haven't started yet
-  if (task.duration && (!submission || !submission.startedAt)) {
+  if (task.duration && !task.isExternal && (!submission || !submission.startedAt)) {
     return (
       <div className="animate-fade-in max-w-xl mx-auto card p-8 text-center flex flex-col gap-6 mt-10" style={{ borderColor: "var(--border-color)" }}>
         <div className="p-4 rounded-full bg-orange-50 dark:bg-orange-950/30 text-[#f98012] dark:text-[#f98012] mx-auto w-16 h-16 flex items-center justify-center">
@@ -411,68 +411,84 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
             </div>
           )}
 
-          {!isGraded && !isGoogleForm && (
-            isSubmissionBlocked || isTimerExpired ? (
-              <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-lg p-4 text-red-800 dark:text-red-350 flex flex-col gap-2">
+          {task.isExternal ? (
+            !isGraded && (
+              <div className="bg-blue-50 border border-blue-200 text-blue-900 rounded-lg p-4 flex flex-col gap-2">
                 <h3 className="font-bold flex items-center gap-2">
-                  <Clock size={18} /> Plazo de Entrega Vencido / Tiempo Agotado
+                  <Clock size={18} /> Actividad Presencial / Fuera de Plataforma
                 </h3>
                 <p className="text-sm">
-                  El tiempo límite ha expirado o el plazo original ha vencido. La entrega se ha deshabilitado.
+                  Esta actividad se realiza de manera física, presencial o externa a la plataforma. No requiere envíos en línea. Tu docente registrará tu calificación aquí una vez revisada.
                 </p>
+                <span className="text-xs font-semibold text-blue-700 bg-blue-100/50 px-2 py-1 rounded w-fit mt-1">
+                  Estado: Pendiente de Calificación
+                </span>
               </div>
-            ) : (
-              <form onSubmit={handleUpload} className="flex flex-col gap-4">
-                {isOverdue && (
-                  <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-indigo-900/50 rounded-lg p-4 text-[#7c3d00] dark:text-[#f98012] flex flex-col gap-1">
-                    <h3 className="font-bold flex items-center gap-2 text-sm">
-                      <Clock size={16} className="text-[#f98012] dark:text-[#f98012]" />
-                      Plazo Extemporáneo Activo
-                    </h3>
-                    <p className="text-xs">
-                      El plazo de entrega original ha vencido, pero tienes permiso para entregar tu tarea tarde
-                      {activeExtensionDate ? ` hasta el ${formatToColombiaString(activeExtensionDate)}.` : " sin límite de tiempo definido."}
-                    </p>
-                  </div>
-                )}
-                {error && (
-                  errorType === "warning" ? (
-                    <div className="flex items-center gap-3 p-4 border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 rounded-xl text-amber-900 dark:text-amber-200 animate-scale-in">
-                      <AlertTriangle className="text-amber-600 dark:text-amber-400 flex-shrink-0" size={20} />
-                      <div className="flex-1 text-sm font-medium">
-                        {error}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-3 p-4 border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/20 rounded-xl text-red-900 dark:text-red-200 animate-scale-in">
-                      <AlertTriangle className="text-red-600 dark:text-red-400 flex-shrink-0" size={20} />
-                      <div className="flex-1 text-sm font-medium">
-                        {error}
-                      </div>
-                    </div>
-                  )
-                )}
-                
-                <div className="border-2 border-dashed rounded-lg p-8 text-center hover:bg-gray-50 transition-colors" style={{ borderColor: 'var(--primary-color)' }}>
-                  <UploadCloud size={48} className="mx-auto mb-4" style={{ color: 'var(--primary-color)' }} />
-                  <label htmlFor="file-upload" className="cursor-pointer">
-                    <span className="btn btn-secondary mx-auto mb-2 inline-flex">Seleccionar Archivo</span>
-                    <input 
-                      id="file-upload" 
-                      type="file" 
-                      className="hidden" 
-                      onChange={handleFileChange} 
-                    />
-                  </label>
-                  <p className="text-sm text-muted mt-2">
-                    {file ? file.name : "Soporta PDF, DOCX, Imágenes y archivos comprimidos."}
+            )
+          ) : (
+            !isGraded && !isGoogleForm && (
+              isSubmissionBlocked || isTimerExpired ? (
+                <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-lg p-4 text-red-800 dark:text-red-350 flex flex-col gap-2">
+                  <h3 className="font-bold flex items-center gap-2">
+                    <Clock size={18} /> Plazo de Entrega Vencido / Tiempo Agotado
+                  </h3>
+                  <p className="text-sm">
+                    El tiempo límite ha expirado o el plazo original ha vencido. La entrega se ha deshabilitado.
                   </p>
                 </div>
+              ) : (
+                <form onSubmit={handleUpload} className="flex flex-col gap-4">
+                  {isOverdue && (
+                    <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-indigo-900/50 rounded-lg p-4 text-[#7c3d00] dark:text-[#f98012] flex flex-col gap-1">
+                      <h3 className="font-bold flex items-center gap-2 text-sm">
+                        <Clock size={16} className="text-[#f98012] dark:text-[#f98012]" />
+                        Plazo Extemporáneo Activo
+                      </h3>
+                      <p className="text-xs">
+                        El plazo de entrega original ha vencido, pero tienes permiso para entregar tu tarea tarde
+                        {activeExtensionDate ? ` hasta el ${formatToColombiaString(activeExtensionDate)}.` : " sin límite de tiempo definido."}
+                      </p>
+                    </div>
+                  )}
+                  {error && (
+                    errorType === "warning" ? (
+                      <div className="flex items-center gap-3 p-4 border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 rounded-xl text-amber-900 dark:text-amber-200 animate-scale-in">
+                        <AlertTriangle className="text-amber-600 dark:text-amber-400 flex-shrink-0" size={20} />
+                        <div className="flex-1 text-sm font-medium">
+                          {error}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3 p-4 border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/20 rounded-xl text-red-900 dark:text-red-200 animate-scale-in">
+                        <AlertTriangle className="text-red-600 dark:text-red-400 flex-shrink-0" size={20} />
+                        <div className="flex-1 text-sm font-medium">
+                          {error}
+                        </div>
+                      </div>
+                    )
+                  )}
+                  
+                  <div className="border-2 border-dashed rounded-lg p-8 text-center hover:bg-gray-50 transition-colors" style={{ borderColor: 'var(--primary-color)' }}>
+                    <UploadCloud size={48} className="mx-auto mb-4" style={{ color: 'var(--primary-color)' }} />
+                    <label htmlFor="file-upload" className="cursor-pointer">
+                      <span className="btn btn-secondary mx-auto mb-2 inline-flex">Seleccionar Archivo</span>
+                      <input 
+                        id="file-upload" 
+                        type="file" 
+                        className="hidden" 
+                        onChange={handleFileChange} 
+                      />
+                    </label>
+                    <p className="text-sm text-muted mt-2">
+                      {file ? file.name : "Soporta PDF, DOCX, Imágenes y archivos comprimidos."}
+                    </p>
+                  </div>
 
-                <button type="submit" className="btn btn-primary mt-2" disabled={loading}>
-                  {loading ? <Loader2 className="animate-spin" size={20} /> : (isSubmitted ? "Reemplazar Entrega" : "Enviar Tarea")}
-                </button>
-              </form>
+                  <button type="submit" className="btn btn-primary mt-2" disabled={loading}>
+                    {loading ? <Loader2 className="animate-spin" size={20} /> : (isSubmitted ? "Reemplazar Entrega" : "Enviar Tarea")}
+                  </button>
+                </form>
+              )
             )
           )}
         </div>

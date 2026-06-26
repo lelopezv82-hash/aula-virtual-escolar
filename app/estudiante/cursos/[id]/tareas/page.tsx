@@ -116,6 +116,11 @@ export default async function CursoTareasPage({
                       </span>
                     )}
                     {!isSubmitted && isLate && <span className="badge badge-danger">Atrasada</span>}
+                    {task.isExternal && (
+                      <span className="badge bg-blue-50 text-blue-700 border border-blue-200" style={{ fontSize: "10px", fontWeight: "bold" }}>
+                        Presencial
+                      </span>
+                    )}
                   </div>
                   <h3 className="font-bold text-base mb-0.5" style={{ color: "var(--primary-color)" }}>{task.title}</h3>
                   <p className="text-sm text-muted truncate">{task.description || "Sin descripción"}</p>
@@ -134,8 +139,8 @@ export default async function CursoTareasPage({
                     </div>
                   )}
                   <div>
-                    <Link href={`/estudiante/tareas/${task.id}`} className={`btn ${isSubmitted ? 'btn-secondary' : 'btn-primary'}`}>
-                      {isSubmitted ? 'Ver Entrega' : 'Subir Tarea'}
+                    <Link href={`/estudiante/tareas/${task.id}`} className={`btn ${isSubmitted || task.isExternal ? 'btn-secondary' : 'btn-primary'}`}>
+                      {isSubmitted ? 'Ver Calificación' : task.isExternal ? 'Ver Actividad' : 'Subir Tarea'}
                     </Link>
                   </div>
                 </div>
