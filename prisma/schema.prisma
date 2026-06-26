@@ -27,6 +27,7 @@ model User {
   coursesAsTeacher    Course[]             @relation("TeacherCourses")
   googleDriveAccounts GoogleDriveAccount[]
   submissions         Submission[]
+  additionalGrades    AdditionalGrade[]
   group               GradeGroup?          @relation("GroupStudents", fields: [groupId], references: [id])
 
   @@index([groupId])
@@ -45,10 +46,11 @@ model Course {
   period3Active Boolean      @default(true)
   period4Active Boolean      @default(true)
   active        Boolean      @default(true)
-  teacher       User         @relation("TeacherCourses", fields: [teacherId], references: [id], onDelete: Cascade)
-  resources     Resource[]
-  tasks         Task[]
-  groups        GradeGroup[] @relation("GroupCourses")
+  teacher          User              @relation("TeacherCourses", fields: [teacherId], references: [id], onDelete: Cascade)
+  resources        Resource[]
+  tasks            Task[]
+  groups           GradeGroup[]      @relation("GroupCourses")
+  additionalGrades AdditionalGrade[]
 
   @@index([teacherId])
 }
@@ -216,4 +218,20 @@ model Option {
   updatedAt  DateTime @updatedAt
 
   @@index([questionId])
+}
+
+model AdditionalGrade {
+  id        String   @id @default(uuid())
+  studentId String
+  courseId  String
+  period    String
+  grade     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseId, period])
+  @@index([studentId])
+  @@index([courseId])
 }

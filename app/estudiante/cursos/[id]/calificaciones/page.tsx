@@ -1,7 +1,7 @@
 import prisma from '@/lib/prisma';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
-import { CheckCircle, Clock, AlertCircle, ClipboardList, FileText } from "lucide-react";
+import { CheckCircle, Clock, AlertCircle, ClipboardList, FileText, Star } from "lucide-react";
 import { getTaskDeadlineStatus } from '@/lib/dateUtils';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
@@ -32,7 +32,6 @@ export default async function CursoCalificacionesPage({
     select: { groupId: true, name: true },
   });
   const studentGroupId = studentRecord?.groupId || null;
-  const studentName = studentRecord?.name || "Estudiante";
 
   const now = new Date();
 
@@ -91,29 +90,89 @@ export default async function CursoCalificacionesPage({
 
   activeSubmissions.sort((a, b) => new Date(b.updatedAt || b.task.updatedAt).getTime() - new Date(a.updatedAt || a.task.updatedAt).getTime());
 
+  // Fetch additional grades per period for this student
+  const additionalGradesDb = await prisma.additionalGrade.findMany({
+    where: { studentId, courseId: id },
+  });
+  const additionalGradesMap = new Map(additionalGradesDb.map(ag => [ag.period, ag.grade]));
+
+  // Compute overall average across all graded items
   const graded = activeSubmissions.filter(s => s.status === "GRADED");
-  const avg = graded.length > 0
+  const overallAvg = graded.length > 0
     ? graded.reduce((sum, s) => sum + Math.max(1.0, s.grade ?? 0), 0) / graded.length
     : null;
+
+  const gradeColor = (g: number) => g >= 3 ? "var(--success)" : "var(--danger)";
+
+  const renderCard = (sub: any) => {
+    const isGraded = sub.status === "GRADED";
+    const isPending = sub.status === "SUBMITTED";
+    const currentGrade = sub.grade !== null && sub.grade !== undefined ? Math.max(1.0, sub.grade) : 0;
+    const gColor = isGraded ? gradeColor(currentGrade) : "var(--text-muted)";
+    const isExam = sub.task.type === "EXAM";
+    const accentColor = isExam ? "#8b5cf6" : "var(--primary-color)";
+
+    return (
+      <div
+        key={sub.id}
+        style={{
+          background: "var(--bg-primary)",
+          borderLeft: `4px solid ${isGraded ? gColor : "var(--border-color)"}`,
+          display: "flex",
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "1rem",
+          padding: "1rem",
+          borderRadius: "var(--radius-lg)",
+          border: "1px solid var(--border-color)",
+          borderLeftWidth: "4px",
+          boxShadow: "var(--shadow-sm)",
+        }}
+      >
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            {isGraded && (
+              sub.submittedAt === null
+                ? <span className="badge badge-danger flex items-center gap-1"><AlertCircle size={12} /> Plazo vencido</span>
+                : <span className="badge badge-success flex items-center gap-1"><CheckCircle size={12} /> Calificada</span>
+            )}
+            {isPending && <span className="badge badge-info flex items-center gap-1"><Clock size={12} /> En revisión</span>}
+          </div>
+          <h4 className="font-bold text-base mb-0.5" style={{ color: accentColor }}>{sub.task.title}</h4>
+          {isGraded && sub.feedback && !sub.feedback.includes("Calificado automáticamente") && !sub.feedback.trim().startsWith("[") && (
+            <div style={{ marginTop: "0.5rem", padding: "0.6rem 0.75rem", borderRadius: "0.5rem", fontSize: "0.875rem", fontStyle: "italic", background: "var(--bg-secondary)", color: "var(--text-secondary)", borderLeft: `3px solid ${accentColor}` }}>
+              💬 &quot;{sub.feedback}&quot;
+            </div>
+          )}
+          {isGraded && sub.submittedAt === null && (
+            <p style={{ fontSize: "0.875rem", color: "var(--danger)", marginTop: "0.25rem", fontWeight: 500 }}>Calificación automática por falta de entrega.</p>
+          )}
+          {!isGraded && (
+            <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>Tu docente aún no ha calificado esta entrega.</p>
+          )}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "0.25rem", minWidth: "110px", textAlign: "center" }}>
+          {isGraded ? (
+            <>
+              <div style={{ fontSize: "2rem", fontWeight: 800, color: gColor, lineHeight: 1 }}>
+                {sub.grade !== null && sub.grade !== undefined ? Math.max(1.0, sub.grade).toFixed(1) : ""}
+              </div>
+              <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>nota</div>
+            </>
+          ) : (
+            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontStyle: "italic" }}>
+              {sub.task.type === "EXAM" ? "En proceso de calificación..." : "Pendiente de revisión"}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div>
       <h2 className="text-lg font-bold mb-4">Calificaciones</h2>
-
-      {avg !== null && (
-        <div className="card mb-5" style={{ borderLeft: "4px solid var(--primary-color)", display: "flex", alignItems: "center", gap: "1.5rem" }}>
-          <div style={{ textAlign: "center", minWidth: "70px" }}>
-            <div style={{ fontSize: "2.2rem", fontWeight: 800, color: avg >= 3 ? "var(--success)" : "var(--danger)", lineHeight: 1 }}>
-              {avg.toFixed(1)}
-            </div>
-            <div className="text-muted text-xs mt-1">Promedio</div>
-          </div>
-          <div>
-            <p className="font-semibold">Escala colombiana (0.0 – 5.0)</p>
-            <p className="text-sm text-muted">{graded.length} actividade(s) calificadas</p>
-          </div>
-        </div>
-      )}
 
       {activeSubmissions.length === 0 ? (
         <div className="card text-center py-12 text-muted">
@@ -121,103 +180,170 @@ export default async function CursoCalificacionesPage({
           <p>No tienes calificaciones registradas en esta asignatura todavía.</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-8">
           {[...activePeriodNames, "Otros"].map(periodName => {
             const periodSubs = activeSubmissions.filter(sub => {
               if (periodName === "Otros") return !sub.task.period || !activePeriodNames.includes(sub.task.period);
               return sub.task.period === periodName;
             });
-            if (periodSubs.length === 0) return null;
+            if (periodSubs.length === 0 && !additionalGradesMap.has(periodName)) return null;
 
             const tareas = periodSubs.filter(s => s.task.type === "TASK");
             const examenes = periodSubs.filter(s => s.task.type === "EXAM");
 
-            const renderCard = (sub: any) => {
-              const isGraded = sub.status === "GRADED";
-              const isPending = sub.status === "SUBMITTED";
-              const currentGrade = sub.grade !== null && sub.grade !== undefined ? Math.max(1.0, sub.grade) : 0;
-              const gradeColor = isGraded ? (currentGrade >= 3 ? "var(--success)" : "var(--danger)") : "var(--text-muted)";
-              const isExam = sub.task.type === "EXAM";
-              const accentColor = isExam ? "#8b5cf6" : "var(--primary-color)";
+            const gradedTareas = tareas.filter(s => s.status === "GRADED");
+            const gradedExamenes = examenes.filter(s => s.status === "GRADED");
 
-              return (
-                <div
-                  key={sub.id}
-                  style={{
-                    background: "var(--bg-primary)",
-                    borderLeft: `4px solid ${isGraded ? gradeColor : "var(--border-color)"}`,
-                    display: "flex",
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: "1rem",
-                    padding: "1rem",
-                    borderRadius: "var(--radius-lg)",
-                    border: "1px solid var(--border-color)",
-                    borderLeftWidth: "4px",
-                    boxShadow: "var(--shadow-sm)",
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      {isGraded && (
-                        sub.submittedAt === null
-                          ? <span className="badge badge-danger flex items-center gap-1"><AlertCircle size={12} /> Plazo vencido</span>
-                          : <span className="badge badge-success flex items-center gap-1"><CheckCircle size={12} /> Calificada</span>
-                      )}
-                      {isPending && <span className="badge badge-info flex items-center gap-1"><Clock size={12} /> En revisión</span>}
-                    </div>
-                    <h4 className="font-bold text-base mb-0.5" style={{ color: accentColor }}>{sub.task.title}</h4>
-                    {isGraded && sub.feedback && !sub.feedback.includes("Calificado automáticamente") && !sub.feedback.trim().startsWith("[") && (
-                      <div style={{ marginTop: "0.5rem", padding: "0.6rem 0.75rem", borderRadius: "0.5rem", fontSize: "0.875rem", fontStyle: "italic", background: "var(--bg-secondary)", color: "var(--text-secondary)", borderLeft: `3px solid ${accentColor}` }}>
-                        💬 &quot;{sub.feedback}&quot;
-                      </div>
-                    )}
-                    {isGraded && sub.submittedAt === null && (
-                      <p style={{ fontSize: "0.875rem", color: "var(--danger)", marginTop: "0.25rem", fontWeight: 500 }}>Calificación automática por falta de entrega.</p>
-                    )}
-                    {!isGraded && (
-                      <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>Tu docente aún no ha calificado esta entrega.</p>
-                    )}
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "0.25rem", minWidth: "110px", textAlign: "center" }}>
-                    {isGraded ? (
-                      <>
-                        <div style={{ fontSize: "2rem", fontWeight: 800, color: gradeColor, lineHeight: 1 }}>
-                          {sub.grade !== null && sub.grade !== undefined ? Math.max(1.0, sub.grade).toFixed(1) : ""}
-                        </div>
-                        <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>nota</div>
-                      </>
-                    ) : (
-                      <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontStyle: "italic" }}>
-                        {sub.task.type === "EXAM" ? "En proceso de calificación..." : "Pendiente de revisión"}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            };
+            const avgTareas = gradedTareas.length > 0
+              ? gradedTareas.reduce((sum, s) => sum + Math.max(1.0, s.grade ?? 0), 0) / gradedTareas.length
+              : null;
+            const avgExamenes = gradedExamenes.length > 0
+              ? gradedExamenes.reduce((sum, s) => sum + Math.max(1.0, s.grade ?? 0), 0) / gradedExamenes.length
+              : null;
+
+            const additionalGrade = additionalGradesMap.get(periodName) ?? null;
+
+            // Final grade: average of all available components
+            const components: number[] = [];
+            if (avgTareas !== null) components.push(avgTareas);
+            if (avgExamenes !== null) components.push(avgExamenes);
+            if (additionalGrade !== null) components.push(additionalGrade);
+            const finalGrade = components.length > 0
+              ? components.reduce((a, b) => a + b, 0) / components.length
+              : null;
+
+            const hasSubs = periodSubs.length > 0;
 
             return (
-              <div key={periodName} className="flex flex-col gap-6">
-                  {tareas.length > 0 && (
-                    <div>
-                      <div className="flex items-center gap-2 mb-3">
-                        <ClipboardList size={14} style={{ color: "var(--primary-color)" }} />
-                        <span style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--primary-color)" }}>Tareas</span>
-                      </div>
-                      <div className="flex flex-col gap-3">{tareas.map(renderCard)}</div>
+              <div key={periodName}>
+                {/* Period header */}
+                <div className="flex items-center gap-3 mb-4">
+                  <div style={{ height: "1px", flex: 1, background: "var(--border-color)" }} />
+                  <span style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)" }}>
+                    {periodName}
+                  </span>
+                  <div style={{ height: "1px", flex: 1, background: "var(--border-color)" }} />
+                </div>
+
+                {/* Period Summary Card */}
+                {(avgTareas !== null || avgExamenes !== null || additionalGrade !== null) && (
+                  <div
+                    className="card mb-5"
+                    style={{
+                      borderLeft: "4px solid var(--primary-color)",
+                      padding: "1.1rem 1.4rem",
+                    }}
+                  >
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted mb-3">Resumen del {periodName}</p>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "1.5rem", alignItems: "flex-end" }}>
+                      {/* Avg Tareas */}
+                      {avgTareas !== null && (
+                        <div style={{ textAlign: "center", minWidth: "80px" }}>
+                          <div style={{ fontSize: "1.7rem", fontWeight: 800, color: gradeColor(avgTareas), lineHeight: 1 }}>
+                            {avgTareas.toFixed(1)}
+                          </div>
+                          <div className="flex items-center justify-center gap-1 mt-1">
+                            <ClipboardList size={11} style={{ color: "var(--primary-color)" }} />
+                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Prom. Tareas</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {avgTareas !== null && (avgExamenes !== null || additionalGrade !== null) && (
+                        <div style={{ fontSize: "1.5rem", color: "var(--text-muted)", fontWeight: 300, lineHeight: 1 }}>+</div>
+                      )}
+
+                      {/* Avg Exámenes */}
+                      {avgExamenes !== null && (
+                        <div style={{ textAlign: "center", minWidth: "80px" }}>
+                          <div style={{ fontSize: "1.7rem", fontWeight: 800, color: gradeColor(avgExamenes), lineHeight: 1 }}>
+                            {avgExamenes.toFixed(1)}
+                          </div>
+                          <div className="flex items-center justify-center gap-1 mt-1">
+                            <FileText size={11} style={{ color: "#8b5cf6" }} />
+                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Prom. Exámenes</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {additionalGrade !== null && (avgTareas !== null || avgExamenes !== null) && (
+                        <div style={{ fontSize: "1.5rem", color: "var(--text-muted)", fontWeight: 300, lineHeight: 1 }}>+</div>
+                      )}
+
+                      {/* Additional Grade */}
+                      {additionalGrade !== null && (
+                        <div style={{ textAlign: "center", minWidth: "80px" }}>
+                          <div style={{ fontSize: "1.7rem", fontWeight: 800, color: gradeColor(additionalGrade), lineHeight: 1 }}>
+                            {additionalGrade.toFixed(1)}
+                          </div>
+                          <div className="flex items-center justify-center gap-1 mt-1">
+                            <Star size={11} style={{ color: "#f59e0b" }} />
+                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Nota Adicional</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Equals and Final Grade */}
+                      {finalGrade !== null && components.length > 1 && (
+                        <>
+                          <div style={{ fontSize: "1.5rem", color: "var(--text-muted)", fontWeight: 300, lineHeight: 1 }}>=</div>
+                          <div
+                            style={{
+                              textAlign: "center",
+                              minWidth: "90px",
+                              padding: "0.5rem 1rem",
+                              borderRadius: "0.75rem",
+                              background: finalGrade >= 3 ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.08)",
+                              border: `2px solid ${gradeColor(finalGrade)}`,
+                            }}
+                          >
+                            <div style={{ fontSize: "2rem", fontWeight: 900, color: gradeColor(finalGrade), lineHeight: 1 }}>
+                              {finalGrade.toFixed(1)}
+                            </div>
+                            <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600, marginTop: "0.2rem" }}>Nota Final</div>
+                          </div>
+                        </>
+                      )}
+
+                      {/* If only one component, show it as final */}
+                      {finalGrade !== null && components.length === 1 && (
+                        <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontStyle: "italic", alignSelf: "center" }}>
+                          Nota del período
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {examenes.length > 0 && (
-                    <div>
-                      <div className="flex items-center gap-2 mb-3">
-                        <FileText size={14} style={{ color: "#8b5cf6" }} />
-                        <span style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#8b5cf6" }}>Exámenes</span>
+
+                    {components.length > 1 && (
+                      <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.75rem" }}>
+                        * La nota final es el promedio de: {[avgTareas !== null && "tareas", avgExamenes !== null && "exámenes", additionalGrade !== null && "nota adicional"].filter(Boolean).join(" + ")}.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Task items */}
+                {hasSubs && (
+                  <div className="flex flex-col gap-6">
+                    {tareas.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <ClipboardList size={14} style={{ color: "var(--primary-color)" }} />
+                          <span style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--primary-color)" }}>Tareas</span>
+                        </div>
+                        <div className="flex flex-col gap-3">{tareas.map(renderCard)}</div>
                       </div>
-                      <div className="flex flex-col gap-3">{examenes.map(renderCard)}</div>
-                    </div>
-                  )}
+                    )}
+                    {examenes.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <FileText size={14} style={{ color: "#8b5cf6" }} />
+                          <span style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#8b5cf6" }}>Exámenes</span>
+                        </div>
+                        <div className="flex flex-col gap-3">{examenes.map(renderCard)}</div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}

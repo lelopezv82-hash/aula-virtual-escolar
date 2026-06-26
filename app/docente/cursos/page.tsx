@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { BookOpen, Plus, Edit2, Trash2, X, Save, Loader2, Eye, EyeOff } from "lucide-react";
+import { BookOpen, Plus, Edit2, Trash2, X, Save, Loader2, Eye, EyeOff, Star } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
 
 interface Course {
@@ -24,6 +24,13 @@ interface Course {
   _count: { tasks: number; resources: number };
 }
 
+interface StudentGrade {
+  id: string;
+  name: string;
+  username: string;
+  grade: number | null;
+}
+
 export default function CursosPage() {
   const confirm = useConfirm();
   const [courses, setCourses] = useState<Course[]>([]);
@@ -35,6 +42,17 @@ export default function CursosPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [mounted, setMounted] = useState(false);
+
+  // Additional Grades Modal
+  const [showGradesModal, setShowGradesModal] = useState(false);
+  const [gradesModalCourse, setGradesModalCourse] = useState<Course | null>(null);
+  const [gradesModalPeriod, setGradesModalPeriod] = useState<string>("");
+  const [students, setStudents] = useState<StudentGrade[]>([]);
+  const [gradeInputs, setGradeInputs] = useState<Record<string, string>>({});
+  const [loadingStudents, setLoadingStudents] = useState(false);
+  const [savingGrades, setSavingGrades] = useState(false);
+  const [gradesError, setGradesError] = useState("");
+  const [gradesSaved, setGradesSaved] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -157,6 +175,71 @@ export default function CursosPage() {
     }
   };
 
+  const openGradesModal = async (course: Course, period: string) => {
+    setGradesModalCourse(course);
+    setGradesModalPeriod(period);
+    setGradesError("");
+    setGradesSaved(false);
+    setShowGradesModal(true);
+    setLoadingStudents(true);
+    try {
+      const res = await fetch(`/api/docente/cursos/${course.id}/additional-grades?period=${period}`);
+      const data = await res.json();
+      if (res.ok && data.students) {
+        setStudents(data.students);
+        const inputs: Record<string, string> = {};
+        data.students.forEach((s: StudentGrade) => {
+          inputs[s.id] = s.grade !== null ? String(s.grade) : "";
+        });
+        setGradeInputs(inputs);
+      } else {
+        setGradesError(data.error || "Error al cargar estudiantes");
+      }
+    } catch {
+      setGradesError("Error de conexión");
+    } finally {
+      setLoadingStudents(false);
+    }
+  };
+
+  const saveAdditionalGrades = async () => {
+    if (!gradesModalCourse) return;
+    setSavingGrades(true);
+    setGradesError("");
+    setGradesSaved(false);
+    const grades = students.map(s => ({
+      studentId: s.id,
+      grade: gradeInputs[s.id] !== "" ? Number(gradeInputs[s.id]) : null,
+    }));
+    try {
+      const res = await fetch(`/api/docente/cursos/${gradesModalCourse.id}/additional-grades`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ period: gradesModalPeriod, grades }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setGradesSaved(true);
+        setTimeout(() => setGradesSaved(false), 2500);
+      } else {
+        setGradesError(data.error || "Error al guardar notas");
+      }
+    } catch {
+      setGradesError("Error de conexión");
+    } finally {
+      setSavingGrades(false);
+    }
+  };
+
+  const activePeriods = (course: Course) => {
+    const periods = [];
+    if (course.period1Active) periods.push("Período 1");
+    if (course.period2Active) periods.push("Período 2");
+    if (course.period3Active) periods.push("Período 3");
+    if (course.period4Active) periods.push("Período 4");
+    return periods;
+  };
+
   return (
     <div className="flex flex-col gap-6 animate-fade-in">
       <div className="flex justify-between items-center border-b pb-4" style={{ borderColor: "var(--border-color)" }}>
@@ -246,6 +329,27 @@ export default function CursosPage() {
                 <p className="text-muted text-sm mt-2 line-clamp-2">
                   {course.description || "Sin descripción"}
                 </p>
+
+                {/* Additional Grades Buttons per active period */}
+                {activePeriods(course).length > 0 && (
+                  <div className="mt-4 pt-4 border-t" style={{ borderColor: "var(--border-color)" }}>
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted mb-2 flex items-center gap-1">
+                      <Star size={11} /> Nota Adicional por Período
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {activePeriods(course).map(period => (
+                        <button
+                          key={period}
+                          onClick={() => openGradesModal(course, period)}
+                          className="text-xs px-3 py-1.5 rounded-lg border font-semibold transition-colors hover:bg-orange-50 hover:text-[#f98012] hover:border-orange-300"
+                          style={{ borderColor: "var(--border-color)", color: "var(--text-secondary)" }}
+                        >
+                          {period}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-between items-center border-t pt-4 mt-6 text-xs text-muted" style={{ borderColor: "var(--border-color)" }}>
@@ -357,6 +461,101 @@ export default function CursosPage() {
               </button>
             </div>
           </form>
+        </div>,
+        document.body
+      )}
+
+      {/* Additional Grades Modal */}
+      {showGradesModal && mounted && createPortal(
+        <div
+          className="modal-overlay"
+          onClick={(e) => e.target === e.currentTarget && setShowGradesModal(false)}
+        >
+          <div className="modal-content" style={{ maxWidth: "520px" }}>
+            <div className="flex justify-between items-center mb-1">
+              <div>
+                <h2 className="text-xl font-bold flex items-center gap-2">
+                  <Star size={20} style={{ color: "#f98012" }} />
+                  Nota Adicional — {gradesModalPeriod}
+                </h2>
+                <p className="text-sm text-muted mt-0.5">{gradesModalCourse?.name}</p>
+              </div>
+              <button type="button" onClick={() => setShowGradesModal(false)} className="p-1 rounded-lg hover:bg-gray-100">
+                <X size={20} />
+              </button>
+            </div>
+
+            <p className="text-xs text-muted mb-4 mt-2 p-3 rounded-lg" style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-color)" }}>
+              Ingresa la nota adicional de cada estudiante para este período (escala 1.0 – 5.0). 
+              Deja el campo vacío para no asignar nota adicional.
+            </p>
+
+            {gradesError && <div className="alert alert-danger mb-3">{gradesError}</div>}
+            {gradesSaved && (
+              <div className="alert alert-success mb-3 flex items-center gap-2">
+                ✅ Notas guardadas correctamente.
+              </div>
+            )}
+
+            {loadingStudents ? (
+              <div className="flex justify-center py-10">
+                <Loader2 className="animate-spin text-[#f98012]" size={32} />
+              </div>
+            ) : students.length === 0 ? (
+              <div className="text-center py-8 text-muted text-sm">
+                No hay estudiantes asignados a esta asignatura.
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2 max-h-[340px] overflow-y-auto pr-1">
+                {students.map(student => (
+                  <div
+                    key={student.id}
+                    className="flex items-center gap-3 p-3 rounded-xl"
+                    style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-color)" }}
+                  >
+                    <div
+                      className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm text-white"
+                      style={{ background: "linear-gradient(135deg, #f98012, #e06d09)" }}
+                    >
+                      {student.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate">{student.name}</p>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        min="1"
+                        max="5"
+                        step="0.1"
+                        placeholder="—"
+                        value={gradeInputs[student.id] ?? ""}
+                        onChange={(e) => setGradeInputs(prev => ({ ...prev, [student.id]: e.target.value }))}
+                        className="input-field text-center font-bold"
+                        style={{ width: "72px", padding: "0.4rem 0.5rem", fontSize: "0.95rem" }}
+                      />
+                      <span className="text-xs text-muted">/ 5.0</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 border-t pt-4 mt-4" style={{ borderColor: "var(--border-color)" }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setShowGradesModal(false)}>
+                Cerrar
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={savingGrades || loadingStudents}
+                onClick={saveAdditionalGrades}
+              >
+                {savingGrades ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                Guardar Notas
+              </button>
+            </div>
+          </div>
         </div>,
         document.body
       )}
