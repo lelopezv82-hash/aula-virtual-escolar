@@ -55,8 +55,20 @@ export default function CursosPage() {
   const [gradesError, setGradesError] = useState("");
   const [gradesSaved, setGradesSaved] = useState(false);
 
+  // Real period names from DB
+  const [dbPeriods, setDbPeriods] = useState<{ name: string; active: boolean }[]>([]);
+
   useEffect(() => {
     setMounted(true);
+    // Fetch real period names from DB
+    fetch("/api/periodos")
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data.periods)) {
+          setDbPeriods(data.periods);
+        }
+      })
+      .catch(() => console.error("Failed to load periods"));
   }, []);
 
   useEffect(() => {
@@ -232,13 +244,15 @@ export default function CursosPage() {
     }
   };
 
+  // Map course period flags to real DB period names (by index order)
   const activePeriods = (course: Course) => {
-    const periods = [];
-    if (course.period1Active) periods.push("Período 1");
-    if (course.period2Active) periods.push("Período 2");
-    if (course.period3Active) periods.push("Período 3");
-    if (course.period4Active) periods.push("Período 4");
-    return periods;
+    const flags = [course.period1Active, course.period2Active, course.period3Active, course.period4Active];
+    const sorted = [...dbPeriods].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+    const result: string[] = [];
+    flags.forEach((active, i) => {
+      if (active && sorted[i]) result.push(sorted[i].name);
+    });
+    return result;
   };
 
   return (
