@@ -75,7 +75,7 @@ export default async function CursoCalificacionesPage({
       }
       return { ...processedSub, feedbackTemplate, task };
     }
-    if (isClosed) {
+    if (isClosed && !task.isExternal) {
       return {
         id: `virtual-${task.id}`,
         taskId: task.id, studentId, status: "GRADED", grade: 1.0,

@@ -42,6 +42,7 @@ export default async function CursoTareasPage({
       courseId: id,
       active: true,
       type: "TASK",
+      isExternal: false,
       OR: [{ period: null }, { period: { in: activePeriodNames } }],
       AND: [{ OR: [{ publishAt: null }, { publishAt: { lte: now } }] }],
       groups: studentGroupId ? { some: { id: studentGroupId } } : undefined,

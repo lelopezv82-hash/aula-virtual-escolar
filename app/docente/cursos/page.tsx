@@ -48,6 +48,7 @@ export default function CursosPage() {
   const [showGradesModal, setShowGradesModal] = useState(false);
   const [gradesModalCourse, setGradesModalCourse] = useState<Course | null>(null);
   const [gradesModalPeriod, setGradesModalPeriod] = useState<string>("");
+  const [gradesModalGroup, setGradesModalGroup] = useState<{ id: string, name: string } | null>(null);
   const [students, setStudents] = useState<StudentGrade[]>([]);
   const [gradeInputs, setGradeInputs] = useState<Record<string, string>>({});
   const [loadingStudents, setLoadingStudents] = useState(false);
@@ -188,15 +189,21 @@ export default function CursosPage() {
     }
   };
 
-  const openGradesModal = async (course: Course, period: string) => {
+  const openGradesModal = async (course: Course, period: string, groupId?: string) => {
     setGradesModalCourse(course);
     setGradesModalPeriod(period);
+    
+    const groupObj = groupId ? course.groups?.find(g => g.id === groupId) : null;
+    const groupName = groupObj ? (groupObj.grade?.name ? `${groupObj.grade.name} - ${groupObj.name}` : groupObj.name) : "";
+    setGradesModalGroup(groupObj ? { id: groupObj.id, name: groupName } : null);
+
     setGradesError("");
     setGradesSaved(false);
     setShowGradesModal(true);
     setLoadingStudents(true);
     try {
-      const res = await fetch(`/api/docente/cursos/${course.id}/additional-grades?period=${period}`);
+      const url = `/api/docente/cursos/${course.id}/additional-grades?period=${period}${groupId ? `&groupId=${groupId}` : ""}`;
+      const res = await fetch(url);
       const data = await res.json();
       if (res.ok && data.students) {
         setStudents(data.students);
@@ -345,23 +352,33 @@ export default function CursosPage() {
                   {course.description || "Sin descripción"}
                 </p>
 
-                {/* Additional Grades Buttons per active period */}
-                {activePeriods(course).length > 0 && (
+                {/* Additional Grades Buttons per active period grouped by grade/group */}
+                {course.groups && course.groups.length > 0 && activePeriods(course).length > 0 && (
                   <div className="mt-4 pt-4 border-t" style={{ borderColor: "var(--border-color)" }}>
-                    <p className="text-xs font-bold uppercase tracking-wider text-muted mb-2 flex items-center gap-1">
-                      <Star size={11} /> Nota del Ser por Período
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted mb-2.5 flex items-center gap-1">
+                      <Star size={11} /> Nota del Ser por Grupo
                     </p>
-                    <div className="flex flex-wrap gap-2">
-                      {activePeriods(course).map(period => (
-                        <button
-                          key={period}
-                          onClick={() => openGradesModal(course, period)}
-                          className="text-xs px-3 py-1.5 rounded-lg border font-semibold transition-colors hover:bg-orange-50 hover:text-[#f98012] hover:border-orange-300"
-                          style={{ borderColor: "var(--border-color)", color: "var(--text-secondary)" }}
-                        >
-                          {period}
-                        </button>
-                      ))}
+                    <div className="flex flex-col gap-2.5">
+                      {course.groups.map(group => {
+                        const groupName = group.grade?.name ? `${group.grade.name} - ${group.name}` : group.name;
+                        return (
+                          <div key={group.id} className="flex flex-col gap-1">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">{groupName}:</span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {activePeriods(course).map(period => (
+                                <button
+                                  key={period}
+                                  onClick={() => openGradesModal(course, period, group.id)}
+                                  className="text-[10px] px-2.5 py-1 rounded-lg border font-semibold transition-colors hover:bg-orange-50 hover:text-[#f98012] hover:border-orange-300"
+                                  style={{ borderColor: "var(--border-color)", color: "var(--text-secondary)" }}
+                                >
+                                  {period}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -500,9 +517,11 @@ export default function CursosPage() {
               <div>
                 <h2 className="text-xl font-bold flex items-center gap-2">
                   <Star size={20} style={{ color: "#f98012" }} />
-                  Nota Adicional — {gradesModalPeriod}
+                  Nota del Ser — {gradesModalPeriod}
                 </h2>
-                <p className="text-sm text-muted mt-0.5">{gradesModalCourse?.name}</p>
+                <p className="text-sm text-muted mt-0.5">
+                  {gradesModalCourse?.name} {gradesModalGroup && `— ${gradesModalGroup.name}`}
+                </p>
               </div>
               <button type="button" onClick={() => setShowGradesModal(false)} className="p-1 rounded-lg hover:bg-gray-100">
                 <X size={20} />
@@ -510,8 +529,8 @@ export default function CursosPage() {
             </div>
 
             <p className="text-xs text-muted mb-4 mt-2 p-3 rounded-lg" style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-color)" }}>
-              Ingresa la nota adicional de cada estudiante para este período (escala 1.0 – 5.0). 
-              Deja el campo vacío para no asignar nota adicional.
+              Ingresa la nota del ser de cada estudiante para este período (escala 1.0 – 5.0). 
+              Deja el campo vacío para no asignar nota.
             </p>
 
             {gradesError && <div className="alert alert-danger mb-3">{gradesError}</div>}

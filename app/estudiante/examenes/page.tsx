@@ -36,6 +36,7 @@ export default async function ExamenesEstudiantePage() {
     where: {
       active: true,
       type: "EXAM",
+      isExternal: false,
       OR: [
         { period: null },
         { period: { in: activePeriodNames } }

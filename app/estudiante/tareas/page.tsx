@@ -36,6 +36,7 @@ export default async function TareasEstudiantePage() {
     where: {
       active: true,
       type: "TASK",
+      isExternal: false,
       OR: [
         { period: null },
         { period: { in: activePeriodNames } }

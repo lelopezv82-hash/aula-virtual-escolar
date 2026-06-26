@@ -43,6 +43,7 @@ export default async function CursoExamenesPage({
       courseId: id,
       active: true,
       type: "EXAM",
+      isExternal: false,
       OR: [{ period: null }, { period: { in: activePeriodNames } }],
       AND: [{ OR: [{ publishAt: null }, { publishAt: { lte: now } }] }],
       groups: studentGroupId ? { some: { id: studentGroupId } } : undefined,

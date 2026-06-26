@@ -120,8 +120,8 @@ export default async function CalificacionesEstudiantePage() {
       };
     }
 
-    // If no submission and task/exam is closed, virtually grade as 1.0
-    if (isClosed) {
+    // If no submission and task/exam is closed, virtually grade as 1.0 (skip for external tasks/exams)
+    if (isClosed && !task.isExternal) {
       return {
         id: `virtual-${task.id}`,
         taskId: task.id,

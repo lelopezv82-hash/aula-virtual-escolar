@@ -10,6 +10,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const { id: courseId } = await params;
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period');
+    const groupId = searchParams.get('groupId');
     if (!period) return NextResponse.json({ error: 'El período es requerido' }, { status: 400 });
 
     const cookieStore = await cookies();
@@ -27,11 +28,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Curso no encontrado' }, { status: 404 });
     }
 
-    const groupIds = course.groups.map(g => g.id);
+    const allowedGroupIds = course.groups.map(g => g.id);
+    const targetGroupIds = groupId ? [groupId] : allowedGroupIds;
+
+    if (groupId && !allowedGroupIds.includes(groupId)) {
+      return NextResponse.json({ error: 'Grupo no asignado a esta asignatura' }, { status: 400 });
+    }
+
     const students = await prisma.user.findMany({
       where: {
         role: "STUDENT",
-        groupId: { in: groupIds }
+        groupId: { in: targetGroupIds }
       },
       orderBy: { name: 'asc' },
       select: { id: true, name: true, username: true }
