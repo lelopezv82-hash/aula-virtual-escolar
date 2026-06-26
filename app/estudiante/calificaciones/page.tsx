@@ -235,7 +235,7 @@ export default async function CalificacionesEstudiantePage() {
                               {sub.task.course.name}
                             </span>
                             {isGraded && (
-                              sub.submittedAt === null ? (
+                              sub.submittedAt === null && !sub.task.isExternal ? (
                                 <span className="badge badge-danger flex items-center gap-1"><AlertCircle size={12} /> Plazo vencido</span>
                               ) : (
                                 <span className="badge badge-success flex items-center gap-1"><CheckCircle size={12} /> Calificada</span>
@@ -249,7 +249,7 @@ export default async function CalificacionesEstudiantePage() {
                               💬 &quot;{sub.feedback}&quot;
                             </div>
                           )}
-                          {isGraded && sub.submittedAt === null && (
+                          {isGraded && sub.submittedAt === null && !sub.task.isExternal && (
                             <p style={{ fontSize: "0.875rem", color: "var(--danger)", marginTop: "0.25rem", fontWeight: 500 }}>Calificación automática por falta de entrega.</p>
                           )}
                           {!isGraded && (

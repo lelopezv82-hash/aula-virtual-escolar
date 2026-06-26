@@ -75,6 +75,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Tarea no encontrada' }, { status: 404 });
     }
 
+    // External tasks are graded by the teacher and should not be accessed by students directly
+    if (!isTeacher && task.isExternal) {
+      return NextResponse.json({ error: 'Tarea no encontrada' }, { status: 404 });
+    }
+
     // Fetch feedbackTemplate if the student has finished and unlocked answers
     let feedbackTemplate = null;
     const submission = task.submissions[0];
