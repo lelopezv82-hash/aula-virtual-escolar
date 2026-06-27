@@ -294,7 +294,7 @@ export default async function CalificacionesEstudiantePage() {
                                 }}
                                 isGoogleForm={!!(sub.task.attachmentUrl?.includes("docs.google.com/forms") || sub.task.attachmentUrl?.includes("forms.gle"))}
                                 variant="secondary"
-                                label="Ver Respuestas"
+                                label="Ver Calificación"
                               />
                             ) : (
                               <Link href={`/estudiante/tareas/${sub.task.id}`} className="btn btn-secondary text-xs px-2 py-1 w-full flex justify-center">

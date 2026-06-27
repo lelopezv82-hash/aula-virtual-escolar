@@ -28,7 +28,7 @@ interface EvidenciaModalProps {
   variant?: 'primary' | 'secondary';
 }
 
-export default function EvidenciaBotones({ exam, submission, isGoogleForm, label = "Ver Respuestas", variant = "primary" }: EvidenciaModalProps) {
+export default function EvidenciaBotones({ exam, submission, isGoogleForm, label = "Ver Calificación", variant = "primary" }: EvidenciaModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [loadingUnlock, setLoadingUnlock] = useState(false);
 
@@ -393,12 +393,10 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm, label
           onClick={handleVerRespuestas}
           className={
             variant === "primary"
-              ? "btn flex items-center justify-center gap-2 w-full md:w-auto hover:opacity-90 transition-opacity"
+              ? "btn btn-secondary flex items-center justify-center gap-2 w-full md:w-auto"
               : "btn btn-secondary text-xs px-2 py-1 flex items-center justify-center gap-1.5"
           }
-          style={variant === "primary" ? { backgroundColor: 'var(--primary-color)', color: 'white' } : {}}
         >
-          {variant === "primary" && <Eye size={18} />}
           {label}
         </button>
       </div>
