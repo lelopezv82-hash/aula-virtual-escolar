@@ -483,8 +483,8 @@ export default function CursosPage() {
               </div>
               <div className="flex flex-col gap-3 p-3 rounded-lg" style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-color)" }}>
                 {([
-                  { key: "saberPercent", label: "Saber (Exámenes)", color: "#8b5cf6" },
-                  { key: "hacerPercent", label: "Hacer (Tareas)", color: "var(--primary-color)" },
+                  { key: "saberPercent", label: "Saber (Cognitivo)", color: "#8b5cf6" },
+                  { key: "hacerPercent", label: "Hacer (Procedimental)", color: "var(--primary-color)" },
                   { key: "serPercent",   label: "Ser (Actitudinal)", color: "#f59e0b" },
                 ] as const).map(({ key, label, color }) => (
                   <div key={key} className="flex items-center gap-3">

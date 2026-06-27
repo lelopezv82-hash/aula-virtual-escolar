@@ -269,7 +269,7 @@ export default async function CursoCalificacionesPage({
                           </div>
                           <div className="flex items-center justify-center gap-1 mt-1">
                             <FileText size={11} style={{ color: "#8b5cf6" }} />
-                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Saber <span style={{ opacity: 0.6 }}>({saberLabel})</span></span>
+                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Saber (Cognitivo)</span>
                           </div>
                         </div>
                       )}
@@ -289,7 +289,7 @@ export default async function CursoCalificacionesPage({
                           </div>
                           <div className="flex items-center justify-center gap-1 mt-1">
                             <ClipboardList size={11} style={{ color: "var(--primary-color)" }} />
-                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Hacer <span style={{ opacity: 0.6 }}>({hacerLabel})</span></span>
+                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Hacer (Procedimental)</span>
                           </div>
                         </div>
                       )}
@@ -346,7 +346,7 @@ export default async function CursoCalificacionesPage({
 
                     {componentCount > 1 && (
                       <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.75rem" }}>
-                        * Nota final = {[saberWeighted !== null && `${saberWeighted.toFixed(2)} (Saber×${saberLabel})`, hacerWeighted !== null && `${hacerWeighted.toFixed(2)} (Hacer×${hacerLabel})`, serWeighted !== null && `${serWeighted.toFixed(2)} (Actitudinal×${serLabel})`].filter(Boolean).join(" + ")}.
+                        * Nota final = {[saberWeighted !== null && `${saberWeighted.toFixed(2)} (Cognitivo×${saberLabel})`, hacerWeighted !== null && `${hacerWeighted.toFixed(2)} (Procedimental×${hacerLabel})`, serWeighted !== null && `${serWeighted.toFixed(2)} (Actitudinal×${serLabel})`].filter(Boolean).join(" + ")}.
                       </p>
                     )}
                   </div>
@@ -359,7 +359,7 @@ export default async function CursoCalificacionesPage({
                       <div>
                         <div className="flex items-center gap-2 mb-3">
                           <FileText size={14} style={{ color: "#8b5cf6" }} />
-                          <span style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#8b5cf6" }}>Saber — Exámenes</span>
+                          <span style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#8b5cf6" }}>Saber — Cognitivo</span>
                         </div>
                         <div className="flex flex-col gap-3">{examenes.map(renderCard)}</div>
                       </div>
@@ -368,7 +368,7 @@ export default async function CursoCalificacionesPage({
                       <div>
                         <div className="flex items-center gap-2 mb-3">
                           <ClipboardList size={14} style={{ color: "var(--primary-color)" }} />
-                          <span style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--primary-color)" }}>Hacer — Tareas</span>
+                          <span style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--primary-color)" }}>Hacer — Procedimental</span>
                         </div>
                         <div className="flex flex-col gap-3">{tareas.map(renderCard)}</div>
                       </div>

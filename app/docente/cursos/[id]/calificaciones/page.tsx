@@ -82,8 +82,8 @@ export default function CalificacionesConsolidadoPage() {
       return {
         "Estudiante": student.name,
         "Grupo": student.groupName,
-        "Saber (Exámenes)": pg.saber !== null ? pg.saber : "—",
-        "Hacer (Tareas)": pg.hacer !== null ? pg.hacer : "—",
+        "Saber (Cognitivo)": pg.saber !== null ? pg.saber : "—",
+        "Hacer (Procedimental)": pg.hacer !== null ? pg.hacer : "—",
         "Ser (Actitudinal)": pg.ser !== null ? pg.ser : "—",
         "Nota Final": pg.final !== null ? pg.final : "—"
       };
@@ -107,7 +107,7 @@ export default function CalificacionesConsolidadoPage() {
     doc.text(`Periodo: ${activePeriod}`, 14, 34);
     doc.text(`Fecha de exportacion: ${new Date().toLocaleDateString()}`, 14, 40);
     
-    const tableColumn = ["Estudiante", "Grupo", "Saber (Examenes)", "Hacer (Tareas)", "Ser (Actitudinal)", "Nota Final"];
+    const tableColumn = ["Estudiante", "Grupo", "Saber (Cognitivo)", "Hacer (Procedimental)", "Ser (Actitudinal)", "Nota Final"];
     const tableRows = sortedStudents.map(student => {
       const pg = student.periods[activePeriod] ?? { saber: null, hacer: null, ser: null, final: null };
       return [
@@ -348,7 +348,7 @@ export default function CalificacionesConsolidadoPage() {
                           <FileText size={13} />
                           Saber ({data.saberPercent ?? 30}%) <SortIcon field="saber" />
                         </div>
-                        <div style={{ fontSize: "0.65rem", fontWeight: 500, color: "var(--text-muted)", marginTop: "0.1rem" }}>Exámenes</div>
+                        <div style={{ fontSize: "0.65rem", fontWeight: 500, color: "var(--text-muted)", marginTop: "0.1rem" }}>Cognitivo</div>
                       </th>
 
                       {/* Hacer */}
@@ -360,7 +360,7 @@ export default function CalificacionesConsolidadoPage() {
                           <ClipboardList size={13} />
                           Hacer ({data.hacerPercent ?? 50}%) <SortIcon field="hacer" />
                         </div>
-                        <div style={{ fontSize: "0.65rem", fontWeight: 500, color: "var(--text-muted)", marginTop: "0.1rem" }}>Tareas</div>
+                        <div style={{ fontSize: "0.65rem", fontWeight: 500, color: "var(--text-muted)", marginTop: "0.1rem" }}>Procedimental</div>
                       </th>
 
                       {/* Ser */}
