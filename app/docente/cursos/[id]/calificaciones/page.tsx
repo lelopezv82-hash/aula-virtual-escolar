@@ -33,7 +33,17 @@ interface GradesData {
   serPercent?: number;
 }
 
-function GradeCell({ value, size = "normal" }: { value: number | null; size?: "normal" | "large" }) {
+function GradeCell({ 
+  value, 
+  rawGrade, 
+  subtitle, 
+  size = "normal" 
+}: { 
+  value: number | null; 
+  rawGrade?: number | null; 
+  subtitle?: string; 
+  size?: "normal" | "large" 
+}) {
   if (value === null) {
     return (
       <span style={{ color: "var(--text-muted)", fontSize: size === "large" ? "1rem" : "0.82rem", fontStyle: "italic" }}>
@@ -41,25 +51,33 @@ function GradeCell({ value, size = "normal" }: { value: number | null; size?: "n
       </span>
     );
   }
-  const pass = value >= 3.0;
+  const colorGrade = rawGrade !== undefined && rawGrade !== null ? rawGrade : value;
+  const pass = colorGrade >= 3.0;
   const color = pass ? "var(--success)" : "var(--danger)";
   const bg = pass ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.07)";
   return (
-    <span
-      style={{
-        display: "inline-block",
-        fontWeight: 800,
-        fontSize: size === "large" ? "1.15rem" : "0.9rem",
-        color,
-        background: bg,
-        borderRadius: "0.4rem",
-        padding: size === "large" ? "0.2rem 0.6rem" : "0.1rem 0.4rem",
-        minWidth: size === "large" ? "52px" : "40px",
-        textAlign: "center",
-      }}
-    >
-      {value.toFixed(1)}
-    </span>
+    <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+      <span
+        style={{
+          display: "inline-block",
+          fontWeight: 800,
+          fontSize: size === "large" ? "1.15rem" : "0.9rem",
+          color,
+          background: bg,
+          borderRadius: "0.4rem",
+          padding: size === "large" ? "0.2rem 0.6rem" : "0.1rem 0.4rem",
+          minWidth: size === "large" ? "52px" : "40px",
+          textAlign: "center",
+        }}
+      >
+        {value.toFixed(2)}
+      </span>
+      {subtitle && (
+        <span style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "2px", whiteSpace: "nowrap" }}>
+          {subtitle}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -392,6 +410,15 @@ export default function CalificacionesConsolidadoPage() {
                     {sortedStudents.map((student, idx) => {
                       const pg = student.periods[activePeriod] ?? { saber: null, hacer: null, ser: null, final: null };
                       const isEven = idx % 2 === 0;
+
+                      const saberPct = (data.saberPercent ?? 30) / 100;
+                      const hacerPct = (data.hacerPercent ?? 50) / 100;
+                      const serPct   = (data.serPercent   ?? 20) / 100;
+
+                      const saberWeighted = pg.saber !== null ? pg.saber * saberPct : null;
+                      const hacerWeighted = pg.hacer !== null ? pg.hacer * hacerPct : null;
+                      const serWeighted   = pg.ser !== null ? pg.ser * serPct : null;
+
                       return (
                         <tr
                           key={student.id}
@@ -425,17 +452,29 @@ export default function CalificacionesConsolidadoPage() {
 
                           {/* Saber */}
                           <td style={{ padding: "0.85rem 1rem", textAlign: "center" }}>
-                            <GradeCell value={pg.saber} />
+                            <GradeCell 
+                              value={saberWeighted} 
+                              rawGrade={pg.saber} 
+                              subtitle={pg.saber !== null ? `${pg.saber.toFixed(1)} × ${(data.saberPercent ?? 30)}%` : undefined} 
+                            />
                           </td>
 
                           {/* Hacer */}
                           <td style={{ padding: "0.85rem 1rem", textAlign: "center" }}>
-                            <GradeCell value={pg.hacer} />
+                            <GradeCell 
+                              value={hacerWeighted} 
+                              rawGrade={pg.hacer} 
+                              subtitle={pg.hacer !== null ? `${pg.hacer.toFixed(1)} × ${(data.hacerPercent ?? 50)}%` : undefined} 
+                            />
                           </td>
 
                           {/* Ser */}
                           <td style={{ padding: "0.85rem 1rem", textAlign: "center" }}>
-                            <GradeCell value={pg.ser} />
+                            <GradeCell 
+                              value={serWeighted} 
+                              rawGrade={pg.ser} 
+                              subtitle={pg.ser !== null ? `${pg.ser.toFixed(1)} × ${(data.serPercent ?? 20)}%` : undefined} 
+                            />
                           </td>
 
                           {/* Final */}
@@ -458,10 +497,34 @@ export default function CalificacionesConsolidadoPage() {
                           const vals = data.students
                             .map(s => s.periods[activePeriod]?.[field])
                             .filter((v): v is number => v !== null);
-                          const avg = vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+                          const avgRaw = vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+
+                          let avgWeighted: number | null = null;
+                          let subtitle: string | undefined = undefined;
+
+                          if (avgRaw !== null) {
+                            if (field === "saber") {
+                              avgWeighted = avgRaw * ((data.saberPercent ?? 30) / 100);
+                              subtitle = `${avgRaw.toFixed(1)} × ${(data.saberPercent ?? 30)}%`;
+                            } else if (field === "hacer") {
+                              avgWeighted = avgRaw * ((data.hacerPercent ?? 50) / 100);
+                              subtitle = `${avgRaw.toFixed(1)} × ${(data.hacerPercent ?? 50)}%`;
+                            } else if (field === "ser") {
+                              avgWeighted = avgRaw * ((data.serPercent ?? 20) / 100);
+                              subtitle = `${avgRaw.toFixed(1)} × ${(data.serPercent ?? 20)}%`;
+                            } else {
+                              avgWeighted = avgRaw;
+                            }
+                          }
+
                           return (
                             <td key={field} style={{ padding: "0.8rem 1rem", textAlign: "center" }}>
-                              <GradeCell value={avg} size={field === "final" ? "large" : "normal"} />
+                              <GradeCell 
+                                value={avgWeighted} 
+                                rawGrade={avgRaw} 
+                                subtitle={subtitle} 
+                                size={field === "final" ? "large" : "normal"} 
+                              />
                             </td>
                           );
                         })}
