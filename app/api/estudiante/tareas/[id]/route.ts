@@ -107,8 +107,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       feedbackTemplate = templateSub?.feedback || null;
     }
 
-    // Strip feedback from submission if locked
-    if (submission && !canSeeAnswers) {
+    // Strip feedback from submission if locked (but keep it if already graded)
+    if (submission && !canSeeAnswers && submission.status !== "GRADED") {
       submission.feedback = null;
     }
 
