@@ -111,17 +111,52 @@ export default function CalificacionesConsolidadoPage() {
 
   const exportToExcel = () => {
     if (!data || !activePeriod) return;
+    const sp = data.saberPercent ?? 30;
+    const hp = data.hacerPercent ?? 50;
+    const ep = data.serPercent   ?? 20;
+
     const worksheetData = sortedStudents.map(student => {
       const pg = student.periods[activePeriod] ?? { saber: null, hacer: null, ser: null, final: null };
       return {
         "Estudiante": student.name,
         "Grupo": student.groupName,
-        "Saber (Cognitivo)": pg.saber !== null ? pg.saber : "—",
-        "Hacer (Procedimental)": pg.hacer !== null ? pg.hacer : "—",
-        "Ser (Actitudinal)": pg.ser !== null ? pg.ser : "—",
-        "Nota Final": pg.final !== null ? pg.final : "—"
+        [`Saber Cognitivo\n(bruto)`]: pg.saber !== null ? pg.saber : "—",
+        [`Saber Ponderado\n(×${sp}%)`]: pg.saber !== null ? (pg.saber * sp / 100).toFixed(2) : "—",
+        [`Hacer Procedimental\n(bruto)`]: pg.hacer !== null ? pg.hacer : "—",
+        [`Hacer Ponderado\n(×${hp}%)`]: pg.hacer !== null ? (pg.hacer * hp / 100).toFixed(2) : "—",
+        [`Ser Actitudinal\n(bruto)`]: pg.ser !== null ? pg.ser : "—",
+        [`Ser Ponderado\n(×${ep}%)`]: pg.ser !== null ? (pg.ser * ep / 100).toFixed(2) : "—",
+        "Nota Final": pg.final !== null ? pg.final.toFixed(2) : "—",
+        "Fórmula": pg.saber !== null || pg.hacer !== null || pg.ser !== null
+          ? [
+              pg.saber !== null ? `${(pg.saber * sp / 100).toFixed(2)} (Cog×${sp}%)` : "",
+              pg.hacer !== null ? `${(pg.hacer * hp / 100).toFixed(2)} (Proc×${hp}%)` : "",
+              pg.ser   !== null ? `${(pg.ser   * ep / 100).toFixed(2)} (Act×${ep}%)` : "",
+            ].filter(Boolean).join(" + ")
+          : "—",
       };
     });
+
+    // Promedio general row
+    const avgRow: Record<string, string|number> = { "Estudiante": "PROMEDIO GENERAL", "Grupo": "" };
+    (["saber","hacer","ser","final"] as const).forEach(field => {
+      const vals = data.students.map(s => s.periods[activePeriod]?.[field]).filter((v): v is number => v !== null);
+      const a = vals.length > 0 ? vals.reduce((x,y)=>x+y,0)/vals.length : null;
+      if (field === "saber") {
+        avgRow[`Saber Cognitivo\n(bruto)`]     = a !== null ? a.toFixed(1) : "—";
+        avgRow[`Saber Ponderado\n(×${sp}%)`]  = a !== null ? (a * sp / 100).toFixed(2) : "—";
+      } else if (field === "hacer") {
+        avgRow[`Hacer Procedimental\n(bruto)`]  = a !== null ? a.toFixed(1) : "—";
+        avgRow[`Hacer Ponderado\n(×${hp}%)`]   = a !== null ? (a * hp / 100).toFixed(2) : "—";
+      } else if (field === "ser") {
+        avgRow[`Ser Actitudinal\n(bruto)`]      = a !== null ? a.toFixed(1) : "—";
+        avgRow[`Ser Ponderado\n(×${ep}%)`]     = a !== null ? (a * ep / 100).toFixed(2) : "—";
+      } else {
+        avgRow["Nota Final"] = a !== null ? a.toFixed(2) : "—";
+      }
+    });
+    avgRow["Fórmula"] = `Nota = Cog×${sp}% + Proc×${hp}% + Act×${ep}%`;
+    worksheetData.push(avgRow as any);
     
     const ws = XLSX.utils.json_to_sheet(worksheetData);
     const wb = XLSX.utils.book_new();
@@ -131,65 +166,84 @@ export default function CalificacionesConsolidadoPage() {
 
   const exportToPDF = () => {
     if (!data || !activePeriod) return;
-    const doc = new jsPDF();
+    const sp = data.saberPercent ?? 30;
+    const hp = data.hacerPercent ?? 50;
+    const ep = data.serPercent   ?? 20;
+
+    const doc = new jsPDF({ orientation: "landscape" });
     
-    doc.setFontSize(18);
-    doc.text("Consolidado de Calificaciones", 14, 20);
-    
-    doc.setFontSize(12);
-    doc.text(`Curso: ${data.course.name}`, 14, 28);
-    doc.text(`Periodo: ${activePeriod}`, 14, 34);
-    doc.text(`Fecha de exportacion: ${new Date().toLocaleDateString()}`, 14, 40);
-    
-    const tableColumn = ["Estudiante", "Grupo", "Saber (Cognitivo)", "Hacer (Procedimental)", "Ser (Actitudinal)", "Nota Final"];
+    doc.setFontSize(17);
+    doc.text("Consolidado de Calificaciones", 14, 18);
+    doc.setFontSize(10);
+    doc.text(`Curso: ${data.course.name}`, 14, 26);
+    doc.text(`Periodo: ${activePeriod}`, 14, 31);
+    doc.text(`Ponderación:  Cognitivo ${sp}%  |  Procedimental ${hp}%  |  Actitudinal ${ep}%`, 14, 36);
+    doc.text(`Fecha de exportación: ${new Date().toLocaleDateString()}`, 14, 41);
+
+    const tableColumn = [
+      "Estudiante", "Grupo",
+      `Cognitivo\n(bruto)`, `Cognitivo\n(×${sp}%)`,
+      `Procedimental\n(bruto)`, `Procedimental\n(×${hp}%)`,
+      `Actitudinal\n(bruto)`, `Actitudinal\n(×${ep}%)`,
+      "Nota\nFinal"
+    ];
+
+    const buildRow = (
+      name: string, group: string,
+      saber: number|null, hacer: number|null, ser: number|null, final: number|null
+    ) => [
+      name, group,
+      saber !== null ? saber.toFixed(1) : "—",
+      saber !== null ? (saber * sp / 100).toFixed(2) : "—",
+      hacer !== null ? hacer.toFixed(1) : "—",
+      hacer !== null ? (hacer * hp / 100).toFixed(2) : "—",
+      ser   !== null ? ser.toFixed(1)   : "—",
+      ser   !== null ? (ser   * ep / 100).toFixed(2) : "—",
+      final !== null ? final.toFixed(2) : "—",
+    ];
+
     const tableRows = sortedStudents.map(student => {
       const pg = student.periods[activePeriod] ?? { saber: null, hacer: null, ser: null, final: null };
-      return [
-        student.name,
-        student.groupName,
-        pg.saber !== null ? pg.saber.toFixed(1) : "—",
-        pg.hacer !== null ? pg.hacer.toFixed(1) : "—",
-        pg.ser !== null ? pg.ser.toFixed(1) : "—",
-        pg.final !== null ? pg.final.toFixed(1) : "—"
-      ];
+      return buildRow(student.name, student.groupName, pg.saber, pg.hacer, pg.ser, pg.final);
     });
-    
-    if (periodStats) {
-      const statsRow = [
-        "PROMEDIO GENERAL",
-        "",
-        (() => {
-          const vals = data.students.map(s => s.periods[activePeriod]?.saber).filter((v): v is number => v !== null);
-          return vals.length > 0 ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : "—";
-        })(),
-        (() => {
-          const vals = data.students.map(s => s.periods[activePeriod]?.hacer).filter((v): v is number => v !== null);
-          return vals.length > 0 ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : "—";
-        })(),
-        (() => {
-          const vals = data.students.map(s => s.periods[activePeriod]?.ser).filter((v): v is number => v !== null);
-          return vals.length > 0 ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : "—";
-        })(),
-        (() => {
-          const vals = data.students.map(s => s.periods[activePeriod]?.final).filter((v): v is number => v !== null);
-          return vals.length > 0 ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : "—";
-        })()
-      ];
-      tableRows.push(statsRow);
-    }
+
+    // Promedio general row
+    const avg = (field: "saber"|"hacer"|"ser"|"final") => {
+      const vals = data.students.map(s => s.periods[activePeriod]?.[field]).filter((v): v is number => v !== null);
+      return vals.length > 0 ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+    };
+    tableRows.push(buildRow("PROMEDIO GENERAL", "", avg("saber"), avg("hacer"), avg("ser"), avg("final")));
     
     autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
-      startY: 46,
-      theme: 'striped',
-      headStyles: { fillColor: [249, 128, 18] },
+      startY: 47,
+      theme: "striped",
+      styles: { fontSize: 8, cellPadding: 2.5, halign: "center", valign: "middle" },
+      columnStyles: {
+        0: { halign: "left", cellWidth: 48 },
+        1: { halign: "left", cellWidth: 22 },
+        3: { fontStyle: "bold", textColor: [139, 92, 246] },   // Saber ponderado
+        5: { fontStyle: "bold", textColor: [249, 128, 18] },   // Hacer ponderado
+        7: { fontStyle: "bold", textColor: [245, 158, 11] },   // Ser ponderado
+        8: { fontStyle: "bold", fontSize: 9 },                  // Nota Final
+      },
+      headStyles: { fillColor: [249, 128, 18], fontSize: 8, halign: "center", valign: "middle" },
       didParseCell: (cellData) => {
         if (cellData.row.index === tableRows.length - 1) {
-          cellData.cell.styles.fontStyle = 'bold';
+          cellData.cell.styles.fontStyle = "bold";
+          cellData.cell.styles.fillColor = [255, 243, 220];
         }
       }
     });
+
+    const finalY = (doc as any).lastAutoTable?.finalY ?? 47;
+    doc.setFontSize(8);
+    doc.setTextColor(130, 130, 130);
+    doc.text(
+      `* Nota Final = Cognitivo×${sp}% + Procedimental×${hp}% + Actitudinal×${ep}%`,
+      14, finalY + 7
+    );
     
     doc.save(`Consolidado_${data.course.name.replace(/\s+/g, '_')}_${activePeriod}.pdf`);
   };
