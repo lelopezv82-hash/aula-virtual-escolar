@@ -84,7 +84,7 @@ export default function CalificacionesConsolidadoPage() {
         "Grupo": student.groupName,
         "Saber (Exámenes)": pg.saber !== null ? pg.saber : "—",
         "Hacer (Tareas)": pg.hacer !== null ? pg.hacer : "—",
-        "Ser (Nota del Ser)": pg.ser !== null ? pg.ser : "—",
+        "Ser (Actitudinal)": pg.ser !== null ? pg.ser : "—",
         "Nota Final": pg.final !== null ? pg.final : "—"
       };
     });
@@ -107,7 +107,7 @@ export default function CalificacionesConsolidadoPage() {
     doc.text(`Periodo: ${activePeriod}`, 14, 34);
     doc.text(`Fecha de exportacion: ${new Date().toLocaleDateString()}`, 14, 40);
     
-    const tableColumn = ["Estudiante", "Grupo", "Saber (Examenes)", "Hacer (Tareas)", "Ser (Nota del Ser)", "Nota Final"];
+    const tableColumn = ["Estudiante", "Grupo", "Saber (Examenes)", "Hacer (Tareas)", "Ser (Actitudinal)", "Nota Final"];
     const tableRows = sortedStudents.map(student => {
       const pg = student.periods[activePeriod] ?? { saber: null, hacer: null, ser: null, final: null };
       return [
@@ -372,7 +372,7 @@ export default function CalificacionesConsolidadoPage() {
                           <Star size={13} />
                           Ser ({data.serPercent ?? 20}%) <SortIcon field="ser" />
                         </div>
-                        <div style={{ fontSize: "0.65rem", fontWeight: 500, color: "var(--text-muted)", marginTop: "0.1rem" }}>Adicional</div>
+                        <div style={{ fontSize: "0.65rem", fontWeight: 500, color: "var(--text-muted)", marginTop: "0.1rem" }}>Actitudinal</div>
                       </th>
 
                       {/* Final */}

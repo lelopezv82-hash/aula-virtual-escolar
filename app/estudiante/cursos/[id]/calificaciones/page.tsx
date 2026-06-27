@@ -298,18 +298,18 @@ export default async function CursoCalificacionesPage({
                         <div style={{ fontSize: "1.5rem", color: "var(--text-muted)", fontWeight: 300, lineHeight: 1 }}>+</div>
                       )}
 
-                      {/* Ser — Nota Adicional */}
+                      {/* Ser — Actitudinal */}
                       {additionalGrade !== null && (
                         <div style={{ textAlign: "center", minWidth: "80px" }}>
                           <div style={{ fontSize: "1.7rem", fontWeight: 800, color: gradeColor(additionalGrade), lineHeight: 1 }}>
                             {serWeighted!.toFixed(2)}
                           </div>
                           <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "2px" }}>
-                            {additionalGrade.toFixed(1)} × 20%
+                            {additionalGrade.toFixed(1)} × {serLabel}
                           </div>
                           <div className="flex items-center justify-center gap-1 mt-1">
                             <Star size={11} style={{ color: "#f59e0b" }} />
-                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Ser <span style={{ opacity: 0.6 }}>({serLabel})</span></span>
+                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Ser (Actitudinal)</span>
                           </div>
                         </div>
                       )}
@@ -346,7 +346,7 @@ export default async function CursoCalificacionesPage({
 
                     {componentCount > 1 && (
                       <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.75rem" }}>
-                        * Nota final = {[saberWeighted !== null && `${saberWeighted.toFixed(2)} (Saber×30%)`, hacerWeighted !== null && `${hacerWeighted.toFixed(2)} (Hacer×50%)`, serWeighted !== null && `${serWeighted.toFixed(2)} (Ser×20%)`].filter(Boolean).join(" + ")}.
+                        * Nota final = {[saberWeighted !== null && `${saberWeighted.toFixed(2)} (Saber×${saberLabel})`, hacerWeighted !== null && `${hacerWeighted.toFixed(2)} (Hacer×${hacerLabel})`, serWeighted !== null && `${serWeighted.toFixed(2)} (Actitudinal×${serLabel})`].filter(Boolean).join(" + ")}.
                       </p>
                     )}
                   </div>
