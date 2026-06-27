@@ -80,7 +80,7 @@ export async function PATCH(request: Request) {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     if (payload.role !== "TEACHER") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    const { id, all, name, description, groupIds, period1Active, period2Active, period3Active, period4Active, active } = await request.json();
+    const { id, all, name, description, groupIds, period1Active, period2Active, period3Active, period4Active, active, saberPercent, hacerPercent, serPercent } = await request.json();
     if (!id && !all) return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 });
 
     const updateData: any = {};
@@ -91,6 +91,9 @@ export async function PATCH(request: Request) {
     if (period3Active !== undefined) updateData.period3Active = period3Active;
     if (period4Active !== undefined) updateData.period4Active = period4Active;
     if (active !== undefined) updateData.active = active;
+    if (saberPercent !== undefined) updateData.saberPercent = saberPercent;
+    if (hacerPercent !== undefined) updateData.hacerPercent = hacerPercent;
+    if (serPercent !== undefined) updateData.serPercent = serPercent;
 
     if (groupIds !== undefined) {
       if (!all && (!Array.isArray(groupIds) || groupIds.length === 0)) {

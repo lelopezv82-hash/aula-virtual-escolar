@@ -22,6 +22,9 @@ interface Course {
   period2Active: boolean;
   period3Active: boolean;
   period4Active: boolean;
+  saberPercent: number;
+  hacerPercent: number;
+  serPercent: number;
   _count: { tasks: number; resources: number };
 }
 
@@ -39,7 +42,7 @@ export default function CursosPage() {
   const [loading, setLoading] = useState(true);
   const [showCourseModal, setShowCourseModal] = useState(false);
   const [editCourse, setEditCourse] = useState<Course | null>(null);
-  const [courseForm, setCourseForm] = useState({ name: "", description: "", groupIds: [] as string[] });
+  const [courseForm, setCourseForm] = useState({ name: "", description: "", groupIds: [] as string[], saberPercent: 30, hacerPercent: 50, serPercent: 20 });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [mounted, setMounted] = useState(false);
@@ -111,7 +114,7 @@ export default function CursosPage() {
 
   const openCreateCourse = () => {
     setEditCourse(null);
-    setCourseForm({ name: "", description: "", groupIds: [] });
+    setCourseForm({ name: "", description: "", groupIds: [], saberPercent: 30, hacerPercent: 50, serPercent: 20 });
     setError("");
     setShowCourseModal(true);
   };
@@ -121,7 +124,10 @@ export default function CursosPage() {
     setCourseForm({ 
       name: c.name, 
       description: c.description || "", 
-      groupIds: c.groups ? c.groups.map(g => g.id) : [] 
+      groupIds: c.groups ? c.groups.map(g => g.id) : [],
+      saberPercent: c.saberPercent ?? 30,
+      hacerPercent: c.hacerPercent ?? 50,
+      serPercent: c.serPercent ?? 20,
     });
     setError("");
     setShowCourseModal(true);
@@ -491,12 +497,51 @@ export default function CursosPage() {
                 onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })}
               />
             </div>
+
+            {/* Percentage weights */}
+            <div className="mb-5">
+              <div className="flex items-center justify-between mb-2">
+                <label className="font-semibold text-xs block">Porcentajes de Evaluación</label>
+                <span style={{
+                  fontSize: "11px", fontWeight: 700,
+                  color: courseForm.saberPercent + courseForm.hacerPercent + courseForm.serPercent === 100 ? "var(--success)" : "var(--danger)"
+                }}>
+                  Total: {courseForm.saberPercent + courseForm.hacerPercent + courseForm.serPercent}%
+                  {courseForm.saberPercent + courseForm.hacerPercent + courseForm.serPercent !== 100 && " ⚠️ debe sumar 100"}
+                </span>
+              </div>
+              <div className="flex flex-col gap-3 p-3 rounded-lg" style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-color)" }}>
+                {([
+                  { key: "saberPercent", label: "Saber (Exámenes)", color: "#8b5cf6" },
+                  { key: "hacerPercent", label: "Hacer (Tareas)", color: "var(--primary-color)" },
+                  { key: "serPercent",   label: "Ser (Nota adicional)", color: "#f59e0b" },
+                ] as const).map(({ key, label, color }) => (
+                  <div key={key} className="flex items-center gap-3">
+                    <span style={{ fontSize: "11px", fontWeight: 600, minWidth: "140px", color }}>{label}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      className="input-field"
+                      style={{ width: "72px", padding: "4px 8px", fontSize: "13px", textAlign: "center" }}
+                      value={courseForm[key]}
+                      onChange={(e) => setCourseForm({ ...courseForm, [key]: Math.max(0, Math.min(100, parseInt(e.target.value) || 0)) })}
+                    />
+                    <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
             
             <div className="flex justify-end gap-3 border-t pt-4" style={{ borderColor: "var(--border-color)" }}>
               <button type="button" className="btn btn-secondary" onClick={() => setShowCourseModal(false)}>
                 Cancelar
               </button>
-              <button type="submit" className="btn btn-primary" disabled={saving}>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={saving || courseForm.saberPercent + courseForm.hacerPercent + courseForm.serPercent !== 100}
+              >
                 {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
                 {editCourse ? "Guardar Cambios" : "Crear Asignatura"}
               </button>

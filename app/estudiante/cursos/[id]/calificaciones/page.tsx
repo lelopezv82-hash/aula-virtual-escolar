@@ -35,6 +35,17 @@ export default async function CursoCalificacionesPage({
 
   const now = new Date();
 
+  const course = await prisma.course.findUnique({
+    where: { id },
+    select: { saberPercent: true, hacerPercent: true, serPercent: true }
+  });
+  const saberPct = (course?.saberPercent ?? 30) / 100;
+  const hacerPct = (course?.hacerPercent ?? 50) / 100;
+  const serPct   = (course?.serPercent   ?? 20) / 100;
+  const saberLabel = `${course?.saberPercent ?? 30}%`;
+  const hacerLabel = `${course?.hacerPercent ?? 50}%`;
+  const serLabel   = `${course?.serPercent   ?? 20}%`;
+
   const tasks = await prisma.task.findMany({
     where: {
       courseId: id,
@@ -212,10 +223,10 @@ export default async function CursoCalificacionesPage({
 
             const additionalGrade = additionalGradesMap.get(periodName) ?? null;
 
-            // Weighted final: Saber×30% + Hacer×50% + Ser×20% (direct weighted sum)
-            const saberWeighted = avgExamenes !== null ? +(avgExamenes * 0.30).toFixed(2) : null;
-            const hacerWeighted = avgTareas   !== null ? +(avgTareas   * 0.50).toFixed(2) : null;
-            const serWeighted   = additionalGrade !== null ? +(additionalGrade * 0.20).toFixed(2) : null;
+            // Weighted final using course-specific percentages
+            const saberWeighted = avgExamenes !== null ? +(avgExamenes * saberPct).toFixed(2) : null;
+            const hacerWeighted = avgTareas   !== null ? +(avgTareas   * hacerPct).toFixed(2) : null;
+            const serWeighted   = additionalGrade !== null ? +(additionalGrade * serPct).toFixed(2) : null;
             const finalGrade =
               saberWeighted !== null || hacerWeighted !== null || serWeighted !== null
                 ? (saberWeighted ?? 0) + (hacerWeighted ?? 0) + (serWeighted ?? 0)
@@ -258,7 +269,7 @@ export default async function CursoCalificacionesPage({
                           </div>
                           <div className="flex items-center justify-center gap-1 mt-1">
                             <FileText size={11} style={{ color: "#8b5cf6" }} />
-                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Saber</span>
+                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Saber <span style={{ opacity: 0.6 }}>({saberLabel})</span></span>
                           </div>
                         </div>
                       )}
@@ -278,7 +289,7 @@ export default async function CursoCalificacionesPage({
                           </div>
                           <div className="flex items-center justify-center gap-1 mt-1">
                             <ClipboardList size={11} style={{ color: "var(--primary-color)" }} />
-                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Hacer</span>
+                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Hacer <span style={{ opacity: 0.6 }}>({hacerLabel})</span></span>
                           </div>
                         </div>
                       )}
@@ -298,7 +309,7 @@ export default async function CursoCalificacionesPage({
                           </div>
                           <div className="flex items-center justify-center gap-1 mt-1">
                             <Star size={11} style={{ color: "#f59e0b" }} />
-                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Ser</span>
+                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Ser <span style={{ opacity: 0.6 }}>({serLabel})</span></span>
                           </div>
                         </div>
                       )}

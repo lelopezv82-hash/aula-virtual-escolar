@@ -129,12 +129,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         const hacer = taskGrades.length > 0 ? taskGrades.reduce((a, b) => a + b, 0) / taskGrades.length : null;
         const ser = addlGradeMap.get(student.id)?.get(periodName) ?? null;
 
+        // Weighted final using course-specific percentages
+        const sp = course.saberPercent / 100;
+        const hp = course.hacerPercent / 100;
+        const ep = course.serPercent   / 100;
         const components = [saber, hacer, ser].filter((v): v is number => v !== null);
-        // Weighted final: direct sum Saber×30% + Hacer×50% + Ser×20%
         const final = components.length > 0
-          ? (saber !== null ? saber * 0.30 : 0)
-            + (hacer !== null ? hacer * 0.50 : 0)
-            + (ser   !== null ? ser   * 0.20 : 0)
+          ? (saber !== null ? saber * sp : 0)
+            + (hacer !== null ? hacer * hp : 0)
+            + (ser   !== null ? ser   * ep : 0)
           : null;
 
         periodsData[periodName] = { saber, hacer, ser, final };
@@ -149,12 +152,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     });
 
     return NextResponse.json({
-      course: { id: course.id, name: course.name },
-      periods: activePeriodNames,
       students: result,
+      periods: activePeriodNames,
+      saberPercent: course.saberPercent,
+      hacerPercent: course.hacerPercent,
+      serPercent: course.serPercent,
     });
   } catch (error) {
-    console.error("Error fetching grades:", error);
+    console.error('Error fetching grades:', error);
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }
