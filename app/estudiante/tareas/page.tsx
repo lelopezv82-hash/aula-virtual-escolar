@@ -136,7 +136,7 @@ export default async function TareasEstudiantePage() {
                     <span style={{ fontSize: "0.75rem", fontWeight: 700, padding: "2px 8px", background: "#f3f4f6", borderRadius: "4px", color: "#4b5563" }}>
                       {task.course.name}
                     </span>
-                    <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "rgba(16,185,129,0.1)", color: "#059669", border: "1px solid rgba(16,185,129,0.2)" }}>En línea</span>
+                    <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "rgba(16,185,129,0.1)", color: "#059669", border: "1px solid rgba(16,185,129,0.2)" }}>Subida a plataforma</span>
                     {isGraded && (
                       <span className={`badge flex items-center gap-1 ${gradeReason ? 'badge-danger' : 'badge-success'}`}>
                         <CheckCircle size={12} /> Calificada
