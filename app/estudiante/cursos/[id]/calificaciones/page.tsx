@@ -212,15 +212,14 @@ export default async function CursoCalificacionesPage({
 
             const additionalGrade = additionalGradesMap.get(periodName) ?? null;
 
-            // Weighted final grade: Saber×30% + Hacer×50% + Ser×20%
-            // Normalize by sum of used weights when some components are missing
-            const WEIGHTS = { saber: 30, hacer: 50, ser: 20 };
-            let weightedSum = 0;
-            let totalWeight = 0;
-            if (avgExamenes !== null) { weightedSum += avgExamenes * WEIGHTS.saber; totalWeight += WEIGHTS.saber; }
-            if (avgTareas !== null)   { weightedSum += avgTareas   * WEIGHTS.hacer; totalWeight += WEIGHTS.hacer; }
-            if (additionalGrade !== null) { weightedSum += additionalGrade * WEIGHTS.ser; totalWeight += WEIGHTS.ser; }
-            const finalGrade = totalWeight > 0 ? weightedSum / totalWeight : null;
+            // Weighted final: Saber×30% + Hacer×50% + Ser×20% (direct weighted sum)
+            const saberWeighted = avgExamenes !== null ? +(avgExamenes * 0.30).toFixed(2) : null;
+            const hacerWeighted = avgTareas   !== null ? +(avgTareas   * 0.50).toFixed(2) : null;
+            const serWeighted   = additionalGrade !== null ? +(additionalGrade * 0.20).toFixed(2) : null;
+            const finalGrade =
+              saberWeighted !== null || hacerWeighted !== null || serWeighted !== null
+                ? (saberWeighted ?? 0) + (hacerWeighted ?? 0) + (serWeighted ?? 0)
+                : null;
             const componentCount = (avgExamenes !== null ? 1 : 0) + (avgTareas !== null ? 1 : 0) + (additionalGrade !== null ? 1 : 0);
 
             const hasSubs = periodSubs.length > 0;
@@ -252,11 +251,14 @@ export default async function CursoCalificacionesPage({
                       {avgExamenes !== null && (
                         <div style={{ textAlign: "center", minWidth: "80px" }}>
                           <div style={{ fontSize: "1.7rem", fontWeight: 800, color: gradeColor(avgExamenes), lineHeight: 1 }}>
-                            {avgExamenes.toFixed(1)}
+                            {saberWeighted!.toFixed(2)}
+                          </div>
+                          <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "2px" }}>
+                            {avgExamenes.toFixed(1)} × 30%
                           </div>
                           <div className="flex items-center justify-center gap-1 mt-1">
                             <FileText size={11} style={{ color: "#8b5cf6" }} />
-                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Saber <span style={{ opacity: 0.6 }}>(30%)</span></span>
+                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Saber</span>
                           </div>
                         </div>
                       )}
@@ -269,11 +271,14 @@ export default async function CursoCalificacionesPage({
                       {avgTareas !== null && (
                         <div style={{ textAlign: "center", minWidth: "80px" }}>
                           <div style={{ fontSize: "1.7rem", fontWeight: 800, color: gradeColor(avgTareas), lineHeight: 1 }}>
-                            {avgTareas.toFixed(1)}
+                            {hacerWeighted!.toFixed(2)}
+                          </div>
+                          <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "2px" }}>
+                            {avgTareas.toFixed(1)} × 50%
                           </div>
                           <div className="flex items-center justify-center gap-1 mt-1">
                             <ClipboardList size={11} style={{ color: "var(--primary-color)" }} />
-                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Hacer <span style={{ opacity: 0.6 }}>(50%)</span></span>
+                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Hacer</span>
                           </div>
                         </div>
                       )}
@@ -286,11 +291,14 @@ export default async function CursoCalificacionesPage({
                       {additionalGrade !== null && (
                         <div style={{ textAlign: "center", minWidth: "80px" }}>
                           <div style={{ fontSize: "1.7rem", fontWeight: 800, color: gradeColor(additionalGrade), lineHeight: 1 }}>
-                            {additionalGrade.toFixed(1)}
+                            {serWeighted!.toFixed(2)}
+                          </div>
+                          <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "2px" }}>
+                            {additionalGrade.toFixed(1)} × 20%
                           </div>
                           <div className="flex items-center justify-center gap-1 mt-1">
                             <Star size={11} style={{ color: "#f59e0b" }} />
-                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Ser <span style={{ opacity: 0.6 }}>(20%)</span></span>
+                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Ser</span>
                           </div>
                         </div>
                       )}
@@ -327,7 +335,7 @@ export default async function CursoCalificacionesPage({
 
                     {componentCount > 1 && (
                       <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.75rem" }}>
-                        * Nota final ponderada: {[avgExamenes !== null && "Saber×30%", avgTareas !== null && "Hacer×50%", additionalGrade !== null && "Ser×20%"].filter(Boolean).join(" + ")}.
+                        * Nota final = {[saberWeighted !== null && `${saberWeighted.toFixed(2)} (Saber×30%)`, hacerWeighted !== null && `${hacerWeighted.toFixed(2)} (Hacer×50%)`, serWeighted !== null && `${serWeighted.toFixed(2)} (Ser×20%)`].filter(Boolean).join(" + ")}.
                       </p>
                     )}
                   </div>
