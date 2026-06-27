@@ -358,36 +358,7 @@ export default function CursosPage() {
                   {course.description || "Sin descripción"}
                 </p>
 
-                {/* Additional Grades Buttons per active period grouped by grade/group */}
-                {course.groups && course.groups.length > 0 && activePeriods(course).length > 0 && (
-                  <div className="mt-4 pt-4 border-t" style={{ borderColor: "var(--border-color)" }}>
-                    <p className="text-xs font-bold uppercase tracking-wider text-muted mb-2.5 flex items-center gap-1">
-                      <Star size={11} /> Nota del Ser por Grupo
-                    </p>
-                    <div className="flex flex-col gap-2.5">
-                      {course.groups.map(group => {
-                        const groupName = group.grade?.name ? `${group.grade.name} - ${group.name}` : group.name;
-                        return (
-                          <div key={group.id} className="flex flex-col gap-1">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">{groupName}:</span>
-                            <div className="flex flex-wrap gap-1.5">
-                              {activePeriods(course).map(period => (
-                                <button
-                                  key={period}
-                                  onClick={() => openGradesModal(course, period, group.id)}
-                                  className="text-[10px] px-2.5 py-1 rounded-lg border font-semibold transition-colors hover:bg-orange-50 hover:text-[#f98012] hover:border-orange-300"
-                                  style={{ borderColor: "var(--border-color)", color: "var(--text-secondary)" }}
-                                >
-                                  {period}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
+
               </div>
 
               <div className="flex justify-between items-center border-t pt-4 mt-6" style={{ borderColor: "var(--border-color)" }}>

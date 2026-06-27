@@ -152,6 +152,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     });
 
     return NextResponse.json({
+      course: { id: course.id, name: course.name },
       students: result,
       periods: activePeriodNames,
       saberPercent: course.saberPercent,

@@ -28,6 +28,9 @@ interface GradesData {
   course: { id: string; name: string };
   periods: string[];
   students: StudentRow[];
+  saberPercent?: number;
+  hacerPercent?: number;
+  serPercent?: number;
 }
 
 function GradeCell({ value, size = "normal" }: { value: number | null; size?: "normal" | "large" }) {
@@ -343,7 +346,7 @@ export default function CalificacionesConsolidadoPage() {
                       >
                         <div className="flex items-center justify-center gap-1.5">
                           <FileText size={13} />
-                          Saber <SortIcon field="saber" />
+                          Saber ({data.saberPercent ?? 30}%) <SortIcon field="saber" />
                         </div>
                         <div style={{ fontSize: "0.65rem", fontWeight: 500, color: "var(--text-muted)", marginTop: "0.1rem" }}>Exámenes</div>
                       </th>
@@ -355,7 +358,7 @@ export default function CalificacionesConsolidadoPage() {
                       >
                         <div className="flex items-center justify-center gap-1.5">
                           <ClipboardList size={13} />
-                          Hacer <SortIcon field="hacer" />
+                          Hacer ({data.hacerPercent ?? 50}%) <SortIcon field="hacer" />
                         </div>
                         <div style={{ fontSize: "0.65rem", fontWeight: 500, color: "var(--text-muted)", marginTop: "0.1rem" }}>Tareas</div>
                       </th>
@@ -367,7 +370,7 @@ export default function CalificacionesConsolidadoPage() {
                       >
                         <div className="flex items-center justify-center gap-1.5">
                           <Star size={13} />
-                          Ser <SortIcon field="ser" />
+                          Ser ({data.serPercent ?? 20}%) <SortIcon field="ser" />
                         </div>
                         <div style={{ fontSize: "0.65rem", fontWeight: 500, color: "var(--text-muted)", marginTop: "0.1rem" }}>Adicional</div>
                       </th>
