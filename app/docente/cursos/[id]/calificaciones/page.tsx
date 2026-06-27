@@ -33,50 +33,66 @@ interface GradesData {
   serPercent?: number;
 }
 
-function GradeCell({ 
-  value, 
-  rawGrade, 
-  subtitle, 
-  size = "normal" 
-}: { 
-  value: number | null; 
-  rawGrade?: number | null; 
-  subtitle?: string; 
-  size?: "normal" | "large" 
+function PeriodSummaryCard({
+  saber, hacer, ser, final,
+  saberPct, hacerPct, serPct,
+}: {
+  saber: number | null; hacer: number | null; ser: number | null; final: number | null;
+  saberPct: number; hacerPct: number; serPct: number;
 }) {
-  if (value === null) {
-    return (
-      <span style={{ color: "var(--text-muted)", fontSize: size === "large" ? "1rem" : "0.82rem", fontStyle: "italic" }}>
-        —
-      </span>
-    );
+  const saberW = saber !== null ? saber * saberPct / 100 : null;
+  const hacerW = hacer !== null ? hacer * hacerPct / 100 : null;
+  const serW   = ser   !== null ? ser   * serPct   / 100 : null;
+
+  const finalColor = final !== null ? (final >= 3.0 ? "var(--success)" : "var(--danger)") : "var(--text-muted)";
+  const finalBg    = final !== null ? (final >= 3.0 ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.09)") : "var(--bg-secondary)";
+  const finalBorder = final !== null ? (final >= 3.0 ? "2px solid var(--success)" : "2px solid var(--danger)") : "2px solid var(--border-color)";
+
+  const componentEntry = (
+    weighted: number | null,
+    raw: number | null,
+    pct: number,
+    label: string,
+    color: string,
+  ) => (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: "80px" }}>
+      <div style={{ fontSize: "1.35rem", fontWeight: 900, color, lineHeight: 1 }}>
+        {weighted !== null ? weighted.toFixed(2) : <span style={{ color: "var(--text-muted)", fontSize: "1rem" }}>—</span>}
+      </div>
+      <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "2px", whiteSpace: "nowrap" }}>
+        {raw !== null ? `${raw.toFixed(1)} × ${pct}%` : "Sin calificar"}
+      </div>
+      <div style={{ fontSize: "0.65rem", color, fontWeight: 600, marginTop: "3px" }}>{label}</div>
+    </div>
+  );
+
+  const hasAny = saberW !== null || hacerW !== null || serW !== null;
+
+  if (!hasAny && final === null) {
+    return <span style={{ color: "var(--text-muted)", fontStyle: "italic", fontSize: "0.82rem" }}>Sin calificar</span>;
   }
-  const colorGrade = rawGrade !== undefined && rawGrade !== null ? rawGrade : value;
-  const pass = colorGrade >= 3.0;
-  const color = pass ? "var(--success)" : "var(--danger)";
-  const bg = pass ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.07)";
+
   return (
-    <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-      <span
-        style={{
-          display: "inline-block",
-          fontWeight: 800,
-          fontSize: size === "large" ? "1.15rem" : "0.9rem",
-          color,
-          background: bg,
-          borderRadius: "0.4rem",
-          padding: size === "large" ? "0.2rem 0.6rem" : "0.1rem 0.4rem",
-          minWidth: size === "large" ? "52px" : "40px",
-          textAlign: "center",
-        }}
-      >
-        {value.toFixed(2)}
-      </span>
-      {subtitle && (
-        <span style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "2px", whiteSpace: "nowrap" }}>
-          {subtitle}
-        </span>
-      )}
+    <div style={{
+      display: "flex", alignItems: "center", gap: "0.5rem",
+      flexWrap: "wrap", justifyContent: "center",
+    }}>
+      {componentEntry(saberW, saber, saberPct, "Saber (Cognitivo)", "#8b5cf6")}
+      <span style={{ color: "var(--text-muted)", fontWeight: 300, fontSize: "1.1rem" }}>+</span>
+      {componentEntry(hacerW, hacer, hacerPct, "Hacer (Procedimental)", "var(--primary-color)")}
+      <span style={{ color: "var(--text-muted)", fontWeight: 300, fontSize: "1.1rem" }}>+</span>
+      {componentEntry(serW, ser, serPct, "Ser (Actitudinal)", "#f59e0b")}
+      <span style={{ color: "var(--text-muted)", fontWeight: 300, fontSize: "1.1rem" }}>=</span>
+      <div style={{
+        display: "flex", flexDirection: "column", alignItems: "center",
+        background: finalBg, border: finalBorder,
+        borderRadius: "0.7rem", padding: "0.35rem 0.7rem", minWidth: "60px",
+      }}>
+        <div style={{ fontSize: "1.35rem", fontWeight: 900, color: finalColor, lineHeight: 1 }}>
+          {final !== null ? final.toFixed(1) : "—"}
+        </div>
+        <div style={{ fontSize: "0.6rem", color: finalColor, fontWeight: 700, marginTop: "2px", textTransform: "uppercase", letterSpacing: "0.03em" }}>Nota Final</div>
+      </div>
     </div>
   );
 }
@@ -341,198 +357,95 @@ export default function CalificacionesConsolidadoPage() {
               <p>No hay estudiantes inscritos en esta asignatura.</p>
             </div>
           ) : (
-            <div className="card p-0 overflow-hidden">
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
-                  <thead>
-                    <tr style={{ background: "var(--bg-secondary)", borderBottom: "2px solid var(--border-color)" }}>
-                      {/* Student name */}
-                      <th
-                        style={{ padding: "0.9rem 1.2rem", textAlign: "left", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", userSelect: "none" }}
-                        onClick={() => toggleSort("name")}
-                      >
-                        <div className="flex items-center gap-1.5">
-                          <Users size={14} style={{ color: "var(--text-muted)" }} />
-                          Estudiante <SortIcon field="name" />
-                        </div>
-                      </th>
+            <div className="flex flex-col gap-3">
+              {/* Average summary card */}
+              {periodStats && (() => {
+                const saberPct = data.saberPercent ?? 30;
+                const hacerPct = data.hacerPercent ?? 50;
+                const serPct   = data.serPercent   ?? 20;
+                const avgSaber = (() => { const v = data.students.map(s => s.periods[activePeriod]?.saber).filter((x): x is number => x !== null); return v.length > 0 ? v.reduce((a,b)=>a+b,0)/v.length : null; })();
+                const avgHacer = (() => { const v = data.students.map(s => s.periods[activePeriod]?.hacer).filter((x): x is number => x !== null); return v.length > 0 ? v.reduce((a,b)=>a+b,0)/v.length : null; })();
+                const avgSer   = (() => { const v = data.students.map(s => s.periods[activePeriod]?.ser).filter((x): x is number => x !== null); return v.length > 0 ? v.reduce((a,b)=>a+b,0)/v.length : null; })();
+                const avgFinal = (() => { const v = data.students.map(s => s.periods[activePeriod]?.final).filter((x): x is number => x !== null); return v.length > 0 ? v.reduce((a,b)=>a+b,0)/v.length : null; })();
+                return (
+                  <div className="card" style={{ borderLeft: "4px solid var(--primary-color)" }}>
+                    <div style={{ fontWeight: 700, fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "0.75rem" }}>Promedio General del Grupo — {activePeriod}</div>
+                    <PeriodSummaryCard
+                      saber={avgSaber} hacer={avgHacer} ser={avgSer} final={avgFinal}
+                      saberPct={saberPct} hacerPct={hacerPct} serPct={serPct}
+                    />
+                  </div>
+                );
+              })()}
 
-                      {/* Saber */}
-                      <th
-                        style={{ padding: "0.9rem 1rem", textAlign: "center", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", userSelect: "none", color: "#8b5cf6" }}
-                        onClick={() => toggleSort("saber")}
-                      >
-                        <div className="flex items-center justify-center gap-1.5">
-                          <FileText size={13} />
-                          Saber ({data.saberPercent ?? 30}%) <SortIcon field="saber" />
-                        </div>
-                        <div style={{ fontSize: "0.65rem", fontWeight: 500, color: "var(--text-muted)", marginTop: "0.1rem" }}>Cognitivo</div>
-                      </th>
-
-                      {/* Hacer */}
-                      <th
-                        style={{ padding: "0.9rem 1rem", textAlign: "center", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", userSelect: "none", color: "var(--primary-color)" }}
-                        onClick={() => toggleSort("hacer")}
-                      >
-                        <div className="flex items-center justify-center gap-1.5">
-                          <ClipboardList size={13} />
-                          Hacer ({data.hacerPercent ?? 50}%) <SortIcon field="hacer" />
-                        </div>
-                        <div style={{ fontSize: "0.65rem", fontWeight: 500, color: "var(--text-muted)", marginTop: "0.1rem" }}>Procedimental</div>
-                      </th>
-
-                      {/* Ser */}
-                      <th
-                        style={{ padding: "0.9rem 1rem", textAlign: "center", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", userSelect: "none", color: "#f59e0b" }}
-                        onClick={() => toggleSort("ser")}
-                      >
-                        <div className="flex items-center justify-center gap-1.5">
-                          <Star size={13} />
-                          Ser ({data.serPercent ?? 20}%) <SortIcon field="ser" />
-                        </div>
-                        <div style={{ fontSize: "0.65rem", fontWeight: 500, color: "var(--text-muted)", marginTop: "0.1rem" }}>Actitudinal</div>
-                      </th>
-
-                      {/* Final */}
-                      <th
-                        style={{ padding: "0.9rem 1rem", textAlign: "center", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", userSelect: "none" }}
-                        onClick={() => toggleSort("final")}
-                      >
-                        <div className="flex items-center justify-center gap-1.5">
-                          <Award size={13} />
-                          Nota Final <SortIcon field="final" />
-                        </div>
-                        <div style={{ fontSize: "0.65rem", fontWeight: 500, color: "var(--text-muted)", marginTop: "0.1rem" }}>{activePeriod}</div>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedStudents.map((student, idx) => {
-                      const pg = student.periods[activePeriod] ?? { saber: null, hacer: null, ser: null, final: null };
-                      const isEven = idx % 2 === 0;
-
-                      const saberPct = (data.saberPercent ?? 30) / 100;
-                      const hacerPct = (data.hacerPercent ?? 50) / 100;
-                      const serPct   = (data.serPercent   ?? 20) / 100;
-
-                      const saberWeighted = pg.saber !== null ? pg.saber * saberPct : null;
-                      const hacerWeighted = pg.hacer !== null ? pg.hacer * hacerPct : null;
-                      const serWeighted   = pg.ser !== null ? pg.ser * serPct : null;
-
-                      return (
-                        <tr
-                          key={student.id}
-                          style={{
-                            background: isEven ? "var(--bg-primary)" : "var(--bg-secondary)",
-                            borderBottom: "1px solid var(--border-color)",
-                            transition: "background 0.15s",
-                          }}
-                          onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover, rgba(249,128,18,0.04))")}
-                          onMouseLeave={e => (e.currentTarget.style.background = isEven ? "var(--bg-primary)" : "var(--bg-secondary)")}
-                        >
-                          {/* Name */}
-                          <td style={{ padding: "0.85rem 1.2rem" }}>
-                            <div className="flex items-center gap-3">
-                              <div
-                                style={{
-                                  width: "34px", height: "34px", borderRadius: "50%",
-                                  background: "linear-gradient(135deg, #f98012, #e06d09)",
-                                  display: "flex", alignItems: "center", justifyContent: "center",
-                                  color: "#fff", fontWeight: 800, fontSize: "0.85rem", flexShrink: 0,
-                                }}
-                              >
-                                {student.name.charAt(0).toUpperCase()}
-                              </div>
-                              <div>
-                                <div style={{ fontWeight: 600 }}>{student.name}</div>
-                                <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>{student.groupName}</div>
-                              </div>
-                            </div>
-                          </td>
-
-                          {/* Saber */}
-                          <td style={{ padding: "0.85rem 1rem", textAlign: "center" }}>
-                            <GradeCell 
-                              value={saberWeighted} 
-                              rawGrade={pg.saber} 
-                              subtitle={pg.saber !== null ? `${pg.saber.toFixed(1)} × ${(data.saberPercent ?? 30)}%` : undefined} 
-                            />
-                          </td>
-
-                          {/* Hacer */}
-                          <td style={{ padding: "0.85rem 1rem", textAlign: "center" }}>
-                            <GradeCell 
-                              value={hacerWeighted} 
-                              rawGrade={pg.hacer} 
-                              subtitle={pg.hacer !== null ? `${pg.hacer.toFixed(1)} × ${(data.hacerPercent ?? 50)}%` : undefined} 
-                            />
-                          </td>
-
-                          {/* Ser */}
-                          <td style={{ padding: "0.85rem 1rem", textAlign: "center" }}>
-                            <GradeCell 
-                              value={serWeighted} 
-                              rawGrade={pg.ser} 
-                              subtitle={pg.ser !== null ? `${pg.ser.toFixed(1)} × ${(data.serPercent ?? 20)}%` : undefined} 
-                            />
-                          </td>
-
-                          {/* Final */}
-                          <td style={{ padding: "0.85rem 1rem", textAlign: "center" }}>
-                            <GradeCell value={pg.final} size="large" />
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-
-                  {/* Footer average row */}
-                  {periodStats && (
-                    <tfoot>
-                      <tr style={{ background: "var(--bg-secondary)", borderTop: "2px solid var(--border-color)" }}>
-                        <td style={{ padding: "0.8rem 1.2rem", fontWeight: 700, fontSize: "0.8rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                          Promedio General
-                        </td>
-                        {(["saber", "hacer", "ser", "final"] as const).map(field => {
-                          const vals = data.students
-                            .map(s => s.periods[activePeriod]?.[field])
-                            .filter((v): v is number => v !== null);
-                          const avgRaw = vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
-
-                          let avgWeighted: number | null = null;
-                          let subtitle: string | undefined = undefined;
-
-                          if (avgRaw !== null) {
-                            if (field === "saber") {
-                              avgWeighted = avgRaw * ((data.saberPercent ?? 30) / 100);
-                              subtitle = `${avgRaw.toFixed(1)} × ${(data.saberPercent ?? 30)}%`;
-                            } else if (field === "hacer") {
-                              avgWeighted = avgRaw * ((data.hacerPercent ?? 50) / 100);
-                              subtitle = `${avgRaw.toFixed(1)} × ${(data.hacerPercent ?? 50)}%`;
-                            } else if (field === "ser") {
-                              avgWeighted = avgRaw * ((data.serPercent ?? 20) / 100);
-                              subtitle = `${avgRaw.toFixed(1)} × ${(data.serPercent ?? 20)}%`;
-                            } else {
-                              avgWeighted = avgRaw;
-                            }
-                          }
-
-                          return (
-                            <td key={field} style={{ padding: "0.8rem 1rem", textAlign: "center" }}>
-                              <GradeCell 
-                                value={avgWeighted} 
-                                rawGrade={avgRaw} 
-                                subtitle={subtitle} 
-                                size={field === "final" ? "large" : "normal"} 
-                              />
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    </tfoot>
-                  )}
-                </table>
+              {/* Sort bar */}
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                <span>Ordenar por:</span>
+                {(["name", "saber", "hacer", "ser", "final"] as const).map(f => (
+                  <button
+                    key={f}
+                    onClick={() => toggleSort(f)}
+                    style={{
+                      padding: "0.2rem 0.6rem",
+                      borderRadius: "0.4rem",
+                      border: "1px solid var(--border-color)",
+                      background: sortField === f ? "var(--primary-color)" : "var(--bg-secondary)",
+                      color: sortField === f ? "#fff" : "var(--text-secondary)",
+                      fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "0.2rem",
+                    }}
+                  >
+                    {f === "name" ? "Nombre" : f === "saber" ? "Saber" : f === "hacer" ? "Hacer" : f === "ser" ? "Ser" : "Nota Final"}
+                    <SortIcon field={f} />
+                  </button>
+                ))}
               </div>
+
+              {/* Student cards */}
+              {sortedStudents.map((student, idx) => {
+                const pg = student.periods[activePeriod] ?? { saber: null, hacer: null, ser: null, final: null };
+                const saberPct = data.saberPercent ?? 30;
+                const hacerPct = data.hacerPercent ?? 50;
+                const serPct   = data.serPercent   ?? 20;
+
+                const finalColor = pg.final !== null ? (pg.final >= 3.0 ? "var(--success)" : "var(--danger)") : "var(--border-color)";
+
+                return (
+                  <div
+                    key={student.id}
+                    className="card"
+                    style={{ borderLeft: `4px solid ${finalColor}`, padding: "1rem 1.25rem" }}
+                  >
+                    {/* Student name header */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}>
+                      <div style={{
+                        width: "36px", height: "36px", borderRadius: "50%",
+                        background: "linear-gradient(135deg, #f98012, #e06d09)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        color: "#fff", fontWeight: 800, fontSize: "0.9rem", flexShrink: 0,
+                      }}>
+                        {student.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>{student.name}</div>
+                        <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>{student.groupName}</div>
+                      </div>
+                    </div>
+
+                    {/* Period summary */}
+                    <PeriodSummaryCard
+                      saber={pg.saber} hacer={pg.hacer} ser={pg.ser} final={pg.final}
+                      saberPct={saberPct} hacerPct={hacerPct} serPct={serPct}
+                    />
+
+                    {/* Formula footnote */}
+                    {(pg.saber !== null || pg.hacer !== null || pg.ser !== null) && pg.final !== null && (
+                      <div style={{ fontSize: "0.67rem", color: "var(--text-muted)", marginTop: "0.6rem", fontStyle: "italic" }}>
+                        * Nota final = {pg.saber !== null ? `${(pg.saber * saberPct / 100).toFixed(2)} (Cognitivo×${saberPct}%)` : ""}{pg.hacer !== null ? ` + ${(pg.hacer * hacerPct / 100).toFixed(2)} (Procedimental×${hacerPct}%)` : ""}{pg.ser !== null ? ` + ${(pg.ser * serPct / 100).toFixed(2)} (Actitudinal×${serPct}%)` : ""}.
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </>
