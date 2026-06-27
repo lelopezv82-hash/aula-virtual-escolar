@@ -485,7 +485,7 @@ export default function CursosPage() {
                 {([
                   { key: "saberPercent", label: "Saber (Exámenes)", color: "#8b5cf6" },
                   { key: "hacerPercent", label: "Hacer (Tareas)", color: "var(--primary-color)" },
-                  { key: "serPercent",   label: "Ser (Actitudinal)", color: "#f59e0b" },
+                  { key: "serPercent",   label: "Ser (Aptitudinal)", color: "#f59e0b" },
                 ] as const).map(({ key, label, color }) => (
                   <div key={key} className="flex items-center gap-3">
                     <span style={{ fontSize: "11px", fontWeight: 600, minWidth: "140px", color }}>{label}</span>
