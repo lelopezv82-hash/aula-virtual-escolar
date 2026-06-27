@@ -43,7 +43,6 @@ export default async function CursoExamenesPage({
       courseId: id,
       active: true,
       type: "EXAM",
-      isExternal: false,
       OR: [{ period: null }, { period: { in: activePeriodNames } }],
       AND: [{ OR: [{ publishAt: null }, { publishAt: { lte: now } }] }],
       groups: studentGroupId ? { some: { id: studentGroupId } } : undefined,
@@ -64,6 +63,12 @@ export default async function CursoExamenesPage({
       (!submission && isClosed) ||
       (submission && submission.status === "PENDING" && (isClosed || isTimerExpired));
     const isSubmitted = submission && submission.status !== "PENDING";
+
+    // External exams: only show in Presentados when graded, never in Disponibles
+    if (exam.isExternal) {
+      if (estado === "presentados") return isSubmitted;
+      return false;
+    }
 
     if (estado === "presentados") return isSubmitted || isVirtuallyClosed;
     // default: disponibles
@@ -157,11 +162,7 @@ export default async function CursoExamenesPage({
                       </span>
                     )}
                     {!isSubmitted && isLate && <span className="badge badge-danger">Atrasado</span>}
-                    {exam.isExternal && (
-                      <span className="badge bg-blue-50 text-blue-700 border border-blue-200" style={{ fontSize: "10px", fontWeight: "bold" }}>
-                        Presencial
-                      </span>
-                    )}
+                    {exam.isExternal && <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "rgba(59,130,246,0.1)", color: "#2563eb", border: "1px solid rgba(59,130,246,0.2)" }}>Físico</span>}
                   </div>
                   <h3 className="font-bold text-base mb-0.5" style={{ color: "#8b5cf6" }}>{exam.title}</h3>
                   <p className="text-sm text-muted truncate">{exam.description || "Sin descripción"}</p>

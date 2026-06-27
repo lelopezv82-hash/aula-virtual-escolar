@@ -138,6 +138,7 @@ export default async function CursoCalificacionesPage({
                 : <span className="badge badge-success flex items-center gap-1"><CheckCircle size={12} /> Calificada</span>
             )}
             {isPending && <span className="badge badge-info flex items-center gap-1"><Clock size={12} /> En revisión</span>}
+            {sub.task.isExternal && <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "rgba(59,130,246,0.1)", color: "#2563eb", border: "1px solid rgba(59,130,246,0.2)" }}>Físico</span>}
           </div>
           <h4 className="font-bold text-base mb-0.5" style={{ color: accentColor }}>{sub.task.title}</h4>
           {isGraded && sub.feedback && !sub.feedback.includes("Calificado automáticamente") && !sub.feedback.trim().startsWith("[") && (
@@ -203,16 +204,19 @@ export default async function CursoCalificacionesPage({
 
             const additionalGrade = additionalGradesMap.get(periodName) ?? null;
 
-            // Final grade: average of all available components
-            const components: number[] = [];
-            if (avgTareas !== null) components.push(avgTareas);
-            if (avgExamenes !== null) components.push(avgExamenes);
-            if (additionalGrade !== null) components.push(additionalGrade);
-            const finalGrade = components.length > 0
-              ? components.reduce((a, b) => a + b, 0) / components.length
-              : null;
+            // Weighted final grade: Saber×30% + Hacer×50% + Ser×20%
+            // Normalize by sum of used weights when some components are missing
+            const WEIGHTS = { saber: 30, hacer: 50, ser: 20 };
+            let weightedSum = 0;
+            let totalWeight = 0;
+            if (avgExamenes !== null) { weightedSum += avgExamenes * WEIGHTS.saber; totalWeight += WEIGHTS.saber; }
+            if (avgTareas !== null)   { weightedSum += avgTareas   * WEIGHTS.hacer; totalWeight += WEIGHTS.hacer; }
+            if (additionalGrade !== null) { weightedSum += additionalGrade * WEIGHTS.ser; totalWeight += WEIGHTS.ser; }
+            const finalGrade = totalWeight > 0 ? weightedSum / totalWeight : null;
+            const componentCount = (avgExamenes !== null ? 1 : 0) + (avgTareas !== null ? 1 : 0) + (additionalGrade !== null ? 1 : 0);
 
             const hasSubs = periodSubs.length > 0;
+            const components = componentCount;
 
             return (
               <div key={periodName}>
@@ -244,7 +248,7 @@ export default async function CursoCalificacionesPage({
                           </div>
                           <div className="flex items-center justify-center gap-1 mt-1">
                             <FileText size={11} style={{ color: "#8b5cf6" }} />
-                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Nota del Saber</span>
+                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Saber <span style={{ opacity: 0.6 }}>(30%)</span></span>
                           </div>
                         </div>
                       )}
@@ -261,7 +265,7 @@ export default async function CursoCalificacionesPage({
                           </div>
                           <div className="flex items-center justify-center gap-1 mt-1">
                             <ClipboardList size={11} style={{ color: "var(--primary-color)" }} />
-                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Nota del Hacer</span>
+                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Hacer <span style={{ opacity: 0.6 }}>(50%)</span></span>
                           </div>
                         </div>
                       )}
@@ -278,13 +282,13 @@ export default async function CursoCalificacionesPage({
                           </div>
                           <div className="flex items-center justify-center gap-1 mt-1">
                             <Star size={11} style={{ color: "#f59e0b" }} />
-                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Nota del Ser</span>
+                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Ser <span style={{ opacity: 0.6 }}>(20%)</span></span>
                           </div>
                         </div>
                       )}
 
                       {/* Equals and Final Grade */}
-                      {finalGrade !== null && components.length > 1 && (
+                      {finalGrade !== null && componentCount > 1 && (
                         <>
                           <div style={{ fontSize: "1.5rem", color: "var(--text-muted)", fontWeight: 300, lineHeight: 1 }}>=</div>
                           <div
@@ -306,16 +310,16 @@ export default async function CursoCalificacionesPage({
                       )}
 
                       {/* If only one component, show it as final */}
-                      {finalGrade !== null && components.length === 1 && (
+                      {finalGrade !== null && componentCount === 1 && (
                         <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontStyle: "italic", alignSelf: "center" }}>
                           Nota del período
                         </div>
                       )}
                     </div>
 
-                    {components.length > 1 && (
+                    {componentCount > 1 && (
                       <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.75rem" }}>
-                        * La nota final es el promedio de: {[avgExamenes !== null && "Nota del Saber", avgTareas !== null && "Nota del Hacer", additionalGrade !== null && "Nota del Ser"].filter(Boolean).join(" + ")}.
+                        * Nota final ponderada: {[avgExamenes !== null && "Saber×30%", avgTareas !== null && "Hacer×50%", additionalGrade !== null && "Ser×20%"].filter(Boolean).join(" + ")}.
                       </p>
                     )}
                   </div>

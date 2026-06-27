@@ -130,7 +130,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         const ser = addlGradeMap.get(student.id)?.get(periodName) ?? null;
 
         const components = [saber, hacer, ser].filter((v): v is number => v !== null);
-        const final = components.length > 0 ? components.reduce((a, b) => a + b, 0) / components.length : null;
+        // Weighted final: Saber×30% + Hacer×50% + Ser×20% (normalized to available weights)
+        const WEIGHTS = { saber: 30, hacer: 50, ser: 20 };
+        let weightedSum = 0, totalWeight = 0;
+        if (saber !== null) { weightedSum += saber * WEIGHTS.saber; totalWeight += WEIGHTS.saber; }
+        if (hacer !== null) { weightedSum += hacer * WEIGHTS.hacer; totalWeight += WEIGHTS.hacer; }
+        if (ser   !== null) { weightedSum += ser   * WEIGHTS.ser;   totalWeight += WEIGHTS.ser;   }
+        const final = totalWeight > 0 ? weightedSum / totalWeight : null;
 
         periodsData[periodName] = { saber, hacer, ser, final };
       }
