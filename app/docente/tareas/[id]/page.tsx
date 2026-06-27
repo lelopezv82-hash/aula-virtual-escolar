@@ -238,7 +238,7 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
                                         studentName={student.name}
                                       />
                                     )}
-                                    {(task.type !== "EXAM" || isSubmitted) && (
+                                    {(task.type !== "EXAM" || isSubmitted || task.isExternal) && (
                                       <Link href={`/docente/tareas/${task.id}/calificar/${student.id}`} className="btn btn-primary text-sm px-2 py-1">
                                         Calificar
                                       </Link>

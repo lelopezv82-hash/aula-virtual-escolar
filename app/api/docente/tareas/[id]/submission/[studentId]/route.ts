@@ -28,6 +28,11 @@ export async function GET(
       return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 });
     }
 
+    const student = await prisma.user.findUnique({
+      where: { id: resolvedParams.studentId },
+      select: { id: true, name: true }
+    });
+
     const submission = await prisma.submission.findUnique({
       where: {
         taskId_studentId: {
@@ -38,8 +43,9 @@ export async function GET(
       include: { student: true },
     });
 
-    return NextResponse.json({ task, submission });
-  } catch {
+    return NextResponse.json({ task, submission, student });
+  } catch (error) {
+    console.error("Error fetching submission details:", error);
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }

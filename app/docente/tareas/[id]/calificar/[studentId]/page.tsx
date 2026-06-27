@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
@@ -17,6 +17,7 @@ export default function CalificarPage({
 
   const [submission, setSubmission] = useState<any>(null);
   const [task, setTask] = useState<any>(null);
+  const [student, setStudent] = useState<any>(null);
   const [grade, setGrade] = useState<string>("");
   const [feedback, setFeedback] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,6 +31,7 @@ export default function CalificarPage({
       .then((data) => {
         setTask(data.task);
         setSubmission(data.submission);
+        setStudent(data.student);
         if (data.submission?.grade !== null && data.submission?.grade !== undefined) {
           setGrade(data.submission.grade.toString());
         }
@@ -51,7 +53,8 @@ export default function CalificarPage({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          submissionId: submission.id,
+          taskId,
+          studentId,
           grade,
           feedback,
         }),
@@ -89,7 +92,7 @@ export default function CalificarPage({
         </Link>
         <div>
           <h1 className="text-2xl font-bold">Calificar Entrega</h1>
-          <p className="text-muted text-sm">{task?.title} — {submission?.student?.name}</p>
+          <p className="text-muted text-sm">{task?.title} — {student?.name || submission?.student?.name}</p>
         </div>
       </div>
 
