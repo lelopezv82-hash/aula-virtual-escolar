@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { ClipboardList, Clock, CheckCircle } from "lucide-react";
+import Link from "next/link";
 import ExamenCardAcciones from "@/app/estudiante/examenes/ExamenCardAcciones";
 import { formatToColombiaString, getTaskDeadlineStatus } from '@/lib/dateUtils';
 
@@ -185,31 +186,40 @@ export default async function CursoExamenesPage({
                     </div>
                   )}
                   <div>
-                    <ExamenCardAcciones
-                      examId={exam.id}
-                      examTitle={exam.title}
-                      courseName={exam.course.name}
-                      attachmentUrl={exam.attachmentUrl}
-                      dueDate={exam.dueDate.toISOString()}
-                      duration={exam.duration}
-                      allowLateSubmission={exam.allowLateSubmission}
-                      lateSubmissionUntil={exam.lateSubmissionUntil ? exam.lateSubmissionUntil.toISOString() : null}
-                      submission={submission ? {
-                        status: submission.status,
-                        grade: submission.grade,
-                        feedback: submission.feedback,
-                        fileUrl: submission.fileUrl,
-                        submittedAt: submission.submittedAt,
-                        startedAt: submission.startedAt,
-                        allowLateSubmission: submission.allowLateSubmission,
-                        lateSubmissionUntil: submission.lateSubmissionUntil,
-                        attempt: submission.attempt ?? 1,
-                        unlockedAnswers: submission.unlockedAnswers ?? false,
-                        answers: (submission as any).answers,
-                      } : null}
-                      studentName={studentName}
-                      isExternal={exam.isExternal}
-                    />
+                    {exam.isExternal && isGraded ? (
+                      <Link
+                        href={`/estudiante/tareas/${exam.id}`}
+                        className="btn btn-secondary"
+                      >
+                        Ver Calificación
+                      </Link>
+                    ) : (
+                      <ExamenCardAcciones
+                        examId={exam.id}
+                        examTitle={exam.title}
+                        courseName={exam.course.name}
+                        attachmentUrl={exam.attachmentUrl}
+                        dueDate={exam.dueDate.toISOString()}
+                        duration={exam.duration}
+                        allowLateSubmission={exam.allowLateSubmission}
+                        lateSubmissionUntil={exam.lateSubmissionUntil ? exam.lateSubmissionUntil.toISOString() : null}
+                        submission={submission ? {
+                          status: submission.status,
+                          grade: submission.grade,
+                          feedback: submission.feedback,
+                          fileUrl: submission.fileUrl,
+                          submittedAt: submission.submittedAt,
+                          startedAt: submission.startedAt,
+                          allowLateSubmission: submission.allowLateSubmission,
+                          lateSubmissionUntil: submission.lateSubmissionUntil,
+                          attempt: submission.attempt ?? 1,
+                          unlockedAnswers: submission.unlockedAnswers ?? false,
+                          answers: (submission as any).answers,
+                        } : null}
+                        studentName={studentName}
+                        isExternal={exam.isExternal}
+                      />
+                    )}
                   </div>
                 </div>
               </div>
