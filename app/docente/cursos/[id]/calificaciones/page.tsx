@@ -9,6 +9,7 @@ import {
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import PlanillaExcelEditor from "./PlanillaExcelEditor";
 
 interface PeriodGrades {
   saber: number | null;
@@ -108,6 +109,7 @@ export default function CalificacionesConsolidadoPage() {
   const [activePeriod, setActivePeriod] = useState<string>("");
   const [sortField, setSortField] = useState<"name" | "saber" | "hacer" | "ser" | "final">("name");
   const [sortAsc, setSortAsc] = useState(true);
+  const [activeTab, setActiveTab] = useState<"consolidado" | "planilla">("planilla");
 
   const exportToExcel = () => {
     if (!data || !activePeriod) return;
@@ -362,26 +364,57 @@ export default function CalificacionesConsolidadoPage() {
 
       {data.periods.length > 0 && (
         <>
-          {/* Period Tabs */}
-          <div className="flex gap-2 flex-wrap">
-            {data.periods.map(p => (
+          {/* Tab Switcher & Period Tabs */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            {/* Period Tabs */}
+            <div className="flex gap-2 flex-wrap">
+              {data.periods.map(p => (
+                <button
+                  key={p}
+                  onClick={() => setActivePeriod(p)}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200"
+                  style={
+                    activePeriod === p
+                      ? { background: "var(--primary-color)", color: "#fff", boxShadow: "0 4px 12px rgba(249,128,18,0.3)" }
+                      : { background: "var(--bg-secondary)", color: "var(--text-secondary)", border: "1px solid var(--border-color)" }
+                  }
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+
+            {/* View Switcher Tabs */}
+            <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl border border-gray-200 dark:border-gray-700">
               <button
-                key={p}
-                onClick={() => setActivePeriod(p)}
-                className="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200"
-                style={
-                  activePeriod === p
-                    ? { background: "var(--primary-color)", color: "#fff", boxShadow: "0 4px 12px rgba(249,128,18,0.3)" }
-                    : { background: "var(--bg-secondary)", color: "var(--text-secondary)", border: "1px solid var(--border-color)" }
-                }
+                onClick={() => setActiveTab("planilla")}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  activeTab === "planilla"
+                    ? "bg-white dark:bg-gray-750 text-gray-800 dark:text-white shadow-sm"
+                    : "text-gray-500 hover:text-gray-800 dark:hover:text-white"
+                }`}
               >
-                {p}
+                Planilla de Notas (Excel)
               </button>
-            ))}
+              <button
+                onClick={() => setActiveTab("consolidado")}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  activeTab === "consolidado"
+                    ? "bg-white dark:bg-gray-750 text-gray-800 dark:text-white shadow-sm"
+                    : "text-gray-500 hover:text-gray-800 dark:hover:text-white"
+                }`}
+              >
+                Resumen por Periodo (Tarjetas)
+              </button>
+            </div>
           </div>
 
-          {/* Stats row */}
-          {periodStats && (
+          {activeTab === "planilla" ? (
+            <PlanillaExcelEditor courseId={courseId} activePeriod={activePeriod} />
+          ) : (
+            <>
+              {/* Stats row */}
+              {periodStats && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
                 { label: "Promedio General", value: periodStats.avg.toFixed(2), color: periodStats.avg >= 3 ? "var(--success)" : "var(--danger)", icon: <Award size={18} /> },
@@ -501,6 +534,8 @@ export default function CalificacionesConsolidadoPage() {
                 );
               })}
             </div>
+          )}
+            </>
           )}
         </>
       )}
