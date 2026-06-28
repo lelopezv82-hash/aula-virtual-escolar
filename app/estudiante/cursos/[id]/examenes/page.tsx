@@ -188,7 +188,7 @@ export default async function CursoExamenesPage({
                   <div>
                     {exam.isExternal && isGraded ? (
                       <Link
-                        href={`/estudiante/tareas/${exam.id}`}
+                        href={`/estudiante/examenes/${exam.id}`}
                         className="btn btn-secondary"
                       >
                         Ver Calificación

@@ -468,6 +468,32 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
             isClosed={isClosed}
           />
         </div>
+      ) : task.isExternal ? (
+        <div className="card mb-6" style={{ borderTop: isGraded ? '4px solid var(--success)' : '4px solid #8b5cf6' }}>
+          <h2 className="text-lg font-bold mb-4">Evaluación del Examen</h2>
+
+          {isGraded ? (
+            <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 rounded-lg p-4 mb-6">
+              <h3 className="font-bold mb-1 flex items-center gap-2 text-green-800" style={{ color: "var(--success)" }}>
+                <CheckCircle size={18} /> Examen Calificado
+              </h3>
+              <p className="text-2xl font-black my-2 text-green-700" style={{ color: "var(--success)" }}>
+                Nota: {activeSubmission.grade !== null && activeSubmission.grade !== undefined ? Math.max(1.0, Number(activeSubmission.grade)).toFixed(1) : ""}
+              </p>
+              {activeSubmission.feedback && (
+                <div className="mt-2 text-green-900" style={{ color: "var(--text-primary)" }}>
+                  <strong>Comentario del docente:</strong>
+                  <p className="italic mt-1" style={{ color: "var(--text-secondary)" }}>&quot;{activeSubmission.feedback}&quot;</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8 text-center gap-3">
+              <Clock size={36} className="text-muted opacity-40" />
+              <p className="text-muted text-sm">Tu docente aún no ha registrado tu calificación para este examen presencial / externo.</p>
+            </div>
+          )}
+        </div>
       ) : task.attachmentUrl ? (
         <div className="card mb-6 flex flex-col gap-4">
           <h2 className="text-lg font-bold">Examen en Línea</h2>
