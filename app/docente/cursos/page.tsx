@@ -487,9 +487,10 @@ export default function CursosPage() {
                   { key: "saberPercent", label: "Saber (Cognitivo)", color: "#8b5cf6" },
                   { key: "hacerPercent", label: "Hacer (Procedimental)", color: "var(--primary-color)" },
                   { key: "serPercent",   label: "Ser (Actitudinal)", color: "#f59e0b" },
+                  { key: "finalPercent", label: "Examen Final (0 = sin examen)", color: "#0ea5e9" },
                 ] as const).map(({ key, label, color }) => (
                   <div key={key} className="flex items-center gap-3">
-                    <span style={{ fontSize: "11px", fontWeight: 600, minWidth: "140px", color }}>{label}</span>
+                    <span style={{ fontSize: "11px", fontWeight: 600, minWidth: "200px", color }}>{label}</span>
                     <input
                       type="number"
                       min={0}
@@ -502,38 +503,9 @@ export default function CursosPage() {
                     <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>%</span>
                   </div>
                 ))}
-
-                {/* Examen Final toggle */}
-                <div className="border-t pt-3" style={{ borderColor: "var(--border-color)" }}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span style={{ fontSize: "11px", fontWeight: 600, color: "#0ea5e9" }}>Examen Final (opcional)</span>
-                      <p style={{ fontSize: "10px", color: "var(--text-muted)", marginTop: "2px" }}>Activa si esta asignatura evalúa un examen final separado</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setCourseForm({ ...courseForm, finalPercent: courseForm.finalPercent > 0 ? 0 : 10 })}
-                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${courseForm.finalPercent > 0 ? 'bg-sky-500' : 'bg-gray-300'}`}
-                    >
-                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${courseForm.finalPercent > 0 ? 'translate-x-4' : 'translate-x-0.5'}`} />
-                    </button>
-                  </div>
-                  {courseForm.finalPercent > 0 && (
-                    <div className="flex items-center gap-3 mt-2">
-                      <span style={{ fontSize: "11px", fontWeight: 600, minWidth: "140px", color: "#0ea5e9" }}>Peso Examen Final</span>
-                      <input
-                        type="number"
-                        min={1}
-                        max={50}
-                        className="input-field"
-                        style={{ width: "72px", padding: "4px 8px", fontSize: "13px", textAlign: "center" }}
-                        value={courseForm.finalPercent}
-                        onChange={(e) => setCourseForm({ ...courseForm, finalPercent: Math.max(1, Math.min(50, parseInt(e.target.value) || 0)) })}
-                      />
-                      <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>%</span>
-                    </div>
-                  )}
-                </div>
+                <p style={{ fontSize: "10px", color: "var(--text-muted)", marginTop: "4px" }}>
+                  💡 Los porcentajes también se pueden ajustar directamente desde la planilla de calificaciones.
+                </p>
               </div>
             </div>
             
