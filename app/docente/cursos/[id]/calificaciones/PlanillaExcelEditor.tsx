@@ -357,6 +357,9 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
     );
   }
 
+  const showFinal = finalPct > 0 || finalTasks.length > 0;
+  const showAttend = attendTasks.length > 0;
+
   return (
     <div className="flex flex-col gap-4">
       {/* Save bar */}
@@ -510,6 +513,31 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
             </button>
           )}
 
+          {!showAttend && (
+            <button
+              onClick={async () => {
+                setAddingTask(true);
+                try {
+                  const res = await fetch(`/api/docente/cursos/${courseId}/grades/spreadsheet/columns`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ title: "Asistencia", type: "ATTEND", period: activePeriod })
+                  });
+                  if (res.ok) {
+                    setReloadTrigger(prev => prev + 1);
+                  }
+                } catch (e) {}
+                setAddingTask(false);
+              }}
+              disabled={addingTask}
+              className="btn btn-secondary py-1 px-3 text-xs flex items-center gap-1.5 ml-auto"
+              style={{ borderColor: "#10b981", color: "#10b981" }}
+            >
+              {addingTask ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
+              Activar Asistencia
+            </button>
+          )}
+
           {pctSuccess && (
             <span className="flex items-center gap-1 text-green-700 font-bold ml-auto">
               <Check size={13} /> Guardado
@@ -558,28 +586,32 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
                   </div>
                 </th>
 
-                {/* Final Exam Header - always visible */}
-                <th colSpan={Math.max(1, finalTasks.length)} className="p-2 border-r border-gray-200 bg-sky-50 text-sky-800 uppercase tracking-wide">
-                  <div className="flex items-center justify-center gap-1.5">
-                    {finalPct > 0 ? `Examen Final (${finalPct}%)` : "Examen Final"}
-                    <button onClick={() => openAddModal("FINAL")} className="p-1 hover:bg-sky-200 bg-sky-100 rounded text-sky-700 transition-colors" title="Agregar examen final">
-                      <Plus size={14} />
-                    </button>
-                  </div>
-                </th>
+                {/* Final Exam Header - conditional */}
+                {showFinal && (
+                  <th colSpan={Math.max(1, finalTasks.length)} className="p-2 border-r border-gray-200 bg-sky-50 text-sky-800 uppercase tracking-wide">
+                    <div className="flex items-center justify-center gap-1.5">
+                      {finalPct > 0 ? `Examen Final (${finalPct}%)` : "Examen Final"}
+                      <button onClick={() => openAddModal("FINAL")} className="p-1 hover:bg-sky-200 bg-sky-100 rounded text-sky-700 transition-colors" title="Agregar examen final">
+                        <Plus size={14} />
+                      </button>
+                    </div>
+                  </th>
+                )}
 
-                {/* Asistencia Header - always visible */}
-                <th colSpan={Math.max(1, attendTasks.length)} className="p-2 border-r border-gray-200 bg-green-50 text-green-800 uppercase tracking-wide">
-                  <div className="flex items-center justify-center gap-1.5">
-                    Asistencia
-                    <button onClick={() => openAddModal("ATTEND")} className="p-1 hover:bg-green-200 bg-green-100 rounded text-green-700 transition-colors" title="Agregar columna de asistencia">
-                      <Plus size={14} />
-                    </button>
-                  </div>
-                </th>
+                {/* Asistencia Header - conditional */}
+                {showAttend && (
+                  <th colSpan={Math.max(1, attendTasks.length)} className="p-2 border-r border-gray-200 bg-green-50 text-green-800 uppercase tracking-wide">
+                    <div className="flex items-center justify-center gap-1.5">
+                      Asistencia
+                      <button onClick={() => openAddModal("ATTEND")} className="p-1 hover:bg-green-200 bg-green-100 rounded text-green-700 transition-colors" title="Agregar columna de asistencia">
+                        <Plus size={14} />
+                      </button>
+                    </div>
+                  </th>
+                )}
 
                 {/* Averages DEF Header */}
-                <th colSpan={finalPct > 0 ? 4 : 3} className="p-2 border-r border-gray-200 bg-blue-50 text-blue-800 uppercase tracking-wide">
+                <th colSpan={showFinal ? 4 : 3} className="p-2 border-r border-gray-200 bg-blue-50 text-blue-800 uppercase tracking-wide">
                   Def (Ponderada)
                 </th>
 
@@ -622,21 +654,21 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
                   ))
                 )}
 
-                {/* Final numbering - always visible */}
-                {finalTasks.length === 0 ? (
-                  <th className="p-2 border-r border-gray-200 text-gray-400 font-normal italic">-</th>
-                ) : (
-                  finalTasks.map(t => (
-                    <th key={t.id} className="p-2 border-r border-gray-200 w-12 hover:bg-sky-100" title={t.title}>
-                      {taskNumbers[t.id]}
-                    </th>
-                  ))
+                {/* Final numbering - conditional */}
+                {showFinal && (
+                  finalTasks.length === 0 ? (
+                    <th className="p-2 border-r border-gray-200 text-gray-400 font-normal italic">-</th>
+                  ) : (
+                    finalTasks.map(t => (
+                      <th key={t.id} className="p-2 border-r border-gray-200 w-12 hover:bg-sky-100" title={t.title}>
+                        {taskNumbers[t.id]}
+                      </th>
+                    ))
+                  )
                 )}
 
-                {/* Attend numbering */}
-                {attendTasks.length === 0 ? (
-                  <th className="p-2 border-r border-gray-200 text-gray-400 font-normal italic">-</th>
-                ) : (
+                {/* Attend numbering - conditional */}
+                {showAttend && (
                   attendTasks.map(t => (
                     <th key={t.id} className="p-2 border-r border-gray-200 w-12 hover:bg-green-100" title={t.title}>
                       {taskNumbers[t.id]}
@@ -648,13 +680,13 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
                 <th className="p-2 border-r border-gray-200 bg-blue-50/50 w-16">Saber×{saberPct}%</th>
                 <th className="p-2 border-r border-gray-200 bg-blue-50/50 w-16">Hacer×{hacerPct}%</th>
                 <th className="p-2 border-r border-gray-200 bg-blue-50/50 w-16">Ser×{serPct}%</th>
-                {finalPct > 0 && <th className="p-2 border-r border-gray-200 bg-blue-50/50 w-16">Final×{finalPct}%</th>}
+                {showFinal && <th className="p-2 border-r border-gray-200 bg-blue-50/50 w-16">Final×{finalPct}%</th>}
               </tr>
             </thead>
             <tbody>
               {students.length === 0 ? (
                 <tr>
-                  <td colSpan={2 + Math.max(1, saberTasks.length) + Math.max(1, hacerTasks.length) + Math.max(1, serTasks.length) + Math.max(1, finalTasks.length) + Math.max(1, attendTasks.length) + (finalPct > 0 ? 4 : 3) + 2} className="p-8 text-center text-gray-400 font-medium italic">
+                  <td colSpan={2 + Math.max(1, saberTasks.length) + Math.max(1, hacerTasks.length) + Math.max(1, serTasks.length) + (showFinal ? Math.max(1, finalTasks.length) : 0) + (showAttend ? attendTasks.length : 0) + (showFinal ? 4 : 3) + 2} className="p-8 text-center text-gray-400 font-medium italic">
                     No hay estudiantes matriculados en esta asignatura.
                   </td>
                 </tr>
@@ -791,47 +823,47 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
                         })
                       )}
 
-                      {/* Final Exam input cells - always visible */}
-                      {finalTasks.length === 0 ? (
-                        <td className="p-1 border-r border-gray-200 bg-gray-50/50"></td>
-                      ) : (
-                        finalTasks.map(t => {
-                          const val = grades[t.id] ?? "";
-                          const isChanged = val !== (initial[t.id] ?? "");
-                          const isLow = val !== "" && parseFloat(val) < 3.0;
+                      {/* Final Exam input cells - conditional */}
+                      {showFinal && (
+                        finalTasks.length === 0 ? (
+                          <td className="p-1 border-r border-gray-200 bg-gray-50/50"></td>
+                        ) : (
+                          finalTasks.map(t => {
+                            const val = grades[t.id] ?? "";
+                            const isChanged = val !== (initial[t.id] ?? "");
+                            const isLow = val !== "" && parseFloat(val) < 3.0;
 
-                          return (
-                            <td 
-                              key={t.id} 
-                              className={`p-1 border-r border-gray-200 text-center ${
-                                isChanged ? "bg-amber-50" : isLow ? "bg-red-50/30" : ""
-                              }`}
-                            >
-                              <input
-                                type="number"
-                                step="0.1"
-                                min="1.0"
-                                max="5.0"
-                                placeholder="—"
-                                value={val}
-                                onChange={e => handleCellChange(student.id, t.id, e.target.value)}
-                                className={`w-10 text-center font-bold rounded border py-1 focus:outline-none transition-colors ${
-                                  isChanged 
-                                    ? "border-amber-400 focus:border-amber-500 text-sky-700 bg-sky-50" 
-                                    : isLow 
-                                      ? "border-red-200 focus:border-red-400 text-red-600 bg-red-50/50" 
-                                      : "border-sky-200 focus:border-sky-400 text-sky-800"
+                            return (
+                              <td 
+                                key={t.id} 
+                                className={`p-1 border-r border-gray-200 text-center ${
+                                  isChanged ? "bg-amber-50" : isLow ? "bg-red-50/30" : ""
                                 }`}
-                              />
-                            </td>
-                          );
-                        })
+                              >
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  min="1.0"
+                                  max="5.0"
+                                  placeholder="—"
+                                  value={val}
+                                  onChange={e => handleCellChange(student.id, t.id, e.target.value)}
+                                  className={`w-10 text-center font-bold rounded border py-1 focus:outline-none transition-colors ${
+                                    isChanged 
+                                      ? "border-amber-400 focus:border-amber-500 text-sky-700 bg-sky-50" 
+                                      : isLow 
+                                        ? "border-red-200 focus:border-red-400 text-red-600 bg-red-50/50" 
+                                        : "border-sky-200 focus:border-sky-400 text-sky-800"
+                                  }`}
+                                />
+                              </td>
+                            );
+                          })
+                        )
                       )}
 
-                      {/* Asistencia input cells */}
-                      {attendTasks.length === 0 ? (
-                        <td className="p-1 border-r border-gray-200 bg-gray-50/50"></td>
-                      ) : (
+                      {/* Asistencia input cells - conditional */}
+                      {showAttend && (
                         attendTasks.map(t => {
                           const val = grades[t.id] ?? "";
                           const isChanged = val !== (initial[t.id] ?? "");
@@ -872,7 +904,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
                       <td className="p-2 border-r border-gray-200 text-center font-semibold text-yellow-700 bg-blue-50/10">
                         {stats.ser !== null ? (stats.ser * serPct / 100).toFixed(2) : "—"}
                       </td>
-                      {finalPct > 0 && (
+                      {showFinal && (
                         <td className="p-2 border-r border-gray-200 text-center font-semibold text-sky-700 bg-blue-50/10">
                           {stats.finalExam !== null ? (stats.finalExam * finalPct / 100).toFixed(2) : "—"}
                         </td>
