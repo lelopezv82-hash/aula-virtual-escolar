@@ -470,44 +470,7 @@ export default function CursosPage() {
               />
             </div>
 
-            {/* Percentage weights */}
-            <div className="mb-5">
-              <div className="flex items-center justify-between mb-2">
-                <label className="font-semibold text-xs block">Porcentajes de Evaluación</label>
-                <span style={{
-                  fontSize: "11px", fontWeight: 700,
-                  color: courseForm.saberPercent + courseForm.hacerPercent + courseForm.serPercent + courseForm.finalPercent === 100 ? "var(--success)" : "var(--danger)"
-                }}>
-                  Total: {courseForm.saberPercent + courseForm.hacerPercent + courseForm.serPercent + courseForm.finalPercent}%
-                  {courseForm.saberPercent + courseForm.hacerPercent + courseForm.serPercent + courseForm.finalPercent !== 100 && " ⚠️ debe sumar 100"}
-                </span>
-              </div>
-              <div className="flex flex-col gap-3 p-3 rounded-lg" style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-color)" }}>
-                {([
-                  { key: "saberPercent", label: "Saber (Cognitivo)", color: "#8b5cf6" },
-                  { key: "hacerPercent", label: "Hacer (Procedimental)", color: "var(--primary-color)" },
-                  { key: "serPercent",   label: "Ser (Actitudinal)", color: "#f59e0b" },
-                  { key: "finalPercent", label: "Examen Final (0 = sin examen)", color: "#0ea5e9" },
-                ] as const).map(({ key, label, color }) => (
-                  <div key={key} className="flex items-center gap-3">
-                    <span style={{ fontSize: "11px", fontWeight: 600, minWidth: "200px", color }}>{label}</span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      className="input-field"
-                      style={{ width: "72px", padding: "4px 8px", fontSize: "13px", textAlign: "center" }}
-                      value={courseForm[key]}
-                      onChange={(e) => setCourseForm({ ...courseForm, [key]: Math.max(0, Math.min(100, parseInt(e.target.value) || 0)) })}
-                    />
-                    <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>%</span>
-                  </div>
-                ))}
-                <p style={{ fontSize: "10px", color: "var(--text-muted)", marginTop: "4px" }}>
-                  💡 Los porcentajes también se pueden ajustar directamente desde la planilla de calificaciones.
-                </p>
-              </div>
-            </div>
+
             
             <div className="flex justify-end gap-3 border-t pt-4" style={{ borderColor: "var(--border-color)" }}>
               <button type="button" className="btn btn-secondary" onClick={() => setShowCourseModal(false)}>
@@ -516,7 +479,7 @@ export default function CursosPage() {
               <button
                 type="submit"
                 className="btn btn-primary"
-                disabled={saving || courseForm.saberPercent + courseForm.hacerPercent + courseForm.serPercent + courseForm.finalPercent !== 100}
+                disabled={saving}
               >
                 {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
                 {editCourse ? "Guardar Cambios" : "Crear Asignatura"}
