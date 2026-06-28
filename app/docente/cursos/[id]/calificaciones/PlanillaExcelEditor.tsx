@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { Loader2, Save, Undo2, Info, AlertTriangle, Check } from "lucide-react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { Loader2, Save, Undo2, Info, AlertTriangle, Check, Plus, Trash2, X } from "lucide-react";
 
 interface Student {
   id: string;
@@ -12,17 +12,12 @@ interface Student {
 interface Task {
   id: string;
   title: string;
-  type: string; // EXAM | TASK
+  type: string; // EXAM | TASK | SER
   submissions: Array<{
     studentId: string;
     status: string;
     grade: number | null;
   }>;
-}
-
-interface AdditionalGrade {
-  studentId: string;
-  grade: number;
 }
 
 interface PlanillaExcelEditorProps {
@@ -35,6 +30,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [reloadTrigger, setReloadTrigger] = useState(0);
 
   const [students, setStudents] = useState<Student[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -44,8 +40,14 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
   const [teacherName, setTeacherName] = useState("");
   const [courseName, setCourseName] = useState("");
 
+  // Modal State
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addingType, setAddingType] = useState<"EXAM" | "TASK" | "SER">("EXAM");
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [addingTask, setAddingTask] = useState(false);
+
   // Local state for all editable grades
-  // Format: { [studentId]: { [taskId/additionalGradeKey]: string (input value) } }
+  // Format: { [studentId]: { [taskId]: string (input value) } }
   const [gradesGrid, setGradesGrid] = useState<Record<string, Record<string, string>>>({});
   const [initialGradesGrid, setInitialGradesGrid] = useState<Record<string, Record<string, string>>>({});
 
@@ -70,7 +72,6 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
           // Build grid data
           const grid: Record<string, Record<string, string>> = {};
           const rawTasks = json.tasks || [];
-          const rawAddl = json.additionalGrades || [];
 
           for (const student of json.students || []) {
             grid[student.id] = {};
@@ -79,9 +80,6 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
               const sub = t.submissions?.find((s: any) => s.studentId === student.id);
               grid[student.id][t.id] = sub && sub.grade !== null ? sub.grade.toFixed(1) : "";
             }
-            // Set actitudinal (SER) grade
-            const serEntry = rawAddl.find((a: any) => a.studentId === student.id);
-            grid[student.id]["ser"] = serEntry ? serEntry.grade.toFixed(1) : "";
           }
 
           setGradesGrid(grid);
@@ -96,25 +94,22 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
       }
     }
     loadData();
-  }, [courseId, activePeriod]);
+  }, [courseId, activePeriod, reloadTrigger]);
 
   // Separate tasks by type
   const saberTasks = useMemo(() => tasks.filter(t => t.type === "EXAM"), [tasks]);
   const hacerTasks = useMemo(() => tasks.filter(t => t.type === "TASK"), [tasks]);
+  const serTasks = useMemo(() => tasks.filter(t => t.type === "SER"), [tasks]);
 
   // Map tasks to sequential numbers for the Excel headers
   const taskNumbers = useMemo(() => {
     const map: Record<string, number> = {};
     let counter = 1;
-    saberTasks.forEach(t => {
-      map[t.id] = counter++;
-    });
-    hacerTasks.forEach(t => {
-      map[t.id] = counter++;
-    });
-    map["ser"] = counter; // Last number is SER
+    saberTasks.forEach(t => map[t.id] = counter++);
+    hacerTasks.forEach(t => map[t.id] = counter++);
+    serTasks.forEach(t => map[t.id] = counter++);
     return map;
-  }, [saberTasks, hacerTasks]);
+  }, [saberTasks, hacerTasks, serTasks]);
 
   // Detect unsaved changes
   const hasChanges = useMemo(() => {
@@ -123,10 +118,9 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
 
   // Handle cell input change
   const handleCellChange = (studentId: string, key: string, value: string) => {
-    // Basic validation: allow empty string, or numbers between 1 and 5
     if (value !== "") {
       const parsed = parseFloat(value);
-      if (isNaN(parsed) || parsed < 0 || parsed > 9.9) return; // Prevent crazy inputs
+      if (isNaN(parsed) || parsed < 0 || parsed > 9.9) return; 
     }
 
     setGradesGrid(prev => ({
@@ -139,7 +133,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
   };
 
   // Re-calculate statistics for a student in real-time
-  const calculateStudentRow = (studentId: string) => {
+  const calculateStudentRow = useCallback((studentId: string) => {
     const studentGrades = gradesGrid[studentId] || {};
 
     // 1. Saber Average
@@ -154,9 +148,11 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
       .filter(v => !isNaN(v) && v >= 1.0 && v <= 5.0);
     const hacerAvg = hacerValues.length > 0 ? hacerValues.reduce((a, b) => a + b, 0) / hacerValues.length : null;
 
-    // 3. Ser Value
-    const serVal = parseFloat(studentGrades["ser"]);
-    const ser = !isNaN(serVal) && serVal >= 1.0 && serVal <= 5.0 ? serVal : null;
+    // 3. Ser Average
+    const serValues = serTasks
+      .map(t => parseFloat(studentGrades[t.id]))
+      .filter(v => !isNaN(v) && v >= 1.0 && v <= 5.0);
+    const ser = serValues.length > 0 ? serValues.reduce((a, b) => a + b, 0) / serValues.length : null;
 
     // 4. Final weighted grade
     const components = [saberAvg, hacerAvg, ser].filter((c): c is number => c !== null);
@@ -194,7 +190,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
       desempeno,
       desempenoClass
     };
-  };
+  }, [gradesGrid, saberTasks, hacerTasks, serTasks, saberPct, hacerPct, serPct]);
 
   // Discard changes
   const handleDiscard = () => {
@@ -209,7 +205,6 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
     setSuccess(false);
 
     const submissions: Array<{ studentId: string; taskId: string; grade: number | null }> = [];
-    const additionalGrades: Array<{ studentId: string; grade: number | null }> = [];
 
     // Compare with initial grid to collect changes
     for (const studentId of Object.keys(gradesGrid)) {
@@ -227,15 +222,6 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
           });
         }
       }
-
-      // Ser (additional grade)
-      if (current["ser"] !== initial["ser"]) {
-        const val = current["ser"];
-        additionalGrades.push({
-          studentId,
-          grade: val === "" ? null : parseFloat(val)
-        });
-      }
     }
 
     try {
@@ -244,8 +230,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           period: activePeriod,
-          submissions,
-          additionalGrades
+          submissions
         })
       });
 
@@ -260,6 +245,47 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
       setError("Error de conexión");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const openAddModal = (type: "EXAM" | "TASK" | "SER") => {
+    setAddingType(type);
+    setNewTaskTitle("");
+    setShowAddModal(true);
+  };
+
+  const handleAddTask = async () => {
+    if (!newTaskTitle.trim()) return;
+    setAddingTask(true);
+    try {
+      const res = await fetch(`/api/docente/cursos/${courseId}/grades/spreadsheet/columns`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newTaskTitle, type: addingType, period: activePeriod })
+      });
+      if (res.ok) {
+        setShowAddModal(false);
+        setReloadTrigger(prev => prev + 1); // reload data
+      } else {
+        alert("Error al crear columna.");
+      }
+    } catch (e) {
+      alert("Error de conexión.");
+    }
+    setAddingTask(false);
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    if (!confirm("⚠️ ¿Estás seguro? Se borrarán TODAS las calificaciones asociadas a esta columna para todos los estudiantes. Esta acción NO se puede deshacer.")) return;
+    try {
+      const res = await fetch(`/api/docente/cursos/${courseId}/grades/spreadsheet/columns?taskId=${taskId}`, { method: "DELETE" });
+      if (res.ok) {
+        setReloadTrigger(prev => prev + 1); // reload data
+      } else {
+        alert("Error eliminando columna.");
+      }
+    } catch (e) {
+      alert("Error de conexión.");
     }
   };
 
@@ -314,6 +340,42 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
         </div>
       )}
 
+      {/* Add Task Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 animate-fade-in px-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md shadow-2xl animate-scale-in">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-lg">
+                Agregar Columna ({addingType === "EXAM" ? "Saber - Examen" : addingType === "TASK" ? "Hacer - Tarea" : "Ser - Actitudinal"})
+              </h3>
+              <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="mb-6">
+              <label className="block text-sm font-semibold mb-2">Título de la Evaluación</label>
+              <input
+                type="text"
+                placeholder={addingType === "SER" ? "Ej. Autoevaluación" : "Ej. Evaluación Final"}
+                value={newTaskTitle}
+                onChange={(e) => setNewTaskTitle(e.target.value)}
+                className="input"
+                autoFocus
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                Se creará automáticamente para el periodo <b>{activePeriod}</b> con fecha de entrega para hoy.
+              </p>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setShowAddModal(false)} className="btn btn-secondary">Cancelar</button>
+              <button onClick={handleAddTask} disabled={addingTask || !newTaskTitle.trim()} className="btn btn-primary min-w-[100px]">
+                {addingTask ? <Loader2 size={16} className="animate-spin mx-auto" /> : "Crear Columna"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Spreadsheet Header Info Box */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50 border border-gray-200 rounded-xl p-5 text-sm">
         <div>
@@ -345,22 +407,33 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
                 <th rowSpan={2} className="p-3 border-r border-gray-200 text-left min-w-[200px]">Nombre Completo</th>
                 
                 {/* Saber Category Header */}
-                {saberTasks.length > 0 && (
-                  <th colSpan={saberTasks.length} className="p-2 border-r border-gray-200 bg-purple-50 text-purple-800 uppercase tracking-wide">
+                <th colSpan={Math.max(1, saberTasks.length)} className="p-2 border-r border-gray-200 bg-purple-50 text-purple-800 uppercase tracking-wide">
+                  <div className="flex items-center justify-center gap-1.5">
                     Saber ({saberPct}%)
-                  </th>
-                )}
+                    <button onClick={() => openAddModal("EXAM")} className="p-1 hover:bg-purple-200 bg-purple-100 rounded text-purple-700 transition-colors" title="Agregar examen">
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                </th>
 
                 {/* Hacer Category Header */}
-                {hacerTasks.length > 0 && (
-                  <th colSpan={hacerTasks.length} className="p-2 border-r border-gray-200 bg-orange-50 text-orange-800 uppercase tracking-wide">
+                <th colSpan={Math.max(1, hacerTasks.length)} className="p-2 border-r border-gray-200 bg-orange-50 text-orange-800 uppercase tracking-wide">
+                  <div className="flex items-center justify-center gap-1.5">
                     Hacer ({hacerPct}%)
-                  </th>
-                )}
+                    <button onClick={() => openAddModal("TASK")} className="p-1 hover:bg-orange-200 bg-orange-100 rounded text-orange-700 transition-colors" title="Agregar tarea">
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                </th>
 
                 {/* Ser Category Header */}
-                <th className="p-2 border-r border-gray-200 bg-yellow-50 text-yellow-800 uppercase tracking-wide">
-                  Ser ({serPct}%)
+                <th colSpan={Math.max(1, serTasks.length)} className="p-2 border-r border-gray-200 bg-yellow-50 text-yellow-800 uppercase tracking-wide">
+                  <div className="flex items-center justify-center gap-1.5">
+                    Ser ({serPct}%)
+                    <button onClick={() => openAddModal("SER")} className="p-1 hover:bg-yellow-200 bg-yellow-100 rounded text-yellow-700 transition-colors" title="Agregar evaluación">
+                      <Plus size={14} />
+                    </button>
+                  </div>
                 </th>
 
                 {/* Averages DEF Header */}
@@ -375,23 +448,37 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
               {/* Row 2: Sub-headers / Numbers */}
               <tr className="bg-gray-50 border-b border-gray-200 text-center font-bold text-gray-500">
                 {/* Saber numbering */}
-                {saberTasks.map(t => (
-                  <th key={t.id} className="p-2 border-r border-gray-200 w-12 hover:bg-purple-100" title={t.title}>
-                    {taskNumbers[t.id]}
-                  </th>
-                ))}
+                {saberTasks.length === 0 ? (
+                  <th className="p-2 border-r border-gray-200 text-gray-400 font-normal italic">-</th>
+                ) : (
+                  saberTasks.map(t => (
+                    <th key={t.id} className="p-2 border-r border-gray-200 w-12 hover:bg-purple-100" title={t.title}>
+                      {taskNumbers[t.id]}
+                    </th>
+                  ))
+                )}
 
                 {/* Hacer numbering */}
-                {hacerTasks.map(t => (
-                  <th key={t.id} className="p-2 border-r border-gray-200 w-12 hover:bg-orange-100" title={t.title}>
-                    {taskNumbers[t.id]}
-                  </th>
-                ))}
+                {hacerTasks.length === 0 ? (
+                  <th className="p-2 border-r border-gray-200 text-gray-400 font-normal italic">-</th>
+                ) : (
+                  hacerTasks.map(t => (
+                    <th key={t.id} className="p-2 border-r border-gray-200 w-12 hover:bg-orange-100" title={t.title}>
+                      {taskNumbers[t.id]}
+                    </th>
+                  ))
+                )}
 
                 {/* Ser numbering */}
-                <th className="p-2 border-r border-gray-200 w-12 hover:bg-yellow-100" title="Actitud y Comportamiento">
-                  {taskNumbers["ser"]}
-                </th>
+                {serTasks.length === 0 ? (
+                  <th className="p-2 border-r border-gray-200 text-gray-400 font-normal italic">-</th>
+                ) : (
+                  serTasks.map(t => (
+                    <th key={t.id} className="p-2 border-r border-gray-200 w-12 hover:bg-yellow-100" title={t.title}>
+                      {taskNumbers[t.id]}
+                    </th>
+                  ))
+                )}
 
                 {/* Def saber/hacer/ser */}
                 <th className="p-2 border-r border-gray-200 bg-blue-50/50 w-14">Saber</th>
@@ -402,7 +489,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
             <tbody>
               {students.length === 0 ? (
                 <tr>
-                  <td colSpan={2 + tasks.length + 1 + 3 + 2} className="p-8 text-center text-gray-400 font-medium italic">
+                  <td colSpan={2 + Math.max(1, saberTasks.length) + Math.max(1, hacerTasks.length) + Math.max(1, serTasks.length) + 3 + 2} className="p-8 text-center text-gray-400 font-medium italic">
                     No hay estudiantes matriculados en esta asignatura.
                   </td>
                 </tr>
@@ -429,102 +516,115 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
                       </td>
 
                       {/* Saber input cells */}
-                      {saberTasks.map(t => {
-                        const val = grades[t.id] ?? "";
-                        const isChanged = val !== (initial[t.id] ?? "");
-                        const isLow = val !== "" && parseFloat(val) < 3.0;
+                      {saberTasks.length === 0 ? (
+                        <td className="p-1 border-r border-gray-200 bg-gray-50/50"></td>
+                      ) : (
+                        saberTasks.map(t => {
+                          const val = grades[t.id] ?? "";
+                          const isChanged = val !== (initial[t.id] ?? "");
+                          const isLow = val !== "" && parseFloat(val) < 3.0;
 
-                        return (
-                          <td 
-                            key={t.id} 
-                            className={`p-1 border-r border-gray-200 text-center ${
-                              isChanged ? "bg-amber-50" : isLow ? "bg-red-50/30" : ""
-                            }`}
-                          >
-                            <input
-                              type="number"
-                              step="0.1"
-                              min="1.0"
-                              max="5.0"
-                              placeholder="—"
-                              value={val}
-                              onChange={e => handleCellChange(student.id, t.id, e.target.value)}
-                              className={`w-10 text-center font-bold rounded border py-1 focus:outline-none transition-colors ${
-                                isChanged 
-                                  ? "border-amber-400 focus:border-amber-500 text-amber-700 bg-amber-50" 
-                                  : isLow 
-                                    ? "border-red-200 focus:border-red-400 text-red-600 bg-red-50/50" 
-                                    : "border-gray-200 focus:border-[#f98012] text-gray-800"
+                          return (
+                            <td 
+                              key={t.id} 
+                              className={`p-1 border-r border-gray-200 text-center ${
+                                isChanged ? "bg-amber-50" : isLow ? "bg-red-50/30" : ""
                               }`}
-                            />
-                          </td>
-                        );
-                      })}
+                            >
+                              <input
+                                type="number"
+                                step="0.1"
+                                min="1.0"
+                                max="5.0"
+                                placeholder="—"
+                                value={val}
+                                onChange={e => handleCellChange(student.id, t.id, e.target.value)}
+                                className={`w-10 text-center font-bold rounded border py-1 focus:outline-none transition-colors ${
+                                  isChanged 
+                                    ? "border-amber-400 focus:border-amber-500 text-amber-700 bg-amber-50" 
+                                    : isLow 
+                                      ? "border-red-200 focus:border-red-400 text-red-600 bg-red-50/50" 
+                                      : "border-gray-200 focus:border-[#f98012] text-gray-800"
+                                }`}
+                              />
+                            </td>
+                          );
+                        })
+                      )}
 
                       {/* Hacer input cells */}
-                      {hacerTasks.map(t => {
-                        const val = grades[t.id] ?? "";
-                        const isChanged = val !== (initial[t.id] ?? "");
-                        const isLow = val !== "" && parseFloat(val) < 3.0;
+                      {hacerTasks.length === 0 ? (
+                        <td className="p-1 border-r border-gray-200 bg-gray-50/50"></td>
+                      ) : (
+                        hacerTasks.map(t => {
+                          const val = grades[t.id] ?? "";
+                          const isChanged = val !== (initial[t.id] ?? "");
+                          const isLow = val !== "" && parseFloat(val) < 3.0;
 
-                        return (
-                          <td 
-                            key={t.id} 
-                            className={`p-1 border-r border-gray-200 text-center ${
-                              isChanged ? "bg-amber-50" : isLow ? "bg-red-50/30" : ""
-                            }`}
-                          >
-                            <input
-                              type="number"
-                              step="0.1"
-                              min="1.0"
-                              max="5.0"
-                              placeholder="—"
-                              value={val}
-                              onChange={e => handleCellChange(student.id, t.id, e.target.value)}
-                              className={`w-10 text-center font-bold rounded border py-1 focus:outline-none transition-colors ${
-                                isChanged 
-                                  ? "border-amber-400 focus:border-amber-500 text-amber-700 bg-amber-50" 
-                                  : isLow 
-                                    ? "border-red-200 focus:border-red-400 text-red-600 bg-red-50/50" 
-                                    : "border-gray-200 focus:border-[#f98012] text-gray-800"
+                          return (
+                            <td 
+                              key={t.id} 
+                              className={`p-1 border-r border-gray-200 text-center ${
+                                isChanged ? "bg-amber-50" : isLow ? "bg-red-50/30" : ""
                               }`}
-                            />
-                          </td>
-                        );
-                      })}
+                            >
+                              <input
+                                type="number"
+                                step="0.1"
+                                min="1.0"
+                                max="5.0"
+                                placeholder="—"
+                                value={val}
+                                onChange={e => handleCellChange(student.id, t.id, e.target.value)}
+                                className={`w-10 text-center font-bold rounded border py-1 focus:outline-none transition-colors ${
+                                  isChanged 
+                                    ? "border-amber-400 focus:border-amber-500 text-amber-700 bg-amber-50" 
+                                    : isLow 
+                                      ? "border-red-200 focus:border-red-400 text-red-600 bg-red-50/50" 
+                                      : "border-gray-200 focus:border-[#f98012] text-gray-800"
+                                }`}
+                              />
+                            </td>
+                          );
+                        })
+                      )}
 
-                      {/* Ser input cell */}
-                      {(() => {
-                        const val = grades["ser"] ?? "";
-                        const isChanged = val !== (initial["ser"] ?? "");
-                        const isLow = val !== "" && parseFloat(val) < 3.0;
+                      {/* Ser input cells */}
+                      {serTasks.length === 0 ? (
+                        <td className="p-1 border-r border-gray-200 bg-gray-50/50"></td>
+                      ) : (
+                        serTasks.map(t => {
+                          const val = grades[t.id] ?? "";
+                          const isChanged = val !== (initial[t.id] ?? "");
+                          const isLow = val !== "" && parseFloat(val) < 3.0;
 
-                        return (
-                          <td 
-                            className={`p-1 border-r border-gray-200 text-center ${
-                              isChanged ? "bg-amber-50" : isLow ? "bg-red-50/30" : ""
-                            }`}
-                          >
-                            <input
-                              type="number"
-                              step="0.1"
-                              min="1.0"
-                              max="5.0"
-                              placeholder="—"
-                              value={val}
-                              onChange={e => handleCellChange(student.id, "ser", e.target.value)}
-                              className={`w-10 text-center font-bold rounded border py-1 focus:outline-none transition-colors ${
-                                isChanged 
-                                  ? "border-amber-400 focus:border-amber-500 text-amber-700 bg-amber-50" 
-                                  : isLow 
-                                    ? "border-red-200 focus:border-red-400 text-red-600 bg-red-50/50" 
-                                    : "border-gray-200 focus:border-[#f98012] text-gray-800"
+                          return (
+                            <td 
+                              key={t.id} 
+                              className={`p-1 border-r border-gray-200 text-center ${
+                                isChanged ? "bg-amber-50" : isLow ? "bg-red-50/30" : ""
                               }`}
-                            />
-                          </td>
-                        );
-                      })()}
+                            >
+                              <input
+                                type="number"
+                                step="0.1"
+                                min="1.0"
+                                max="5.0"
+                                placeholder="—"
+                                value={val}
+                                onChange={e => handleCellChange(student.id, t.id, e.target.value)}
+                                className={`w-10 text-center font-bold rounded border py-1 focus:outline-none transition-colors ${
+                                  isChanged 
+                                    ? "border-amber-400 focus:border-amber-500 text-amber-700 bg-amber-50" 
+                                    : isLow 
+                                      ? "border-red-200 focus:border-red-400 text-red-600 bg-red-50/50" 
+                                      : "border-gray-200 focus:border-[#f98012] text-gray-800"
+                                }`}
+                              />
+                            </td>
+                          );
+                        })
+                      )}
 
                       {/* Component Defs */}
                       <td className="p-2 border-r border-gray-200 text-center font-semibold text-gray-600 bg-blue-50/10">
@@ -562,34 +662,40 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
       </div>
 
       {/* Legend / Task Directory Details */}
-      <div className="card p-5 border border-gray-200 bg-gray-50 rounded-xl">
+      <div className="card p-5 border border-gray-200 bg-gray-50 rounded-xl mt-4">
         <h3 className="font-bold text-sm text-gray-800 mb-3 flex items-center gap-1.5">
           <Info size={16} className="text-gray-400" />
           Directorio de Evaluaciones
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
           {tasks.map(t => (
-            <div key={t.id} className="flex gap-2 items-start p-2 bg-white rounded border border-gray-200 shadow-sm">
-              <span className={`px-2 py-0.5 rounded font-black ${
-                t.type === "EXAM" ? "bg-purple-100 text-purple-800" : "bg-orange-100 text-orange-800"
-              }`}>
-                {taskNumbers[t.id]}
-              </span>
-              <div>
-                <p className="font-bold text-gray-800 truncate max-w-[200px]" title={t.title}>{t.title}</p>
-                <p className="text-gray-400 font-semibold">{t.type === "EXAM" ? "Saber (Cognitivo)" : "Hacer (Procedimental)"}</p>
+            <div key={t.id} className="flex gap-2 items-start justify-between p-2 bg-white rounded border border-gray-200 shadow-sm group">
+              <div className="flex gap-2 items-start">
+                <span className={`px-2 py-0.5 rounded font-black ${
+                  t.type === "EXAM" ? "bg-purple-100 text-purple-800" : 
+                  t.type === "TASK" ? "bg-orange-100 text-orange-800" :
+                  "bg-yellow-100 text-yellow-800"
+                }`}>
+                  {taskNumbers[t.id]}
+                </span>
+                <div>
+                  <p className="font-bold text-gray-800 truncate max-w-[180px]" title={t.title}>{t.title}</p>
+                  <p className="text-gray-400 font-semibold">{
+                    t.type === "EXAM" ? "Saber (Cognitivo)" : 
+                    t.type === "TASK" ? "Hacer (Procedimental)" :
+                    "Ser (Actitudinal)"
+                  }</p>
+                </div>
               </div>
+              <button
+                onClick={() => handleDeleteTask(t.id)}
+                className="text-gray-300 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                title="Eliminar columna"
+              >
+                <Trash2 size={16} />
+              </button>
             </div>
           ))}
-          <div className="flex gap-2 items-start p-2 bg-white rounded border border-gray-200 shadow-sm">
-            <span className="px-2 py-0.5 rounded font-black bg-yellow-100 text-yellow-800">
-              {taskNumbers["ser"]}
-            </span>
-            <div>
-              <p className="font-bold text-gray-800">Nota del Ser</p>
-              <p className="text-gray-400 font-semibold">Ser (Actitudinal)</p>
-            </div>
-          </div>
         </div>
       </div>
     </div>

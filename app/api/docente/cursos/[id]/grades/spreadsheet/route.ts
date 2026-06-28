@@ -56,7 +56,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const studentIds = students.map(s => s.id);
 
     // Fetch all tasks for this course in the specified period
-    const tasks = await prisma.task.findMany({
+    let tasks = await prisma.task.findMany({
       where: {
         courseId,
         active: true,
@@ -76,11 +76,38 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       orderBy: { createdAt: 'asc' }
     });
 
-    // Fetch additional grades (SER) for all students in this course & period
-    const additionalGrades = await prisma.additionalGrade.findMany({
-      where: { courseId, period, studentId: { in: studentIds } },
-      select: { studentId: true, grade: true }
-    });
+    // Auto-create default SER tasks if none exist for this period
+    const serTasks = tasks.filter(t => t.type === "SER");
+    if (serTasks.length === 0 && course.groups.length > 0) {
+      const dueDate = new Date();
+      dueDate.setHours(23, 59, 59, 999);
+      const groupConnect = course.groups.map(g => ({ id: g.id }));
+      const defaultTitles = ["Autoevaluación", "Coevaluación", "Heteroevaluación"];
+      
+      for (const title of defaultTitles) {
+        const newTask = await prisma.task.create({
+          data: {
+            title,
+            type: "SER",
+            period,
+            courseId,
+            dueDate,
+            isExternal: true,
+            active: true,
+            weight: 0,
+            groups: { connect: groupConnect }
+          }
+        });
+        tasks.push({
+          id: newTask.id,
+          title: newTask.title,
+          type: newTask.type,
+          dueDate: newTask.dueDate,
+          duration: newTask.duration,
+          submissions: []
+        });
+      }
+    }
 
     const teacher = await prisma.user.findUnique({
       where: { id: payload.id as string },
@@ -92,7 +119,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       teacherName: teacher?.name || 'Docente',
       students,
       tasks,
-      additionalGrades,
       saberPercent: course.saberPercent,
       hacerPercent: course.hacerPercent,
       serPercent: course.serPercent,
@@ -114,7 +140,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (payload.role !== "TEACHER") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const body = await request.json();
-    const { period, submissions, additionalGrades } = body;
+    const { period, submissions } = body;
 
     if (!period) {
       return NextResponse.json({ error: 'Periodo es obligatorio' }, { status: 400 });
@@ -137,7 +163,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           const { studentId, taskId, grade } = sub;
           
           if (grade === null || grade === undefined) {
-            // Delete submission or skip? Let's just update grade to null or delete it if it was dummy
             await tx.submission.deleteMany({
               where: { taskId, studentId }
             });
@@ -157,38 +182,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
                 studentId,
                 grade: parsedGrade,
                 status: 'GRADED',
-                createdAt: new Date(),
-                updatedAt: new Date(),
-              }
-            });
-          }
-        }
-      }
-
-      // Save additional grades (SER)
-      if (additionalGrades && Array.isArray(additionalGrades)) {
-        for (const ag of additionalGrades) {
-          const { studentId, grade } = ag;
-
-          if (grade === null || grade === undefined) {
-            await tx.additionalGrade.deleteMany({
-              where: { studentId, courseId, period }
-            });
-          } else {
-            const parsedGrade = parseFloat(grade);
-            if (isNaN(parsedGrade) || parsedGrade < 1.0 || parsedGrade > 5.0) continue;
-
-            await tx.additionalGrade.upsert({
-              where: { studentId_courseId_period: { studentId, courseId, period } },
-              update: {
-                grade: parsedGrade,
-                updatedAt: new Date(),
-              },
-              create: {
-                studentId,
-                courseId,
-                period,
-                grade: parsedGrade,
                 createdAt: new Date(),
                 updatedAt: new Date(),
               }
