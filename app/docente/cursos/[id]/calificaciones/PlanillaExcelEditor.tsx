@@ -304,8 +304,28 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
   const handleDeleteTask = async (taskId: string) => {
     if (!confirm("⚠️ ¿Estás seguro? Se borrarán TODAS las calificaciones asociadas a esta columna para todos los estudiantes. Esta acción NO se puede deshacer.")) return;
     try {
+      const deletedTask = tasks.find(t => t.id === taskId);
       const res = await fetch(`/api/docente/cursos/${courseId}/grades/spreadsheet/columns?taskId=${taskId}`, { method: "DELETE" });
       if (res.ok) {
+        if (deletedTask?.type === "FINAL" && finalTasks.length <= 1) {
+          // Reset final exam weight to 0% and restore default weights
+          await fetch("/api/docente/cursos", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: courseId,
+              saberPercent: 30,
+              hacerPercent: 50,
+              serPercent: 20,
+              finalPercent: 0,
+            })
+          });
+          setSaberPct(30);
+          setHacerPct(50);
+          setSerPct(20);
+          setFinalPct(0);
+          setPctForm({ saber: 30, hacer: 50, ser: 20, final: 0 });
+        }
         setReloadTrigger(prev => prev + 1); // reload data
       } else {
         alert("Error eliminando columna.");
@@ -514,6 +534,51 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
             </button>
           )}
 
+          {!showFinal && (
+            <button
+              onClick={async () => {
+                setAddingTask(true);
+                try {
+                  // 1. Create Final Exam task
+                  const colRes = await fetch(`/api/docente/cursos/${courseId}/grades/spreadsheet/columns`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ title: "Examen Final", type: "FINAL", period: activePeriod })
+                  });
+                  
+                  if (colRes.ok) {
+                    // 2. Adjust weights: Saber=25%, Hacer=40%, Ser=15%, Final=20%
+                    await fetch("/api/docente/cursos", {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        id: courseId,
+                        saberPercent: 25,
+                        hacerPercent: 40,
+                        serPercent: 15,
+                        finalPercent: 20,
+                      })
+                    });
+                    
+                    setSaberPct(25);
+                    setHacerPct(40);
+                    setSerPct(15);
+                    setFinalPct(20);
+                    setPctForm({ saber: 25, hacer: 40, ser: 15, final: 20 });
+                    setReloadTrigger(prev => prev + 1);
+                  }
+                } catch (e) {}
+                setAddingTask(false);
+              }}
+              disabled={addingTask}
+              className="btn btn-secondary py-1 px-3 text-xs flex items-center gap-1.5 ml-auto"
+              style={{ borderColor: "#0ea5e9", color: "#0ea5e9" }}
+            >
+              {addingTask ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
+              Activar Examen Final
+            </button>
+          )}
+
           {!showAttend && (
             <button
               onClick={async () => {
@@ -531,7 +596,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
                 setAddingTask(false);
               }}
               disabled={addingTask}
-              className="btn btn-secondary py-1 px-3 text-xs flex items-center gap-1.5 ml-auto"
+              className="btn btn-secondary py-1 px-3 text-xs flex items-center gap-1.5 ml-2"
               style={{ borderColor: "#10b981", color: "#10b981" }}
             >
               {addingTask ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
