@@ -353,28 +353,105 @@ export default async function CursoCalificacionesPage({
                 )}
 
                 {/* Task items */}
-                {hasSubs && (
-                  <div className="flex flex-col gap-6">
-                    {examenes.length > 0 && (
-                      <div>
-                        <div className="flex items-center gap-2 mb-3">
-                          <FileText size={14} style={{ color: "#8b5cf6" }} />
-                          <span style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#8b5cf6" }}>Saber — Cognitivo</span>
-                        </div>
-                        <div className="flex flex-col gap-3">{examenes.map(renderCard)}</div>
+                <div className="flex flex-col gap-6">
+                  {examenes.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <FileText size={14} style={{ color: "#8b5cf6" }} />
+                        <span style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#8b5cf6" }}>Saber — Cognitivo</span>
                       </div>
-                    )}
-                    {tareas.length > 0 && (
-                      <div>
-                        <div className="flex items-center gap-2 mb-3">
-                          <ClipboardList size={14} style={{ color: "var(--primary-color)" }} />
-                          <span style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--primary-color)" }}>Hacer — Procedimental</span>
+                      <div className="flex flex-col gap-3">{examenes.map(renderCard)}</div>
+                    </div>
+                  )}
+                  {tareas.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <ClipboardList size={14} style={{ color: "var(--primary-color)" }} />
+                        <span style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--primary-color)" }}>Hacer — Procedimental</span>
+                      </div>
+                      <div className="flex flex-col gap-3">{tareas.map(renderCard)}</div>
+                    </div>
+                  )}
+
+                  {/* Ser — Actitudinal: teacher-assigned grade */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Star size={14} style={{ color: "#f59e0b" }} />
+                      <span style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#f59e0b" }}>Ser — Actitudinal</span>
+                    </div>
+                    {additionalGrade !== null ? (
+                      <div
+                        style={{
+                          background: "var(--bg-primary)",
+                          borderLeft: `4px solid ${gradeColor(additionalGrade)}`,
+                          display: "flex",
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: "1rem",
+                          padding: "1rem",
+                          borderRadius: "var(--radius-lg)",
+                          border: "1px solid var(--border-color)",
+                          borderLeftWidth: "4px",
+                          boxShadow: "var(--shadow-sm)",
+                        }}
+                      >
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <span className="badge badge-success flex items-center gap-1">
+                              <CheckCircle size={12} /> Calificada
+                            </span>
+                            <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "rgba(245,158,11,0.1)", color: "#d97706", border: "1px solid rgba(245,158,11,0.2)" }}>
+                              Asignada por el docente
+                            </span>
+                          </div>
+                          <h4 className="font-bold text-base mb-0.5" style={{ color: "#f59e0b" }}>
+                            Nota Actitudinal — {periodName}
+                          </h4>
+                          <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
+                            Esta nota refleja tu actitud, participación y comportamiento durante el período.
+                          </p>
                         </div>
-                        <div className="flex flex-col gap-3">{tareas.map(renderCard)}</div>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "0.25rem", minWidth: "110px", textAlign: "center" }}>
+                          <div style={{ fontSize: "2rem", fontWeight: 800, color: gradeColor(additionalGrade), lineHeight: 1 }}>
+                            {additionalGrade.toFixed(1)}
+                          </div>
+                          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>nota</div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          background: "var(--bg-primary)",
+                          borderLeft: "4px solid var(--border-color)",
+                          display: "flex",
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: "1rem",
+                          padding: "1rem",
+                          borderRadius: "var(--radius-lg)",
+                          border: "1px solid var(--border-color)",
+                          borderLeftWidth: "4px",
+                          boxShadow: "var(--shadow-sm)",
+                          opacity: 0.7,
+                        }}
+                      >
+                        <div style={{ flex: 1 }}>
+                          <h4 className="font-bold text-base mb-0.5" style={{ color: "#f59e0b" }}>
+                            Nota Actitudinal — {periodName}
+                          </h4>
+                          <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
+                            Tu docente aún no ha registrado la nota actitudinal para este período.
+                          </p>
+                        </div>
+                        <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontStyle: "italic", minWidth: "110px", textAlign: "center" }}>
+                          Pendiente
+                        </div>
                       </div>
                     )}
                   </div>
-                )}
+                </div>
               </div>
             );
           })}
