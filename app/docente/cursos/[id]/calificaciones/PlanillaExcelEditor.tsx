@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Loader2, Save, Undo2, Info, AlertTriangle, Check, Plus, Trash2, X } from "lucide-react";
+import { Loader2, Save, Undo2, Info, AlertTriangle, Check, Plus, Trash2, X, Percent } from "lucide-react";
 
 interface Student {
   id: string;
@@ -41,6 +41,11 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
   const [teacherName, setTeacherName] = useState("");
   const [courseName, setCourseName] = useState("");
 
+  // Inline percentage editor state
+  const [pctForm, setPctForm] = useState({ saber: 30, hacer: 50, ser: 20, final: 0 });
+  const [savingPct, setSavingPct] = useState(false);
+  const [pctSuccess, setPctSuccess] = useState(false);
+
   // Modal State
   const [showAddModal, setShowAddModal] = useState(false);
   const [addingType, setAddingType] = useState<"EXAM" | "TASK" | "SER" | "FINAL" | "ATTEND">("EXAM");
@@ -68,6 +73,12 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
           setHacerPct(json.hacerPercent ?? 50);
           setSerPct(json.serPercent ?? 20);
           setFinalPct(json.finalPercent ?? 0);
+          setPctForm({
+            saber: json.saberPercent ?? 30,
+            hacer: json.hacerPercent ?? 50,
+            ser: json.serPercent ?? 20,
+            final: json.finalPercent ?? 0,
+          });
           setTeacherName(json.teacherName || "Docente");
           setCourseName(json.course?.name || "Asignatura");
 
@@ -304,6 +315,40 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
     }
   };
 
+  // Save percentage weights
+  const pctTotal = pctForm.saber + pctForm.hacer + pctForm.ser + pctForm.final;
+  const pctChanged = pctForm.saber !== saberPct || pctForm.hacer !== hacerPct || pctForm.ser !== serPct || pctForm.final !== finalPct;
+
+  const handleSavePct = async () => {
+    if (pctTotal !== 100) return;
+    setSavingPct(true);
+    setPctSuccess(false);
+    try {
+      const res = await fetch("/api/docente/cursos", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: courseId,
+          saberPercent: pctForm.saber,
+          hacerPercent: pctForm.hacer,
+          serPercent: pctForm.ser,
+          finalPercent: pctForm.final,
+        })
+      });
+      if (res.ok) {
+        setSaberPct(pctForm.saber);
+        setHacerPct(pctForm.hacer);
+        setSerPct(pctForm.ser);
+        setFinalPct(pctForm.final);
+        setPctSuccess(true);
+        setTimeout(() => setPctSuccess(false), 3000);
+      }
+    } catch (e) {
+      // silent fail
+    }
+    setSavingPct(false);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-20">
@@ -408,6 +453,68 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
         <div>
           <span className="text-gray-400 font-bold block uppercase text-[10px] tracking-wider">Periodo</span>
           <span className="font-semibold text-gray-800">{activePeriod}</span>
+        </div>
+      </div>
+
+      {/* Inline Percentage Editor */}
+      <div className={`border rounded-xl p-4 text-xs ${
+        pctTotal === 100
+          ? "bg-white border-gray-200"
+          : "bg-red-50 border-red-300"
+      }`}>
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-1.5 text-gray-500 font-bold">
+            <Percent size={14} />
+            <span className="text-[11px] uppercase tracking-wider">Pesos de Evaluación</span>
+          </div>
+
+          {[
+            { key: "saber" as const, label: "Saber", color: "text-purple-700", bg: "bg-purple-50", border: "border-purple-200" },
+            { key: "hacer" as const, label: "Hacer", color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-200" },
+            { key: "ser" as const, label: "Ser", color: "text-yellow-700", bg: "bg-yellow-50", border: "border-yellow-200" },
+            { key: "final" as const, label: "Exam. Final", color: "text-sky-700", bg: "bg-sky-50", border: "border-sky-200" },
+          ].map(({ key, label, color, bg, border }) => (
+            <div key={key} className="flex items-center gap-1">
+              <span className={`font-bold ${color}`}>{label}</span>
+              <div className={`flex items-center gap-0.5 ${bg} border ${border} rounded-lg px-1.5 py-0.5`}>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={pctForm[key]}
+                  onChange={e => {
+                    setPctForm(prev => ({ ...prev, [key]: Math.max(0, Math.min(100, parseInt(e.target.value) || 0)) }));
+                    setPctSuccess(false);
+                  }}
+                  className={`w-10 text-center font-black bg-transparent border-none outline-none ${color} text-sm`}
+                />
+                <span className={`${color} font-bold`}>%</span>
+              </div>
+            </div>
+          ))}
+
+          <div className={`font-black text-sm px-2 py-0.5 rounded-lg ${
+            pctTotal === 100 ? "text-green-700 bg-green-50" : "text-red-700 bg-red-100"
+          }`}>
+            Total: {pctTotal}%{pctTotal !== 100 && " ⚠️"}
+          </div>
+
+          {pctChanged && pctTotal === 100 && (
+            <button
+              onClick={handleSavePct}
+              disabled={savingPct}
+              className="btn btn-primary py-1 px-3 text-xs flex items-center gap-1.5 ml-auto"
+            >
+              {savingPct ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+              Guardar Pesos
+            </button>
+          )}
+
+          {pctSuccess && (
+            <span className="flex items-center gap-1 text-green-700 font-bold ml-auto">
+              <Check size={13} /> Guardado
+            </span>
+          )}
         </div>
       </div>
 
