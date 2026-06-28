@@ -37,12 +37,13 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
   const [saberPct, setSaberPct] = useState(30);
   const [hacerPct, setHacerPct] = useState(50);
   const [serPct, setSerPct] = useState(20);
+  const [finalPct, setFinalPct] = useState(0);
   const [teacherName, setTeacherName] = useState("");
   const [courseName, setCourseName] = useState("");
 
   // Modal State
   const [showAddModal, setShowAddModal] = useState(false);
-  const [addingType, setAddingType] = useState<"EXAM" | "TASK" | "SER">("EXAM");
+  const [addingType, setAddingType] = useState<"EXAM" | "TASK" | "SER" | "FINAL" | "ATTEND">("EXAM");
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [addingTask, setAddingTask] = useState(false);
 
@@ -66,6 +67,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
           setSaberPct(json.saberPercent ?? 30);
           setHacerPct(json.hacerPercent ?? 50);
           setSerPct(json.serPercent ?? 20);
+          setFinalPct(json.finalPercent ?? 0);
           setTeacherName(json.teacherName || "Docente");
           setCourseName(json.course?.name || "Asignatura");
 
@@ -100,6 +102,8 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
   const saberTasks = useMemo(() => tasks.filter(t => t.type === "EXAM"), [tasks]);
   const hacerTasks = useMemo(() => tasks.filter(t => t.type === "TASK"), [tasks]);
   const serTasks = useMemo(() => tasks.filter(t => t.type === "SER"), [tasks]);
+  const finalTasks = useMemo(() => tasks.filter(t => t.type === "FINAL"), [tasks]);
+  const attendTasks = useMemo(() => tasks.filter(t => t.type === "ATTEND"), [tasks]);
 
   // Map tasks to sequential numbers for the Excel headers
   const taskNumbers = useMemo(() => {
@@ -108,8 +112,10 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
     saberTasks.forEach(t => map[t.id] = counter++);
     hacerTasks.forEach(t => map[t.id] = counter++);
     serTasks.forEach(t => map[t.id] = counter++);
+    finalTasks.forEach(t => map[t.id] = counter++);
+    attendTasks.forEach(t => map[t.id] = counter++);
     return map;
-  }, [saberTasks, hacerTasks, serTasks]);
+  }, [saberTasks, hacerTasks, serTasks, finalTasks, attendTasks]);
 
   // Detect unsaved changes
   const hasChanges = useMemo(() => {
@@ -154,19 +160,27 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
       .filter(v => !isNaN(v) && v >= 1.0 && v <= 5.0);
     const ser = serValues.length > 0 ? serValues.reduce((a, b) => a + b, 0) / serValues.length : null;
 
-    // 4. Final weighted grade
-    const components = [saberAvg, hacerAvg, ser].filter((c): c is number => c !== null);
-    const finalGrade = components.length > 0
-      ? (saberAvg !== null ? saberAvg * (saberPct / 100) : 0) +
-        (hacerAvg !== null ? hacerAvg * (hacerPct / 100) : 0) +
-        (ser !== null ? ser * (serPct / 100) : 0)
-      : null;
+    // 4. Final exam average
+    const finalValues = finalTasks
+      .map(t => parseFloat(studentGrades[t.id]))
+      .filter(v => !isNaN(v) && v >= 1.0 && v <= 5.0);
+    const finalExam = finalValues.length > 0 ? finalValues.reduce((a, b) => a + b, 0) / finalValues.length : null;
 
-    // 5. Desempeño
+    // 5. Weighted final grade
+    const finalGrade =
+      (saberAvg !== null ? saberAvg * (saberPct / 100) : 0) +
+      (hacerAvg !== null ? hacerAvg * (hacerPct / 100) : 0) +
+      (ser !== null ? ser * (serPct / 100) : 0) +
+      (finalExam !== null ? finalExam * (finalPct / 100) : 0);
+
+    const hasAny = saberAvg !== null || hacerAvg !== null || ser !== null || finalExam !== null;
+
+    // 6. Desempeño
     let desempeno = "";
     let desempenoClass = "";
-    if (finalGrade !== null) {
-      const fg = parseFloat(finalGrade.toFixed(2));
+    const displayGrade = hasAny ? finalGrade : null;
+    if (displayGrade !== null) {
+      const fg = parseFloat(displayGrade.toFixed(2));
       if (fg < 3.0) {
         desempeno = "BAJO";
         desempenoClass = "text-red-600 bg-red-50 dark:bg-red-950/20";
@@ -186,7 +200,8 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
       saberAvg,
       hacerAvg,
       ser,
-      finalGrade,
+      finalExam,
+      finalGrade: displayGrade,
       desempeno,
       desempenoClass
     };
@@ -248,7 +263,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
     }
   };
 
-  const openAddModal = (type: "EXAM" | "TASK" | "SER") => {
+  const openAddModal = (type: "EXAM" | "TASK" | "SER" | "FINAL" | "ATTEND") => {
     setAddingType(type);
     setNewTaskTitle("");
     setShowAddModal(true);
@@ -346,7 +361,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
           <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md shadow-2xl animate-scale-in">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-bold text-lg">
-                Agregar Columna ({addingType === "EXAM" ? "Saber - Examen" : addingType === "TASK" ? "Hacer - Tarea" : "Ser - Actitudinal"})
+                Agregar Columna — {addingType === "EXAM" ? "Saber (Cognitivo)" : addingType === "TASK" ? "Hacer (Procedimental)" : addingType === "SER" ? "Ser (Actitudinal)" : addingType === "FINAL" ? "Examen Final" : "Asistencia"}
               </h3>
               <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
                 <X size={20} />
@@ -436,9 +451,29 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
                   </div>
                 </th>
 
+                {/* Final Exam Header - always visible */}
+                <th colSpan={Math.max(1, finalTasks.length)} className="p-2 border-r border-gray-200 bg-sky-50 text-sky-800 uppercase tracking-wide">
+                  <div className="flex items-center justify-center gap-1.5">
+                    {finalPct > 0 ? `Examen Final (${finalPct}%)` : "Examen Final"}
+                    <button onClick={() => openAddModal("FINAL")} className="p-1 hover:bg-sky-200 bg-sky-100 rounded text-sky-700 transition-colors" title="Agregar examen final">
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                </th>
+
+                {/* Asistencia Header - always visible */}
+                <th colSpan={Math.max(1, attendTasks.length)} className="p-2 border-r border-gray-200 bg-green-50 text-green-800 uppercase tracking-wide">
+                  <div className="flex items-center justify-center gap-1.5">
+                    Asistencia
+                    <button onClick={() => openAddModal("ATTEND")} className="p-1 hover:bg-green-200 bg-green-100 rounded text-green-700 transition-colors" title="Agregar columna de asistencia">
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                </th>
+
                 {/* Averages DEF Header */}
-                <th colSpan={3} className="p-2 border-r border-gray-200 bg-blue-50 text-blue-800 uppercase tracking-wide">
-                  Def (Componentes)
+                <th colSpan={finalPct > 0 ? 4 : 3} className="p-2 border-r border-gray-200 bg-blue-50 text-blue-800 uppercase tracking-wide">
+                  Def (Ponderada)
                 </th>
 
                 <th rowSpan={2} className="p-3 border-r border-gray-200 bg-gray-100 text-center font-bold">Def (Final)</th>
@@ -480,16 +515,39 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
                   ))
                 )}
 
-                {/* Def saber/hacer/ser */}
-                <th className="p-2 border-r border-gray-200 bg-blue-50/50 w-14">Saber</th>
-                <th className="p-2 border-r border-gray-200 bg-blue-50/50 w-14">Hacer</th>
-                <th className="p-2 border-r border-gray-200 bg-blue-50/50 w-14">Ser</th>
+                {/* Final numbering - always visible */}
+                {finalTasks.length === 0 ? (
+                  <th className="p-2 border-r border-gray-200 text-gray-400 font-normal italic">-</th>
+                ) : (
+                  finalTasks.map(t => (
+                    <th key={t.id} className="p-2 border-r border-gray-200 w-12 hover:bg-sky-100" title={t.title}>
+                      {taskNumbers[t.id]}
+                    </th>
+                  ))
+                )}
+
+                {/* Attend numbering */}
+                {attendTasks.length === 0 ? (
+                  <th className="p-2 border-r border-gray-200 text-gray-400 font-normal italic">-</th>
+                ) : (
+                  attendTasks.map(t => (
+                    <th key={t.id} className="p-2 border-r border-gray-200 w-12 hover:bg-green-100" title={t.title}>
+                      {taskNumbers[t.id]}
+                    </th>
+                  ))
+                )}
+
+                {/* Def saber/hacer/ser (weighted) */}
+                <th className="p-2 border-r border-gray-200 bg-blue-50/50 w-16">Saber×{saberPct}%</th>
+                <th className="p-2 border-r border-gray-200 bg-blue-50/50 w-16">Hacer×{hacerPct}%</th>
+                <th className="p-2 border-r border-gray-200 bg-blue-50/50 w-16">Ser×{serPct}%</th>
+                {finalPct > 0 && <th className="p-2 border-r border-gray-200 bg-blue-50/50 w-16">Final×{finalPct}%</th>}
               </tr>
             </thead>
             <tbody>
               {students.length === 0 ? (
                 <tr>
-                  <td colSpan={2 + Math.max(1, saberTasks.length) + Math.max(1, hacerTasks.length) + Math.max(1, serTasks.length) + 3 + 2} className="p-8 text-center text-gray-400 font-medium italic">
+                  <td colSpan={2 + Math.max(1, saberTasks.length) + Math.max(1, hacerTasks.length) + Math.max(1, serTasks.length) + Math.max(1, finalTasks.length) + Math.max(1, attendTasks.length) + (finalPct > 0 ? 4 : 3) + 2} className="p-8 text-center text-gray-400 font-medium italic">
                     No hay estudiantes matriculados en esta asignatura.
                   </td>
                 </tr>
@@ -626,16 +684,92 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
                         })
                       )}
 
-                      {/* Component Defs */}
-                      <td className="p-2 border-r border-gray-200 text-center font-semibold text-gray-600 bg-blue-50/10">
-                        {stats.saberAvg !== null ? stats.saberAvg.toFixed(1) : "—"}
+                      {/* Final Exam input cells - always visible */}
+                      {finalTasks.length === 0 ? (
+                        <td className="p-1 border-r border-gray-200 bg-gray-50/50"></td>
+                      ) : (
+                        finalTasks.map(t => {
+                          const val = grades[t.id] ?? "";
+                          const isChanged = val !== (initial[t.id] ?? "");
+                          const isLow = val !== "" && parseFloat(val) < 3.0;
+
+                          return (
+                            <td 
+                              key={t.id} 
+                              className={`p-1 border-r border-gray-200 text-center ${
+                                isChanged ? "bg-amber-50" : isLow ? "bg-red-50/30" : ""
+                              }`}
+                            >
+                              <input
+                                type="number"
+                                step="0.1"
+                                min="1.0"
+                                max="5.0"
+                                placeholder="—"
+                                value={val}
+                                onChange={e => handleCellChange(student.id, t.id, e.target.value)}
+                                className={`w-10 text-center font-bold rounded border py-1 focus:outline-none transition-colors ${
+                                  isChanged 
+                                    ? "border-amber-400 focus:border-amber-500 text-sky-700 bg-sky-50" 
+                                    : isLow 
+                                      ? "border-red-200 focus:border-red-400 text-red-600 bg-red-50/50" 
+                                      : "border-sky-200 focus:border-sky-400 text-sky-800"
+                                }`}
+                              />
+                            </td>
+                          );
+                        })
+                      )}
+
+                      {/* Asistencia input cells */}
+                      {attendTasks.length === 0 ? (
+                        <td className="p-1 border-r border-gray-200 bg-gray-50/50"></td>
+                      ) : (
+                        attendTasks.map(t => {
+                          const val = grades[t.id] ?? "";
+                          const isChanged = val !== (initial[t.id] ?? "");
+
+                          return (
+                            <td 
+                              key={t.id} 
+                              className={`p-1 border-r border-gray-200 text-center ${
+                                isChanged ? "bg-amber-50" : ""
+                              }`}
+                            >
+                              <input
+                                type="number"
+                                step="1"
+                                min="0"
+                                max="100"
+                                placeholder="—"
+                                value={val}
+                                onChange={e => handleCellChange(student.id, t.id, e.target.value)}
+                                className={`w-10 text-center font-bold rounded border py-1 focus:outline-none transition-colors ${
+                                  isChanged 
+                                    ? "border-amber-400 focus:border-amber-500 text-amber-700 bg-amber-50" 
+                                    : "border-green-200 focus:border-green-400 text-green-800"
+                                }`}
+                              />
+                            </td>
+                          );
+                        })
+                      )}
+
+                      {/* Component Defs - WEIGHTED */}
+                      <td className="p-2 border-r border-gray-200 text-center font-semibold text-purple-700 bg-blue-50/10">
+                        {stats.saberAvg !== null ? (stats.saberAvg * saberPct / 100).toFixed(2) : "—"}
                       </td>
-                      <td className="p-2 border-r border-gray-200 text-center font-semibold text-gray-600 bg-blue-50/10">
-                        {stats.hacerAvg !== null ? stats.hacerAvg.toFixed(1) : "—"}
+                      <td className="p-2 border-r border-gray-200 text-center font-semibold text-orange-700 bg-blue-50/10">
+                        {stats.hacerAvg !== null ? (stats.hacerAvg * hacerPct / 100).toFixed(2) : "—"}
                       </td>
-                      <td className="p-2 border-r border-gray-200 text-center font-semibold text-gray-600 bg-blue-50/10">
-                        {stats.ser !== null ? stats.ser.toFixed(1) : "—"}
+                      <td className="p-2 border-r border-gray-200 text-center font-semibold text-yellow-700 bg-blue-50/10">
+                        {stats.ser !== null ? (stats.ser * serPct / 100).toFixed(2) : "—"}
                       </td>
+                      {finalPct > 0 && (
+                        <td className="p-2 border-r border-gray-200 text-center font-semibold text-sky-700 bg-blue-50/10">
+                          {stats.finalExam !== null ? (stats.finalExam * finalPct / 100).toFixed(2) : "—"}
+                        </td>
+                      )}
 
                       {/* Final Def */}
                       <td className={`p-2 border-r border-gray-200 text-center font-extrabold text-sm ${
@@ -674,7 +808,9 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
                 <span className={`px-2 py-0.5 rounded font-black ${
                   t.type === "EXAM" ? "bg-purple-100 text-purple-800" : 
                   t.type === "TASK" ? "bg-orange-100 text-orange-800" :
-                  "bg-yellow-100 text-yellow-800"
+                  t.type === "SER" ? "bg-yellow-100 text-yellow-800" :
+                  t.type === "FINAL" ? "bg-sky-100 text-sky-800" :
+                  "bg-green-100 text-green-800"
                 }`}>
                   {taskNumbers[t.id]}
                 </span>
@@ -683,7 +819,9 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
                   <p className="text-gray-400 font-semibold">{
                     t.type === "EXAM" ? "Saber (Cognitivo)" : 
                     t.type === "TASK" ? "Hacer (Procedimental)" :
-                    "Ser (Actitudinal)"
+                    t.type === "SER" ? "Ser (Actitudinal)" :
+                    t.type === "FINAL" ? "Examen Final" :
+                    "Asistencia"
                   }</p>
                 </div>
               </div>

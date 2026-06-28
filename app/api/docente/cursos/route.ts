@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     if (payload.role !== "TEACHER") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    const { name, description, groupIds } = await request.json();
+    const { name, description, groupIds, saberPercent, hacerPercent, serPercent, finalPercent } = await request.json();
     if (!name || !groupIds || !Array.isArray(groupIds) || groupIds.length === 0) {
       return NextResponse.json({ error: 'El nombre y al menos un grupo son obligatorios' }, { status: 400 });
     }
@@ -61,6 +61,10 @@ export async function POST(request: Request) {
         name, 
         description, 
         teacherId: payload.id as string,
+        saberPercent: saberPercent ?? 30,
+        hacerPercent: hacerPercent ?? 50,
+        serPercent: serPercent ?? 20,
+        finalPercent: finalPercent ?? 0,
         groups: {
           connect: groupIds.map(id => ({ id }))
         }
@@ -80,7 +84,7 @@ export async function PATCH(request: Request) {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     if (payload.role !== "TEACHER") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    const { id, all, name, description, groupIds, period1Active, period2Active, period3Active, period4Active, active, saberPercent, hacerPercent, serPercent } = await request.json();
+    const { id, all, name, description, groupIds, period1Active, period2Active, period3Active, period4Active, active, saberPercent, hacerPercent, serPercent, finalPercent } = await request.json();
     if (!id && !all) return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 });
 
     const updateData: any = {};
@@ -94,6 +98,7 @@ export async function PATCH(request: Request) {
     if (saberPercent !== undefined) updateData.saberPercent = saberPercent;
     if (hacerPercent !== undefined) updateData.hacerPercent = hacerPercent;
     if (serPercent !== undefined) updateData.serPercent = serPercent;
+    if (finalPercent !== undefined) updateData.finalPercent = finalPercent;
 
     if (groupIds !== undefined) {
       if (!all && (!Array.isArray(groupIds) || groupIds.length === 0)) {

@@ -42,7 +42,7 @@ export default function CursosPage() {
   const [loading, setLoading] = useState(true);
   const [showCourseModal, setShowCourseModal] = useState(false);
   const [editCourse, setEditCourse] = useState<Course | null>(null);
-  const [courseForm, setCourseForm] = useState({ name: "", description: "", groupIds: [] as string[], saberPercent: 30, hacerPercent: 50, serPercent: 20 });
+  const [courseForm, setCourseForm] = useState({ name: "", description: "", groupIds: [] as string[], saberPercent: 30, hacerPercent: 50, serPercent: 20, finalPercent: 0 });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [mounted, setMounted] = useState(false);
@@ -114,7 +114,7 @@ export default function CursosPage() {
 
   const openCreateCourse = () => {
     setEditCourse(null);
-    setCourseForm({ name: "", description: "", groupIds: [], saberPercent: 30, hacerPercent: 50, serPercent: 20 });
+    setCourseForm({ name: "", description: "", groupIds: [], saberPercent: 30, hacerPercent: 50, serPercent: 20, finalPercent: 0 });
     setError("");
     setShowCourseModal(true);
   };
@@ -128,6 +128,7 @@ export default function CursosPage() {
       saberPercent: c.saberPercent ?? 30,
       hacerPercent: c.hacerPercent ?? 50,
       serPercent: c.serPercent ?? 20,
+      finalPercent: (c as any).finalPercent ?? 0,
     });
     setError("");
     setShowCourseModal(true);
@@ -475,10 +476,10 @@ export default function CursosPage() {
                 <label className="font-semibold text-xs block">Porcentajes de Evaluación</label>
                 <span style={{
                   fontSize: "11px", fontWeight: 700,
-                  color: courseForm.saberPercent + courseForm.hacerPercent + courseForm.serPercent === 100 ? "var(--success)" : "var(--danger)"
+                  color: courseForm.saberPercent + courseForm.hacerPercent + courseForm.serPercent + courseForm.finalPercent === 100 ? "var(--success)" : "var(--danger)"
                 }}>
-                  Total: {courseForm.saberPercent + courseForm.hacerPercent + courseForm.serPercent}%
-                  {courseForm.saberPercent + courseForm.hacerPercent + courseForm.serPercent !== 100 && " ⚠️ debe sumar 100"}
+                  Total: {courseForm.saberPercent + courseForm.hacerPercent + courseForm.serPercent + courseForm.finalPercent}%
+                  {courseForm.saberPercent + courseForm.hacerPercent + courseForm.serPercent + courseForm.finalPercent !== 100 && " ⚠️ debe sumar 100"}
                 </span>
               </div>
               <div className="flex flex-col gap-3 p-3 rounded-lg" style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-color)" }}>
@@ -501,6 +502,38 @@ export default function CursosPage() {
                     <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>%</span>
                   </div>
                 ))}
+
+                {/* Examen Final toggle */}
+                <div className="border-t pt-3" style={{ borderColor: "var(--border-color)" }}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span style={{ fontSize: "11px", fontWeight: 600, color: "#0ea5e9" }}>Examen Final (opcional)</span>
+                      <p style={{ fontSize: "10px", color: "var(--text-muted)", marginTop: "2px" }}>Activa si esta asignatura evalúa un examen final separado</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCourseForm({ ...courseForm, finalPercent: courseForm.finalPercent > 0 ? 0 : 10 })}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${courseForm.finalPercent > 0 ? 'bg-sky-500' : 'bg-gray-300'}`}
+                    >
+                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${courseForm.finalPercent > 0 ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                    </button>
+                  </div>
+                  {courseForm.finalPercent > 0 && (
+                    <div className="flex items-center gap-3 mt-2">
+                      <span style={{ fontSize: "11px", fontWeight: 600, minWidth: "140px", color: "#0ea5e9" }}>Peso Examen Final</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={50}
+                        className="input-field"
+                        style={{ width: "72px", padding: "4px 8px", fontSize: "13px", textAlign: "center" }}
+                        value={courseForm.finalPercent}
+                        onChange={(e) => setCourseForm({ ...courseForm, finalPercent: Math.max(1, Math.min(50, parseInt(e.target.value) || 0)) })}
+                      />
+                      <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>%</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             
@@ -511,7 +544,7 @@ export default function CursosPage() {
               <button
                 type="submit"
                 className="btn btn-primary"
-                disabled={saving || courseForm.saberPercent + courseForm.hacerPercent + courseForm.serPercent !== 100}
+                disabled={saving || courseForm.saberPercent + courseForm.hacerPercent + courseForm.serPercent + courseForm.finalPercent !== 100}
               >
                 {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
                 {editCourse ? "Guardar Cambios" : "Crear Asignatura"}

@@ -49,6 +49,7 @@ model Course {
   saberPercent  Int          @default(30)
   hacerPercent  Int          @default(50)
   serPercent    Int          @default(20)
+  finalPercent  Int          @default(0)
   teacher          User              @relation("TeacherCourses", fields: [teacherId], references: [id], onDelete: Cascade)
   resources        Resource[]
   tasks            Task[]

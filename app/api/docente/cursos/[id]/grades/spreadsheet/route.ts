@@ -109,6 +109,35 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       }
     }
 
+    // Auto-create default FINAL task if course has finalPercent > 0 and none exist
+    const finalPercent = (course as any).finalPercent ?? 0;
+    const finalTasks = tasks.filter(t => t.type === "FINAL");
+    if (finalPercent > 0 && finalTasks.length === 0 && course.groups.length > 0) {
+      const dueDate = new Date();
+      dueDate.setHours(23, 59, 59, 999);
+      const newTask = await prisma.task.create({
+        data: {
+          title: "Examen Final",
+          type: "FINAL",
+          period,
+          courseId,
+          dueDate,
+          isExternal: true,
+          active: true,
+          weight: 0,
+          groups: { connect: course.groups.map(g => ({ id: g.id })) }
+        }
+      });
+      tasks.push({
+        id: newTask.id,
+        title: newTask.title,
+        type: newTask.type,
+        dueDate: newTask.dueDate,
+        duration: newTask.duration,
+        submissions: []
+      });
+    }
+
     const teacher = await prisma.user.findUnique({
       where: { id: payload.id as string },
       select: { name: true }
@@ -122,6 +151,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       saberPercent: course.saberPercent,
       hacerPercent: course.hacerPercent,
       serPercent: course.serPercent,
+      finalPercent,
     });
   } catch (error) {
     console.error('Error fetching spreadsheet data:', error);
