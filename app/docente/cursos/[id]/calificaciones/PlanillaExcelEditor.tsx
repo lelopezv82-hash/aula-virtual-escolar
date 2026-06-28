@@ -426,7 +426,8 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
                 autoFocus
               />
               <p className="text-xs text-gray-500 mt-2">
-                Se creará automáticamente para el periodo <b>{activePeriod}</b> con fecha de entrega para hoy.
+                Se creará automáticamente para el periodo <b>{activePeriod}</b>
+                {addingType !== "FINAL" && addingType !== "ATTEND" && " con fecha de entrega para hoy"}.
               </p>
             </div>
             <div className="flex justify-end gap-3">
