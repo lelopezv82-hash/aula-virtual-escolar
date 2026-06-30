@@ -39,6 +39,8 @@ export async function POST(request: Request) {
     const publishAt = publishAtRaw && publishAtRaw.trim() !== "" ? new Date(publishAtRaw) : null;
     const externalUrl = formData.get('externalUrl') as string | null;
     const type = formData.get('type') as string | null;
+    const timeLimitRaw = formData.get('timeLimit') as string | null;
+    const timeLimit = timeLimitRaw ? parseInt(timeLimitRaw, 10) : null;
 
     let groupIds: string[] = [];
     if (groupIdsJson) {
@@ -125,6 +127,7 @@ export async function POST(request: Request) {
         period,
         type: type === "EXAM" ? "EXAM" : "TASK",
         publishAt,
+        timeLimit: type === "EXAM" ? timeLimit : null,
         groups: {
           connect: groupIds.map(id => ({ id }))
         },

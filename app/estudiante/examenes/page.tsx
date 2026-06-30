@@ -103,9 +103,17 @@ export default async function ExamenesEstudiantePage() {
                 </div>
 
                 <div className="flex flex-col md:items-end gap-2 min-w-[200px]">
-                  <div className="text-sm text-muted flex items-center gap-1">
-                    <Clock size={16} /> 
-                    Vence: {new Date(exam.dueDate).toLocaleString()}
+                  <div className="flex flex-col gap-1 text-sm text-muted mb-2">
+                    <div className="flex items-center gap-1">
+                      <Clock size={16} /> 
+                      Vence: {new Date(exam.dueDate).toLocaleString()}
+                    </div>
+                    {exam.timeLimit && (
+                      <div className="flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-500">
+                        <Clock size={16} /> 
+                        Duración: {exam.timeLimit} minutos
+                      </div>
+                    )}
                   </div>
                   
                   {!isSubmitted && (

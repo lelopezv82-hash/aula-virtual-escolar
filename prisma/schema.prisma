@@ -5,6 +5,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -88,6 +89,7 @@ model Task {
   weight        Int      @default(0)
   active      Boolean  @default(true)
   publishAt   DateTime?
+  timeLimit   Int?     // Time limit in minutes for exams
   allowLateSubmission Boolean @default(false)
   lateSubmissionUntil DateTime?
   gdriveEmail   String?
@@ -110,6 +112,7 @@ model Submission {
   grade       Float?
   feedback    String?
   fileUrl     String?
+  startedAt   DateTime? // When the student started the exam
   submittedAt DateTime?
   allowLateSubmission Boolean @default(false)
   lateSubmissionUntil DateTime?

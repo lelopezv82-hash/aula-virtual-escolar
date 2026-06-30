@@ -49,6 +49,11 @@ export default async function DocenteLayout({ children }: { children: React.Reac
       icon: <ClipboardList size={20} />,
     },
     {
+      href: "/docente/planillas",
+      label: "Planillas de Notas",
+      icon: <ClipboardList size={20} />,
+    },
+    {
       href: "/docente/gestion-periodos",
       label: "Gestión Periodos",
       icon: <CalendarDays size={20} />,

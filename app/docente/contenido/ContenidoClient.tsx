@@ -45,6 +45,7 @@ interface Task {
   type?: string;
   active?: boolean;
   publishAt?: string | null;
+  timeLimit?: number | null;
   allowLateSubmission?: boolean;
   lateSubmissionUntil?: string | null;
   groups: Group[];
@@ -382,6 +383,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     lateSubmissionUntil: "",
     groupIds: [] as string[],
     publishAt: "",
+    timeLimit: "",
     externalUrl: "",
     type: "TASK"
   });
@@ -443,6 +445,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       lateSubmissionUntil: "",
       groupIds: [],
       publishAt: "",
+      timeLimit: "",
       externalUrl: "",
       type: activeTab === "examenes" ? "EXAM" : "TASK"
     });
@@ -471,6 +474,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       lateSubmissionUntil: formattedLateUntil,
       groupIds: task.groups.map(g => g.id),
       publishAt: formattedPublishAt,
+      timeLimit: task.timeLimit ? task.timeLimit.toString() : "",
       externalUrl: task.attachmentUrl && !task.attachmentUrl.includes("supabase") && !task.attachmentUrl.includes("drive.google.com") ? task.attachmentUrl : "",
       type: task.type || "TASK"
     });
@@ -507,6 +511,9 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       fd.append("publishAt", new Date(taskForm.publishAt).toISOString());
     } else {
       fd.append("publishAt", "");
+    }
+    if (taskForm.type === "EXAM" && taskForm.timeLimit) {
+      fd.append("timeLimit", taskForm.timeLimit);
     }
     if (taskForm.externalUrl) {
       fd.append("externalUrl", taskForm.externalUrl);
@@ -1229,6 +1236,15 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                 value={taskForm.publishAt} onChange={e => setTaskForm({ ...taskForm, publishAt: e.target.value })} />
               <p className="text-[10px] text-muted mt-1">Dejar vacío para publicar inmediatamente. Si se define, la tarea se publicará automáticamente al llegar el momento.</p>
             </div>
+
+            {taskForm.type === "EXAM" && (
+              <div className="input-group mb-3">
+                <label className="text-xs font-bold mb-1">Tiempo Límite (en minutos - Opcional)</label>
+                <input type="number" className="input-field py-1.5 px-3 text-xs" min="1" placeholder="Ej. 60"
+                  value={taskForm.timeLimit} onChange={e => setTaskForm({ ...taskForm, timeLimit: e.target.value })} />
+                <p className="text-[10px] text-muted mt-1">Si se especifica, el estudiante tendrá este tiempo para resolver el examen una vez lo inicie.</p>
+              </div>
+            )}
 
             <div className="border rounded-lg p-3 bg-slate-50 dark:bg-slate-900 mb-4 flex flex-col gap-2">
               <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">

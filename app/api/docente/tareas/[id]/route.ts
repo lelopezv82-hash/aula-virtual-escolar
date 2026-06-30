@@ -102,6 +102,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const publishAt = publishAtRaw && publishAtRaw.trim() !== "" ? new Date(publishAtRaw) : null;
     const externalUrl = formData.get('externalUrl') as string | null;
     const type = formData.get('type') as string | null;
+    const timeLimitRaw = formData.get('timeLimit') as string | null;
+    const timeLimit = timeLimitRaw ? parseInt(timeLimitRaw, 10) : null;
 
     let groupIds: string[] = [];
     if (groupIdsJson) {
@@ -178,6 +180,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         period,
         type: type === "EXAM" || type === "TASK" ? type : task.type,
         publishAt,
+        timeLimit: type === "EXAM" ? timeLimit : null,
         groups: {
           set: groupIds.map(id => ({ id }))
         },

@@ -17,6 +17,8 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const [error, setError] = useState("");
   const [errorType, setErrorType] = useState<"danger" | "warning">("danger");
   const [initialLoad, setInitialLoad] = useState(true);
+  const [started, setStarted] = useState(false);
+  const [timeLeftStr, setTimeLeftStr] = useState("");
 
   useEffect(() => {
     // Fetch task and existing submission info
@@ -30,12 +32,69 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
           }
           if (data.task.submissions && data.task.submissions.length > 0) {
             setSubmission(data.task.submissions[0]);
+            if (data.task.submissions[0].startedAt) {
+              setStarted(true);
+            }
           }
         }
       })
       .catch(() => setError("No se pudo cargar la tarea"))
       .finally(() => setInitialLoad(false));
   }, [taskId]);
+
+  useEffect(() => {
+    if (!started || !task?.timeLimit || !submission?.startedAt || submission?.status === 'GRADED' || submission?.status === 'SUBMITTED') return;
+
+    // Initial calculation immediately
+    const calculateTime = () => {
+      const startedTime = new Date(submission.startedAt).getTime();
+      const limitMs = task.timeLimit * 60 * 1000;
+      const endTime = startedTime + limitMs;
+      const nowMs = new Date().getTime();
+      const diff = endTime - nowMs;
+
+      if (diff <= 0) {
+        setTimeLeftStr("00:00 - Tiempo Agotado");
+        return false;
+      } else {
+        const mins = Math.floor(diff / 1000 / 60);
+        const secs = Math.floor((diff / 1000) % 60);
+        setTimeLeftStr(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
+        return true;
+      }
+    };
+    
+    calculateTime();
+    const intervalId = setInterval(() => {
+      if (!calculateTime()) clearInterval(intervalId);
+    }, 1000);
+
+    return () => clearInterval(intervalId);
+  }, [started, task, submission]);
+
+  const handleStartExam = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/estudiante/submissions/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSubmission((prev: any) => ({ ...prev, startedAt: data.startedAt }));
+        setStarted(true);
+      } else {
+        setError(data.error);
+        setErrorType("danger");
+      }
+    } catch {
+      setError("Error al iniciar el examen");
+      setErrorType("danger");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -163,20 +222,44 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
 
         {isGoogleForm && !isSubmitted && !isGraded && (
           <div className="mt-4 border rounded-lg overflow-hidden" style={{ borderColor: "var(--border-color)" }}>
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 border-b text-sm font-medium flex items-center gap-2 text-blue-800 dark:text-blue-300" style={{ borderColor: "var(--border-color)" }}>
-              <span>📝 Por favor responde el siguiente formulario:</span>
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 border-b flex items-center justify-between gap-2 text-blue-800 dark:text-blue-300" style={{ borderColor: "var(--border-color)" }}>
+              <span className="text-sm font-medium">📝 Por favor responde el siguiente formulario:</span>
+              {task.timeLimit && started && (
+                <span className="font-bold font-mono bg-blue-100 dark:bg-blue-800 px-3 py-1 rounded text-red-600 dark:text-red-400 flex items-center gap-2">
+                  <Clock size={16} /> {timeLeftStr}
+                </span>
+              )}
             </div>
-            <iframe 
-              src={finalIframeUrl.includes("embedded=true") ? finalIframeUrl : `${finalIframeUrl}${finalIframeUrl.includes("?") ? "&" : "?"}embedded=true`}
-              width="100%" 
-              height="800" 
-              frameBorder="0" 
-              marginHeight={0} 
-              marginWidth={0}
-              className="bg-white"
-            >
-              Cargando formulario...
-            </iframe>
+            
+            {!task.timeLimit || started ? (
+              <iframe 
+                src={finalIframeUrl.includes("embedded=true") ? finalIframeUrl : `${finalIframeUrl}${finalIframeUrl.includes("?") ? "&" : "?"}embedded=true`}
+                width="100%" 
+                height="800" 
+                frameBorder="0" 
+                marginHeight={0} 
+                marginWidth={0}
+                className="bg-white"
+              >
+                Cargando formulario...
+              </iframe>
+            ) : (
+              <div className="p-12 text-center flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900/50">
+                <Clock size={48} className="text-amber-500 mb-4" />
+                <h3 className="text-xl font-bold mb-2">Examen con Límite de Tiempo</h3>
+                <p className="mb-6 text-muted max-w-md mx-auto">
+                  Este examen tiene una duración máxima de <strong>{task.timeLimit} minutos</strong>. 
+                  Una vez que hagas clic en el botón, el temporizador comenzará y no se podrá pausar.
+                </p>
+                <button 
+                  onClick={handleStartExam} 
+                  disabled={loading}
+                  className="btn btn-primary text-lg px-8 py-3"
+                >
+                  {loading ? <Loader2 className="animate-spin" /> : "Comenzar Examen Ahora"}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
