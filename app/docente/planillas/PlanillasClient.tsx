@@ -587,9 +587,9 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     return (
       <>
         {catTasks.length === 0
-          ? <th key={`${cat.type}-empty`} className="border border-gray-200 dark:border-gray-700 p-1 font-normal italic text-gray-400 w-14">—</th>
+          ? <th key={`${cat.type}-empty`} className="border border-gray-200 dark:border-gray-700 p-1 font-normal italic text-gray-400" style={{ width: "56px", minWidth: "56px" }}>—</th>
           : catTasks.map(t => (
-              <th key={t.id} title={t.title} className="border border-gray-200 dark:border-gray-700 p-1 w-14 min-w-[56px] cursor-help text-center group relative">
+              <th key={t.id} title={t.title} className="border border-gray-200 dark:border-gray-700 p-1 cursor-help text-center group relative" style={{ width: "56px", minWidth: "56px" }}>
                 <div className="flex flex-col items-center">
                   <span>{taskNumbers[t.id]}</span>
                   <button
@@ -627,6 +627,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     : isLow   ? "bg-red-50/60 dark:bg-red-900/10"
                     : cat.color.cell
                   }`}
+                  style={{ width: "56px", minWidth: "56px" }}
                 >
                   <input
                     type="number"
@@ -636,7 +637,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     value={val}
                     placeholder="—"
                     onChange={e => handleCell(studentId, t.id, e.target.value)}
-                    className={`w-12 text-center font-bold rounded border px-1 py-0.5 bg-white dark:bg-gray-800 text-xs outline-none focus:ring-1 focus:ring-orange-400 transition-colors ${
+                    className={`w-full text-center font-bold rounded border px-1 py-0.5 bg-white dark:bg-gray-800 text-xs outline-none focus:ring-1 focus:ring-orange-400 transition-colors ${
                       isLow     ? "text-red-600 border-red-200 dark:border-red-700"
                       : val !== "" ? "text-green-700 dark:text-green-400 border-green-200 dark:border-green-700"
                       : "text-gray-400 border-gray-200 dark:border-gray-600"
@@ -906,12 +907,12 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table id="planillas-table" className="w-full border-collapse text-xs text-center">
+            <table id="planillas-table" className="border-collapse text-xs text-center" style={{ tableLayout: "fixed", width: "max-content", minWidth: "100%" }}>
               <thead>
                 {/* Row 1: Category headers */}
                 <tr className="bg-gray-100 dark:bg-gray-800">
-                  <th rowSpan={2} className="border border-gray-200 dark:border-gray-700 p-2 w-8">No.</th>
-                  <th rowSpan={2} className="border border-gray-200 dark:border-gray-700 p-2 text-left min-w-[200px]">Nombre Completo</th>
+                  <th rowSpan={2} className="border border-gray-200 dark:border-gray-700 p-2" style={{ width: "36px", minWidth: "36px" }}>No.</th>
+                  <th rowSpan={2} className="border border-gray-200 dark:border-gray-700 p-2 text-left" style={{ width: "200px", minWidth: "200px" }}>Nombre Completo</th>
                   {CATEGORIES.map(cat => {
                     if (cat.type === "FINAL"  && !showFinal)  return null;
                     if (cat.type === "ATTEND" && !showAttend) return null;
@@ -931,10 +932,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     if (cat.type === "ATTEND" && !showAttend) return null;
                     return <React.Fragment key={cat.type}>{renderTaskNumHeader(cat)}</React.Fragment>;
                   })}
-                  <th className="border border-gray-200 dark:border-gray-700 p-1 bg-blue-50/50 dark:bg-blue-900/10 w-16">Saber</th>
-                  <th className="border border-gray-200 dark:border-gray-700 p-1 bg-blue-50/50 dark:bg-blue-900/10 w-16">Hacer</th>
-                  <th className="border border-gray-200 dark:border-gray-700 p-1 bg-blue-50/50 dark:bg-blue-900/10 w-16">Ser</th>
-                  {showFinal && <th className="border border-gray-200 dark:border-gray-700 p-1 bg-blue-50/50 dark:bg-blue-900/10 w-16">Final</th>}
+                  <th className="border border-gray-200 dark:border-gray-700 p-1 bg-blue-50/50 dark:bg-blue-900/10" style={{ width: "56px", minWidth: "56px" }}>Saber</th>
+                  <th className="border border-gray-200 dark:border-gray-700 p-1 bg-blue-50/50 dark:bg-blue-900/10" style={{ width: "56px", minWidth: "56px" }}>Hacer</th>
+                  <th className="border border-gray-200 dark:border-gray-700 p-1 bg-blue-50/50 dark:bg-blue-900/10" style={{ width: "56px", minWidth: "56px" }}>Ser</th>
+                  {showFinal && <th className="border border-gray-200 dark:border-gray-700 p-1 bg-blue-50/50 dark:bg-blue-900/10" style={{ width: "56px", minWidth: "56px" }}>Final</th>}
                 </tr>
               </thead>
 
