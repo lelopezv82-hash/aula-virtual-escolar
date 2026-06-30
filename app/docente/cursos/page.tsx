@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { BookOpen, Plus, Edit2, Trash2, X, Save, Loader2, Eye, EyeOff, Star, BarChart2 } from "lucide-react";
+import { BookOpen, Plus, Edit2, Trash2, X, Save, Loader2, Eye, EyeOff, Star } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
 
 interface Course {
@@ -371,13 +371,6 @@ export default function CursosPage() {
                     📁 <strong>{course._count.resources}</strong> recursos
                   </span>
                 </div>
-                <Link
-                  href={`/docente/cursos/${course.id}/calificaciones`}
-                  className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors hover:bg-orange-50 hover:text-[#f98012]"
-                  style={{ color: "var(--text-muted)", border: "1px solid var(--border-color)" }}
-                >
-                  <BarChart2 size={13} /> Consolidado
-                </Link>
               </div>
             </div>
           ))}

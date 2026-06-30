@@ -105,7 +105,12 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [gradesGrid,   setGradesGrid]   = useState<Record<string, Record<string, string>>>({});
   const [initialGrid,  setInitialGrid]  = useState<Record<string, Record<string, string>>>({});
 
-  // ── Save state ──
+  // ── Weights edit state ──
+  const [pctForm,     setPctForm]     = useState({ saber: 25, hacer: 40, ser: 15, final: 20 });
+  const [savingPct,   setSavingPct]   = useState(false);
+  const [pctSuccess,  setPctSuccess]  = useState(false);
+  const [pctError,    setPctError]    = useState("");
+
   const [saving,      setSaving]      = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError,   setSaveError]   = useState("");
@@ -150,7 +155,16 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       const fTasks:    TaskItem[] = data.tasks    ?? [];
       setStudents(fStudents);
       setTasks(fTasks);
-      setCourseWeights(data.course ?? null);
+      const w: CourseWeights = data.course ?? null;
+      setCourseWeights(w);
+      if (w) {
+        setPctForm({
+          saber: w.saberPercent  ?? 25,
+          hacer: w.hacerPercent  ?? 40,
+          ser:   w.serPercent    ?? 15,
+          final: w.finalPercent  ?? 20,
+        });
+      }
 
       // Build grid from existing submissions
       const grid: Record<string, Record<string, string>> = {};
@@ -220,6 +234,45 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     finally   { setSaving(false); }
   };
 
+  // ── Save weight percentages ──
+  const pctTotal   = pctForm.saber + pctForm.hacer + pctForm.ser + pctForm.final;
+  const pctChanged = courseWeights
+    ? pctForm.saber !== courseWeights.saberPercent
+      || pctForm.hacer !== courseWeights.hacerPercent
+      || pctForm.ser   !== courseWeights.serPercent
+      || pctForm.final !== courseWeights.finalPercent
+    : false;
+
+  const handleSavePct = async () => {
+    if (pctTotal !== 100) return;
+    setSavingPct(true); setPctError(""); setPctSuccess(false);
+    try {
+      const res = await fetch("/api/docente/cursos", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: selectedCourseId,
+          saberPercent: pctForm.saber,
+          hacerPercent: pctForm.hacer,
+          serPercent:   pctForm.ser,
+          finalPercent: pctForm.final,
+        })
+      });
+      if (res.ok) {
+        setCourseWeights(prev => prev
+          ? { ...prev, saberPercent: pctForm.saber, hacerPercent: pctForm.hacer, serPercent: pctForm.ser, finalPercent: pctForm.final }
+          : prev
+        );
+        setPctSuccess(true);
+        setTimeout(() => setPctSuccess(false), 3000);
+      } else {
+        const d = await res.json();
+        setPctError(d.error ?? "Error al guardar pesos");
+      }
+    } catch { setPctError("Error de conexión"); }
+    setSavingPct(false);
+  };
+
   // ── Add column ──
   const openAddModal = (type: CatType) => { setAddModal({ type }); setNewTaskName(""); };
   const handleAddTask = async () => {
@@ -256,10 +309,11 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       const vals = list.map(t => parseFloat(g[t.id])).filter(v => !isNaN(v) && v >= 1 && v <= 5);
       return vals.length ? vals.reduce((a, b) => a + b) / vals.length : null;
     };
-    const sp = courseWeights?.saberPercent  ?? 25;
-    const hp = courseWeights?.hacerPercent  ?? 40;
-    const ep = courseWeights?.serPercent    ?? 15;
-    const fp = courseWeights?.finalPercent  ?? 20;
+    // Use pctForm so table recalculates live as user edits weights
+    const sp = pctForm.saber;
+    const hp = pctForm.hacer;
+    const ep = pctForm.ser;
+    const fp = pctForm.final;
 
     const saber = avg(byType("EXAM"));
     const hacer = avg(byType("TASK"));
@@ -277,7 +331,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       pondSer:   ser   !== null ? ser   * (ep / 100) : null,
       pondFinal: final !== null ? final * (fp / 100) : null,
     };
-  }, [gradesGrid, byType, courseWeights]);
+  }, [gradesGrid, byType, pctForm]);
 
   // ── Export ──
   const exportToExcel = () => {
@@ -293,10 +347,11 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     doc.save(`Planilla_${selectedCourse?.name}_${selectedPeriod}.pdf`);
   };
 
-  const sp = courseWeights?.saberPercent  ?? 25;
-  const hp = courseWeights?.hacerPercent  ?? 40;
-  const ep = courseWeights?.serPercent    ?? 15;
-  const fp = courseWeights?.finalPercent  ?? 20;
+  // Derived from pctForm so sub-headers update live
+  const sp = pctForm.saber;
+  const hp = pctForm.hacer;
+  const ep = pctForm.ser;
+  const fp = pctForm.final;
 
   const showFinal  = byType("FINAL").length  > 0 || fp > 0;
   const showAttend = byType("ATTEND").length > 0;
@@ -305,7 +360,11 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
   const renderCatHeader = (cat: typeof CATEGORIES[number]) => {
     const catTasks = byType(cat.type);
-    const pct = cat.pctKey ? (courseWeights as any)?.[cat.pctKey] : null;
+    const pct = cat.type === "EXAM" ? pctForm.saber
+      : cat.type === "TASK"  ? pctForm.hacer
+      : cat.type === "SER"   ? pctForm.ser
+      : cat.type === "FINAL" ? pctForm.final
+      : null;
     return (
       <th
         key={cat.type}
@@ -512,24 +571,134 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           ))}
         </div>
 
-        {/* Weights legend */}
-        <div className="flex flex-wrap items-center gap-3 px-4 py-2.5 border-b text-xs bg-gray-50 dark:bg-gray-800/50" style={{ borderColor: "var(--border-color)" }}>
-          <span className="font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Pesos:</span>
-          {[
-            { dot: "#a855f7", text: `SABER (Exámenes): ${sp}%` },
-            { dot: "#d97706", text: `HACER (Tareas): ${hp}%` },
-            { dot: "#b45309", text: `SER (Actitudinal): ${ep}%` },
-            ...(showFinal ? [{ dot: "#0ea5e9", text: `Examen Final: ${fp}%` }] : []),
-          ].map(({ dot, text }) => (
-            <span key={text} className="flex items-center gap-1 font-semibold text-gray-700 dark:text-gray-300">
-              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: dot }} />
-              {text}
-            </span>
-          ))}
-          <span className="ml-auto text-[10px] text-gray-400 italic">
-            💡 Cambia los pesos desde "Mis Cursos → Calificaciones"
-          </span>
+        {/* Editable Weights exactly styled as requested */}
+        <div className="border-b px-4 py-3 bg-white dark:bg-gray-900" style={{ borderColor: "var(--border-color)" }}>
+          <div className="flex flex-wrap items-center gap-4">
+
+            {/* Icon + Title */}
+            <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="5" x2="5" y2="19"></line><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg>
+              <span>Pesos de Evaluación</span>
+            </div>
+
+            {/* SABER */}
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-purple-700 dark:text-purple-400 text-xs">Saber</span>
+              <div className="flex items-center bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-full px-2.5 py-0.5">
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={pctForm.saber}
+                  onChange={e => {
+                    setPctForm(p => ({ ...p, saber: Math.max(0, Math.min(100, parseInt(e.target.value) || 0)) }));
+                    setPctSuccess(false);
+                  }}
+                  className="w-8 text-center font-bold bg-transparent border-none outline-none text-purple-700 dark:text-purple-400 text-xs p-0"
+                />
+                <span className="text-purple-700 dark:text-purple-400 font-semibold text-xs ml-0.5">%</span>
+              </div>
+            </div>
+
+            {/* HACER */}
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-orange-700 dark:text-orange-400 text-xs">Hacer</span>
+              <div className="flex items-center bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800 rounded-full px-2.5 py-0.5">
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={pctForm.hacer}
+                  onChange={e => {
+                    setPctForm(p => ({ ...p, hacer: Math.max(0, Math.min(100, parseInt(e.target.value) || 0)) }));
+                    setPctSuccess(false);
+                  }}
+                  className="w-8 text-center font-bold bg-transparent border-none outline-none text-orange-700 dark:text-orange-400 text-xs p-0"
+                />
+                <span className="text-orange-700 dark:text-orange-400 font-semibold text-xs ml-0.5">%</span>
+              </div>
+            </div>
+
+            {/* SER */}
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-yellow-700 dark:text-yellow-500 text-xs">Ser</span>
+              <div className="flex items-center bg-yellow-50 dark:bg-yellow-950/40 border border-yellow-200 dark:border-yellow-800 rounded-full px-2.5 py-0.5">
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={pctForm.ser}
+                  onChange={e => {
+                    setPctForm(p => ({ ...p, ser: Math.max(0, Math.min(100, parseInt(e.target.value) || 0)) }));
+                    setPctSuccess(false);
+                  }}
+                  className="w-8 text-center font-bold bg-transparent border-none outline-none text-yellow-700 dark:text-yellow-500 text-xs p-0"
+                />
+                <span className="text-yellow-700 dark:text-yellow-500 font-semibold text-xs ml-0.5">%</span>
+              </div>
+            </div>
+
+            {/* EXAMEN FINAL */}
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-sky-700 dark:text-sky-400 text-xs">Exam. Final</span>
+              <div className="flex items-center bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 rounded-full px-2.5 py-0.5">
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={pctForm.final}
+                  onChange={e => {
+                    setPctForm(p => ({ ...p, final: Math.max(0, Math.min(100, parseInt(e.target.value) || 0)) }));
+                    setPctSuccess(false);
+                  }}
+                  className="w-8 text-center font-bold bg-transparent border-none outline-none text-sky-700 dark:text-sky-400 text-xs p-0"
+                />
+                <span className="text-sky-700 dark:text-sky-400 font-semibold text-xs ml-0.5">%</span>
+              </div>
+            </div>
+
+            {/* Total Indicator */}
+            <div className={`font-bold text-xs px-2.5 py-1 rounded-full ${
+              pctTotal === 100
+                ? "text-green-700 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800"
+                : "text-red-700 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800"
+            }`}>
+              Total: {pctTotal}%
+            </div>
+
+            {/* Actions aligned to the right or next in line */}
+            <div className="flex items-center gap-2 ml-auto">
+              {pctChanged && pctTotal === 100 && (
+                <button
+                  onClick={handleSavePct}
+                  disabled={savingPct}
+                  className="text-xs font-bold text-[#f97316] border border-[#f97316] bg-white dark:bg-gray-900 px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-orange-50 transition-colors"
+                >
+                  {savingPct ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                  Guardar Pesos
+                </button>
+              )}
+
+              {pctSuccess && (
+                <span className="flex items-center gap-1 text-green-700 dark:text-green-400 font-bold text-xs mr-2 animate-fade-in">
+                  <Check size={13} /> Pesos guardados
+                </span>
+              )}
+              {pctError && (
+                <span className="text-red-600 text-xs font-semibold mr-2">{pctError}</span>
+              )}
+
+              <button className="text-xs font-bold text-sky-600 border border-sky-200 bg-white dark:bg-gray-900 px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-sky-50 transition-colors">
+                <Plus size={13} /> Activar Examen Final
+              </button>
+              <button className="text-xs font-bold text-green-600 border border-green-200 bg-white dark:bg-gray-900 px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-green-50 transition-colors">
+                <Plus size={13} /> Activar Asistencia
+              </button>
+            </div>
+
+          </div>
         </div>
+
 
         {/* Table */}
         {loading ? (
