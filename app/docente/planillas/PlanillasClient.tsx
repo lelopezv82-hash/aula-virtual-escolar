@@ -688,10 +688,16 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 <span className="text-red-600 text-xs font-semibold mr-2">{pctError}</span>
               )}
 
-              <button className="text-xs font-bold text-sky-600 border border-sky-200 bg-white dark:bg-gray-900 px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-sky-50 transition-colors">
+              <button
+                onClick={() => openAddModal("FINAL")}
+                className="text-xs font-bold text-sky-600 border border-sky-200 bg-white dark:bg-gray-900 px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-sky-50 transition-colors"
+              >
                 <Plus size={13} /> Activar Examen Final
               </button>
-              <button className="text-xs font-bold text-green-600 border border-green-200 bg-white dark:bg-gray-900 px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-green-50 transition-colors">
+              <button
+                onClick={() => openAddModal("ATTEND")}
+                className="text-xs font-bold text-green-600 border border-green-200 bg-white dark:bg-gray-900 px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-green-50 transition-colors"
+              >
                 <Plus size={13} /> Activar Asistencia
               </button>
             </div>
