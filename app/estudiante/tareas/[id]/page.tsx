@@ -415,7 +415,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
             !isGraded && (
               <div className="flex flex-col items-center justify-center py-8 text-center gap-3">
                 <Clock size={36} className="text-muted opacity-40" />
-                <p className="text-muted text-sm">Tu docente aún no ha registrado tu calificación.</p>
+                <p className="text-muted text-sm">La calificación para esta tarea entregada al docente aún no ha sido registrada.</p>
               </div>
             )
           ) : (
