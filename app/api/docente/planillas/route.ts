@@ -81,6 +81,7 @@ export async function GET(req: Request) {
         id: true,
         title: true,
         type: true,
+        active: true,
         submissions: {
           where: { studentId: { in: studentIds } },
           select: { studentId: true, grade: true, status: true }

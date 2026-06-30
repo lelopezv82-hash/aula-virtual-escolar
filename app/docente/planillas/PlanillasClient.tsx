@@ -4,7 +4,8 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   ArrowLeft, FileSpreadsheet, FileText, Loader2,
   Save, Undo2, AlertTriangle, Check, Info,
-  Plus, Trash2, X, Pencil, CheckCircle, AlertCircle, Clock
+  Plus, Trash2, X, Pencil, CheckCircle, AlertCircle, Clock,
+  Eye, EyeOff
 } from "lucide-react";
 import Link from "next/link";
 import * as XLSX from "xlsx";
@@ -1025,27 +1026,24 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                   {/* Bottom row: actions */}
                   <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-700 pt-1.5">
                     {/* Active toggle */}
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => handleToggleActive(t.id, isActive)}
-                        disabled={togglingId === t.id}
-                        title={isActive ? "Visible para alumnos — clic para ocultar" : "Oculto para alumnos — clic para activar"}
-                        className="relative inline-flex items-center cursor-pointer transition-colors duration-200 focus:outline-none disabled:opacity-50"
-                        style={{
-                          width: "34px", height: "18px", borderRadius: "9999px",
-                          background: isActive ? "#f98012" : "#cbd5e1",
-                          border: "none", padding: 0
-                        }}
-                      >
-                        {togglingId === t.id
-                          ? <Loader2 size={10} className="animate-spin text-white mx-auto" />
-                          : <span className="pointer-events-none inline-block rounded-full bg-white shadow-md transition-transform duration-200" style={{ width:"14px", height:"14px", transform: isActive ? "translateX(18px)" : "translateX(2px)", boxShadow:"0 1px 3px rgba(0,0,0,0.2)" }} />}
-                      </button>
-                      <span className={`text-[10px] font-semibold ${isActive ? "text-orange-600" : "text-gray-400"}`}>
-                        {isActive ? "Activo" : "Inactivo"}
+                    <button
+                      type="button"
+                      onClick={() => handleToggleActive(t.id, isActive)}
+                      disabled={togglingId === t.id}
+                      title={isActive ? "Visible para alumnos — clic para ocultar" : "Oculto para alumnos — clic para activar"}
+                      className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-150 dark:hover:bg-gray-800/60 transition-colors cursor-pointer focus:outline-none disabled:opacity-50"
+                    >
+                      {togglingId === t.id ? (
+                        <Loader2 size={13} className="animate-spin text-gray-400" />
+                      ) : isActive ? (
+                        <Eye size={13} className="text-[#f97316]" />
+                      ) : (
+                        <EyeOff size={13} className="text-gray-400" />
+                      )}
+                      <span className={`text-[10px] font-bold ${isActive ? "text-[#f97316]" : "text-gray-400"}`}>
+                        {isActive ? "Visible" : "Oculto"}
                       </span>
-                    </div>
+                    </button>
                     {/* Action buttons */}
                     <div className="flex items-center gap-0.5">
                       <button onClick={() => openGradingModal(t)} className="p-1 rounded hover:bg-orange-50 dark:hover:bg-orange-900/20 text-gray-400 hover:text-[#f98012] transition-colors" title="Calificar estudiantes">
