@@ -561,25 +561,20 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
   const renderCatHeader = (cat: typeof CATEGORIES[number]) => {
     const catTasks = byType(cat.type);
-    const pct = cat.type === "EXAM" ? pctForm.saber
-      : cat.type === "TASK"  ? pctForm.hacer
-      : cat.type === "SER"   ? pctForm.ser
-      : cat.type === "FINAL" ? pctForm.final
-      : null;
     return (
       <th
         key={cat.type}
         colSpan={Math.max(1, catTasks.length)}
         className={`border border-gray-200 dark:border-gray-700 p-2 uppercase tracking-wide font-bold text-xs ${cat.color.header}`}
       >
-        <div className="flex items-center justify-center gap-2">
-          <span>{cat.label}{pct != null ? ` (${pct}%)` : ""}</span>
+        <div className="flex items-center justify-center gap-1.5">
+          <span>{cat.label}</span>
           <button
             onClick={() => openAddModal(cat.type as CatType)}
             className={`p-1 rounded transition-colors ${cat.color.btn}`}
             title={`Agregar columna de ${cat.label}`}
           >
-            <Plus size={13} />
+            <Plus size={12} />
           </button>
         </div>
       </th>
@@ -591,9 +586,9 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     return (
       <>
         {catTasks.length === 0
-          ? <th key={`${cat.type}-empty`} className="border border-gray-200 dark:border-gray-700 p-1 font-normal italic text-gray-400 w-12">—</th>
+          ? <th key={`${cat.type}-empty`} className="border border-gray-200 dark:border-gray-700 p-1 font-normal italic text-gray-400 w-14">—</th>
           : catTasks.map(t => (
-              <th key={t.id} title={t.title} className="border border-gray-200 dark:border-gray-700 p-1 w-12 cursor-help text-center group relative">
+              <th key={t.id} title={t.title} className="border border-gray-200 dark:border-gray-700 p-1 w-14 min-w-[56px] cursor-help text-center group relative">
                 <div className="flex flex-col items-center">
                   <span>{taskNumbers[t.id]}</span>
                   <button
@@ -935,10 +930,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     if (cat.type === "ATTEND" && !showAttend) return null;
                     return <React.Fragment key={cat.type}>{renderTaskNumHeader(cat)}</React.Fragment>;
                   })}
-                  <th className="border border-gray-200 dark:border-gray-700 p-1 bg-blue-50/50 dark:bg-blue-900/10 w-16">Saber×{sp}%</th>
-                  <th className="border border-gray-200 dark:border-gray-700 p-1 bg-blue-50/50 dark:bg-blue-900/10 w-16">Hacer×{hp}%</th>
-                  <th className="border border-gray-200 dark:border-gray-700 p-1 bg-blue-50/50 dark:bg-blue-900/10 w-16">Ser×{ep}%</th>
-                  {showFinal && <th className="border border-gray-200 dark:border-gray-700 p-1 bg-blue-50/50 dark:bg-blue-900/10 w-16">Final×{fp}%</th>}
+                  <th className="border border-gray-200 dark:border-gray-700 p-1 bg-blue-50/50 dark:bg-blue-900/10 w-16">Saber</th>
+                  <th className="border border-gray-200 dark:border-gray-700 p-1 bg-blue-50/50 dark:bg-blue-900/10 w-16">Hacer</th>
+                  <th className="border border-gray-200 dark:border-gray-700 p-1 bg-blue-50/50 dark:bg-blue-900/10 w-16">Ser</th>
+                  {showFinal && <th className="border border-gray-200 dark:border-gray-700 p-1 bg-blue-50/50 dark:bg-blue-900/10 w-16">Final</th>}
                 </tr>
               </thead>
 
