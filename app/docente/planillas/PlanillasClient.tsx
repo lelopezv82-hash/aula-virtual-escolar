@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   ArrowLeft, FileSpreadsheet, FileText, Loader2,
   Save, Undo2, AlertTriangle, Check, Info,
-  Plus, Trash2, X
+  Plus, Trash2, X, Pencil, CheckCircle, AlertCircle, Clock
 } from "lucide-react";
 import Link from "next/link";
 import * as XLSX from "xlsx";
@@ -133,6 +133,16 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
   // ── Delete confirm ──
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // ── Manual Grading Modal ──
+  const [gradingTask, setGradingTask] = useState<TaskItem | null>(null);
+  const [gradingStudents, setGradingStudents] = useState<Array<{ id: string; name: string; groupName: string; submission: { id: string; status: string; grade: number | null; feedback: string | null; submittedAt: string | null } | null }>>([]);
+  const [gradeInputs, setGradeInputs] = useState<Record<string, string>>({});
+  const [feedbackInputs, setFeedbackInputs] = useState<Record<string, string>>({});
+  const [loadingStudents, setLoadingStudents] = useState(false);
+  const [savingGrades, setSavingGrades] = useState(false);
+  const [gradingError, setGradingError] = useState("");
+  const [gradingSaved, setGradingSaved] = useState(false);
 
   // ── Derived ──
   const selectedCourse = courses.find(c => c.id === selectedCourseId);
@@ -395,6 +405,74 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       pondFinal: final !== null ? final * (fp / 100) : null,
     };
   }, [gradesGrid, byType, pctForm]);
+
+  // ── Manual grading handlers ──────────────────────────────────────────────────
+  const openGradingModal = async (task: TaskItem) => {
+    setGradingTask(task);
+    setGradingError("");
+    setGradingSaved(false);
+    setLoadingStudents(true);
+    setGradingStudents([]);
+    try {
+      const res = await fetch(`/api/docente/tareas/${task.id}/students-grades`);
+      const data = await res.json();
+      if (res.ok && data.students) {
+        setGradingStudents(data.students);
+        const inputs: Record<string, string> = {};
+        const fInputs: Record<string, string> = {};
+        data.students.forEach((s: any) => {
+          inputs[s.id] = s.submission?.grade != null ? String(s.submission.grade) : "";
+          fInputs[s.id] = s.submission?.feedback ?? "";
+        });
+        setGradeInputs(inputs);
+        setFeedbackInputs(fInputs);
+      } else {
+        setGradingError(data.error || "Error al cargar estudiantes");
+      }
+    } catch {
+      setGradingError("Error de conexión");
+    } finally {
+      setLoadingStudents(false);
+    }
+  };
+
+  const saveManualGrades = async () => {
+    if (!gradingTask) return;
+    setSavingGrades(true);
+    setGradingError("");
+    setGradingSaved(false);
+    try {
+      const promises = gradingStudents
+        .filter(s => gradeInputs[s.id] !== "")
+        .map(s =>
+          fetch("/api/docente/calificar", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              taskId: gradingTask.id,
+              studentId: s.id,
+              grade: Number(gradeInputs[s.id]),
+              feedback: feedbackInputs[s.id] || undefined,
+            }),
+          })
+        );
+      await Promise.all(promises);
+      setGradingSaved(true);
+      setTimeout(() => setGradingSaved(false), 2500);
+      fetchData();
+    } catch {
+      setGradingError("Error al guardar calificaciones");
+    } finally {
+      setSavingGrades(false);
+    }
+  };
+
+  const statusBadge = (sub: { status: string } | null) => {
+    if (!sub) return <span className="text-xs text-muted italic">Sin entrega</span>;
+    if (sub.status === "GRADED") return <span className="badge badge-success flex items-center gap-1"><CheckCircle size={10} /> Calificada</span>;
+    if (sub.status === "SUBMITTED") return <span className="badge badge-info flex items-center gap-1"><Clock size={10} /> Entregada</span>;
+    return <span className="badge badge-danger flex items-center gap-1"><AlertCircle size={10} /> Pendiente</span>;
+  };
 
   // ── Export ──
   const exportToExcel = () => {
@@ -874,23 +952,33 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               const cat = CATEGORIES.find(c => c.type === t.type) ?? CATEGORIES[4];
               return (
                 <div key={t.id} className="flex gap-2 items-start justify-between p-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm group">
-                  <div className="flex gap-2 items-start">
+                  <div className="flex gap-2 items-start flex-1 min-w-0">
                     <span className={`px-2 py-0.5 rounded font-black flex-shrink-0 ${cat.color.badge}`}>
                       {taskNumbers[t.id]}
                     </span>
-                    <div>
+                    <div className="min-w-0">
                       <p className="font-bold text-gray-800 dark:text-gray-200 leading-tight max-w-[160px] truncate" title={t.title}>{t.title}</p>
                       <p className="text-gray-400 mt-0.5">{cat.label}{cat.sublabel ? ` — ${cat.sublabel}` : ""}</p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleDeleteTask(t.id, t.title)}
-                    disabled={deletingId === t.id}
-                    className="text-gray-300 hover:text-red-500 transition-colors p-1 opacity-0 group-hover:opacity-100 flex-shrink-0"
-                    title="Eliminar esta evaluación"
-                  >
-                    {deletingId === t.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                  </button>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {/* Grade button — always visible for all tasks */}
+                    <button
+                      onClick={() => openGradingModal(t)}
+                      className="text-gray-400 hover:text-[#f98012] transition-colors p-1"
+                      title="Calificar estudiantes"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTask(t.id, t.title)}
+                      disabled={deletingId === t.id}
+                      className="text-gray-300 hover:text-red-500 transition-colors p-1 opacity-0 group-hover:opacity-100"
+                      title="Eliminar esta evaluación"
+                    >
+                      {deletingId === t.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -1183,6 +1271,128 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             </div>
 
 
+          </div>
+        </div>
+      )}
+
+      {/* ── Manual Grading Modal ─────────────────────────────────────────── */}
+      {gradingTask && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4 animate-fade-in"
+          onClick={e => e.target === e.currentTarget && setGradingTask(null)}
+        >
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col animate-scale-in" style={{ maxHeight: "90vh" }}>
+
+            {/* Header */}
+            <div className="flex justify-between items-start p-5 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
+              <div>
+                <h2 className="text-xl font-bold flex items-center gap-2">
+                  <Pencil size={18} className="text-[#f98012]" />
+                  Calificación Manual
+                </h2>
+                <p className="text-sm text-muted mt-0.5 font-semibold">{gradingTask.title}</p>
+                <p className="text-xs text-muted mt-0.5">
+                  Asigna notas a trabajos realizados <strong>fuera de la plataforma</strong> (
+                  {gradingTask.type === "EXAM" ? "Examen — Nota del Saber" : "Tarea — Nota del Hacer"})
+                </p>
+              </div>
+              <button onClick={() => setGradingTask(null)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex-shrink-0">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Alerts */}
+            <div className="px-5 pt-4 flex-shrink-0">
+              {gradingError && <div className="alert alert-danger mb-3">{gradingError}</div>}
+              {gradingSaved && (
+                <div className="alert alert-success mb-3 flex items-center gap-2">
+                  <CheckCircle size={16} /> Calificaciones guardadas correctamente.
+                </div>
+              )}
+            </div>
+
+            {/* Student list */}
+            <div className="flex-1 overflow-y-auto px-5 pb-2">
+              {loadingStudents ? (
+                <div className="flex justify-center py-10">
+                  <Loader2 className="animate-spin text-[#f98012]" size={32} />
+                </div>
+              ) : gradingStudents.length === 0 ? (
+                <div className="text-center py-8 text-muted text-sm">No hay estudiantes asignados a esta evaluación.</div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {/* Column headers */}
+                  <div className="grid text-xs font-bold uppercase tracking-wider text-muted px-3 pb-1" style={{ gridTemplateColumns: "1fr 90px 1fr" }}>
+                    <span>Estudiante</span>
+                    <span className="text-center">Nota (1–5)</span>
+                    <span className="pl-2">Comentario</span>
+                  </div>
+
+                  {gradingStudents.map(student => (
+                    <div
+                      key={student.id}
+                      className="grid items-center gap-3 p-3 rounded-xl"
+                      style={{
+                        gridTemplateColumns: "1fr 90px 1fr",
+                        background: "var(--bg-secondary)",
+                        border: "1px solid var(--border-color)",
+                      }}
+                    >
+                      {/* Name + status */}
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div
+                          className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white"
+                          style={{ background: "linear-gradient(135deg, #f98012, #e06d09)" }}
+                        >
+                          {student.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-sm truncate">{student.name}</p>
+                          <p className="text-[10px] text-muted">{student.groupName}</p>
+                          <div className="mt-0.5">{statusBadge(student.submission)}</div>
+                        </div>
+                      </div>
+
+                      {/* Grade input */}
+                      <input
+                        type="number"
+                        min="1"
+                        max="5"
+                        step="0.1"
+                        placeholder="—"
+                        value={gradeInputs[student.id] ?? ""}
+                        onChange={e => setGradeInputs(prev => ({ ...prev, [student.id]: e.target.value }))}
+                        className="input-field text-center font-bold"
+                        style={{ padding: "0.4rem 0.4rem", fontSize: "0.95rem" }}
+                      />
+
+                      {/* Feedback input */}
+                      <input
+                        type="text"
+                        placeholder="Comentario opcional…"
+                        value={feedbackInputs[student.id] ?? ""}
+                        onChange={e => setFeedbackInputs(prev => ({ ...prev, [student.id]: e.target.value }))}
+                        className="input-field text-sm"
+                        style={{ padding: "0.4rem 0.6rem" }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-end gap-3 border-t p-5 flex-shrink-0" style={{ borderColor: "var(--border-color)" }}>
+              <button className="btn btn-secondary" onClick={() => setGradingTask(null)}>Cerrar</button>
+              <button
+                className="btn btn-primary"
+                disabled={savingGrades || loadingStudents}
+                onClick={saveManualGrades}
+              >
+                {savingGrades ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                Guardar Calificaciones
+              </button>
+            </div>
           </div>
         </div>
       )}
