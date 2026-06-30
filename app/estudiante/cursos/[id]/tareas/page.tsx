@@ -56,8 +56,13 @@ export default async function CursoTareasPage({
     const isSubmitted = submission && submission.status !== "PENDING";
     const isVirtuallyClosed = !task.isExternal && ((!submission && isClosed) || (submission && submission.status === "PENDING" && isClosed));
 
-    if (estado === "entregadas") return isSubmitted;
-    // default: pendientes
+    if (estado === "entregadas") {
+      // External tasks are always considered "entregadas" (delivered to teacher)
+      if (task.isExternal) return true;
+      return !!isSubmitted;
+    }
+    // default: pendientes — external tasks don't show here once counted as entregadas
+    if (task.isExternal) return false;
     return !isSubmitted && !isVirtuallyClosed;
   });
 

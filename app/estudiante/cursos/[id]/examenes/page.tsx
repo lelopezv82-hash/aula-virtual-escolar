@@ -66,8 +66,13 @@ export default async function CursoExamenesPage({
     );
     const isSubmitted = submission && submission.status !== "PENDING";
 
-    if (estado === "presentados") return isSubmitted || isVirtuallyClosed;
-    // default: disponibles
+    if (estado === "presentados") {
+      // External exams are always considered "presentados" (presented to teacher)
+      if (exam.isExternal) return true;
+      return !!(isSubmitted || isVirtuallyClosed);
+    }
+    // default: disponibles — external exams go straight to presentados
+    if (exam.isExternal) return false;
     return !isSubmitted && !isVirtuallyClosed;
   });
 
