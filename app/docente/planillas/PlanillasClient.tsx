@@ -127,6 +127,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [newTaskTheme, setNewTaskTheme] = useState("");
   const [newTaskPublishAt, setNewTaskPublishAt] = useState("");
   const [newTaskAllowLateSubmission, setNewTaskAllowLateSubmission] = useState(false);
+  const [newTaskExternalUrl, setNewTaskExternalUrl] = useState("");
+  const [newTaskFile, setNewTaskFile] = useState<File | null>(null);
   const [addingTask,  setAddingTask]  = useState(false);
 
   // ── Delete confirm ──
@@ -309,36 +311,41 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     );
     setNewTaskPublishAt("");
     setNewTaskAllowLateSubmission(false);
+    setNewTaskExternalUrl("");
+    setNewTaskFile(null);
   };
 
   const handleAddTask = async () => {
     if (!newTaskName.trim() || !addModal) return;
     setAddingTask(true);
     try {
-      const res = await fetch(`/api/docente/cursos/${selectedCourseId}/grades/spreadsheet/columns`, {
+      const fd = new FormData();
+      fd.append("title", newTaskName.trim());
+      fd.append("type", addModal.type);
+      fd.append("period", selectedPeriod);
+      fd.append("description", newTaskDescription.trim());
+      fd.append("dueDate", newTaskDueDate);
+      fd.append("courseId", selectedCourseId);
+      fd.append("isExternal", String(newTaskIsExternal));
+      if (newTaskDuration) fd.append("duration", newTaskDuration);
+      fd.append("weight", newTaskWeight);
+      fd.append("groupIds", JSON.stringify(newTaskGroupIds));
+      fd.append("theme", newTaskTheme.trim());
+      if (newTaskPublishAt) fd.append("publishAt", newTaskPublishAt);
+      fd.append("allowLateSubmission", String(newTaskAllowLateSubmission));
+      if (newTaskExternalUrl.trim()) fd.append("externalUrl", newTaskExternalUrl.trim());
+      if (newTaskFile) fd.append("file", newTaskFile);
+
+      const res = await fetch("/api/docente/tareas", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: newTaskName.trim(),
-          type: addModal.type,
-          period: selectedPeriod,
-          description: newTaskDescription.trim(),
-          dueDate: newTaskDueDate,
-          isExternal: newTaskIsExternal,
-          duration: newTaskDuration ? parseInt(newTaskDuration) || null : null,
-          weight: parseInt(newTaskWeight) || 0,
-          groupIds: newTaskGroupIds,
-          theme: newTaskTheme.trim(),
-          publishAt: newTaskPublishAt || null,
-          allowLateSubmission: newTaskAllowLateSubmission
-        })
+        body: fd
       });
       if (res.ok) {
         setAddModal(null);
         fetchData();
       } else {
         const d = await res.json();
-        alert(d.error ?? "Error al crear columna.");
+        alert(d.error ?? "Error al crear la evaluación.");
       }
     } catch {
       alert("Error de conexión.");
@@ -1090,7 +1097,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               {/* Description */}
               <div className="input-group">
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                  {addModal.type === "EXAM" ? "Descripción del Examen" : "Descripción de la Evaluación"}
+                  {addModal.type === "EXAM" ? "Descripción del Examen" : "Descripción de la Tarea"}
                 </label>
                 <textarea
                   placeholder="Escribe las instrucciones aquí..."
@@ -1100,6 +1107,49 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                   rows={4}
                 />
               </div>
+
+              {/* Task Additions: Enlace Externo & Archivo Adjunto */}
+              {addModal.type !== "EXAM" && (
+                <>
+                  {/* Enlace Externo */}
+                  <div className="input-group">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                      Enlace Externo (Opcional, ej. YouTube, lectura web)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ej. https://www.youtube.com/watch?v=..."
+                      value={newTaskExternalUrl}
+                      onChange={e => setNewTaskExternalUrl(e.target.value)}
+                      className="w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
+                    />
+                  </div>
+
+                  {/* Archivo Adjunto */}
+                  <div className="input-group">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                      Archivo Adjunto (Opcional)
+                    </label>
+                    <div 
+                      className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-4 text-center hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors cursor-pointer relative"
+                      onClick={() => document.getElementById("modal-file-upload")?.click()}
+                    >
+                      <input
+                        id="modal-file-upload"
+                        type="file"
+                        className="hidden"
+                        onChange={e => setNewTaskFile(e.target.files?.[0] || null)}
+                      />
+                      <svg className="mx-auto h-8 w-8 text-[#f97316] mb-2" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                      </svg>
+                      <span className="text-xs font-bold text-gray-650 dark:text-gray-350 block">
+                        {newTaskFile ? newTaskFile.name : "Selecciona una guía o archivo"}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
 
               {/* Tip Banner (Only visible for platform exams) */}
               {addModal.type === "EXAM" && !newTaskIsExternal && (
@@ -1126,11 +1176,12 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 {addingTask ? <Loader2 size={16} className="animate-spin mx-auto" /> : (
                   <>
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                    <span>{addModal.type === "EXAM" ? "Crear Examen" : "Crear Evaluación"}</span>
+                    <span>{addModal.type === "EXAM" ? "Crear Examen" : "Crear Tarea"}</span>
                   </>
                 )}
               </button>
             </div>
+
 
           </div>
         </div>
