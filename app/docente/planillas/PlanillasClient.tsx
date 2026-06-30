@@ -569,7 +569,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     return (
       <th
         key={cat.type}
-        colSpan={Math.max(1, catTasks.length) + 1 /* +1 for add-button slot */}
+        colSpan={Math.max(1, catTasks.length)}
         className={`border border-gray-200 dark:border-gray-700 p-2 uppercase tracking-wide font-bold text-xs ${cat.color.header}`}
       >
         <div className="flex items-center justify-center gap-2">
@@ -608,8 +608,6 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               </th>
             ))
         }
-        {/* Empty "add" slot for visual alignment */}
-        <th className="border border-gray-200 dark:border-gray-700 w-4 p-0" />
       </>
     );
   };
@@ -653,8 +651,6 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               );
             })
         }
-        {/* Empty slot aligned with add-btn header */}
-        <td className="border border-gray-100 dark:border-gray-700 w-4 p-0" />
       </>
     );
   };
