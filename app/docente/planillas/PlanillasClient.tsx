@@ -50,6 +50,7 @@ interface TaskItem {
   title: string;
   type: string; // EXAM | TASK | SER | FINAL | ATTEND
   active?: boolean;
+  isExternal?: boolean;
   submissions: { studentId: string; grade: number | null; status: string }[];
 }
 
@@ -1015,38 +1016,51 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     </div>
                   </div>
                   {/* Bottom row: actions */}
-                  <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-700 pt-1.5">
-                    {/* Active toggle */}
-                    <button
-                      type="button"
-                      onClick={() => handleToggleActive(t.id, isActive)}
-                      disabled={togglingId === t.id}
-                      title={isActive ? "Visible para alumnos — clic para ocultar" : "Oculto para alumnos — clic para activar"}
-                      className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-150 dark:hover:bg-gray-800/60 transition-colors cursor-pointer focus:outline-none disabled:opacity-50"
-                    >
-                      {togglingId === t.id ? (
-                        <Loader2 size={13} className="animate-spin text-gray-400" />
-                      ) : isActive ? (
-                        <Eye size={13} className="text-[#f97316]" />
-                      ) : (
-                        <EyeOff size={13} className="text-gray-400" />
-                      )}
-                      <span className={`text-[10px] font-bold ${isActive ? "text-[#f97316]" : "text-gray-400"}`}>
-                        {isActive ? "Visible" : "Oculto"}
-                      </span>
-                    </button>
-                    {/* Action buttons */}
-                    <div className="flex items-center gap-0.5">
-                      <button onClick={() => openGradingModal(t)} className="p-1 rounded hover:bg-orange-50 dark:hover:bg-orange-900/20 text-gray-400 hover:text-[#f98012] transition-colors" title="Calificar estudiantes">
-                        <Pencil size={13} />
+                  <div className="flex flex-col gap-1.5 border-t border-gray-100 dark:border-gray-700 pt-1.5">
+                    <div className="flex items-center justify-between">
+                      {/* Active toggle */}
+                      <button
+                        type="button"
+                        onClick={() => handleToggleActive(t.id, isActive)}
+                        disabled={togglingId === t.id}
+                        title={isActive ? "Visible para alumnos — clic para ocultar" : "Oculto para alumnos — clic para activar"}
+                        className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-150 dark:hover:bg-gray-800/60 transition-colors cursor-pointer focus:outline-none disabled:opacity-50"
+                      >
+                        {togglingId === t.id ? (
+                          <Loader2 size={13} className="animate-spin text-gray-400" />
+                        ) : isActive ? (
+                          <Eye size={13} className="text-[#f97316]" />
+                        ) : (
+                          <EyeOff size={13} className="text-gray-400" />
+                        )}
+                        <span className={`text-[10px] font-bold ${isActive ? "text-[#f97316]" : "text-gray-400"}`}>
+                          {isActive ? "Visible" : "Oculto"}
+                        </span>
                       </button>
-                      <button onClick={() => openEditModal(t)} disabled={loadingEdit} className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-400 hover:text-blue-600 transition-colors" title="Editar evaluación">
-                        {loadingEdit ? <Loader2 size={13} className="animate-spin" /> : <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>}
-                      </button>
-                      <button onClick={() => handleDeleteTask(t.id, t.title)} disabled={deletingId === t.id} className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100" title="Eliminar evaluación">
-                        {deletingId === t.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
-                      </button>
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-0.5">
+                        <button onClick={() => openGradingModal(t)} className="p-1 rounded hover:bg-orange-50 dark:hover:bg-orange-900/20 text-gray-400 hover:text-[#f98012] transition-colors" title="Calificar estudiantes">
+                          <Pencil size={13} />
+                        </button>
+                        <button onClick={() => openEditModal(t)} disabled={loadingEdit} className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-400 hover:text-blue-600 transition-colors" title="Editar evaluación">
+                          {loadingEdit ? <Loader2 size={13} className="animate-spin" /> : <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>}
+                        </button>
+                        <button onClick={() => handleDeleteTask(t.id, t.title)} disabled={deletingId === t.id} className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100" title="Eliminar evaluación">
+                          {deletingId === t.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                        </button>
+                      </div>
                     </div>
+                    {/* Crear preguntas del examen en línea */}
+                    {t.type === "EXAM" && !t.isExternal && (
+                      <a
+                        href={`/docente/tareas/${t.id}`}
+                        className="flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 text-purple-700 dark:text-purple-300 text-[10px] font-bold hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors w-full"
+                        title="Ir al editor de preguntas del examen en línea"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        Crear Preguntas del Examen
+                      </a>
+                    )}
                   </div>
                 </div>
               );
@@ -1310,15 +1324,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 </>
               )}
 
-              {/* Tip Banner (Only visible for platform exams) */}
-              {addModal.type === "EXAM" && !newTaskIsExternal && (
-                <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/50 text-[#c2410c] dark:text-orange-400 rounded-lg p-3 text-xs leading-normal flex items-start gap-2">
-                  <span className="text-sm">💡</span>
-                  <p>
-                    <strong>Examen en la Plataforma:</strong> Este examen se creará directamente aquí. Una vez creado, haz clic en <span className="font-bold">Ver/Calificar</span> en la lista de exámenes para ingresar las preguntas y opciones de respuesta.
-                  </p>
-                </div>
-              )}
+
 
             </div>
 
