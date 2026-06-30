@@ -48,6 +48,7 @@ interface TaskItem {
   id: string;
   title: string;
   type: string; // EXAM | TASK | SER | FINAL | ATTEND
+  active?: boolean;
   submissions: { studentId: string; grade: number | null; status: string }[];
 }
 
@@ -130,6 +131,13 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [newTaskExternalUrl, setNewTaskExternalUrl] = useState("");
   const [newTaskFile, setNewTaskFile] = useState<File | null>(null);
   const [addingTask,  setAddingTask]  = useState(false);
+
+  // ── Edit modal ──
+  const [editTaskId,  setEditTaskId]  = useState<string | null>(null);
+  const [loadingEdit, setLoadingEdit] = useState(false);
+
+  // ── Toggle active ──
+  const [togglingId, setTogglingId]  = useState<string | null>(null);
 
   // ── Delete confirm ──
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -325,42 +333,93 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     setNewTaskFile(null);
   };
 
+  const buildFormData = () => {
+    if (!addModal) return new FormData();
+    const fd = new FormData();
+    fd.append("title", newTaskName.trim());
+    fd.append("type", addModal.type);
+    fd.append("period", selectedPeriod);
+    fd.append("description", newTaskDescription.trim());
+    fd.append("dueDate", newTaskDueDate);
+    fd.append("courseId", selectedCourseId);
+    fd.append("isExternal", String(newTaskIsExternal));
+    if (newTaskDuration) fd.append("duration", newTaskDuration);
+    fd.append("weight", newTaskWeight);
+    fd.append("groupIds", JSON.stringify(newTaskGroupIds));
+    fd.append("theme", newTaskTheme.trim());
+    if (newTaskPublishAt) fd.append("publishAt", newTaskPublishAt);
+    fd.append("allowLateSubmission", String(newTaskAllowLateSubmission));
+    if (newTaskExternalUrl.trim()) fd.append("externalUrl", newTaskExternalUrl.trim());
+    if (newTaskFile) fd.append("file", newTaskFile);
+    return fd;
+  };
+
   const handleAddTask = async () => {
     if (!newTaskName.trim() || !addModal) return;
     setAddingTask(true);
     try {
-      const fd = new FormData();
-      fd.append("title", newTaskName.trim());
-      fd.append("type", addModal.type);
-      fd.append("period", selectedPeriod);
-      fd.append("description", newTaskDescription.trim());
-      fd.append("dueDate", newTaskDueDate);
-      fd.append("courseId", selectedCourseId);
-      fd.append("isExternal", String(newTaskIsExternal));
-      if (newTaskDuration) fd.append("duration", newTaskDuration);
-      fd.append("weight", newTaskWeight);
-      fd.append("groupIds", JSON.stringify(newTaskGroupIds));
-      fd.append("theme", newTaskTheme.trim());
-      if (newTaskPublishAt) fd.append("publishAt", newTaskPublishAt);
-      fd.append("allowLateSubmission", String(newTaskAllowLateSubmission));
-      if (newTaskExternalUrl.trim()) fd.append("externalUrl", newTaskExternalUrl.trim());
-      if (newTaskFile) fd.append("file", newTaskFile);
-
-      const res = await fetch("/api/docente/tareas", {
-        method: "POST",
-        body: fd
-      });
-      if (res.ok) {
-        setAddModal(null);
-        fetchData();
-      } else {
-        const d = await res.json();
-        alert(d.error ?? "Error al crear la evaluación.");
-      }
-    } catch {
-      alert("Error de conexión.");
-    }
+      const res = await fetch("/api/docente/tareas", { method: "POST", body: buildFormData() });
+      if (res.ok) { setAddModal(null); fetchData(); }
+      else { const d = await res.json(); alert(d.error ?? "Error al crear la evaluación."); }
+    } catch { alert("Error de conexión."); }
     setAddingTask(false);
+  };
+
+  const openEditModal = async (task: TaskItem) => {
+    setLoadingEdit(true);
+    try {
+      const res = await fetch(`/api/docente/tareas/${task.id}`);
+      const data = await res.json();
+      if (!res.ok) { alert(data.error || "Error cargando datos."); return; }
+      const t = data.task;
+      // Format datetime-local
+      const toLocal = (d: string | null) => {
+        if (!d) return "";
+        const date = new Date(d);
+        const pad = (n: number) => String(n).padStart(2, "0");
+        return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+      };
+      setAddModal({ type: task.type as CatType });
+      setEditTaskId(task.id);
+      setNewTaskName(t.title || "");
+      setNewTaskDescription(t.description || "");
+      setNewTaskDueDate(toLocal(t.dueDate));
+      setNewTaskIsExternal(!!t.isExternal);
+      setNewTaskDuration(t.duration ? String(t.duration) : "");
+      setNewTaskWeight(t.weight != null ? String(t.weight) : "0");
+      setNewTaskGroupIds((t.groups || []).map((g: any) => g.id));
+      setNewTaskTheme(t.theme || "");
+      setNewTaskPublishAt(toLocal(t.publishAt));
+      setNewTaskAllowLateSubmission(!!t.allowLateSubmission);
+      setNewTaskExternalUrl(t.attachmentUrl || "");
+      setNewTaskFile(null);
+    } catch { alert("Error de conexión."); }
+    setLoadingEdit(false);
+  };
+
+  const handleEditTask = async () => {
+    if (!newTaskName.trim() || !addModal || !editTaskId) return;
+    setAddingTask(true);
+    try {
+      const res = await fetch(`/api/docente/tareas/${editTaskId}`, { method: "PATCH", body: buildFormData() });
+      if (res.ok) { setAddModal(null); setEditTaskId(null); fetchData(); }
+      else { const d = await res.json(); alert(d.error ?? "Error al guardar cambios."); }
+    } catch { alert("Error de conexión."); }
+    setAddingTask(false);
+  };
+
+  const handleToggleActive = async (taskId: string, currentActive: boolean) => {
+    setTogglingId(taskId);
+    try {
+      const res = await fetch(`/api/docente/tareas/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ active: !currentActive })
+      });
+      if (res.ok) fetchData();
+      else alert("Error al cambiar estado.");
+    } catch { alert("Error de conexión."); }
+    setTogglingId(null);
   };
 
   // ── Delete column ──
@@ -950,34 +1009,55 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
             {tasks.map(t => {
               const cat = CATEGORIES.find(c => c.type === t.type) ?? CATEGORIES[4];
+              const isActive = t.active !== false;
               return (
-                <div key={t.id} className="flex gap-2 items-start justify-between p-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm group">
+                <div key={t.id} className={`flex flex-col gap-2 p-3 rounded-lg border shadow-sm group transition-opacity ${isActive ? "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700" : "bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 opacity-70"}`}>
+                  {/* Top row: badge + title + type */}
                   <div className="flex gap-2 items-start flex-1 min-w-0">
                     <span className={`px-2 py-0.5 rounded font-black flex-shrink-0 ${cat.color.badge}`}>
                       {taskNumbers[t.id]}
                     </span>
-                    <div className="min-w-0">
-                      <p className="font-bold text-gray-800 dark:text-gray-200 leading-tight max-w-[160px] truncate" title={t.title}>{t.title}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-gray-800 dark:text-gray-200 leading-tight truncate" title={t.title}>{t.title}</p>
                       <p className="text-gray-400 mt-0.5">{cat.label}{cat.sublabel ? ` — ${cat.sublabel}` : ""}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    {/* Grade button — always visible for all tasks */}
-                    <button
-                      onClick={() => openGradingModal(t)}
-                      className="text-gray-400 hover:text-[#f98012] transition-colors p-1"
-                      title="Calificar estudiantes"
-                    >
-                      <Pencil size={14} />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteTask(t.id, t.title)}
-                      disabled={deletingId === t.id}
-                      className="text-gray-300 hover:text-red-500 transition-colors p-1 opacity-0 group-hover:opacity-100"
-                      title="Eliminar esta evaluación"
-                    >
-                      {deletingId === t.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                    </button>
+                  {/* Bottom row: actions */}
+                  <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-700 pt-1.5">
+                    {/* Active toggle */}
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleActive(t.id, isActive)}
+                        disabled={togglingId === t.id}
+                        title={isActive ? "Visible para alumnos — clic para ocultar" : "Oculto para alumnos — clic para activar"}
+                        className="relative inline-flex items-center cursor-pointer transition-colors duration-200 focus:outline-none disabled:opacity-50"
+                        style={{
+                          width: "34px", height: "18px", borderRadius: "9999px",
+                          background: isActive ? "#f98012" : "#cbd5e1",
+                          border: "none", padding: 0
+                        }}
+                      >
+                        {togglingId === t.id
+                          ? <Loader2 size={10} className="animate-spin text-white mx-auto" />
+                          : <span className="pointer-events-none inline-block rounded-full bg-white shadow-md transition-transform duration-200" style={{ width:"14px", height:"14px", transform: isActive ? "translateX(18px)" : "translateX(2px)", boxShadow:"0 1px 3px rgba(0,0,0,0.2)" }} />}
+                      </button>
+                      <span className={`text-[10px] font-semibold ${isActive ? "text-orange-600" : "text-gray-400"}`}>
+                        {isActive ? "Activo" : "Inactivo"}
+                      </span>
+                    </div>
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-0.5">
+                      <button onClick={() => openGradingModal(t)} className="p-1 rounded hover:bg-orange-50 dark:hover:bg-orange-900/20 text-gray-400 hover:text-[#f98012] transition-colors" title="Calificar estudiantes">
+                        <Pencil size={13} />
+                      </button>
+                      <button onClick={() => openEditModal(t)} disabled={loadingEdit} className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-400 hover:text-blue-600 transition-colors" title="Editar evaluación">
+                        {loadingEdit ? <Loader2 size={13} className="animate-spin" /> : <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>}
+                      </button>
+                      <button onClick={() => handleDeleteTask(t.id, t.title)} disabled={deletingId === t.id} className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100" title="Eliminar evaluación">
+                        {deletingId === t.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -993,10 +1073,12 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             
             {/* Header */}
             <div className="flex justify-between items-center pb-2 border-b border-gray-200 dark:border-gray-800">
-              <h3 className="font-bold text-xl text-gray-900 dark:text-gray-155">
-                {addModal.type === "EXAM" ? "Nuevo Examen" : "Nueva Evaluación"}
+              <h3 className="font-bold text-xl text-gray-900 dark:text-gray-100">
+                {editTaskId
+                  ? (addModal.type === "EXAM" ? "Editar Examen" : "Editar Evaluación")
+                  : (addModal.type === "EXAM" ? "Nuevo Examen" : "Nueva Evaluación")}
               </h3>
-              <button onClick={() => setAddModal(null)} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
+              <button onClick={() => { setAddModal(null); setEditTaskId(null); }} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
                 <X size={24} />
               </button>
             </div>
@@ -1253,18 +1335,18 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
             {/* Footer Buttons */}
             <div className="flex justify-end gap-3 pt-3 border-t border-gray-200 dark:border-gray-800">
-              <button onClick={() => setAddModal(null)} className="text-xs font-bold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">
+              <button onClick={() => { setAddModal(null); setEditTaskId(null); }} className="text-xs font-bold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">
                 Cancelar
               </button>
               <button
-                onClick={handleAddTask}
+                onClick={editTaskId ? handleEditTask : handleAddTask}
                 disabled={addingTask || !newTaskName.trim() || newTaskGroupIds.length === 0}
                 className="text-xs font-bold text-white bg-[#f97316] border border-[#ea580c] px-4 py-2 rounded-lg hover:bg-[#ea580c] transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {addingTask ? <Loader2 size={16} className="animate-spin mx-auto" /> : (
                   <>
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                    <span>{addModal.type === "EXAM" ? "Crear Examen" : "Crear Tarea"}</span>
+                    <span>{editTaskId ? "Guardar Cambios" : (addModal.type === "EXAM" ? "Crear Examen" : "Crear Tarea")}</span>
                   </>
                 )}
               </button>

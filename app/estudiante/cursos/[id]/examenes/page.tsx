@@ -43,7 +43,7 @@ export default async function CursoExamenesPage({
     where: {
       courseId: id,
       active: true,
-      type: "EXAM",
+      type: { in: ["EXAM", "FINAL"] },
       OR: [{ period: null }, { period: { in: activePeriodNames } }],
       AND: [{ OR: [{ publishAt: null }, { publishAt: { lte: now } }] }],
       groups: studentGroupId ? { some: { id: studentGroupId } } : undefined,

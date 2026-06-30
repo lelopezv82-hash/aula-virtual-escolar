@@ -41,7 +41,7 @@ export default async function CursoTareasPage({
     where: {
       courseId: id,
       active: true,
-      type: "TASK",
+      type: { in: ["TASK", "SER", "ATTEND"] },
       OR: [{ period: null }, { period: { in: activePeriodNames } }],
       AND: [{ OR: [{ publishAt: null }, { publishAt: { lte: now } }] }],
       groups: studentGroupId ? { some: { id: studentGroupId } } : undefined,

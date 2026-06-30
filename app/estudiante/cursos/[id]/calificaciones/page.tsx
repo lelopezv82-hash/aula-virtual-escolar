@@ -86,6 +86,17 @@ export default async function CursoCalificacionesPage({
       }
       return { ...processedSub, feedbackTemplate, task };
     }
+    // External tasks: show as "pending teacher grade" even without submission
+    if (task.isExternal) {
+      return {
+        id: `ext-${task.id}`,
+        taskId: task.id, studentId, status: "PENDING", grade: null,
+        feedback: null, feedbackTemplate: null, fileUrl: null, submittedAt: null,
+        createdAt: task.createdAt, updatedAt: task.updatedAt,
+        allowLateSubmission: false, lateSubmissionUntil: null, gdriveEmail: null,
+        startedAt: null, attempt: 1, unlockedAnswers: false, task,
+      };
+    }
     if (isClosed && !task.isExternal) {
       return {
         id: `virtual-${task.id}`,
@@ -208,31 +219,34 @@ export default async function CursoCalificacionesPage({
             });
             if (periodSubs.length === 0 && !additionalGradesMap.has(periodName)) return null;
 
-            const tareas = periodSubs.filter(s => s.task.type === "TASK");
-            const examenes = periodSubs.filter(s => s.task.type === "EXAM");
+            const tareas   = periodSubs.filter(s => s.task.type === "TASK");
+            const examenes  = periodSubs.filter(s => s.task.type === "EXAM");
+            const serSubs   = periodSubs.filter(s => s.task.type === "SER");
+            const finalSubs = periodSubs.filter(s => s.task.type === "FINAL");
 
-            const gradedTareas = tareas.filter(s => s.status === "GRADED");
-            const gradedExamenes = examenes.filter(s => s.status === "GRADED");
+            const gradedTareas   = tareas.filter(s   => s.status === "GRADED");
+            const gradedExamenes = examenes.filter(s  => s.status === "GRADED");
+            const gradedSer      = serSubs.filter(s   => s.status === "GRADED");
+            const gradedFinal    = finalSubs.filter(s => s.status === "GRADED");
 
-            const avgTareas = gradedTareas.length > 0
-              ? gradedTareas.reduce((sum, s) => sum + Math.max(1.0, s.grade ?? 0), 0) / gradedTareas.length
-              : null;
-            const avgExamenes = gradedExamenes.length > 0
-              ? gradedExamenes.reduce((sum, s) => sum + Math.max(1.0, s.grade ?? 0), 0) / gradedExamenes.length
-              : null;
+            const avg = (arr: any[]) => arr.length > 0 ? arr.reduce((s, x) => s + Math.max(1.0, x.grade ?? 0), 0) / arr.length : null;
+            const avgTareas   = avg(gradedTareas);
+            const avgExamenes = avg(gradedExamenes);
+            const avgSer      = avg(gradedSer);
+            const avgFinal    = avg(gradedFinal);
 
             const additionalGrade = additionalGradesMap.get(periodName) ?? null;
+            const effectiveSerGrade = avgSer ?? additionalGrade;
 
             // Weighted final using course-specific percentages
             const saberWeighted = avgExamenes !== null ? +(avgExamenes * saberPct).toFixed(2) : null;
             const hacerWeighted = avgTareas   !== null ? +(avgTareas   * hacerPct).toFixed(2) : null;
-            const serWeighted   = additionalGrade !== null ? +(additionalGrade * serPct).toFixed(2) : null;
+            const serWeighted   = effectiveSerGrade !== null ? +(effectiveSerGrade * serPct).toFixed(2) : null;
             const finalGrade =
               saberWeighted !== null || hacerWeighted !== null || serWeighted !== null
                 ? (saberWeighted ?? 0) + (hacerWeighted ?? 0) + (serWeighted ?? 0)
                 : null;
-            const componentCount = (avgExamenes !== null ? 1 : 0) + (avgTareas !== null ? 1 : 0) + (additionalGrade !== null ? 1 : 0);
-
+            const componentCount = (avgExamenes !== null ? 1 : 0) + (avgTareas !== null ? 1 : 0) + (effectiveSerGrade !== null ? 1 : 0);
             const hasSubs = periodSubs.length > 0;
             const components = componentCount;
 
@@ -370,6 +384,15 @@ export default async function CursoCalificacionesPage({
                         <span style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--primary-color)" }}>Hacer — Procedimental</span>
                       </div>
                       <div className="flex flex-col gap-3">{tareas.map(renderCard)}</div>
+                    </div>
+                  )}
+                  {(serSubs.length > 0 || finalSubs.length > 0) && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <Star size={14} style={{ color: "#f59e0b" }} />
+                        <span style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#f59e0b" }}>Ser / Final — Otras Evaluaciones</span>
+                      </div>
+                      <div className="flex flex-col gap-3">{[...serSubs, ...finalSubs].map(renderCard)}</div>
                     </div>
                   )}
 
