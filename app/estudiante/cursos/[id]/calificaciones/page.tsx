@@ -262,7 +262,7 @@ export default async function CursoCalificacionesPage({
                 </div>
 
                 {/* Period Summary Card */}
-                {(avgTareas !== null || avgExamenes !== null || additionalGrade !== null) && (
+                {(avgTareas !== null || avgExamenes !== null || effectiveSerGrade !== null) && (
                   <div
                     className="card mb-5"
                     style={{
@@ -279,7 +279,7 @@ export default async function CursoCalificacionesPage({
                             {saberWeighted!.toFixed(2)}
                           </div>
                           <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "2px" }}>
-                            {avgExamenes.toFixed(1)} × 30%
+                            {avgExamenes.toFixed(1)} × {saberLabel}
                           </div>
                           <div className="flex items-center justify-center gap-1 mt-1">
                             <FileText size={11} style={{ color: "#8b5cf6" }} />
@@ -288,7 +288,7 @@ export default async function CursoCalificacionesPage({
                         </div>
                       )}
 
-                      {avgExamenes !== null && (avgTareas !== null || additionalGrade !== null) && (
+                      {avgExamenes !== null && (avgTareas !== null || effectiveSerGrade !== null) && (
                         <div style={{ fontSize: "1.5rem", color: "var(--text-muted)", fontWeight: 300, lineHeight: 1 }}>+</div>
                       )}
 
@@ -299,7 +299,7 @@ export default async function CursoCalificacionesPage({
                             {hacerWeighted!.toFixed(2)}
                           </div>
                           <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "2px" }}>
-                            {avgTareas.toFixed(1)} × 50%
+                            {avgTareas.toFixed(1)} × {hacerLabel}
                           </div>
                           <div className="flex items-center justify-center gap-1 mt-1">
                             <ClipboardList size={11} style={{ color: "var(--primary-color)" }} />
@@ -308,18 +308,18 @@ export default async function CursoCalificacionesPage({
                         </div>
                       )}
 
-                      {additionalGrade !== null && (avgExamenes !== null || avgTareas !== null) && (
+                      {effectiveSerGrade !== null && (avgExamenes !== null || avgTareas !== null) && (
                         <div style={{ fontSize: "1.5rem", color: "var(--text-muted)", fontWeight: 300, lineHeight: 1 }}>+</div>
                       )}
 
                       {/* Ser — Actitudinal */}
-                      {additionalGrade !== null && (
+                      {effectiveSerGrade !== null && (
                         <div style={{ textAlign: "center", minWidth: "80px" }}>
-                          <div style={{ fontSize: "1.7rem", fontWeight: 800, color: gradeColor(additionalGrade), lineHeight: 1 }}>
+                          <div style={{ fontSize: "1.7rem", fontWeight: 800, color: gradeColor(effectiveSerGrade), lineHeight: 1 }}>
                             {serWeighted!.toFixed(2)}
                           </div>
                           <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "2px" }}>
-                            {additionalGrade.toFixed(1)} × {serLabel}
+                            {effectiveSerGrade.toFixed(1)} × {serLabel}
                           </div>
                           <div className="flex items-center justify-center gap-1 mt-1">
                             <Star size={11} style={{ color: "#f59e0b" }} />
