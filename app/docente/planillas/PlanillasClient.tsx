@@ -908,6 +908,24 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         ) : (
           <div className="overflow-x-auto">
             <table id="planillas-table" className="border-collapse text-xs text-center" style={{ tableLayout: "fixed", width: "max-content", minWidth: "100%" }}>
+              <colgroup>
+                <col style={{ width: "36px" }} />{/* No. */}
+                <col style={{ width: "200px" }} />{/* Nombre */}
+                {CATEGORIES.map(cat => {
+                  if (cat.type === "FINAL"  && !showFinal)  return null;
+                  if (cat.type === "ATTEND" && !showAttend) return null;
+                  const count = Math.max(1, byType(cat.type).length);
+                  return Array.from({ length: count }, (_, i) => (
+                    <col key={`col-${cat.type}-${i}`} style={{ width: "56px" }} />
+                  ));
+                })}
+                <col style={{ width: "56px" }} />{/* DEF Saber */}
+                <col style={{ width: "56px" }} />{/* DEF Hacer */}
+                <col style={{ width: "56px" }} />{/* DEF Ser */}
+                {showFinal && <col style={{ width: "56px" }} />}{/* DEF Final */}
+                <col style={{ width: "80px" }} />{/* Def Final */}
+                <col style={{ width: "90px" }} />{/* Desempeño */}
+              </colgroup>
               <thead>
                 {/* Row 1: Category headers */}
                 <tr className="bg-gray-100 dark:bg-gray-800">
