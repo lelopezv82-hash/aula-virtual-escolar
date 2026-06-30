@@ -124,6 +124,9 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [newTaskDuration, setNewTaskDuration] = useState("");
   const [newTaskWeight, setNewTaskWeight] = useState("0");
   const [newTaskGroupIds, setNewTaskGroupIds] = useState<string[]>([]);
+  const [newTaskTheme, setNewTaskTheme] = useState("");
+  const [newTaskPublishAt, setNewTaskPublishAt] = useState("");
+  const [newTaskAllowLateSubmission, setNewTaskAllowLateSubmission] = useState(false);
   const [addingTask,  setAddingTask]  = useState(false);
 
   // ── Delete confirm ──
@@ -298,6 +301,14 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     setNewTaskDuration("");
     setNewTaskWeight("0");
     setNewTaskGroupIds(selectedGroupId ? [selectedGroupId] : []);
+    setNewTaskTheme(
+      type === "EXAM" ? "Saber" :
+      type === "TASK" ? "Hacer" :
+      type === "SER" ? "Ser" :
+      type === "FINAL" ? "Examen Final" : "Asistencia"
+    );
+    setNewTaskPublishAt("");
+    setNewTaskAllowLateSubmission(false);
   };
 
   const handleAddTask = async () => {
@@ -316,7 +327,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           isExternal: newTaskIsExternal,
           duration: newTaskDuration ? parseInt(newTaskDuration) || null : null,
           weight: parseInt(newTaskWeight) || 0,
-          groupIds: newTaskGroupIds
+          groupIds: newTaskGroupIds,
+          theme: newTaskTheme.trim(),
+          publishAt: newTaskPublishAt || null,
+          allowLateSubmission: newTaskAllowLateSubmission
         })
       });
       if (res.ok) {
@@ -877,138 +891,182 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         </div>
       )}
 
-      {/* Add column modal */}
+      {/* Add column modal styled exactly as requested */}
       {addModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4 animate-fade-in">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-lg shadow-2xl animate-scale-in max-h-[85vh] overflow-y-auto flex flex-col gap-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-2xl shadow-2xl animate-scale-in max-h-[90vh] overflow-y-auto flex flex-col gap-4">
             
+            {/* Header */}
             <div className="flex justify-between items-center pb-2 border-b border-gray-200 dark:border-gray-800">
-              <h3 className="font-bold text-lg">
-                Nueva Evaluación: {CATEGORIES.find(c => c.type === addModal.type)?.label}
+              <h3 className="font-bold text-xl text-gray-900 dark:text-gray-155">
+                {addModal.type === "EXAM" ? "Nuevo Examen" : "Nueva Evaluación"}
               </h3>
-              <button onClick={() => setAddModal(null)} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
-                <X size={20} />
+              <button onClick={() => setAddModal(null)} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
+                <X size={24} />
               </button>
             </div>
 
-            <div className="flex flex-col gap-4 py-2">
-              {/* Title */}
-              <div className="input-group">
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Título de la Evaluación *</label>
-                <input
-                  type="text"
-                  autoFocus
-                  placeholder={
-                    addModal.type === "EXAM"   ? "Ej: Evaluación Unidad 1" :
-                    addModal.type === "TASK"   ? "Ej: Taller de Comprensión" :
-                    addModal.type === "SER"    ? "Ej: Coevaluación" :
-                    addModal.type === "FINAL"  ? "Ej: Examen Final" :
-                    "Ej: Asistencia Semana 1"
-                  }
-                  value={newTaskName}
-                  onChange={e => setNewTaskName(e.target.value)}
-                  className="input-field w-full"
-                  required
-                />
-              </div>
-
-              {/* Description */}
-              <div className="input-group">
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Descripción e Instrucciones</label>
-                <textarea
-                  placeholder="Detalles sobre lo que se evaluará o instrucciones para el estudiante..."
-                  value={newTaskDescription}
-                  onChange={e => setNewTaskDescription(e.target.value)}
-                  className="input-field w-full min-h-[80px] text-xs"
-                  rows={3}
-                />
-              </div>
-
-              {/* Due Date & Weight */}
-              <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-4">
+              
+              {/* Row 1: Asignatura & Periodo */}
+              <div className="grid grid-cols-2 gap-4">
                 <div className="input-group">
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fecha y Hora Límite *</label>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Asignatura *</label>
+                  <select className="w-full p-2.5 rounded-lg border border-gray-300 dark:border-gray-750 bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-450 cursor-not-allowed text-xs font-semibold" disabled>
+                    <option>{selectedCourse?.name || "Asignatura"}</option>
+                  </select>
+                </div>
+                <div className="input-group">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Periodo *</label>
+                  <select className="w-full p-2.5 rounded-lg border border-gray-300 dark:border-gray-750 bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-450 cursor-not-allowed text-xs font-semibold" disabled>
+                    <option>{selectedPeriod}</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Row 2: Título del Examen & Tema */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="input-group">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                    {addModal.type === "EXAM" ? "Título del Examen *" : "Título de la Evaluación *"}
+                  </label>
                   <input
-                    type="datetime-local"
-                    value={newTaskDueDate}
-                    onChange={e => setNewTaskDueDate(e.target.value)}
-                    className="input-field w-full text-xs"
+                    type="text"
+                    autoFocus
+                    placeholder={
+                      addModal.type === "EXAM"   ? "Ej. Taller de cinemática" :
+                      addModal.type === "TASK"   ? "Ej. Taller de Comprensión" :
+                      addModal.type === "SER"    ? "Ej. Coevaluación" :
+                      addModal.type === "FINAL"  ? "Ej. Examen Final" :
+                      "Ej. Asistencia Semana 1"
+                    }
+                    value={newTaskName}
+                    onChange={e => setNewTaskName(e.target.value)}
+                    className="input-field w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
                     required
                   />
                 </div>
                 <div className="input-group">
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Peso Individual (%)</label>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Tema *</label>
+                  <input
+                    type="text"
+                    placeholder="Ej. Dinámica, Termodinámica"
+                    value={newTaskTheme}
+                    onChange={e => setNewTaskTheme(e.target.value)}
+                    className="input-field w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Row 3: Porcentaje, Fecha Límite & Límite de Tiempo */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="input-group">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                    Porcentaje de la Nota (0-100) *
+                  </label>
                   <input
                     type="number"
                     min="0"
                     max="100"
                     value={newTaskWeight}
                     onChange={e => setNewTaskWeight(e.target.value)}
-                    className="input-field w-full text-xs"
+                    className="input-field w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
+                    required
+                  />
+                </div>
+                <div className="input-group">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                    Fecha Límite de Entrega *
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={newTaskDueDate}
+                    onChange={e => setNewTaskDueDate(e.target.value)}
+                    className="input-field w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
+                    required
+                  />
+                </div>
+                <div className="input-group">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                    Límite de Tiempo (minutos, opcional)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="Ej. 60"
+                    value={newTaskDuration}
+                    onChange={e => setNewTaskDuration(e.target.value)}
+                    className="input-field w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316] disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400 disabled:cursor-not-allowed"
+                    disabled={newTaskIsExternal}
                   />
                 </div>
               </div>
 
-              {/* Delivery / Evaluation Type */}
-              {(addModal.type === "TASK" || addModal.type === "EXAM") && (
-                <div className="input-group bg-slate-50 dark:bg-slate-800/40 p-3 rounded-lg border border-gray-200 dark:border-gray-800 flex flex-col gap-2">
-                  <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase">
-                    Método de Entrega / Calificación
-                  </label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer text-gray-700 dark:text-gray-300">
-                      <input
-                        type="radio"
-                        name="isExternal"
-                        checked={!newTaskIsExternal}
-                        onChange={() => setNewTaskIsExternal(false)}
-                        className="text-[#f97316] focus:ring-[#f97316]"
-                      />
-                      <span>
-                        {addModal.type === "EXAM" ? "Examen automático en la plataforma" : "Subir archivos a la plataforma"}
-                      </span>
+              {/* Row 4: Programar Publicación Automática */}
+              <div className="input-group">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  Programar Publicación Automática (Fecha y Hora - Opcional)
+                </label>
+                <input
+                  type="datetime-local"
+                  value={newTaskPublishAt}
+                  onChange={e => setNewTaskPublishAt(e.target.value)}
+                  className="input-field w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
+                />
+                <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 block">
+                  Dejar vacío para publicar inmediatamente. Si se define, la tarea se publicará automáticamente al llegar el momento.
+                </span>
+              </div>
+
+              {/* Checkboxes structured in styled containers */}
+              <div className="flex flex-col gap-3">
+                {/* Checkbox 1: isExternal */}
+                <div className="border border-gray-300 dark:border-gray-750 rounded-lg p-3 bg-white dark:bg-gray-900 flex items-start gap-3">
+                  <input
+                    id="isExternalCheck"
+                    type="checkbox"
+                    checked={newTaskIsExternal}
+                    onChange={e => setNewTaskIsExternal(e.target.checked)}
+                    className="w-4 h-4 rounded text-[#f97316] focus:ring-[#f97316] mt-0.5 cursor-pointer"
+                  />
+                  <div className="flex flex-col gap-0.5">
+                    <label htmlFor="isExternalCheck" className="font-bold text-xs text-gray-800 dark:text-gray-200 cursor-pointer select-none">
+                      Trabajo fuera de la plataforma (Calificación manual)
                     </label>
-                    <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer text-gray-700 dark:text-gray-300">
-                      <input
-                        type="radio"
-                        name="isExternal"
-                        checked={newTaskIsExternal}
-                        onChange={() => setNewTaskIsExternal(true)}
-                        className="text-[#f97316] focus:ring-[#f97316]"
-                      />
-                      <span>
-                        {addModal.type === "EXAM" ? "Examen físico o calificado fuera (Manual)" : "Entregada físicamente al docente"}
-                      </span>
-                    </label>
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500 leading-tight">
+                      Si se activa, los estudiantes no tendrán que entregar archivos ni responder cuestionarios. La calificación la registrarás tú directamente.
+                    </span>
                   </div>
                 </div>
-              )}
 
-              {/* Exam Duration Limit (only if EXAM and not external) */}
-              {addModal.type === "EXAM" && !newTaskIsExternal && (
-                <div className="input-group animate-fade-in">
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Límite de Tiempo (minutos)</label>
+                {/* Checkbox 2: allowLateSubmission */}
+                <div className="border border-gray-300 dark:border-gray-750 rounded-lg p-3 bg-white dark:bg-gray-900 flex items-center gap-3">
                   <input
-                    type="number"
-                    min="1"
-                    placeholder="Ej: 60 (Vacío para ilimitado)"
-                    value={newTaskDuration}
-                    onChange={e => setNewTaskDuration(e.target.value)}
-                    className="input-field w-full text-xs"
+                    id="allowLateCheck"
+                    type="checkbox"
+                    checked={newTaskAllowLateSubmission}
+                    onChange={e => setNewTaskAllowLateSubmission(e.target.checked)}
+                    className="w-4 h-4 rounded text-[#f97316] focus:ring-[#f97316] cursor-pointer"
                   />
+                  <label htmlFor="allowLateCheck" className="font-bold text-xs text-gray-800 dark:text-gray-200 cursor-pointer select-none">
+                    Permitir entregas tardías (Prórroga)
+                  </label>
                 </div>
-              )}
+              </div>
 
               {/* Course Groups Assignment Checkboxes */}
-              {groups.length > 1 && (
+              {groups.length > 0 && (
                 <div className="input-group">
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Asignar a Grupos (Cursos)</label>
-                  <div className="flex flex-wrap gap-2 max-h-[100px] overflow-y-auto p-2 bg-slate-50 dark:bg-slate-800/20 border border-gray-200 dark:border-gray-800 rounded-lg">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                    Asignar a Grupos (Múltiple) *
+                  </label>
+                  <div className="flex flex-col gap-2 p-3 bg-slate-50 dark:bg-slate-800/20 border border-gray-200 dark:border-gray-800 rounded-lg">
                     {groups.map(g => {
                       const label = g.grade?.name ? `${g.grade.name} — ${g.name}` : g.name;
                       const isChecked = newTaskGroupIds.includes(g.id);
                       return (
-                        <label key={g.id} className="flex items-center gap-1.5 text-xs font-semibold cursor-pointer select-none text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border rounded-full px-2.5 py-1">
+                        <label key={g.id} className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none text-gray-700 dark:text-gray-300">
                           <input
                             type="checkbox"
                             checked={isChecked}
@@ -1019,7 +1077,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                                 setNewTaskGroupIds(prev => [...prev, g.id]);
                               }
                             }}
-                            className="rounded text-[#f97316] focus:ring-[#f97316] w-3 h-3"
+                            className="rounded text-[#f97316] focus:ring-[#f97316] w-4 h-4"
                           />
                           <span>{label}</span>
                         </label>
@@ -1028,17 +1086,49 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                   </div>
                 </div>
               )}
+
+              {/* Description */}
+              <div className="input-group">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  {addModal.type === "EXAM" ? "Descripción del Examen" : "Descripción de la Evaluación"}
+                </label>
+                <textarea
+                  placeholder="Escribe las instrucciones aquí..."
+                  value={newTaskDescription}
+                  onChange={e => setNewTaskDescription(e.target.value)}
+                  className="w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
+                  rows={4}
+                />
+              </div>
+
+              {/* Tip Banner (Only visible for platform exams) */}
+              {addModal.type === "EXAM" && !newTaskIsExternal && (
+                <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/50 text-[#c2410c] dark:text-orange-400 rounded-lg p-3 text-xs leading-normal flex items-start gap-2">
+                  <span className="text-sm">💡</span>
+                  <p>
+                    <strong>Examen en la Plataforma:</strong> Este examen se creará directamente aquí. Una vez creado, haz clic en <span className="font-bold">Ver/Calificar</span> en la lista de exámenes para ingresar las preguntas y opciones de respuesta.
+                  </p>
+                </div>
+              )}
+
             </div>
 
+            {/* Footer Buttons */}
             <div className="flex justify-end gap-3 pt-3 border-t border-gray-200 dark:border-gray-800">
-              <button onClick={() => setAddModal(null)} className="btn btn-secondary py-2">Cancelar</button>
+              <button onClick={() => setAddModal(null)} className="text-xs font-bold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                Cancelar
+              </button>
               <button
                 onClick={handleAddTask}
-                disabled={addingTask || !newTaskName.trim() || (groups.length > 1 && newTaskGroupIds.length === 0)}
-                className="btn btn-primary min-w-[130px] py-2"
-                style={{ background: "#f97316", borderColor: "#ea580c" }}
+                disabled={addingTask || !newTaskName.trim() || newTaskGroupIds.length === 0}
+                className="text-xs font-bold text-white bg-[#f97316] border border-[#ea580c] px-4 py-2 rounded-lg hover:bg-[#ea580c] transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {addingTask ? <Loader2 size={16} className="animate-spin mx-auto" /> : "Crear Evaluación"}
+                {addingTask ? <Loader2 size={16} className="animate-spin mx-auto" /> : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                    <span>{addModal.type === "EXAM" ? "Crear Examen" : "Crear Evaluación"}</span>
+                  </>
+                )}
               </button>
             </div>
 

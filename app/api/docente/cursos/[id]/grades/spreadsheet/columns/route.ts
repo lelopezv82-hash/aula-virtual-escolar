@@ -36,7 +36,10 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       isExternal,
       duration,
       weight,
-      groupIds
+      groupIds,
+      theme,
+      publishAt,
+      allowLateSubmission
     } = body;
 
     if (!title || !type || !period) {
@@ -47,12 +50,17 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       return NextResponse.json({ error: 'El curso no tiene grupos asignados.' }, { status: 400 });
     }
 
-    // Parse dueDate or default to end of today
+    // Parse dates
     let parsedDueDate = new Date();
     if (dueDate) {
       parsedDueDate = new Date(dueDate);
     } else {
       parsedDueDate.setHours(23, 59, 59, 999);
+    }
+
+    let parsedPublishAt = null;
+    if (publishAt) {
+      parsedPublishAt = new Date(publishAt);
     }
 
     // Determine group connections
@@ -67,9 +75,12 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         type,
         period,
         courseId,
+        theme: theme || null,
         description: description || null,
         dueDate: parsedDueDate,
+        publishAt: parsedPublishAt,
         isExternal: isExternal !== undefined ? Boolean(isExternal) : true,
+        allowLateSubmission: allowLateSubmission !== undefined ? Boolean(allowLateSubmission) : false,
         active: true,
         weight: weight ? parseInt(weight) || 0 : 0,
         duration: duration ? parseInt(duration) || null : null,
