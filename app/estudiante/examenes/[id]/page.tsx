@@ -490,7 +490,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
           ) : (
             <div className="flex flex-col items-center justify-center py-8 text-center gap-3">
               <Clock size={36} className="text-muted opacity-40" />
-              <p className="text-muted text-sm">Tu docente aún no ha registrado tu calificación para este examen presencial / externo.</p>
+              <p className="text-muted text-sm">Tu docente aún no ha registrado tu calificación para este examen entregado al docente.</p>
             </div>
           )}
         </div>
