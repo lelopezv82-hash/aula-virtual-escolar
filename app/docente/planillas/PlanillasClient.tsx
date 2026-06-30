@@ -8,6 +8,7 @@ import {
   Eye, EyeOff
 } from "lucide-react";
 import Link from "next/link";
+import QuestionEditor from "../tareas/[id]/QuestionEditor";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 // @ts-ignore
@@ -153,6 +154,11 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [savingGrades, setSavingGrades] = useState(false);
   const [gradingError, setGradingError] = useState("");
   const [gradingSaved, setGradingSaved] = useState(false);
+
+  // ── Exam Questions Modal ──
+  const [questionsModalTask, setQuestionsModalTask] = useState<TaskItem | null>(null);
+  const [examQuestions, setExamQuestions] = useState<any[]>([]);
+  const [loadingQuestions, setLoadingQuestions] = useState(false);
 
   // ── Derived ──
   const selectedCourse = courses.find(c => c.id === selectedCourseId);
@@ -494,6 +500,25 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       setGradingError("Error de conexión");
     } finally {
       setLoadingStudents(false);
+    }
+  };
+
+  const openQuestionsModal = async (task: TaskItem) => {
+    setQuestionsModalTask(task);
+    setLoadingQuestions(true);
+    setExamQuestions([]);
+    try {
+      const res = await fetch(`/api/docente/tareas/${task.id}/questions`);
+      const data = await res.json();
+      if (res.ok && data.questions) {
+        setExamQuestions(data.questions);
+      } else {
+        alert(data.error || "Error al cargar las preguntas del examen");
+      }
+    } catch {
+      alert("Error de conexión al cargar las preguntas del examen");
+    } finally {
+      setLoadingQuestions(false);
     }
   };
 
@@ -1071,14 +1096,14 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     </div>
                     {/* Crear preguntas del examen en línea */}
                     {t.type === "EXAM" && !t.isExternal && (
-                      <a
-                        href={`/docente/tareas/${t.id}`}
+                      <button
+                        onClick={() => openQuestionsModal(t)}
                         className="flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 text-purple-700 dark:text-purple-300 text-[10px] font-bold hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors w-full"
-                        title="Ir al editor de preguntas del examen en línea"
+                        title="Abrir editor de preguntas del examen"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        <svg xmlns="http://www.w3.org/2500/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                         Crear Preguntas del Examen
-                      </a>
+                      </button>
                     )}
                   </div>
                 </div>
@@ -1487,6 +1512,52 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               >
                 {savingGrades ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
                 Guardar Calificaciones
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Exam Questions Modal */}
+      {questionsModalTask && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4 animate-fade-in">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-4xl shadow-2xl animate-scale-in max-h-[90vh] overflow-y-auto flex flex-col gap-4">
+            
+            {/* Header */}
+            <div className="flex justify-between items-center pb-2 border-b border-gray-200 dark:border-gray-800">
+              <div>
+                <h3 className="font-bold text-xl text-gray-900 dark:text-gray-100">
+                  Preguntas del Examen: {questionsModalTask.title}
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-450 mt-0.5">
+                  Gestiona las preguntas del examen directamente desde la planilla.
+                </p>
+              </div>
+              <button onClick={() => setQuestionsModalTask(null)} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1">
+              {loadingQuestions ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-3">
+                  <Loader2 className="animate-spin text-[#f98012]" size={32} />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold">Cargando preguntas del examen...</p>
+                </div>
+              ) : (
+                <QuestionEditor 
+                  key={questionsModalTask.id}
+                  taskId={questionsModalTask.id} 
+                  initialQuestions={examQuestions} 
+                />
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-end gap-3 border-t pt-4" style={{ borderColor: "var(--border-color)" }}>
+              <button className="btn btn-secondary" onClick={() => setQuestionsModalTask(null)}>
+                Cerrar
               </button>
             </div>
           </div>
