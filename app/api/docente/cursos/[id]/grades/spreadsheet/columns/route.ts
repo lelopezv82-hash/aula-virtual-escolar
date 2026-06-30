@@ -27,19 +27,39 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     if (!course) return NextResponse.json({ error: 'Curso no encontrado o no te pertenece' }, { status: 403 });
 
     const body = await request.json();
-    const { title, type, period } = body;
+    const {
+      title,
+      type,
+      period,
+      description,
+      dueDate,
+      isExternal,
+      duration,
+      weight,
+      groupIds
+    } = body;
 
     if (!title || !type || !period) {
-      return NextResponse.json({ error: 'Faltan parámetros: title, type, period' }, { status: 400 });
+      return NextResponse.json({ error: 'Faltan parámetros obligatorios: title, type, period' }, { status: 400 });
     }
 
     if (course.groups.length === 0) {
       return NextResponse.json({ error: 'El curso no tiene grupos asignados.' }, { status: 400 });
     }
 
-    // Set due date to end of today
-    const dueDate = new Date();
-    dueDate.setHours(23, 59, 59, 999);
+    // Parse dueDate or default to end of today
+    let parsedDueDate = new Date();
+    if (dueDate) {
+      parsedDueDate = new Date(dueDate);
+    } else {
+      parsedDueDate.setHours(23, 59, 59, 999);
+    }
+
+    // Determine group connections
+    let targetGroups = course.groups.map(g => ({ id: g.id }));
+    if (groupIds && Array.isArray(groupIds) && groupIds.length > 0) {
+      targetGroups = groupIds.map(id => ({ id }));
+    }
 
     const task = await prisma.task.create({
       data: {
@@ -47,12 +67,14 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         type,
         period,
         courseId,
-        dueDate,
-        isExternal: true,
+        description: description || null,
+        dueDate: parsedDueDate,
+        isExternal: isExternal !== undefined ? Boolean(isExternal) : true,
         active: true,
-        weight: 0,
+        weight: weight ? parseInt(weight) || 0 : 0,
+        duration: duration ? parseInt(duration) || null : null,
         groups: {
-          connect: course.groups.map(g => ({ id: g.id }))
+          connect: targetGroups
         }
       }
     });

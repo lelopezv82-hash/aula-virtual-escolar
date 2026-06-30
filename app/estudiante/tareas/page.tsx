@@ -64,11 +64,9 @@ export default async function TareasEstudiantePage() {
   });
 
   const pendingTasks = tasks.filter(task => {
-    // External tasks have nothing to submit — never shown in Pendientes
-    if (task.isExternal) return false;
     const submission = task.submissions[0];
     const { isClosed } = getTaskDeadlineStatus(task, submission);
-    const virtualGraded = (!submission && isClosed) || (submission && submission.status === "PENDING" && isClosed);
+    const virtualGraded = !task.isExternal && ((!submission && isClosed) || (submission && submission.status === "PENDING" && isClosed));
     const isSubmitted = submission && submission.status !== "PENDING";
     return !isSubmitted && !virtualGraded;
   });
@@ -136,7 +134,11 @@ export default async function TareasEstudiantePage() {
                     <span style={{ fontSize: "0.75rem", fontWeight: 700, padding: "2px 8px", background: "#f3f4f6", borderRadius: "4px", color: "#4b5563" }}>
                       {task.course.name}
                     </span>
-                    <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "rgba(16,185,129,0.1)", color: "#059669", border: "1px solid rgba(16,185,129,0.2)" }}>Subida a plataforma</span>
+                    {task.isExternal ? (
+                      <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "rgba(59,130,246,0.1)", color: "#2563eb", border: "1px solid rgba(59,130,246,0.2)" }}>Entrega externa</span>
+                    ) : (
+                      <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "rgba(16,185,129,0.1)", color: "#059669", border: "1px solid rgba(16,185,129,0.2)" }}>Subida a plataforma</span>
+                    )}
                     {isGraded && (
                       <span className={`badge flex items-center gap-1 ${gradeReason ? 'badge-danger' : 'badge-success'}`}>
                         <CheckCircle size={12} /> Calificada
@@ -177,9 +179,9 @@ export default async function TareasEstudiantePage() {
                     </div>
                   ) : null}
 
-                  {!(isClosed && neverSubmitted) && (
+                  {!(isClosed && neverSubmitted && !task.isExternal) && (
                     <Link href={`/estudiante/tareas/${task.id}`} className={`btn w-full md:w-auto ${isSubmitted ? 'btn-secondary' : 'btn-primary'}`}>
-                      {isSubmitted ? 'Ver Entrega' : 'Subir Tarea'}
+                      {task.isExternal ? (isSubmitted ? 'Ver Calificación' : 'Ver Detalles') : (isSubmitted ? 'Ver Entrega' : 'Subir Tarea')}
                     </Link>
                   )}
                 </div>

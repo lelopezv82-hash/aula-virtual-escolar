@@ -54,13 +54,7 @@ export default async function CursoTareasPage({
     const submission = task.submissions[0];
     const { isClosed } = getTaskDeadlineStatus(task, submission);
     const isSubmitted = submission && submission.status !== "PENDING";
-    const isVirtuallyClosed = (!submission && isClosed) || (submission && submission.status === "PENDING" && isClosed);
-
-    // External tasks: only show when graded (in Entregadas), never in Pendientes
-    if (task.isExternal) {
-      if (estado === "entregadas") return isSubmitted;
-      return false;
-    }
+    const isVirtuallyClosed = !task.isExternal && ((!submission && isClosed) || (submission && submission.status === "PENDING" && isClosed));
 
     if (estado === "entregadas") return isSubmitted;
     // default: pendientes
@@ -146,7 +140,7 @@ export default async function CursoTareasPage({
                   )}
                   <div>
                     <Link href={`/estudiante/tareas/${task.id}`} className={`btn ${isSubmitted ? 'btn-secondary' : 'btn-primary'}`}>
-                      {isSubmitted ? 'Ver Calificación' : 'Subir Tarea'}
+                      {task.isExternal ? (isSubmitted ? 'Ver Calificación' : 'Ver Detalles') : (isSubmitted ? 'Ver Calificación' : 'Subir Tarea')}
                     </Link>
                   </div>
                 </div>

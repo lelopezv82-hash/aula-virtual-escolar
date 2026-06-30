@@ -118,6 +118,12 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   // ── Add column modal ──
   const [addModal,    setAddModal]    = useState<{ type: CatType } | null>(null);
   const [newTaskName, setNewTaskName] = useState("");
+  const [newTaskDescription, setNewTaskDescription] = useState("");
+  const [newTaskDueDate, setNewTaskDueDate] = useState("");
+  const [newTaskIsExternal, setNewTaskIsExternal] = useState(true);
+  const [newTaskDuration, setNewTaskDuration] = useState("");
+  const [newTaskWeight, setNewTaskWeight] = useState("0");
+  const [newTaskGroupIds, setNewTaskGroupIds] = useState<string[]>([]);
   const [addingTask,  setAddingTask]  = useState(false);
 
   // ── Delete confirm ──
@@ -273,8 +279,27 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     setSavingPct(false);
   };
 
+  // Helper to generate default due date (tomorrow at 23:59)
+  const getDefaultDueDate = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    d.setHours(23, 59, 0, 0);
+    const pad = (num: number) => String(num).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
   // ── Add column ──
-  const openAddModal = (type: CatType) => { setAddModal({ type }); setNewTaskName(""); };
+  const openAddModal = (type: CatType) => {
+    setAddModal({ type });
+    setNewTaskName("");
+    setNewTaskDescription("");
+    setNewTaskDueDate(getDefaultDueDate());
+    setNewTaskIsExternal(type === "EXAM" || type === "TASK" ? false : true);
+    setNewTaskDuration("");
+    setNewTaskWeight("0");
+    setNewTaskGroupIds(selectedGroupId ? [selectedGroupId] : []);
+  };
+
   const handleAddTask = async () => {
     if (!newTaskName.trim() || !addModal) return;
     setAddingTask(true);
@@ -282,11 +307,28 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       const res = await fetch(`/api/docente/cursos/${selectedCourseId}/grades/spreadsheet/columns`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: newTaskName.trim(), type: addModal.type, period: selectedPeriod })
+        body: JSON.stringify({
+          title: newTaskName.trim(),
+          type: addModal.type,
+          period: selectedPeriod,
+          description: newTaskDescription.trim(),
+          dueDate: newTaskDueDate,
+          isExternal: newTaskIsExternal,
+          duration: newTaskDuration ? parseInt(newTaskDuration) || null : null,
+          weight: parseInt(newTaskWeight) || 0,
+          groupIds: newTaskGroupIds
+        })
       });
-      if (res.ok) { setAddModal(null); fetchData(); }
-      else        { const d = await res.json(); alert(d.error ?? "Error al crear columna."); }
-    } catch { alert("Error de conexión."); }
+      if (res.ok) {
+        setAddModal(null);
+        fetchData();
+      } else {
+        const d = await res.json();
+        alert(d.error ?? "Error al crear columna.");
+      }
+    } catch {
+      alert("Error de conexión.");
+    }
     setAddingTask(false);
   };
 
@@ -838,44 +880,168 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       {/* Add column modal */}
       {addModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4 animate-fade-in">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md shadow-2xl animate-scale-in">
-            <div className="flex justify-between items-center mb-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-lg shadow-2xl animate-scale-in max-h-[85vh] overflow-y-auto flex flex-col gap-4">
+            
+            <div className="flex justify-between items-center pb-2 border-b border-gray-200 dark:border-gray-800">
               <h3 className="font-bold text-lg">
-                Agregar columna —{" "}
-                {CATEGORIES.find(c => c.type === addModal.type)?.label}
+                Nueva Evaluación: {CATEGORIES.find(c => c.type === addModal.type)?.label}
               </h3>
               <button onClick={() => setAddModal(null)} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
                 <X size={20} />
               </button>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              Se creará para el periodo <strong>{selectedPeriod}</strong> y se asignará al grupo seleccionado.
-            </p>
-            <input
-              type="text"
-              autoFocus
-              placeholder={
-                addModal.type === "EXAM"   ? "Ej: Evaluación Unidad 1" :
-                addModal.type === "TASK"   ? "Ej: Taller de Comprensión" :
-                addModal.type === "SER"    ? "Ej: Autoevaluación" :
-                addModal.type === "FINAL"  ? "Ej: Examen Final" :
-                "Ej: Semana 1"
-              }
-              value={newTaskName}
-              onChange={e => setNewTaskName(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handleAddTask()}
-              className="input-field w-full mb-5"
-            />
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setAddModal(null)} className="btn btn-secondary">Cancelar</button>
+
+            <div className="flex flex-col gap-4 py-2">
+              {/* Title */}
+              <div className="input-group">
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Título de la Evaluación *</label>
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder={
+                    addModal.type === "EXAM"   ? "Ej: Evaluación Unidad 1" :
+                    addModal.type === "TASK"   ? "Ej: Taller de Comprensión" :
+                    addModal.type === "SER"    ? "Ej: Coevaluación" :
+                    addModal.type === "FINAL"  ? "Ej: Examen Final" :
+                    "Ej: Asistencia Semana 1"
+                  }
+                  value={newTaskName}
+                  onChange={e => setNewTaskName(e.target.value)}
+                  className="input-field w-full"
+                  required
+                />
+              </div>
+
+              {/* Description */}
+              <div className="input-group">
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Descripción e Instrucciones</label>
+                <textarea
+                  placeholder="Detalles sobre lo que se evaluará o instrucciones para el estudiante..."
+                  value={newTaskDescription}
+                  onChange={e => setNewTaskDescription(e.target.value)}
+                  className="input-field w-full min-h-[80px] text-xs"
+                  rows={3}
+                />
+              </div>
+
+              {/* Due Date & Weight */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="input-group">
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fecha y Hora Límite *</label>
+                  <input
+                    type="datetime-local"
+                    value={newTaskDueDate}
+                    onChange={e => setNewTaskDueDate(e.target.value)}
+                    className="input-field w-full text-xs"
+                    required
+                  />
+                </div>
+                <div className="input-group">
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Peso Individual (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={newTaskWeight}
+                    onChange={e => setNewTaskWeight(e.target.value)}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Delivery / Evaluation Type */}
+              {(addModal.type === "TASK" || addModal.type === "EXAM") && (
+                <div className="input-group bg-slate-50 dark:bg-slate-800/40 p-3 rounded-lg border border-gray-200 dark:border-gray-800 flex flex-col gap-2">
+                  <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase">
+                    Método de Entrega / Calificación
+                  </label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer text-gray-700 dark:text-gray-300">
+                      <input
+                        type="radio"
+                        name="isExternal"
+                        checked={!newTaskIsExternal}
+                        onChange={() => setNewTaskIsExternal(false)}
+                        className="text-[#f97316] focus:ring-[#f97316]"
+                      />
+                      <span>
+                        {addModal.type === "EXAM" ? "Examen automático en la plataforma" : "Subir archivos a la plataforma"}
+                      </span>
+                    </label>
+                    <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer text-gray-700 dark:text-gray-300">
+                      <input
+                        type="radio"
+                        name="isExternal"
+                        checked={newTaskIsExternal}
+                        onChange={() => setNewTaskIsExternal(true)}
+                        className="text-[#f97316] focus:ring-[#f97316]"
+                      />
+                      <span>
+                        {addModal.type === "EXAM" ? "Examen físico o calificado fuera (Manual)" : "Entregada físicamente al docente"}
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Exam Duration Limit (only if EXAM and not external) */}
+              {addModal.type === "EXAM" && !newTaskIsExternal && (
+                <div className="input-group animate-fade-in">
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Límite de Tiempo (minutos)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="Ej: 60 (Vacío para ilimitado)"
+                    value={newTaskDuration}
+                    onChange={e => setNewTaskDuration(e.target.value)}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+              )}
+
+              {/* Course Groups Assignment Checkboxes */}
+              {groups.length > 1 && (
+                <div className="input-group">
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Asignar a Grupos (Cursos)</label>
+                  <div className="flex flex-wrap gap-2 max-h-[100px] overflow-y-auto p-2 bg-slate-50 dark:bg-slate-800/20 border border-gray-200 dark:border-gray-800 rounded-lg">
+                    {groups.map(g => {
+                      const label = g.grade?.name ? `${g.grade.name} — ${g.name}` : g.name;
+                      const isChecked = newTaskGroupIds.includes(g.id);
+                      return (
+                        <label key={g.id} className="flex items-center gap-1.5 text-xs font-semibold cursor-pointer select-none text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border rounded-full px-2.5 py-1">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {
+                              if (isChecked) {
+                                setNewTaskGroupIds(prev => prev.filter(id => id !== g.id));
+                              } else {
+                                setNewTaskGroupIds(prev => [...prev, g.id]);
+                              }
+                            }}
+                            className="rounded text-[#f97316] focus:ring-[#f97316] w-3 h-3"
+                          />
+                          <span>{label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 pt-3 border-t border-gray-200 dark:border-gray-800">
+              <button onClick={() => setAddModal(null)} className="btn btn-secondary py-2">Cancelar</button>
               <button
                 onClick={handleAddTask}
-                disabled={addingTask || !newTaskName.trim()}
-                className="btn btn-primary min-w-[120px]"
+                disabled={addingTask || !newTaskName.trim() || (groups.length > 1 && newTaskGroupIds.length === 0)}
+                className="btn btn-primary min-w-[130px] py-2"
+                style={{ background: "#f97316", borderColor: "#ea580c" }}
               >
-                {addingTask ? <Loader2 size={16} className="animate-spin mx-auto" /> : "Crear Columna"}
+                {addingTask ? <Loader2 size={16} className="animate-spin mx-auto" /> : "Crear Evaluación"}
               </button>
             </div>
+
           </div>
         </div>
       )}

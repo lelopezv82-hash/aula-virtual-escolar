@@ -58,18 +58,13 @@ export default async function CursoExamenesPage({
   const filtered = exams.filter(exam => {
     const submission = exam.submissions[0];
     const { isClosed } = getTaskDeadlineStatus(exam, submission);
-    const isTimerExpired = !!(submission?.startedAt && exam.duration &&
+    const isTimerExpired = !exam.isExternal && !!(submission?.startedAt && exam.duration &&
       (new Date(submission.startedAt).getTime() + exam.duration * 60 * 1000 + 30000 < now.getTime()));
-    const isVirtuallyClosed =
+    const isVirtuallyClosed = !exam.isExternal && (
       (!submission && isClosed) ||
-      (submission && submission.status === "PENDING" && (isClosed || isTimerExpired));
+      (submission && submission.status === "PENDING" && (isClosed || isTimerExpired))
+    );
     const isSubmitted = submission && submission.status !== "PENDING";
-
-    // External exams: only show in Presentados when graded, never in Disponibles
-    if (exam.isExternal) {
-      if (estado === "presentados") return isSubmitted;
-      return false;
-    }
 
     if (estado === "presentados") return isSubmitted || isVirtuallyClosed;
     // default: disponibles
