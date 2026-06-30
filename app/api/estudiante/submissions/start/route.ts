@@ -33,8 +33,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Tarea no encontrada' }, { status: 404 });
     }
 
-    // Comprobar si el examen tiene timeLimit
-    if (!task.timeLimit) {
+    // Comprobar si el examen tiene duration
+    if (!task.duration) {
       return NextResponse.json({ error: 'Este examen no tiene límite de tiempo' }, { status: 400 });
     }
 
