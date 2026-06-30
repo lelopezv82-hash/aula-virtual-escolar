@@ -162,11 +162,11 @@ export default async function CursoCalificacionesPage({
             {isPending && <span className="badge badge-info flex items-center gap-1"><Clock size={12} /> En revisión</span>}
             {sub.task.isExternal ? (
               <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "rgba(59,130,246,0.1)", color: "#2563eb", border: "1px solid rgba(59,130,246,0.2)" }}>
-                {sub.task.type === "EXAM" ? "Entregado al docente" : "Entregada al docente"}
+                Entregado al docente
               </span>
             ) : (
               <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "rgba(16,185,129,0.1)", color: "#059669", border: "1px solid rgba(16,185,129,0.2)" }}>
-                {sub.task.type === "EXAM" ? "Subido a plataforma" : "Subida a plataforma"}
+                Subido a plataforma
               </span>
             )}
           </div>

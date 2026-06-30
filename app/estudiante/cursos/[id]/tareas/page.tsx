@@ -122,9 +122,9 @@ export default async function CursoTareasPage({
                     )}
                     {!isSubmitted && isLate && <span className="badge badge-danger">Atrasada</span>}
                     {task.isExternal ? (
-                      <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "rgba(59,130,246,0.1)", color: "#2563eb", border: "1px solid rgba(59,130,246,0.2)" }}>Entregada al docente</span>
+                      <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "rgba(59,130,246,0.1)", color: "#2563eb", border: "1px solid rgba(59,130,246,0.2)" }}>Entregado al docente</span>
                     ) : (
-                      <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "rgba(16,185,129,0.1)", color: "#059669", border: "1px solid rgba(16,185,129,0.2)" }}>Subida a plataforma</span>
+                      <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "rgba(16,185,129,0.1)", color: "#059669", border: "1px solid rgba(16,185,129,0.2)" }}>Subido a plataforma</span>
                     )}
                   </div>
                   <h3 className="font-bold text-base mb-0.5" style={{ color: "var(--primary-color)" }}>{task.title}</h3>
