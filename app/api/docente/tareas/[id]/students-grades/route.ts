@@ -29,7 +29,18 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
           }
         },
         submissions: {
-          select: { id: true, studentId: true, status: true, grade: true, feedback: true, submittedAt: true },
+          select: { 
+            id: true, 
+            studentId: true, 
+            status: true, 
+            grade: true, 
+            feedback: true, 
+            submittedAt: true,
+            fileUrl: true,
+            allowLateSubmission: true,
+            lateSubmissionUntil: true,
+            gdriveEmail: true
+          },
         },
       },
     });
@@ -56,7 +67,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       submission: submissionMap.get(s.id) ?? null,
     }));
 
-    return NextResponse.json({ students, taskType: task.type, taskTitle: task.title });
+    return NextResponse.json({ 
+      students, 
+      taskType: task.type, 
+      taskTitle: task.title,
+      allowLateSubmission: task.allowLateSubmission,
+      lateSubmissionUntil: task.lateSubmissionUntil ? task.lateSubmissionUntil.toISOString() : null
+    });
   } catch (error) {
     console.error("Error fetching task students:", error);
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });

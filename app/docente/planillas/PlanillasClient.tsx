@@ -5,10 +5,11 @@ import {
   ArrowLeft, FileSpreadsheet, FileText, Loader2,
   Save, Undo2, AlertTriangle, Check, Info,
   Plus, Trash2, X, Pencil, CheckCircle, AlertCircle, Clock,
-  Eye, EyeOff
+  Eye, EyeOff, Users
 } from "lucide-react";
 import Link from "next/link";
 import QuestionEditor from "../tareas/[id]/QuestionEditor";
+import { toColombiaISOString, fromColombiaLocalStringToDate } from "@/lib/dateUtils";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 // @ts-ignore
@@ -155,10 +156,18 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [gradingError, setGradingError] = useState("");
   const [gradingSaved, setGradingSaved] = useState(false);
 
-  // ── Exam Questions Modal ──
+  // ── Exam / Task Management Modal ──
   const [questionsModalTask, setQuestionsModalTask] = useState<TaskItem | null>(null);
   const [examQuestions, setExamQuestions] = useState<any[]>([]);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
+  const [manageTab, setManageTab] = useState<"control" | "questions">("control");
+  const [taskStudents, setTaskStudents] = useState<any[]>([]);
+  const [globalAllowLate, setGlobalAllowLate] = useState(false);
+  const [globalLateUntil, setGlobalLateUntil] = useState("");
+  const [savedGlobalAllowLate, setSavedGlobalAllowLate] = useState(false);
+  const [savedGlobalLateUntil, setSavedGlobalLateUntil] = useState("");
+  const [savingGlobalLate, setSavingGlobalLate] = useState(false);
+  const [resettingSubmissions, setResettingSubmissions] = useState<string | null>(null);
 
   // ── Derived ──
   const selectedCourse = courses.find(c => c.id === selectedCourseId);
@@ -505,21 +514,120 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
   const openQuestionsModal = async (task: TaskItem) => {
     setQuestionsModalTask(task);
+    setManageTab("control");
     setLoadingQuestions(true);
     setExamQuestions([]);
+    setTaskStudents([]);
+    setGlobalAllowLate(false);
+    setGlobalLateUntil("");
+    setSavedGlobalAllowLate(false);
+    setSavedGlobalLateUntil("");
     try {
-      const res = await fetch(`/api/docente/tareas/${task.id}/questions`);
-      const data = await res.json();
-      if (res.ok && data.questions) {
-        setExamQuestions(data.questions);
-      } else {
-        alert(data.error || "Error al cargar las preguntas del examen");
+      const studentRes = await fetch(`/api/docente/tareas/${task.id}/students-grades`);
+      const studentData = await studentRes.json();
+      if (studentRes.ok) {
+        setTaskStudents(studentData.students || []);
+        const al = !!studentData.allowLateSubmission;
+        const lu = studentData.lateSubmissionUntil ? toColombiaISOString(studentData.lateSubmissionUntil) : "";
+        setGlobalAllowLate(al);
+        setGlobalLateUntil(lu);
+        setSavedGlobalAllowLate(al);
+        setSavedGlobalLateUntil(lu);
+      }
+      if (task.type === "EXAM") {
+        const questRes = await fetch(`/api/docente/tareas/${task.id}/questions`);
+        const questData = await questRes.json();
+        if (questRes.ok) setExamQuestions(questData.questions || []);
       }
     } catch {
-      alert("Error de conexión al cargar las preguntas del examen");
+      alert("Error de conexión al cargar la información de la tarea");
     } finally {
       setLoadingQuestions(false);
     }
+  };
+
+  const saveGlobalLateConfig = async () => {
+    if (!questionsModalTask) return;
+    setSavingGlobalLate(true);
+    try {
+      const res = await fetch(`/api/docente/tareas/${questionsModalTask.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          allowLateSubmission: globalAllowLate,
+          lateSubmissionUntil: globalAllowLate && globalLateUntil ? fromColombiaLocalStringToDate(globalLateUntil)?.toISOString() : null
+        })
+      });
+      if (res.ok) {
+        setSavedGlobalAllowLate(globalAllowLate);
+        setSavedGlobalLateUntil(globalLateUntil);
+        const r = await fetch(`/api/docente/tareas/${questionsModalTask.id}/students-grades`);
+        const d = await r.json();
+        if (r.ok) setTaskStudents(d.students || []);
+        alert("Prórroga global guardada con éxito.");
+      } else { alert("Error al guardar la prórroga."); }
+    } catch { alert("Error de red"); } finally { setSavingGlobalLate(false); }
+  };
+
+  const saveIndividualLateConfig = async (studentId: string, allow: boolean, untilStr: string) => {
+    if (!questionsModalTask) return;
+    try {
+      const res = await fetch(`/api/docente/calificar`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          taskId: questionsModalTask.id, studentId,
+          allowLateSubmission: allow,
+          lateSubmissionUntil: allow && untilStr ? fromColombiaLocalStringToDate(untilStr)?.toISOString() : null
+        })
+      });
+      if (res.ok) {
+        const r = await fetch(`/api/docente/tareas/${questionsModalTask.id}/students-grades`);
+        const d = await r.json();
+        if (r.ok) setTaskStudents(d.students || []);
+      } else { alert("Error al actualizar la prórroga del estudiante"); }
+    } catch { alert("Error de conexión"); }
+  };
+
+  const resetStudentSubmission = async (studentId: string, studentName: string, hasSub: boolean) => {
+    if (!questionsModalTask) return;
+    const msg = hasSub
+      ? `¿Reiniciar el examen de ${studentName}? Se eliminará el intento actual.`
+      : `¿Habilitar el examen de ${studentName}?`;
+    if (!confirm(msg)) return;
+    setResettingSubmissions(studentId);
+    try {
+      const res = await fetch(`/api/docente/tareas/${questionsModalTask.id}/submission/${studentId}`, { method: "DELETE" });
+      if (res.ok) {
+        const r = await fetch(`/api/docente/tareas/${questionsModalTask.id}/students-grades`);
+        const d = await r.json();
+        if (r.ok) setTaskStudents(d.students || []);
+        alert(hasSub ? "Intento reiniciado." : "Examen habilitado.");
+      } else {
+        const d = await res.json();
+        alert(d.error || "Error al reiniciar");
+      }
+    } catch { alert("Error de conexión"); } finally { setResettingSubmissions(null); }
+  };
+
+  const resetAllGroupSubmissions = async () => {
+    if (!questionsModalTask) return;
+    if (!confirm(`¿Reiniciar el examen para los ${taskStudents.length} estudiantes del grupo? Se eliminarán todos los intentos.`)) return;
+    setResettingSubmissions("all");
+    try {
+      const res = await fetch(`/api/docente/tareas/${questionsModalTask.id}/reset-all`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ groupId: selectedGroupId })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const r = await fetch(`/api/docente/tareas/${questionsModalTask.id}/students-grades`);
+        const d = await r.json();
+        if (r.ok) setTaskStudents(d.students || []);
+        alert(`Reiniciados ${data.resetCount} intentos.`);
+      } else { alert(data.error || "Error al reiniciar"); }
+    } catch { alert("Error de conexión"); } finally { setResettingSubmissions(null); }
   };
 
   const saveManualGrades = async () => {
@@ -1094,15 +1202,18 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                         </button>
                       </div>
                     </div>
-                    {/* Crear preguntas del examen en línea */}
-                    {t.type === "EXAM" && !t.isExternal && (
+                    {/* Gestionar tarea o examen directamente */}
+                    {!t.isExternal && (
                       <button
                         onClick={() => openQuestionsModal(t)}
-                        className="flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 text-purple-700 dark:text-purple-300 text-[10px] font-bold hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors w-full"
-                        title="Abrir editor de preguntas del examen"
+                        className={`flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-[10px] font-bold transition-colors w-full ${
+                          t.type === "EXAM"
+                            ? "bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40"
+                            : "bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40"
+                        }`}
+                        title={t.type === "EXAM" ? "Gestionar preguntas, entregas e intentos" : "Gestionar entregas y prórrogas"}
                       >
-                        <svg xmlns="http://www.w3.org/2500/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                        Crear Preguntas del Examen
+                        {t.type === "EXAM" ? "Gestionar Examen" : "Gestionar Entregas"}
                       </button>
                     )}
                   </div>
@@ -1518,19 +1629,19 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         </div>
       )}
 
-      {/* Exam Questions Modal */}
+      {/* Exam / Task Management Modal */}
       {questionsModalTask && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4 animate-fade-in">
           <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-4xl shadow-2xl animate-scale-in max-h-[90vh] overflow-y-auto flex flex-col gap-4">
-            
+
             {/* Header */}
             <div className="flex justify-between items-center pb-2 border-b border-gray-200 dark:border-gray-800">
               <div>
                 <h3 className="font-bold text-xl text-gray-900 dark:text-gray-100">
-                  Preguntas del Examen: {questionsModalTask.title}
+                  {questionsModalTask.type === "EXAM" ? "Gestión de Examen" : "Gestión de Tarea"}: {questionsModalTask.title}
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-450 mt-0.5">
-                  Gestiona las preguntas del examen directamente desde la planilla.
+                  Administra entregas, prórrogas e intentos directamente desde la planilla.
                 </p>
               </div>
               <button onClick={() => setQuestionsModalTask(null)} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
@@ -1538,27 +1649,206 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               </button>
             </div>
 
+            {/* Tabs — only for exams */}
+            {questionsModalTask.type === "EXAM" && (
+              <div className="flex gap-4 border-b border-gray-200 dark:border-gray-800">
+                {(["control", "questions"] as const).map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => setManageTab(tab)}
+                    className={`pb-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors ${
+                      manageTab === tab
+                        ? "border-[#f97316] text-[#f97316]"
+                        : "border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    }`}
+                  >
+                    {tab === "control" ? "Entregas e Intentos" : "Preguntas del Examen"}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Content */}
-            <div className="flex-1">
+            <div className="flex-1 overflow-y-auto">
               {loadingQuestions ? (
                 <div className="flex flex-col items-center justify-center py-20 gap-3">
                   <Loader2 className="animate-spin text-[#f98012]" size={32} />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold">Cargando preguntas del examen...</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold">Cargando información...</p>
                 </div>
-              ) : (
-                <QuestionEditor 
+              ) : manageTab === "questions" && questionsModalTask.type === "EXAM" ? (
+                <QuestionEditor
                   key={questionsModalTask.id}
-                  taskId={questionsModalTask.id} 
-                  initialQuestions={examQuestions} 
+                  taskId={questionsModalTask.id}
+                  initialQuestions={examQuestions}
                 />
+              ) : (
+                <div className="flex flex-col gap-5">
+
+                  {/* Global late submission toggle */}
+                  <div className="p-4 rounded-xl border flex flex-col gap-3 bg-gray-50/40 dark:bg-gray-800/20" style={{ borderColor: "var(--border-color)" }}>
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <Clock className="text-[#f98012]" size={18} />
+                        <div>
+                          <h4 className="font-bold text-sm text-gray-800 dark:text-gray-200">Prórroga Global (Entrega Tardía)</h4>
+                          <p className="text-[11px] text-gray-500 dark:text-gray-400">Permite entregar después del plazo a todos los estudiantes.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setGlobalAllowLate(v => !v)}
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                            globalAllowLate ? "bg-[#f97316]" : "bg-gray-300 dark:bg-zinc-700"
+                          }`}
+                        >
+                          <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
+                            globalAllowLate ? "translate-x-[18px]" : "translate-x-1"
+                          }`} />
+                        </button>
+                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                          {globalAllowLate ? "Habilitada" : "Deshabilitada"}
+                        </span>
+                      </div>
+                    </div>
+                    {globalAllowLate && (
+                      <div className="max-w-xs">
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Hasta:</label>
+                        <input
+                          type="datetime-local"
+                          value={globalLateUntil}
+                          onChange={e => setGlobalLateUntil(e.target.value)}
+                          className="input-field w-full text-xs py-1.5 px-2.5 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
+                        />
+                      </div>
+                    )}
+                    {(globalAllowLate !== savedGlobalAllowLate || globalLateUntil !== savedGlobalLateUntil) && (
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => { setGlobalAllowLate(savedGlobalAllowLate); setGlobalLateUntil(savedGlobalLateUntil); }} className="btn btn-secondary py-1 px-3 text-xs">Cancelar</button>
+                        <button onClick={saveGlobalLateConfig} disabled={savingGlobalLate} className="btn btn-primary py-1 px-3 text-xs flex items-center gap-1">
+                          {savingGlobalLate && <Loader2 className="animate-spin" size={12} />} Guardar Prórroga
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Students table header */}
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <h4 className="font-bold text-sm text-gray-800 dark:text-gray-200">
+                      Entregas ({taskStudents.length} estudiantes)
+                    </h4>
+                    {questionsModalTask.type === "EXAM" && (
+                      <button
+                        onClick={resetAllGroupSubmissions}
+                        disabled={resettingSubmissions !== null || taskStudents.length === 0}
+                        className="btn btn-secondary text-xs px-2.5 py-1.5 flex items-center gap-1.5 border border-orange-200 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20 disabled:opacity-50"
+                      >
+                        {resettingSubmissions === "all" ? <Loader2 className="animate-spin" size={13} /> : <Users size={13} />}
+                        Reiniciar Todo el Grupo
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Students table */}
+                  <div className="overflow-x-auto border rounded-xl" style={{ borderColor: "var(--border-color)" }}>
+                    <table className="w-full text-left text-xs" style={{ borderCollapse: "collapse" }}>
+                      <thead>
+                        <tr className="bg-gray-50 dark:bg-gray-800/40 font-bold text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
+                          <th className="py-2 px-4">Estudiante</th>
+                          <th className="py-2 px-4">Estado</th>
+                          <th className="py-2 px-4">Prórroga Individual</th>
+                          <th className="py-2 px-4">Fecha Envío</th>
+                          <th className="py-2 px-4 text-right">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {taskStudents.length === 0 ? (
+                          <tr><td colSpan={5} className="py-8 text-center text-gray-400 italic">No hay estudiantes en este grupo.</td></tr>
+                        ) : taskStudents.map(s => {
+                          const sub = s.submission;
+                          const isGraded = sub?.status === "GRADED";
+                          const isSubmitted = sub && sub.status !== "PENDING";
+                          const hasSub = !!sub;
+                          const indAllow = sub?.allowLateSubmission ?? false;
+                          const indUntil = sub?.lateSubmissionUntil ? toColombiaISOString(sub.lateSubmissionUntil) : "";
+                          return (
+                            <tr key={s.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/40 dark:hover:bg-gray-900/10">
+                              <td className="py-3 px-4">
+                                <div className="font-semibold text-gray-800 dark:text-gray-200">{s.name}</div>
+                                <div className="text-[10px] text-gray-400">{s.groupName}</div>
+                              </td>
+                              <td className="py-3 px-4">
+                                {isGraded ? (
+                                  <span className="badge badge-success flex w-fit items-center gap-1"><CheckCircle size={11} /> Calificada: {sub.grade}</span>
+                                ) : isSubmitted ? (
+                                  <span className="badge badge-info">Entregada</span>
+                                ) : (
+                                  <span className="badge badge-warning flex w-fit items-center gap-1"><Clock size={11} /> Pendiente</span>
+                                )}
+                              </td>
+                              <td className="py-3 px-4">
+                                {globalAllowLate ? (
+                                  <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1"><CheckCircle size={11}/> Global</span>
+                                ) : (
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <input
+                                      type="checkbox"
+                                      checked={indAllow}
+                                      onChange={e => saveIndividualLateConfig(s.id, e.target.checked, indUntil)}
+                                      className="w-3.5 h-3.5 rounded accent-[#f97316]"
+                                    />
+                                    {indAllow && (
+                                      <input
+                                        type="datetime-local"
+                                        value={indUntil}
+                                        onChange={e => saveIndividualLateConfig(s.id, true, e.target.value)}
+                                        className="text-[10px] py-0.5 px-1 border rounded bg-white dark:bg-gray-800 outline-none focus:ring-1 focus:ring-[#f97316] border-gray-300 dark:border-gray-700"
+                                      />
+                                    )}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="py-3 px-4 text-gray-400">
+                                {sub?.submittedAt ? new Date(sub.submittedAt).toLocaleString() : "-"}
+                              </td>
+                              <td className="py-3 px-4 text-right">
+                                <div className="flex justify-end gap-2">
+                                  {questionsModalTask.type !== "EXAM" && sub?.fileUrl && (
+                                    <a href={sub.fileUrl} target="_blank" rel="noopener noreferrer"
+                                      className="btn btn-secondary text-[11px] px-2 py-1 flex items-center gap-1"
+                                      title="Descargar archivo de entrega"
+                                    >
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                      Descargar
+                                    </a>
+                                  )}
+                                  {questionsModalTask.type === "EXAM" && (
+                                    <button
+                                      onClick={() => resetStudentSubmission(s.id, s.name, hasSub)}
+                                      disabled={resettingSubmissions === s.id}
+                                      className="btn btn-secondary text-[11px] px-2 py-1 flex items-center gap-1 border border-red-100 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 disabled:opacity-50"
+                                    >
+                                      {resettingSubmissions === s.id
+                                        ? <Loader2 className="animate-spin" size={12} />
+                                        : <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38"/></svg>}
+                                      {hasSub ? "Reiniciar" : "Habilitar"}
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                </div>
               )}
             </div>
 
             {/* Footer */}
-            <div className="flex justify-end gap-3 border-t pt-4" style={{ borderColor: "var(--border-color)" }}>
-              <button className="btn btn-secondary" onClick={() => setQuestionsModalTask(null)}>
-                Cerrar
-              </button>
+            <div className="flex justify-end border-t pt-4" style={{ borderColor: "var(--border-color)" }}>
+              <button className="btn btn-secondary" onClick={() => setQuestionsModalTask(null)}>Cerrar</button>
             </div>
           </div>
         </div>
