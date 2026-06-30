@@ -3,13 +3,25 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut, Loader2 } from "lucide-react";
+import { useConfirm } from "@/components/ConfirmProvider";
 
 export default function LogoutButton() {
   const router = useRouter();
+  const confirm = useConfirm();
   const [loading, setLoading] = useState(false);
 
   const handleLogout = async () => {
     if (loading) return;
+
+    const ok = await confirm({
+      title: "Cerrar Sesión",
+      message: "¿Estás seguro de que deseas cerrar sesión?",
+      confirmText: "Cerrar Sesión",
+      type: "warning",
+    });
+
+    if (!ok) return;
+
     setLoading(true);
     try {
       const res = await fetch("/api/auth/logout", {

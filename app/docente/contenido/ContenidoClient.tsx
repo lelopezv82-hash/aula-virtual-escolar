@@ -10,6 +10,7 @@ import { useConfirm } from "@/components/ConfirmProvider";
 import Link from "next/link";
 import GDriveEmailDisplay from "@/components/GDriveEmailDisplay";
 import GDriveVisibilityToggle from "@/components/GDriveVisibilityToggle";
+import { toColombiaISOString, fromColombiaLocalStringToDate } from "@/lib/dateUtils";
 
 
 interface Group {
@@ -45,11 +46,11 @@ interface Task {
   type?: string;
   active?: boolean;
   publishAt?: string | null;
-  timeLimit?: number | null;
   allowLateSubmission?: boolean;
   lateSubmissionUntil?: string | null;
   groups: Group[];
   gdriveEmail?: string | null;
+  duration?: number | null;
 }
 
 interface Course {
@@ -383,9 +384,10 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     lateSubmissionUntil: "",
     groupIds: [] as string[],
     publishAt: "",
-    timeLimit: "",
     externalUrl: "",
-    type: "TASK"
+    type: "TASK",
+    duration: "",
+    isExternal: false
   });
   const [taskFile, setTaskFile] = useState<File | null>(null);
 
@@ -445,9 +447,10 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       lateSubmissionUntil: "",
       groupIds: [],
       publishAt: "",
-      timeLimit: "",
       externalUrl: "",
-      type: activeTab === "examenes" ? "EXAM" : "TASK"
+      type: activeTab === "examenes" ? "EXAM" : "TASK",
+      duration: "",
+      isExternal: false
     });
     setTaskFile(null);
     setShowTaskModal(true);
@@ -457,10 +460,10 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     setError("");
     setEditingTask(task);
     
-    // Format date for datetime-local input (YYYY-MM-DDTHH:MM)
-    const formattedDueDate = task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 16) : "";
-    const formattedLateUntil = task.lateSubmissionUntil ? new Date(task.lateSubmissionUntil).toISOString().slice(0, 16) : "";
-    const formattedPublishAt = task.publishAt ? new Date(task.publishAt).toISOString().slice(0, 16) : "";
+    // Format date for datetime-local input (YYYY-MM-DDTHH:MM) using Colombia timezone
+    const formattedDueDate = toColombiaISOString(task.dueDate);
+    const formattedLateUntil = toColombiaISOString(task.lateSubmissionUntil);
+    const formattedPublishAt = toColombiaISOString(task.publishAt);
 
     setTaskForm({
       courseId,
@@ -474,9 +477,10 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       lateSubmissionUntil: formattedLateUntil,
       groupIds: task.groups.map(g => g.id),
       publishAt: formattedPublishAt,
-      timeLimit: task.timeLimit ? task.timeLimit.toString() : "",
       externalUrl: task.attachmentUrl && !task.attachmentUrl.includes("supabase") && !task.attachmentUrl.includes("drive.google.com") ? task.attachmentUrl : "",
-      type: task.type || "TASK"
+      type: task.type || "TASK",
+      duration: task.duration !== null && task.duration !== undefined ? String(task.duration) : "",
+      isExternal: (task as any).isExternal || false
     });
     setTaskFile(null);
     setShowTaskModal(true);
@@ -497,23 +501,25 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     fd.append("courseId", taskForm.courseId);
     fd.append("title", taskForm.title);
     fd.append("description", taskForm.description);
-    fd.append("dueDate", new Date(taskForm.dueDate).toISOString());
+    const dueDateParsed = fromColombiaLocalStringToDate(taskForm.dueDate);
+    fd.append("dueDate", dueDateParsed ? dueDateParsed.toISOString() : "");
     fd.append("theme", taskForm.theme);
     fd.append("period", taskForm.period);
     fd.append("weight", taskForm.weight.toString());
     fd.append("allowLateSubmission", taskForm.allowLateSubmission ? "true" : "false");
     fd.append("type", taskForm.type);
+    fd.append("duration", taskForm.duration);
+    fd.append("isExternal", taskForm.isExternal ? "true" : "false");
     if (taskForm.allowLateSubmission && taskForm.lateSubmissionUntil) {
-      fd.append("lateSubmissionUntil", new Date(taskForm.lateSubmissionUntil).toISOString());
+      const lateParsed = fromColombiaLocalStringToDate(taskForm.lateSubmissionUntil);
+      fd.append("lateSubmissionUntil", lateParsed ? lateParsed.toISOString() : "");
     }
     fd.append("groupIds", JSON.stringify(taskForm.groupIds));
     if (taskForm.publishAt) {
-      fd.append("publishAt", new Date(taskForm.publishAt).toISOString());
+      const publishParsed = fromColombiaLocalStringToDate(taskForm.publishAt);
+      fd.append("publishAt", publishParsed ? publishParsed.toISOString() : "");
     } else {
       fd.append("publishAt", "");
-    }
-    if (taskForm.type === "EXAM" && taskForm.timeLimit) {
-      fd.append("timeLimit", taskForm.timeLimit);
     }
     if (taskForm.externalUrl) {
       fd.append("externalUrl", taskForm.externalUrl);
@@ -706,13 +712,13 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       <div className="flex gap-4 border-b pb-1" style={{ borderColor: "var(--border-color)" }}>
         <button
           onClick={() => setActiveTab("tareas")}
-          className={`flex items-center gap-2 px-5 py-3 font-semibold transition-colors border-b-2 ${activeTab === "tareas" ? "text-blue-600 border-blue-600 dark:text-blue-400 dark:border-blue-400" : "text-muted border-transparent hover:text-foreground"}`}
+          className={`flex items-center gap-2 px-5 py-3 font-semibold transition-colors border-b-2 ${activeTab === "tareas" ? "text-[#f98012] border-[#f98012] dark:text-[#f98012] dark:border-[#f98012]" : "text-muted border-transparent hover:text-foreground"}`}
         >
           <ClipboardList size={18} /> Tareas
         </button>
         <button
           onClick={() => setActiveTab("examenes")}
-          className={`flex items-center gap-2 px-5 py-3 font-semibold transition-colors border-b-2 ${activeTab === "examenes" ? "text-blue-600 border-blue-600 dark:text-blue-400 dark:border-blue-400" : "text-muted border-transparent hover:text-foreground"}`}
+          className={`flex items-center gap-2 px-5 py-3 font-semibold transition-colors border-b-2 ${activeTab === "examenes" ? "text-[#f98012] border-[#f98012] dark:text-[#f98012] dark:border-[#f98012]" : "text-muted border-transparent hover:text-foreground"}`}
         >
           <ClipboardList size={18} /> Exámenes
         </button>
@@ -720,7 +726,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
           onClick={() => setActiveTab("materiales")}
           className={`pb-3 px-2 font-bold text-sm md:text-base border-b-2 transition-all ${
             activeTab === "materiales" 
-              ? "border-blue-600 text-blue-600 font-extrabold" 
+              ? "border-[#f98012] text-[#f98012] font-extrabold" 
               : "border-transparent text-muted hover:text-primary"
           }`}
         >
@@ -811,7 +817,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                 return (
                   <div key={course.id} className="card w-full">
                     <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                      <ClipboardList className="text-blue-600" />
+                      <ClipboardList className="text-[#f98012]" />
                       {course.name}
                     </h2>
                     
@@ -836,7 +842,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                           <div key={periodName} className="p-3 rounded-lg border" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', opacity: isPeriodActive ? 1 : 0.6 }}>
                             <h4 className="font-bold text-xs uppercase tracking-wider mb-3 flex items-center justify-between" style={{ color: 'var(--text-secondary)' }}>
                               <span className="flex items-center gap-2">
-                                <span className={`w-2 h-2 rounded-full ${isPeriodActive ? 'bg-blue-500' : 'bg-gray-400'}`}></span>
+                                <span className={`w-2 h-2 rounded-full ${isPeriodActive ? 'bg-orange-500' : 'bg-gray-400'}`}></span>
                                 {periodName}
                               </span>
                               <div className="flex items-center gap-2">
@@ -911,7 +917,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                                                  width: "42px",
                                                  height: "22px",
                                                  borderRadius: "9999px",
-                                                 background: task.active !== false ? "var(--success, #10b981)" : "#cbd5e1",
+                                                 background: task.active !== false ? "var(--primary-color, #f98012)" : "#cbd5e1",
                                                  border: "none",
                                                  padding: 0,
                                                  outline: "none"
@@ -1008,7 +1014,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                 return (
                   <div key={course.id} className="card w-full">
                     <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                      <BookOpen className="text-blue-600" />
+                      <BookOpen className="text-[#f98012]" />
                       {course.name}
                     </h2>
                     
@@ -1032,7 +1038,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                           <div key={periodName} className="p-3 rounded-lg border" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', opacity: isPeriodActive ? 1 : 0.6 }}>
                             <h4 className="font-bold text-xs uppercase tracking-wider mb-3 flex items-center justify-between" style={{ color: 'var(--text-secondary)' }}>
                               <span className="flex items-center gap-2">
-                                <span className={`w-2 h-2 rounded-full ${isPeriodActive ? 'bg-blue-500' : 'bg-gray-400'}`}></span>
+                                <span className={`w-2 h-2 rounded-full ${isPeriodActive ? 'bg-orange-500' : 'bg-gray-400'}`}></span>
                                 {periodName}
                               </span>
                               <div className="flex items-center gap-2">
@@ -1096,7 +1102,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                                                  width: "42px",
                                                  height: "22px",
                                                  borderRadius: "9999px",
-                                                 background: res.active !== false ? "var(--success, #10b981)" : "#cbd5e1",
+                                                 background: res.active !== false ? "var(--primary-color, #f98012)" : "#cbd5e1",
                                                  border: "none",
                                                  padding: 0,
                                                  outline: "none"
@@ -1127,7 +1133,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                                             </a>
                                             <button
                                               onClick={() => openEditResourceModal(res, course.id)}
-                                              className="p-1.5 rounded hover:bg-blue-50 text-slate-500 hover:text-blue-600"
+                                              className="p-1.5 rounded hover:bg-orange-50 text-slate-500 hover:text-[#f98012]"
                                               title="Editar"
                                             >
                                               <Edit2 size={16} />
@@ -1169,9 +1175,9 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
 
       {/* Task Modal (Create & Edit) */}
       {showTaskModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "1rem" }}
+        <div className="modal-overlay"
           onClick={e => e.target === e.currentTarget && setShowTaskModal(false)}>
-          <form onSubmit={handleSaveTask} className="card w-full max-w-lg animate-fade-in" style={{ borderRadius: "1rem" }}>
+          <form onSubmit={handleSaveTask} className="modal-content w-full max-w-lg" style={{ borderRadius: "1rem" }}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-bold">
                 {editingTask 
@@ -1228,6 +1234,13 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                 <input type="datetime-local" className="input-field py-1.5 px-3 text-xs"
                   value={taskForm.dueDate} onChange={e => setTaskForm({ ...taskForm, dueDate: e.target.value })} required />
               </div>
+              {taskForm.type === "EXAM" && (
+                <div className="input-group flex-1">
+                  <label className="text-xs font-bold mb-1">Límite de Tiempo (minutos, opcional)</label>
+                  <input type="number" className="input-field py-1.5 px-3 text-xs" min="1" placeholder="Ej. 60"
+                    value={taskForm.duration} onChange={e => setTaskForm({ ...taskForm, duration: e.target.value })} />
+                </div>
+              )}
             </div>
 
             <div className="input-group mb-3">
@@ -1237,14 +1250,18 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
               <p className="text-[10px] text-muted mt-1">Dejar vacío para publicar inmediatamente. Si se define, la tarea se publicará automáticamente al llegar el momento.</p>
             </div>
 
-            {taskForm.type === "EXAM" && (
-              <div className="input-group mb-3">
-                <label className="text-xs font-bold mb-1">Tiempo Límite (en minutos - Opcional)</label>
-                <input type="number" className="input-field py-1.5 px-3 text-xs" min="1" placeholder="Ej. 60"
-                  value={taskForm.timeLimit} onChange={e => setTaskForm({ ...taskForm, timeLimit: e.target.value })} />
-                <p className="text-[10px] text-muted mt-1">Si se especifica, el estudiante tendrá este tiempo para resolver el examen una vez lo inicie.</p>
-              </div>
-            )}
+            <div className="border rounded-lg p-3 bg-slate-50 dark:bg-slate-900 mb-3 flex flex-col gap-2">
+              <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={taskForm.isExternal}
+                  onChange={e => setTaskForm({ ...taskForm, isExternal: e.target.checked })}
+                  className="rounded text-[#f98012] focus:ring-[#f98012]"
+                />
+                <span>Trabajo fuera de la plataforma (Calificación manual)</span>
+              </label>
+              <p className="text-[10px] text-muted">Si se activa, los estudiantes no tendrán que entregar archivos ni responder cuestionarios. La calificación la registrarás tú directamente.</p>
+            </div>
 
             <div className="border rounded-lg p-3 bg-slate-50 dark:bg-slate-900 mb-4 flex flex-col gap-2">
               <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
@@ -1252,7 +1269,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                   type="checkbox"
                   checked={taskForm.allowLateSubmission}
                   onChange={e => setTaskForm({ ...taskForm, allowLateSubmission: e.target.checked })}
-                  className="rounded text-blue-600 focus:ring-blue-500"
+                  className="rounded text-[#f98012] focus:ring-[#f98012]"
                 />
                 <span>Permitir entregas tardías (Prórroga)</span>
               </label>
@@ -1282,7 +1299,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                             : [...taskForm.groupIds, g.id];
                           setTaskForm({ ...taskForm, groupIds: newIds });
                         }}
-                        className="rounded text-blue-600 focus:ring-blue-500"
+                        className="rounded text-[#f98012] focus:ring-[#f98012]"
                       />
                       <span>{g.grade.name} - {g.name}</span>
                     </label>
@@ -1299,13 +1316,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
             </div>
 
             {taskForm.type === "EXAM" ? (
-              <div className="input-group mb-4">
-                <label className="text-xs font-bold mb-1">Enlace del Examen (Google Forms, etc.)</label>
-                <input type="url" className="input-field py-1.5 px-3 text-xs" placeholder="Ej. https://docs.google.com/forms/.../viewform?usp=pp_url&entry.123=__ESTUDIANTE__"
-                  value={taskForm.externalUrl} onChange={e => setTaskForm({ ...taskForm, externalUrl: e.target.value })} />
-                <p className="text-[10px] text-muted mt-1">
-                  Para Google Forms, recuerda usar <strong>__ESTUDIANTE__</strong> en el enlace prellenado para la calificación automática.
-                </p>
+              <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/50 rounded-lg p-3 text-[11px] text-[#e06d09] dark:text-[#f98012] mb-4">
+                <strong>💡 Examen en la Plataforma:</strong> Este examen se creará directamente aquí. Una vez creado, haz clic en <strong>Ver/Calificar</strong> en la lista de exámenes para ingresar las preguntas y opciones de respuesta.
               </div>
             ) : (
               <>
@@ -1316,8 +1328,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                 </div>
                 <div className="mb-4">
                   <label className="block text-xs font-bold mb-1.5">{editingTask ? "Nuevo Archivo Adjunto (Opcional)" : "Archivo Adjunto (Opcional)"}</label>
-                  <label htmlFor="task-file" className="block border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-blue-500 transition-colors" style={{ borderColor: 'var(--border-color)' }}>
-                    <UploadCloud size={24} className="mx-auto mb-1.5 text-blue-500" />
+                  <label htmlFor="task-file" className="block border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-[#f98012] transition-colors" style={{ borderColor: 'var(--border-color)' }}>
+                    <UploadCloud size={24} className="mx-auto mb-1.5 text-[#f98012]" />
                     <p className="text-xs font-bold">{taskFile ? taskFile.name : "Selecciona una guía o archivo"}</p>
                     <input id="task-file" type="file" className="hidden" onChange={e => setTaskFile(e.target.files?.[0] || null)} />
                   </label>
@@ -1338,9 +1350,9 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
 
       {/* Resource Modal (Create & Edit) */}
       {showResourceModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "1rem" }}
+        <div className="modal-overlay"
           onClick={e => e.target === e.currentTarget && setShowResourceModal(false)}>
-          <form onSubmit={handleSaveResource} className="card w-full max-w-lg animate-fade-in" style={{ borderRadius: "1rem" }}>
+          <form onSubmit={handleSaveResource} className="modal-content w-full max-w-lg" style={{ borderRadius: "1rem" }}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-bold">{editingResource ? "Editar Material" : "Nuevo Material"}</h2>
               <button type="button" onClick={() => setShowResourceModal(false)} className="p-1 rounded hover:bg-slate-150"><X size={20} /></button>
@@ -1418,7 +1430,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                             : [...resourceForm.groupIds, g.id];
                           setResourceForm({ ...resourceForm, groupIds: newIds });
                         }}
-                        className="rounded text-blue-600 focus:ring-blue-500"
+                        className="rounded text-[#f98012] focus:ring-[#f98012]"
                       />
                       <span>{g.grade.name} - {g.name}</span>
                     </label>
@@ -1437,8 +1449,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
             ) : (
               <div className="mb-4">
                 <label className="block text-xs font-bold mb-1.5">{editingResource ? "Nuevo Archivo (Opcional)" : "Archivo de Recurso *"}</label>
-                <label htmlFor="resource-file" className="block border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-blue-500 transition-colors" style={{ borderColor: 'var(--border-color)' }}>
-                  <UploadCloud size={24} className="mx-auto mb-1.5 text-blue-500" />
+                <label htmlFor="resource-file" className="block border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-[#f98012] transition-colors" style={{ borderColor: 'var(--border-color)' }}>
+                  <UploadCloud size={24} className="mx-auto mb-1.5 text-[#f98012]" />
                   <p className="text-xs font-bold">{resourceFile ? resourceFile.name : "Selecciona un archivo para subir"}</p>
                   <input id="resource-file" type="file" className="hidden" onChange={e => setResourceFile(e.target.files?.[0] || null)} required={!editingResource} />
                 </label>
@@ -1458,9 +1470,9 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
 
       {/* Period Modal (Create & Edit) */}
       {showPeriodModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "1rem" }}
+        <div className="modal-overlay"
           onClick={e => e.target === e.currentTarget && setShowPeriodModal(false)}>
-          <form onSubmit={handleCreateOrUpdatePeriod} className="card w-full max-w-md animate-fade-in" style={{ borderRadius: "1rem" }}>
+          <form onSubmit={handleCreateOrUpdatePeriod} className="modal-content w-full max-w-md" style={{ borderRadius: "1rem" }}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-bold">{editingPeriod ? "Editar Periodo" : "Nuevo Periodo"}</h2>
               <button type="button" onClick={() => setShowPeriodModal(false)} className="p-1 rounded hover:bg-slate-150"><X size={20} /></button>
@@ -1492,9 +1504,9 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
 
       {/* Script Modal */}
       {scriptModalTask && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "1rem" }}
+        <div className="modal-overlay"
           onClick={e => e.target === e.currentTarget && setScriptModalTask(null)}>
-          <div className="card w-full max-w-2xl animate-fade-in" style={{ borderRadius: "1rem" }}>
+          <div className="modal-content w-full max-w-2xl" style={{ borderRadius: "1rem" }}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-bold flex items-center gap-2">
                 <Code className="text-amber-500" />

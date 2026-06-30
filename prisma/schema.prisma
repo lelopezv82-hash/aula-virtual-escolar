@@ -5,120 +5,128 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id            String   @id @default(uuid())
-  username      String   @unique
-  password      String
-  passwordPlain String?
-  role          String   @default("STUDENT") // ADMIN, TEACHER, STUDENT
-  name          String
-  profilePic    String?
-  grade         String?  // e.g., "10" (deprecated)
-  groupName     String?  // e.g., "A", "B" (deprecated)
-  groupId       String?
-  group         GradeGroup? @relation("GroupStudents", fields: [groupId], references: [id], onDelete: SetNull)
+  id                  String               @id @default(uuid())
+  username            String               @unique
+  password            String
+  role                String               @default("STUDENT")
+  name                String
+  profilePic          String?
+  grade               String?
+  groupName           String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  passwordPlain       String?
   googleAccessToken   String?
+  googleDriveFolderId String?
   googleRefreshToken  String?
   googleTokenExpiry   DateTime?
-  googleDriveFolderId String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  coursesAsTeacher Course[]     @relation("TeacherCourses")
-  submissions      Submission[]
+  groupId             String?
+  coursesAsTeacher    Course[]             @relation("TeacherCourses")
   googleDriveAccounts GoogleDriveAccount[]
+  submissions         Submission[]
+  additionalGrades    AdditionalGrade[]
+  group               GradeGroup?          @relation("GroupStudents", fields: [groupId], references: [id])
 
   @@index([groupId])
   @@index([role])
 }
 
 model Course {
-  id          String   @id @default(uuid())
-  name        String
-  description String?
-  teacherId   String
-  teacher     User     @relation("TeacherCourses", fields: [teacherId], references: [id], onDelete: Cascade)
-  groups      GradeGroup[] @relation("GroupCourses")
-  period1Active Boolean  @default(true)
-  period2Active Boolean  @default(true)
-  period3Active Boolean  @default(true)
-  period4Active Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  resources   Resource[]
-  tasks       Task[]
+  id            String       @id @default(uuid())
+  name          String
+  description   String?
+  teacherId     String
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  period1Active Boolean      @default(true)
+  period2Active Boolean      @default(true)
+  period3Active Boolean      @default(true)
+  period4Active Boolean      @default(true)
+  active        Boolean      @default(true)
+  saberPercent  Int          @default(30)
+  hacerPercent  Int          @default(50)
+  serPercent    Int          @default(20)
+  finalPercent  Int          @default(0)
+  teacher          User              @relation("TeacherCourses", fields: [teacherId], references: [id], onDelete: Cascade)
+  resources        Resource[]
+  tasks            Task[]
+  groups           GradeGroup[]      @relation("GroupCourses")
+  additionalGrades AdditionalGrade[]
 
   @@index([teacherId])
 }
 
 model Resource {
-  id          String   @id @default(uuid())
+  id          String       @id @default(uuid())
   title       String
-  type        String   // PDF, WORD, PPT, IMAGE, VIDEO, LINK
+  type        String
   url         String
   courseId    String
-  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  theme       String?
+  createdAt   DateTime     @default(now())
   period      String?
-  groups      GradeGroup[] @relation("GroupResources")
-  active      Boolean  @default(true)
+  theme       String?
+  active      Boolean      @default(true)
   publishAt   DateTime?
   gdriveEmail String?
-  createdAt   DateTime @default(now())
+  course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  groups      GradeGroup[] @relation("GroupResources")
 
   @@index([courseId])
   @@index([active])
 }
 
 model Task {
-  id            String   @id @default(uuid())
-  title         String
-  description   String?
-  dueDate       DateTime
-  attachmentUrl String?
-  courseId      String
-  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  type          String   @default("TASK") // TASK or EXAM
-  theme         String?
-  period        String?
-  groups        GradeGroup[] @relation("GroupTasks")
-  weight        Int      @default(0)
-  active      Boolean  @default(true)
-  publishAt   DateTime?
-  timeLimit   Int?     // Time limit in minutes for exams
-  allowLateSubmission Boolean @default(false)
+  id                  String       @id @default(uuid())
+  title               String
+  description         String?
+  dueDate             DateTime
+  courseId            String
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  attachmentUrl       String?
+  period              String?
+  theme               String?
+  weight              Int          @default(0)
+  active              Boolean      @default(true)
+  allowLateSubmission Boolean      @default(false)
   lateSubmissionUntil DateTime?
-  gdriveEmail   String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  submissions Submission[]
+  publishAt           DateTime?
+  gdriveEmail         String?
+  type                String       @default("TASK")
+  duration            Int?
+  isExternal          Boolean      @default(false)
+  submissions         Submission[]
+  questions           Question[]
+  course              Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  groups              GradeGroup[] @relation("GroupTasks")
 
   @@index([courseId])
   @@index([active])
 }
 
 model Submission {
-  id          String   @id @default(uuid())
-  taskId      String
-  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  studentId   String
-  student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  status      String   @default("PENDING") // PENDING, SUBMITTED, GRADED
-  grade       Float?
-  feedback    String?
-  fileUrl     String?
-  startedAt   DateTime? // When the student started the exam
-  submittedAt DateTime?
-  allowLateSubmission Boolean @default(false)
+  id                  String    @id @default(uuid())
+  taskId              String
+  studentId           String
+  status              String    @default("PENDING")
+  grade               Float?
+  feedback            String?
+  fileUrl             String?
+  submittedAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  allowLateSubmission Boolean   @default(false)
   lateSubmissionUntil DateTime?
-  gdriveEmail String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  gdriveEmail         String?
+  startedAt           DateTime?
+  attempt             Int       @default(1)
+  unlockedAnswers     Boolean   @default(false)
+  answers             Json?
+  student             User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  task                Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   @@unique([taskId, studentId])
   @@index([studentId])
@@ -128,20 +136,20 @@ model Submission {
 model Grade {
   id        String       @id @default(uuid())
   name      String       @unique
-  groups    GradeGroup[]
   createdAt DateTime     @default(now())
+  groups    GradeGroup[]
 }
 
 model GradeGroup {
-  id        String   @id @default(uuid())
-  name      String   // e.g., "A", "B", "10-A"
+  id        String     @id @default(uuid())
+  name      String
   gradeId   String
-  grade     Grade    @relation(fields: [gradeId], references: [id], onDelete: Cascade)
-  students  User[]   @relation("GroupStudents")
-  tasks     Task[]   @relation("GroupTasks")
-  resources Resource[] @relation("GroupResources")
+  createdAt DateTime   @default(now())
+  grade     Grade      @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  students  User[]     @relation("GroupStudents")
   courses   Course[]   @relation("GroupCourses")
-  createdAt DateTime @default(now())
+  resources Resource[] @relation("GroupResources")
+  tasks     Task[]     @relation("GroupTasks")
 
   @@unique([gradeId, name])
   @@index([gradeId])
@@ -158,15 +166,15 @@ model Period {
 model GoogleDriveAccount {
   id                  String   @id @default(uuid())
   userId              String
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   email               String
   googleAccessToken   String
   googleRefreshToken  String
   googleTokenExpiry   DateTime
   googleDriveFolderId String?
-  customLimit         Float?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+  customLimit         Float?
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, email])
   @@index([userId])
@@ -174,18 +182,61 @@ model GoogleDriveAccount {
 
 model DriveUploadQueue {
   id            String    @id @default(uuid())
-  recordType    String    // "RESOURCE" o "SUBMISSION"
-  recordId      String    // ID del Resource o Submission en DB
-  supabaseUrl   String    // URL actual en Supabase (para descargar el archivo)
-  supabasePath  String    // Path relativo en Supabase Storage (para borrar)
-  teacherId     String    // Cuenta Drive a usar
+  recordType    String
+  recordId      String
+  supabaseUrl   String
+  supabasePath  String
+  teacherId     String
   filename      String
   mimeType      String
-  folderPath    String    // e.g. "2025-1/Matemáticas/10/A/Materiales"
+  folderPath    String
   attempts      Int       @default(0)
   lastAttemptAt DateTime?
   createdAt     DateTime  @default(now())
 
   @@index([teacherId])
   @@index([recordType, recordId])
+}
+
+model Question {
+  id        String   @id @default(uuid())
+  taskId    String
+  text      String
+  type      String   @default("MULTIPLE_CHOICE") // MULTIPLE_CHOICE | TEXT
+  points    Float    @default(1.0)
+  order     Int      @default(0)
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  options   Option[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([taskId])
+}
+
+model Option {
+  id         String   @id @default(uuid())
+  questionId String
+  text       String
+  isCorrect  Boolean  @default(false)
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([questionId])
+}
+
+model AdditionalGrade {
+  id        String   @id @default(uuid())
+  studentId String
+  courseId  String
+  period    String
+  grade     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseId, period])
+  @@index([studentId])
+  @@index([courseId])
 }

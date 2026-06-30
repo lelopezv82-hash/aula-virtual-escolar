@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { 
@@ -289,7 +289,7 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
             return (
               <div 
                 key={course.id} 
-                className="w-full rounded-2xl border p-6 transition-all duration-300 hover:shadow-lg hover:border-blue-400/20" 
+                className="w-full rounded-2xl border p-6 transition-all duration-300 hover:shadow-lg hover:border-[#f98012]/20" 
                 style={{ 
                   borderLeft: isPeriodActive ? "6px solid var(--primary-color)" : "6px solid var(--text-muted)",
                   borderColor: "var(--border-color)",
@@ -302,7 +302,7 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
                 <div className="flex flex-wrap justify-between items-center gap-4 border-b pb-5 mb-5" style={{ borderColor: "var(--border-color)" }}>
                   <div>
                     <h2 className="text-xl font-bold flex items-center gap-2.5">
-                      <div className={`p-2 rounded-lg ${isPeriodActive ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30" : "bg-gray-100 text-gray-500 dark:bg-gray-800"}`}>
+                      <div className={`p-2 rounded-lg ${isPeriodActive ? "bg-orange-50 text-[#f98012] dark:bg-orange-900/30" : "bg-gray-100 text-gray-500 dark:bg-gray-800"}`}>
                         <BookOpen size={20} />
                       </div>
                       {course.name}
@@ -348,7 +348,7 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
                   <div className="flex flex-col gap-4">
                     <div className="flex justify-between items-center">
                       <h3 className="text-sm font-bold uppercase tracking-wider text-muted flex items-center gap-2">
-                        <FileText size={16} className="text-blue-500" />
+                        <FileText size={16} className="text-[#f98012]" />
                         Materiales del {selectedPeriod}
                       </h3>
                     </div>
@@ -386,7 +386,7 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
                                     <div className="flex flex-wrap gap-1.5 items-center text-[9px] text-muted mt-1">
                                       <span className="font-bold uppercase px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">{resource.type}</span>
                                       {resource.theme && (
-                                        <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 dark:bg-blue-950/20 dark:text-blue-400 font-medium">Tema: {resource.theme}</span>
+                                        <span className="px-1.5 py-0.5 rounded bg-orange-50 text-[#f98012] dark:bg-orange-950/20 dark:text-[#f98012] font-medium">Tema: {resource.theme}</span>
                                       )}
                                       <span className="px-1.5 py-0.5 rounded bg-slate-50 text-slate-600 dark:bg-slate-800/40 dark:text-slate-400 font-medium">Periodo: {resource.period || selectedPeriod}</span>
                                       <span className="px-1.5 py-0.5 rounded bg-slate-50 text-slate-600 dark:bg-slate-800/40 dark:text-slate-400 font-medium">Asignatura: {course.name}</span>
@@ -502,9 +502,9 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
 
       {/* Resource Upload / Edit Modal */}
       {showResourceModal && selectedCourse && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "1rem" }}
+        <div className="modal-overlay"
           onClick={e => e.target === e.currentTarget && setShowResourceModal(false)}>
-          <form onSubmit={handleSaveResource} className="card animate-fade-in" style={{ width: "100%", maxWidth: "500px", borderRadius: "1.25rem", boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)" }}>
+          <form onSubmit={handleSaveResource} className="modal-content" style={{ maxWidth: "500px" }}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">
                 {editingResource ? "Editar Recurso" : "Subir Recurso"} ({selectedCourse.name})
@@ -545,7 +545,7 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
                       groupIds: allSelected ? [] : allIds
                     });
                   }}
-                  className="text-xs font-bold text-blue-600 hover:underline"
+                  className="text-xs font-bold text-[#f98012] hover:underline"
                 >
                   {gradeGroups.map(g => g.id).every(id => resourceForm.groupIds.includes(id)) 
                     ? "Desmarcar todos" 
@@ -570,7 +570,7 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
                             : [...resourceForm.groupIds, g.id];
                           setResourceForm({ ...resourceForm, groupIds: newIds });
                         }}
-                        className="rounded text-blue-600 focus:ring-blue-500"
+                        className="rounded text-[#f98012] focus:ring-[#f98012]"
                       />
                       <span>{g.name}</span>
                     </label>

@@ -1,9 +1,10 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { jwtVerify } from "jose";
-import { BookOpen, Book, ClipboardList, Bell, Award, Settings } from "lucide-react";
+import { Book, Settings } from "lucide-react";
 import DashboardShell from "@/components/DashboardShell";
-import "../docente/docente.css"; // Reuse dashboard layout styles
+import prisma from "@/lib/prisma";
+import "../docente/docente.css";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
@@ -26,37 +27,31 @@ export default async function EstudianteLayout({ children }: { children: React.R
     redirect("/login");
   }
 
+  const studentRecord = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { groupId: true }
+  });
+  const studentGroupId = studentRecord?.groupId || null;
+
+  const courses = await prisma.course.findMany({
+    where: studentGroupId ? {
+      active: true,
+      groups: {
+        some: {
+          id: studentGroupId
+        }
+      }
+    } : { id: "none" },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" }
+  });
+
   const links = [
-    {
-      href: "/estudiante",
-      label: "Mis Asignaturas",
+    ...courses.map(c => ({
+      href: `/estudiante/cursos/${c.id}`,
+      label: c.name,
       icon: <Book size={20} />,
-    },
-    {
-      href: "/estudiante/tareas",
-      label: "Mis Tareas",
-      icon: <ClipboardList size={20} />,
-    },
-    {
-      href: "/estudiante/examenes",
-      label: "Mis Exámenes",
-      icon: <ClipboardList size={20} />,
-    },
-    {
-      href: "/estudiante/recursos",
-      label: "Recursos",
-      icon: <BookOpen size={20} />,
-    },
-    {
-      href: "/estudiante/calificaciones",
-      label: "Calificaciones",
-      icon: <Award size={20} />,
-    },
-    {
-      href: "/estudiante/notificaciones",
-      label: "Notificaciones",
-      icon: <Bell size={20} />,
-    },
+    })),
     {
       href: "/estudiante/configuracion",
       label: "Configuración",
@@ -70,7 +65,7 @@ export default async function EstudianteLayout({ children }: { children: React.R
       roleTitle="Estudiante"
       sidebarTitle="Aula Estudiante"
       links={links}
-      themeColor="var(--success)"
+      themeColor="var(--primary-color)"
     >
       {children}
     </DashboardShell>

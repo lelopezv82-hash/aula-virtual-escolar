@@ -130,7 +130,7 @@ export default function GestionPeriodosClient({ initialPeriods }: GestionPeriodo
       <div className="flex justify-between items-center flex-wrap gap-4">
         <div>
           <h2 className="text-xl font-bold flex items-center gap-2">
-            <Layers size={22} className="text-blue-500" />
+            <Layers size={22} className="text-[#f98012]" />
             Periodos Lectivos
           </h2>
           <p className="text-muted text-sm mt-1">
@@ -210,7 +210,7 @@ export default function GestionPeriodosClient({ initialPeriods }: GestionPeriodo
                           height: "22px",
                           borderRadius: "9999px",
                           background: period.active
-                            ? "var(--success, #10b981)"
+                            ? "var(--primary-color, #f98012)"
                             : "#cbd5e1",
                           border: "none",
                           padding: 0,
@@ -255,7 +255,7 @@ export default function GestionPeriodosClient({ initialPeriods }: GestionPeriodo
                           setError("");
                           setShowPeriodModal(true);
                         }}
-                        className="p-1.5 rounded-lg border hover:bg-slate-100 text-blue-600 dark:text-blue-400 dark:hover:bg-gray-800 transition-all"
+                        className="p-1.5 rounded-lg border hover:bg-slate-100 text-[#f98012] dark:text-[#f98012] dark:hover:bg-gray-800 transition-all"
                         style={{ borderColor: "var(--border-color)" }}
                         title="Editar Nombre"
                       >
@@ -282,23 +282,14 @@ export default function GestionPeriodosClient({ initialPeriods }: GestionPeriodo
       {/* Modal */}
       {showPeriodModal && (
         <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 100,
-            padding: "1rem",
-          }}
+          className="modal-overlay"
           onClick={(e) =>
             e.target === e.currentTarget && setShowPeriodModal(false)
           }
         >
           <form
             onSubmit={handleCreateOrUpdate}
-            className="card w-full max-w-md animate-fade-in"
+            className="modal-content w-full max-w-md"
             style={{ borderRadius: "1rem" }}
           >
             <div className="flex justify-between items-center mb-4">

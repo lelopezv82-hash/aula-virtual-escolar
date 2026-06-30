@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, Suspense, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -196,7 +196,7 @@ function GoogleDriveConfigContent() {
   if (loading) {
     return (
       <div className="flex items-center gap-2 py-4">
-        <Loader2 className="animate-spin text-blue-500" size={20} />
+        <Loader2 className="animate-spin text-[#f98012]" size={20} />
         <span className="text-sm text-muted">Cargando estado de almacenamiento...</span>
       </div>
     );
@@ -223,7 +223,7 @@ function GoogleDriveConfigContent() {
             onChange={handleToggle}
             className="sr-only peer"
           />
-          <div className="w-11 h-6 bg-gray-250 dark:bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+          <div className="w-11 h-6 bg-gray-250 dark:bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#f98012]"></div>
         </label>
       </div>
 
@@ -352,7 +352,7 @@ function GoogleDriveConfigContent() {
                               setEditingAccountId(acc.id);
                               setEditLimitVal(acc.customLimitGB ? acc.customLimitGB.toString() : "");
                             }}
-                            className="text-[10px] text-blue-500 hover:text-blue-700 hover:underline cursor-pointer ml-1.5 font-medium"
+                            className="text-[10px] text-[#f98012] hover:text-[#e06d09] hover:underline cursor-pointer ml-1.5 font-medium"
                           >
                             [Ajustar Límite]
                           </button>
@@ -421,8 +421,8 @@ function GoogleDriveConfigContent() {
 
           {/* Workspace Note */}
           {poolStats.hasPooled && (
-            <div className="mt-1 p-2.5 bg-blue-50/50 dark:bg-blue-950/10 border border-blue-150 dark:border-blue-900/40 rounded-lg text-[10px] text-muted leading-relaxed flex items-start gap-1.5">
-              <span className="text-blue-500 font-semibold shrink-0">ℹ</span>
+            <div className="mt-1 p-2.5 bg-orange-50/50 dark:bg-orange-950/10 border border-orange-200 dark:border-orange-900/40 rounded-lg text-[10px] text-muted leading-relaxed flex items-start gap-1.5">
+              <span className="text-[#f98012] font-semibold shrink-0">ℹ</span>
               <span>
                 <strong>Nota sobre Google Workspace:</strong> Al usar un correo institucional, Google reporta el límite de almacenamiento total compartido de tu colegio (100 TB). Tu capacidad de subida personal está sujeta al límite asignado por el administrador de tu institución.
               </span>
@@ -449,7 +449,7 @@ function GoogleDriveConfigContent() {
               ? `Pool activo con ${accounts.length} ${accounts.length === 1 ? 'cuenta' : 'cuentas'} (${formatBytes(poolStats.totalUsage)} / ${poolStats.hasPooled ? 'Compartido' : formatBytes(poolStats.totalLimit)} usados)`
               : "Almacenamiento Local Activo"}
           </span>
-          <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+          <span className="font-semibold text-[#f98012] dark:text-[#f98012]">
             {isConnected 
               ? `${combinedUsePercentage.toFixed(1)}% usado | ${Math.max(0, 100 - combinedUsePercentage).toFixed(1)}% disponible` 
               : "0% usado | 100% disponible"}
@@ -464,7 +464,7 @@ export default function GoogleDriveConfig() {
   return (
     <Suspense fallback={
       <div className="flex items-center gap-2 py-4">
-        <Loader2 className="animate-spin text-blue-500" size={20} />
+        <Loader2 className="animate-spin text-[#f98012]" size={20} />
         <span className="text-sm text-muted">Cargando...</span>
       </div>
     }>

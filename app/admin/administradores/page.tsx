@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -219,7 +219,7 @@ export default function AdministradoresPage() {
 
           {loading ? (
             <div className="flex justify-center py-12">
-              <Loader2 className="animate-spin text-blue-500" size={36} />
+              <Loader2 className="animate-spin text-[#f98012]" size={36} />
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -282,7 +282,7 @@ export default function AdministradoresPage() {
                         <td className="py-3 px-4">
                           <div className="flex justify-end gap-1">
                             <button title="Editar" onClick={() => openEdit(admin)}
-                              className="p-2 rounded-md hover:bg-blue-50 transition-colors" style={{ color: "var(--primary-color)" }}>
+                              className="p-2 rounded-md hover:bg-orange-50 transition-colors" style={{ color: "var(--primary-color)" }}>
                               <Edit2 size={16} />
                             </button>
                             <button title="Reiniciar contraseña" onClick={() => handleResetPassword(admin)}
@@ -314,14 +314,10 @@ export default function AdministradoresPage() {
       {/* Single Admin Modal */}
       {showModal && (
         <div
-          style={{
-            position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            zIndex: 100, padding: "1rem"
-          }}
+          className="modal-overlay"
           onClick={(e) => e.target === e.currentTarget && closeModal()}
         >
-          <div className="card" style={{ width: "100%", maxWidth: "480px", maxHeight: "90vh", overflowY: "auto" }}>
+          <div className="modal-content" style={{ maxWidth: "480px", maxHeight: "90vh", overflowY: "auto" }}>
             {/* Credentials Display */}
             {newCredentials ? (
               <div>

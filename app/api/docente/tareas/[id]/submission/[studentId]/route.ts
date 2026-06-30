@@ -28,6 +28,11 @@ export async function GET(
       return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 });
     }
 
+    const student = await prisma.user.findUnique({
+      where: { id: resolvedParams.studentId },
+      select: { id: true, name: true }
+    });
+
     const submission = await prisma.submission.findUnique({
       where: {
         taskId_studentId: {
@@ -38,8 +43,77 @@ export async function GET(
       include: { student: true },
     });
 
-    return NextResponse.json({ task, submission });
-  } catch {
+    return NextResponse.json({ task, submission, student });
+  } catch (error) {
+    console.error("Error fetching submission details:", error);
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string; studentId: string }> }
+) {
+  try {
+    const resolvedParams = await params;
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth_token")?.value;
+
+    if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    if (payload.role !== "TEACHER") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+
+    const task = await prisma.task.findUnique({
+      where: { id: resolvedParams.id },
+      include: { course: true }
+    });
+
+    if (!task || task.course.teacherId !== (payload.id as string)) {
+      return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 });
+    }
+
+    const now = new Date();
+    const isLate = now > new Date(task.dueDate);
+
+    // Update or create the submission record to reset state instead of deleting it
+    await prisma.submission.upsert({
+      where: {
+        taskId_studentId: {
+          taskId: resolvedParams.id,
+          studentId: resolvedParams.studentId,
+        }
+      },
+      update: {
+        status: "PENDING",
+        grade: null,
+        fileUrl: null,
+        submittedAt: null,
+        startedAt: null,
+        attempt: 1,
+        unlockedAnswers: false,
+        answers: {},
+        allowLateSubmission: isLate ? true : false,
+        lateSubmissionUntil: null
+      },
+      create: {
+        taskId: resolvedParams.id,
+        studentId: resolvedParams.studentId,
+        status: "PENDING",
+        grade: null,
+        fileUrl: null,
+        submittedAt: null,
+        startedAt: null,
+        attempt: 1,
+        unlockedAnswers: false,
+        answers: {},
+        allowLateSubmission: isLate ? true : false,
+        lateSubmissionUntil: null
+      }
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error resetting submission:", error);
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }

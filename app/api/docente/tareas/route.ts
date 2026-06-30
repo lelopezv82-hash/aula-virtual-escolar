@@ -6,6 +6,8 @@ import { supabase } from '@/lib/supabase';
 import { getGoogleAccessToken, uploadToGoogleDrive } from '@/lib/gdrive';
 import { enqueueFailedDriveUpload } from '@/lib/driveQueue';
 
+import { fromColombiaLocalStringToDate } from '@/lib/dateUtils';
+
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
 export async function POST(request: Request) {
@@ -36,13 +38,17 @@ export async function POST(request: Request) {
     const weight = weightRaw ? parseInt(weightRaw, 10) : 0;
     const groupIdsJson = formData.get('groupIds') as string | null;
     const publishAtRaw = formData.get('publishAt') as string | null;
-    const publishAt = publishAtRaw && publishAtRaw.trim() !== "" ? new Date(publishAtRaw) : null;
-    const externalUrl = formData.get('externalUrl') as string | null;
+    const publishAt = fromColombiaLocalStringToDate(publishAtRaw);
+    const durationRaw = formData.get('duration') as string | null;
+    const duration = durationRaw && durationRaw.trim() !== "" ? parseInt(durationRaw, 10) : null;
     const type = formData.get('type') as string | null;
-    const timeLimitRaw = formData.get('timeLimit') as string | null;
-    const timeLimit = timeLimitRaw ? parseInt(timeLimitRaw, 10) : null;
+    const externalUrl = formData.get('externalUrl') as string | null;
+    const isExternalRaw = formData.get('isExternal') as string | null;
+    const isExternal = isExternalRaw === 'true';
 
     let groupIds: string[] = [];
+
+
     if (groupIdsJson) {
       try {
         groupIds = JSON.parse(groupIdsJson);
@@ -66,6 +72,7 @@ export async function POST(request: Request) {
 
     let attachmentUrl = externalUrl || null;
     let gdriveEmail: string | null = null;
+
 
     if (file && file.size > 0) {
       const bytes = await file.arrayBuffer();
@@ -119,21 +126,23 @@ export async function POST(request: Request) {
       data: {
         title,
         description,
-        dueDate: new Date(dueDate),
+        dueDate: fromColombiaLocalStringToDate(dueDate) || new Date(),
         attachmentUrl,
         gdriveEmail,
         courseId,
         theme,
         period,
-        type: type === "EXAM" ? "EXAM" : "TASK",
         publishAt,
-        timeLimit: type === "EXAM" ? timeLimit : null,
         groups: {
           connect: groupIds.map(id => ({ id }))
         },
-        weight: isNaN(weight) ? 0 : weight
+        weight: isNaN(weight) ? 0 : weight,
+        duration: duration && !isNaN(duration) ? duration : null,
+        type: type || "TASK",
+        isExternal: isExternal
       }
     });
+
 
     // Si el archivo adjunto quedó en Supabase (gdrive falló), encolar para reintento
     if (file && file.size > 0 && !gdriveEmail && attachmentUrl && attachmentUrl.includes('supabase')) {

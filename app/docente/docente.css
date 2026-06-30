@@ -1,291 +1,213 @@
-.dashboard-layout {
+/* Moodle Boost Theme Layout */
+.moodle-layout {
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
   background-color: var(--bg-primary);
 }
 
-.sidebar {
-  width: 280px;
+/* Navbar */
+.moodle-navbar {
+  height: 60px;
   background-color: var(--bg-secondary);
-  border-right: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
   position: sticky;
   top: 0;
-  height: 100vh;
-  transition: width var(--transition-normal), transform var(--transition-normal);
   z-index: 50;
+  box-shadow: var(--shadow-sm);
 }
 
-/* Sidebar collapsed state (desktop) */
-.sidebar.collapsed {
-  width: 80px;
-}
-
-.sidebar-header {
-  padding: 1.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  border-bottom: 1px solid var(--border-color);
-  min-height: 80px;
-}
-
-.brand-container {
+.navbar-left, .navbar-right {
   display: flex;
   align-items: center;
   gap: 1rem;
-  flex: 1;
-  overflow: hidden;
 }
 
-.brand-logo {
-  flex-shrink: 0;
-}
-
-.brand-text {
-  font-size: 1.25rem;
-  color: var(--primary-color);
-  font-weight: 700;
-  white-space: nowrap;
-  transition: opacity var(--transition-fast);
-}
-
-.sidebar.collapsed .brand-text {
-  opacity: 0;
-  display: none;
-}
-
-.sidebar.collapsed .brand-container {
-  justify-content: center;
-}
-
-.sidebar-nav {
-  flex: 1;
-  padding: 1.5rem 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.75rem 1rem;
+.navbar-toggler {
+  background: none;
+  border: none;
   color: var(--text-secondary);
-  border-radius: var(--radius-md);
-  font-weight: 500;
-  transition: all var(--transition-fast);
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.nav-item:hover {
-  background-color: var(--primary-light-hover);
-  color: var(--primary-color);
-  transform: translateX(2px);
-}
-
-.nav-item.active {
-  background: linear-gradient(90deg, var(--primary-light) 0%, transparent 100%);
-  border-left: 4px solid var(--primary-color);
-  padding-left: calc(1rem - 4px);
-  color: var(--primary-color);
-  font-weight: 600;
-}
-
-.sidebar.collapsed .nav-label {
-  display: none;
-}
-
-.sidebar.collapsed .nav-item {
-  justify-content: center;
-  padding: 0.75rem 0;
-}
-
-.sidebar-footer {
-  padding: 1.5rem;
-  border-top: 1px solid var(--border-color);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  transition: all var(--transition-normal);
+  justify-content: center;
+  transition: background-color var(--transition-fast);
 }
 
-.sidebar.collapsed .sidebar-footer {
-  flex-direction: column;
-  gap: 1rem;
-  align-items: center;
-  padding: 1.5rem 0.5rem;
+.navbar-toggler:hover {
+  background-color: var(--bg-tertiary);
 }
 
-.user-info {
+.navbar-brand {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  overflow: hidden;
-  max-width: 100%;
 }
 
-.avatar {
-  width: 40px;
-  height: 40px;
+.brand-title {
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--text-primary);
+}
+
+.navbar-time {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-right: 1px solid var(--border-color);
+  padding-right: 1.5rem;
+  margin-right: 0.5rem;
+}
+
+.navbar-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.user-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: var(--primary-color);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  font-size: 1.25rem;
-  flex-shrink: 0;
+  font-size: 0.9rem;
 }
 
-.details {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  transition: opacity var(--transition-fast);
-}
-
-.details strong {
-  font-size: 0.875rem;
-  color: var(--text-primary);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
-}
-
-.details span {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
-}
-
-.sidebar.collapsed .user-info .details {
-  display: none;
-}
-
-.logout-btn {
-  color: var(--text-muted);
+.navbar-actions button {
+  color: var(--text-secondary);
   padding: 0.5rem;
-  border-radius: var(--radius-md);
-  transition: all var(--transition-fast);
-  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-fast);
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.logout-btn:hover {
-  background-color: rgba(239, 68, 68, 0.1);
+.navbar-actions button:hover {
+  background-color: rgba(220, 38, 38, 0.1);
   color: var(--danger);
 }
 
-/* Collapse / close buttons */
-.collapse-sidebar-btn, .close-sidebar-btn {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 0.35rem;
-  border-radius: var(--radius-md);
+/* Body & Drawer */
+.moodle-body {
+  display: flex;
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--bg-tertiary); /* Fondo gris claro tipo Moodle 4 para el área de contenido */
+}
+
+.moodle-drawer {
+  width: 260px;
+  background-color: var(--bg-primary); /* Panel lateral usualmente blanco o gris muy claro */
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.25s ease-in-out, width 0.25s ease-in-out, margin-left 0.25s ease-in-out;
+  overflow-y: auto;
+  z-index: 40;
+}
+
+/* Drawer open/closed states for Desktop */
+.moodle-layout.desktop.drawer-closed .moodle-drawer {
+  width: 0;
+  border-right: none;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* Drawer Navigation */
+.drawer-nav {
+  padding: 1rem 0;
+}
+
+.nav-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-item-container {
+  padding: 0.15rem 1rem;
+}
+
+.nav-item-container a {
   display: flex;
   align-items: center;
-  justify-content: center;
-  transition: all var(--transition-fast);
+  gap: 0.875rem;
+  padding: 0.75rem 1rem;
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
-.collapse-sidebar-btn:hover, .close-sidebar-btn:hover {
+.nav-item-container a:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.nav-item-container a.active {
   background-color: var(--primary-light);
   color: var(--primary-color);
+  font-weight: 600;
 }
 
-.sidebar.collapsed .collapse-sidebar-btn {
+/* Main Content */
+.moodle-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem;
+  height: calc(100vh - 60px);
+}
+
+.moodle-content-wrapper {
+  max-width: 1280px;
   margin: 0 auto;
 }
 
-/* Mobile top header */
-.mobile-header {
-  display: none;
-  height: 60px;
-  background-color: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 40;
-  padding: 0 1rem;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: var(--shadow-sm);
-}
-
-.mobile-menu-btn {
-  background: none;
-  border: none;
-  color: var(--text-primary);
-  cursor: pointer;
-  padding: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-md);
-}
-
-.mobile-menu-btn:hover {
-  background-color: var(--primary-light-hover);
-}
-
-.mobile-header-brand {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 700;
-  font-family: var(--font-heading);
-  font-size: 1.1rem;
-  color: var(--text-primary);
-}
-
-.mobile-header-user {
-  display: flex;
-  align-items: center;
-}
-
-/* Backdrop */
-.sidebar-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(4px);
-  z-index: 45;
-}
-
-.dashboard-main {
-  flex: 1;
-  padding: 2rem;
-  overflow-y: auto;
-}
-
+/* Dashboard Header inside content */
 .dashboard-header {
   margin-bottom: 2rem;
 }
 
 .dashboard-header h1 {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
 }
 
 .dashboard-header p {
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
 
+/* Stats */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -302,7 +224,7 @@
 .stat-icon {
   width: 56px;
   height: 56px;
-  border-radius: 16px;
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -321,42 +243,69 @@
   color: var(--text-primary);
 }
 
+/* Mobile responsive */
 @media (max-width: 767px) {
-  .mobile-header {
-    display: flex;
+  .moodle-navbar {
+    padding: 0 1rem;
   }
   
-  .dashboard-layout {
-    flex-direction: column;
-    padding-top: 60px; /* Offset for top mobile navbar */
+  .navbar-time {
+    display: none;
   }
   
-  .sidebar {
+  .moodle-drawer {
     position: fixed;
-    top: 0;
-    left: 0;
+    top: 60px; /* Debajo de navbar */
     bottom: 0;
-    height: 100vh;
-    z-index: 100;
+    left: 0;
+    width: 280px;
+    background-color: var(--bg-secondary);
     transform: translateX(-100%);
     box-shadow: var(--shadow-lg);
   }
-  
-  .sidebar.open {
+
+  .moodle-layout.mobile.drawer-open .moodle-drawer {
     transform: translateX(0);
   }
-  
-  .dashboard-main {
-    padding: 1.5rem 1rem;
-    width: 100%;
-  }
 
+  .moodle-backdrop {
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0,0,0,0.5);
+    z-index: 30;
+  }
+  
+  .drawer-header-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  
+  .close-drawer {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0.25rem;
+  }
+  
+  .moodle-main {
+    padding: 1rem;
+  }
+  
+  .dashboard-header h1 {
+    font-size: 1.5rem;
+  }
+  
   .stats-grid {
     grid-template-columns: 1fr;
     gap: 1rem;
-  }
-
-  .dashboard-header h1 {
-    font-size: 1.75rem;
   }
 }

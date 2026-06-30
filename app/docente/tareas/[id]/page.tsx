@@ -8,6 +8,9 @@ import LateSubmissionManager from "./LateSubmissionManager";
 import StudentLateSubmissionToggle from "./StudentLateSubmissionToggle";
 import GDriveEmailDisplay from "@/components/GDriveEmailDisplay";
 import GDriveVisibilityToggle from "@/components/GDriveVisibilityToggle";
+import ResetSubmissionButton from "./ResetSubmissionButton";
+import ResetAllSubmissionsButton from "./ResetAllSubmissionsButton";
+import QuestionEditor from "./QuestionEditor";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
@@ -38,6 +41,16 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
   if (!task || task.course.teacherId !== teacherId) {
     return <div className="alert alert-danger">No tienes acceso a esta tarea.</div>;
   }
+
+  const questions = await prisma.question.findMany({
+    where: { taskId: resolvedParams.id },
+    orderBy: { order: 'asc' },
+    include: {
+      options: {
+        orderBy: { id: 'asc' }
+      }
+    }
+  });
 
   // Get students who belong to any of the task's groups
   const studentWhereClause: any = { role: "STUDENT" };
@@ -131,6 +144,10 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
         })}
       />
 
+      {task.type === "EXAM" && (
+        <QuestionEditor taskId={task.id} initialQuestions={questions} />
+      )}
+
       {task.groups && task.groups.length > 0 ? (
         task.groups.map(group => {
           const groupStudents = allStudents.filter(s => s.groupId === group.id);
@@ -138,7 +155,17 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
           return (
             <div key={group.id} className="card w-full mb-6">
               <div className="mb-4">
-                <h2 className="text-lg font-bold">Estado de las entregas: Grado {group.grade?.name || "Sin Grado"} - Grupo {group.name}</h2>
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <h2 className="text-lg font-bold">Estado de las entregas: Grado {group.grade?.name || "Sin Grado"} - Grupo {group.name}</h2>
+                  {task.type === "EXAM" && (
+                    <ResetAllSubmissionsButton
+                      taskId={task.id}
+                      groupId={group.id}
+                      groupName={`${group.grade?.name || ""}-${group.name}`}
+                      studentCount={groupStudents.length}
+                    />
+                  )}
+                </div>
                 <div className="flex flex-wrap gap-x-2.5 gap-y-1 text-xs mt-1.5 text-muted font-medium no-print">
                   <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Periodo: {task.period?.replace(/periodo\s*/i, "") || "Sin Periodo"}</span>
                   <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Grado: {group.grade?.name || "Sin Grado"}</span>
@@ -196,15 +223,26 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
                               {submission?.submittedAt ? new Date(submission.submittedAt).toLocaleString() : '-'}
                             </td>
                             <td className="py-3 px-4 text-right no-print">
-                              {isSubmitted ? (
+                              {submission ? (
                                 <div className="flex flex-col items-end gap-1">
                                   <div className="flex justify-end gap-2">
-                                    <a href={submission.fileUrl || "#"} target="_blank" download className="btn btn-secondary text-sm px-2 py-1 flex items-center gap-1">
-                                      <Download size={14} /> Archivo
-                                    </a>
-                                    <Link href={`/docente/tareas/${task.id}/calificar/${student.id}`} className="btn btn-primary text-sm px-2 py-1">
-                                      Calificar
-                                    </Link>
+                                    {task.type !== "EXAM" && submission.fileUrl && (
+                                      <a href={submission.fileUrl} target="_blank" download className="btn btn-secondary text-sm px-2 py-1 flex items-center gap-1">
+                                        <Download size={14} /> Archivo
+                                      </a>
+                                    )}
+                                    {task.type === "EXAM" && (
+                                      <ResetSubmissionButton 
+                                        taskId={task.id}
+                                        studentId={student.id}
+                                        studentName={student.name}
+                                      />
+                                    )}
+                                    {(task.type !== "EXAM" || isSubmitted || task.isExternal) && (
+                                      <Link href={`/docente/tareas/${task.id}/calificar/${student.id}`} className="btn btn-primary text-sm px-2 py-1">
+                                        Calificar
+                                      </Link>
+                                    )}
                                   </div>
                                   {submission.gdriveEmail && (
                                     <GDriveEmailDisplay email={submission.gdriveEmail} context="task_details" />
@@ -227,7 +265,15 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
       ) : (
         <div className="card w-full">
           <div className="mb-4 no-print">
-            <h2 className="text-lg font-bold">Estado de las entregas</h2>
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <h2 className="text-lg font-bold">Estado de las entregas</h2>
+              {task.type === "EXAM" && (
+                <ResetAllSubmissionsButton
+                  taskId={task.id}
+                  studentCount={allStudents.length}
+                />
+              )}
+            </div>
             <div className="flex flex-wrap gap-x-2.5 gap-y-1 text-xs mt-1.5 text-muted font-medium">
               <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Periodo: {task.period?.replace(/periodo\s*/i, "") || "Sin Periodo"}</span>
               <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Grado: Sin Grado</span>
@@ -282,23 +328,34 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
                         {submission?.submittedAt ? new Date(submission.submittedAt).toLocaleString() : '-'}
                       </td>
                       <td className="py-3 px-4 text-right no-print">
-                        {isSubmitted ? (
-                          <div className="flex flex-col items-end gap-1">
-                            <div className="flex justify-end gap-2">
-                              <a href={submission.fileUrl || "#"} target="_blank" download className="btn btn-secondary text-sm px-2 py-1 flex items-center gap-1">
+                        <div className="flex flex-col items-end gap-1">
+                          <div className="flex justify-end gap-2">
+                            {submission && task.type !== "EXAM" && submission.fileUrl && (
+                              <a href={submission.fileUrl} target="_blank" download className="btn btn-secondary text-sm px-2 py-1 flex items-center gap-1">
                                 <Download size={14} /> Archivo
                               </a>
+                            )}
+                            {task.type === "EXAM" && (
+                              <ResetSubmissionButton 
+                                taskId={task.id}
+                                studentId={student.id}
+                                studentName={student.name}
+                                hasSubmission={!!submission}
+                              />
+                            )}
+                            {submission && (task.type !== "EXAM" || isSubmitted) && (
                               <Link href={`/docente/tareas/${task.id}/calificar/${student.id}`} className="btn btn-primary text-sm px-2 py-1">
                                 Calificar
                               </Link>
-                            </div>
-                            {submission.gdriveEmail && (
-                              <GDriveEmailDisplay email={submission.gdriveEmail} context="task_details" />
+                            )}
+                            {!submission && task.type !== "EXAM" && (
+                              <span className="text-muted text-sm">Sin entrega</span>
                             )}
                           </div>
-                        ) : (
-                          <span className="text-muted text-sm">Sin entrega</span>
-                        )}
+                          {submission?.gdriveEmail && (
+                            <GDriveEmailDisplay email={submission.gdriveEmail} context="task_details" />
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

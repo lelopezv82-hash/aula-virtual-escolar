@@ -2,7 +2,12 @@ import prisma from '@/lib/prisma';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { getTaskDeadlineStatus } from '@/lib/dateUtils';
 import EvidenciaBotones from "@/app/estudiante/examenes/EvidenciaBotones";
+import Link from "next/link";
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
@@ -15,17 +20,6 @@ export default async function CalificacionesEstudiantePage() {
   const { payload } = await jwtVerify(token, JWT_SECRET);
   const studentId = payload.id as string;
 
-  const submissions = await prisma.submission.findMany({
-    where: {
-      studentId,
-      task: {
-        active: true
-      }
-    },
-    include: { task: { include: { course: true } } },
-    orderBy: { updatedAt: "desc" }
-  });
-
   // Fetch active periods from database
   const activePeriodsFromDb = await prisma.period.findMany({
     where: { active: true }
@@ -34,13 +28,131 @@ export default async function CalificacionesEstudiantePage() {
   const activePeriodNames = activePeriodsFromDb.map(p => p.name);
 
   const now = new Date();
-  const activeSubmissions = submissions.filter(sub => 
-    (!sub.task.period || activePeriodNames.includes(sub.task.period)) && 
-    (!sub.task.publishAt || new Date(sub.task.publishAt) <= now)
-  );
+
+  // Get student group to fetch all tasks assigned to their group
+  const studentRecord = await prisma.user.findUnique({
+    where: { id: studentId },
+    select: { groupId: true, name: true }
+  });
+  const studentGroupId = studentRecord?.groupId || null;
+  const studentName = studentRecord?.name || "Estudiante";
+
+  // Fetch all active tasks assigned to the student's group (or all if no groups restrict them)
+  const tasks = await prisma.task.findMany({
+    where: {
+      active: true,
+      OR: [
+        { period: null },
+        { period: { in: activePeriodNames } }
+      ],
+      AND: [
+        {
+          OR: [
+            { publishAt: null },
+            { publishAt: { lte: now } }
+          ]
+        }
+      ],
+      groups: studentGroupId ? {
+        some: {
+          id: studentGroupId
+        }
+      } : { none: {} }
+    },
+    include: {
+      course: true,
+      questions: {
+        include: {
+          options: true
+        }
+      },
+      submissions: {
+        where: { studentId }
+      }
+    }
+  });
+
+  // Map tasks to their submissions, adding virtual 1.0 graded submissions for expired/closed Google Forms exams
+  // Map tasks to their submissions, adding virtual 1.0 graded submissions for expired/closed Google Forms exams
+  const activeSubmissions = (await Promise.all(tasks.map(async task => {
+    const sub = task.submissions[0];
+    const { isClosed } = getTaskDeadlineStatus(task, sub);
+    const isGoogleForm = !!(task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));
+
+    const isNative = task.questions && task.questions.length > 0;
+    const canSeeAnswers = sub && sub.status !== "PENDING" && (isNative || sub.attempt > 1 || sub.unlockedAnswers === true);
+
+    let feedbackTemplate = null;
+    if (task.type === "EXAM" && isGoogleForm && canSeeAnswers) {
+      const templateSub = await prisma.submission.findFirst({
+        where: {
+          taskId: task.id,
+          feedback: { not: null }
+        },
+        select: { feedback: true }
+      });
+      feedbackTemplate = templateSub?.feedback || null;
+    }
+
+    if (sub) {
+      // Detect if the student's individual timer has expired (including 30s grace period)
+      const isTimerExpired = sub.startedAt && task.duration && 
+        (new Date(sub.startedAt).getTime() + task.duration * 60 * 1000 + 30000 < now.getTime());
+
+      const processedSub = {
+        ...sub,
+        feedback: canSeeAnswers ? sub.feedback : null
+      };
+
+      if (sub.status === "PENDING" && (isClosed || isTimerExpired)) {
+        return {
+          ...processedSub,
+          status: "GRADED",
+          grade: 1.0,
+          feedbackTemplate,
+          task
+        };
+      }
+      return {
+        ...processedSub,
+        feedbackTemplate,
+        task
+      };
+    }
+
+    // If no submission and task/exam is closed, virtually grade as 1.0 (skip for external tasks/exams)
+    if (isClosed && !task.isExternal) {
+      return {
+        id: `virtual-${task.id}`,
+        taskId: task.id,
+        studentId,
+        status: "GRADED",
+        grade: 1.0,
+        feedback: null,
+        feedbackTemplate,
+        fileUrl: null,
+        submittedAt: null,
+        createdAt: task.dueDate,
+        updatedAt: task.dueDate,
+        allowLateSubmission: false,
+        lateSubmissionUntil: null,
+        gdriveEmail: null,
+        startedAt: null,
+        attempt: 1,
+        unlockedAnswers: false,
+        task
+      };
+    }
+
+    return null;
+  }))).filter((sub): sub is any => sub !== null);
+
+  // Sort by updatedAt desc (using task updatedAt fallback for virtual ones)
+  activeSubmissions.sort((a, b) => new Date(b.updatedAt || b.task.updatedAt).getTime() - new Date(a.updatedAt || a.task.updatedAt).getTime());
+
   const graded = activeSubmissions.filter(s => s.status === "GRADED");
   const avg = graded.length > 0
-    ? graded.reduce((sum, s) => sum + (s.grade ?? 0), 0) / graded.length
+    ? graded.reduce((sum, s) => sum + Math.max(1.0, s.grade ?? 0), 0) / graded.length
     : null;
 
   return (
@@ -94,63 +206,102 @@ export default async function CalificacionesEstudiantePage() {
                   {periodSubs.map(sub => {
                     const isGraded = sub.status === "GRADED";
                     const isPending = sub.status === "SUBMITTED";
+                    const currentGrade = sub.grade !== null && sub.grade !== undefined ? Math.max(1.0, sub.grade) : 0;
                     const gradeColor = isGraded
-                      ? sub.grade! >= 3 ? "var(--success)" : "var(--danger)"
+                      ? currentGrade >= 3 ? "var(--success)" : "var(--danger)"
                       : "var(--text-muted)";
 
                     return (
-                      <div key={sub.id} className="card flex flex-col md:flex-row md:items-center gap-4"
-                        style={{ background: "var(--bg-primary)", borderLeft: `4px solid ${isGraded ? gradeColor : "var(--border-color)"}` }}>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs font-bold px-2 py-1 bg-gray-100 rounded text-gray-600">
+                      <div key={sub.id}
+                        style={{
+                          background: "var(--bg-primary)",
+                          borderLeft: `4px solid ${isGraded ? gradeColor : "var(--border-color)"}`,
+                          display: "flex",
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: "1rem",
+                          padding: "1rem",
+                          borderRadius: "var(--radius-lg)",
+                          border: `1px solid var(--border-color)`,
+                          borderLeftWidth: "4px",
+                          boxShadow: "var(--shadow-sm)",
+                        }}
+                      >
+                        {/* Left: info */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem", flexWrap: "wrap" }}>
+                            <span style={{ fontSize: "0.75rem", fontWeight: 700, padding: "2px 8px", background: "#f3f4f6", borderRadius: "4px", color: "#4b5563" }}>
                               {sub.task.course.name}
                             </span>
-                            {isGraded && <span className="badge badge-success flex items-center gap-1"><CheckCircle size={12} /> Calificada</span>}
+                            {isGraded && (
+                              sub.submittedAt === null && !sub.task.isExternal ? (
+                                <span className="badge badge-danger flex items-center gap-1"><AlertCircle size={12} /> Plazo vencido</span>
+                              ) : (
+                                <span className="badge badge-success flex items-center gap-1"><CheckCircle size={12} /> Calificada</span>
+                              )
+                            )}
                             {isPending && <span className="badge badge-info flex items-center gap-1"><Clock size={12} /> En revisión</span>}
                           </div>
-                          <h3 className="font-bold text-lg">{sub.task.title}</h3>
+                          <h3 style={{ fontWeight: 700, fontSize: "1.1rem", margin: "0 0 0.25rem" }}>{sub.task.title}</h3>
                           {isGraded && sub.feedback && !sub.feedback.includes("Calificado automáticamente por Google Forms") && !sub.feedback.trim().startsWith("[") && (
-                            <div className="mt-2 p-3 rounded-lg text-sm italic" style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)", borderLeft: "3px solid var(--primary-color)" }}>
+                            <div style={{ marginTop: "0.5rem", padding: "0.75rem", borderRadius: "0.5rem", fontSize: "0.875rem", fontStyle: "italic", background: "var(--bg-secondary)", color: "var(--text-secondary)", borderLeft: "3px solid var(--primary-color)" }}>
                               💬 &quot;{sub.feedback}&quot;
                             </div>
                           )}
-                          {!isGraded && (
-                            <p className="text-sm text-muted mt-1">Tu docente aún no ha calificado esta entrega.</p>
+                          {isGraded && sub.submittedAt === null && !sub.task.isExternal && (
+                            <p style={{ fontSize: "0.875rem", color: "var(--danger)", marginTop: "0.25rem", fontWeight: 500 }}>Calificación automática por falta de entrega.</p>
                           )}
-                          
-                          {sub.feedback && (sub.task.attachmentUrl?.includes("docs.google.com/forms") || sub.task.attachmentUrl?.includes("forms.gle")) && (
-                            <div className="mt-3">
-                              <EvidenciaBotones 
+                          {!isGraded && (
+                            <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>Tu docente aún no ha calificado esta entrega.</p>
+                          )}
+                        </div>
+
+                        {/* Right: grade + action */}
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem", minWidth: "120px", textAlign: "center" }}>
+                          {isGraded ? (
+                            <>
+                              <div style={{ fontSize: "2rem", fontWeight: 800, color: gradeColor, lineHeight: 1 }}>
+                                {sub.grade !== null && sub.grade !== undefined ? Math.max(1.0, sub.grade).toFixed(1) : ""}
+                              </div>
+                              <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>nota</div>
+                            </>
+                          ) : (
+                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontStyle: "italic", marginBottom: "0.5rem" }}>
+                              {sub.task.type === "EXAM" ? "En proceso de calificación..." : "Pendiente de revisión"}
+                            </div>
+                          )}
+
+                          <div className="mt-1 w-full flex justify-center">
+                            {sub.task.type === "EXAM" ? (
+                              <EvidenciaBotones
                                 exam={{
                                   id: sub.task.id,
                                   title: sub.task.title,
                                   course: { name: sub.task.course?.name || "Asignatura" }
                                 }}
                                 submission={{
-                                  grade: sub.grade,
+                                  grade: sub.grade !== null && sub.grade !== undefined ? Math.max(1.0, sub.grade) : null,
                                   status: sub.status,
                                   fileUrl: sub.fileUrl,
                                   submittedAt: sub.submittedAt,
-                                  feedback: sub.feedback
+                                  feedback: sub.feedback,
+                                  feedbackTemplate: sub.feedbackTemplate,
+                                  studentName: studentName,
+                                  attempt: sub.attempt,
+                                  unlockedAnswers: sub.unlockedAnswers,
+                                  answers: (sub as any).answers
                                 }}
-                                isGoogleForm={true}
+                                isGoogleForm={!!(sub.task.attachmentUrl?.includes("docs.google.com/forms") || sub.task.attachmentUrl?.includes("forms.gle"))}
+                                variant="secondary"
+                                label="Ver Calificación"
                               />
-                            </div>
-                          )}
-                        </div>
-
-                        <div style={{ minWidth: "100px", textAlign: "center" }}>
-                          {isGraded ? (
-                            <>
-                              <div style={{ fontSize: "2.5rem", fontWeight: 800, color: gradeColor, lineHeight: 1 }}>
-                                {sub.grade?.toFixed(1)}
-                              </div>
-                              <div className="text-muted text-xs mt-1">/ 5.0</div>
-                            </>
-                          ) : (
-                            <div className="text-muted text-sm">—</div>
-                          )}
+                            ) : (
+                              <Link href={`/estudiante/tareas/${sub.task.id}`} className="btn btn-secondary text-xs px-2 py-1 w-full flex justify-center">
+                                Ver Entrega
+                              </Link>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );

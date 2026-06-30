@@ -15,23 +15,36 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    if (payload.role !== "STUDENT") {
+    if (payload.role !== "STUDENT" && payload.role !== "TEACHER") {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const studentId = payload.id as string;
-    const student = await prisma.user.findUnique({
-      where: { id: studentId },
-      select: { groupId: true, name: true }
-    });
+    const isTeacher = payload.role === "TEACHER";
+    const studentId = isTeacher ? null : payload.id as string;
+    
+    let student = null;
+    if (studentId) {
+      student = await prisma.user.findUnique({
+        where: { id: studentId },
+        select: { groupId: true, name: true }
+      });
+    }
 
     const task = await prisma.task.findUnique({
       where: { id: resolvedParams.id },
       include: {
         groups: true,
-        submissions: {
+        questions: {
+          orderBy: { order: 'asc' },
+          include: {
+            options: {
+              orderBy: { id: 'asc' }
+            }
+          }
+        },
+        submissions: studentId ? {
           where: { studentId }
-        }
+        } : { take: 1 } // For teacher, just get one submission to extract feedbackTemplate if needed
       }
     });
 
@@ -58,14 +71,56 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       }
     }
 
-    if (task.groups.length > 0 && !task.groups.some(g => g.id === student?.groupId)) {
+    if (!isTeacher && task.groups.length > 0 && !task.groups.some(g => g.id === student?.groupId)) {
       return NextResponse.json({ error: 'Tarea no encontrada' }, { status: 404 });
+    }
+
+    // Fetch feedbackTemplate if the student has finished and unlocked answers
+    let feedbackTemplate = null;
+    const submission = task.submissions[0];
+    const isGoogleForm = !!(task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));
+    
+    const isNative = task.questions && task.questions.length > 0;
+    const canSeeAnswers = isTeacher || (submission && submission.status !== "PENDING" && (isNative || submission.attempt > 1 || submission.unlockedAnswers === true));
+
+    // Sanitize correct options if student cannot see answers yet
+    if (task.questions && task.questions.length > 0 && !canSeeAnswers) {
+      (task as any).questions = task.questions.map((q: any) => ({
+        ...q,
+        options: q.options.map((o: any) => {
+          const { isCorrect, ...rest } = o;
+          return rest;
+        })
+      }));
+    }
+
+    // For Google Forms: always show template/answers once the exam is GRADED
+    const googleFormGraded = isGoogleForm && submission && submission.status === "GRADED";
+    if (googleFormGraded || (isGoogleForm && canSeeAnswers)) {
+      const templateSub = await prisma.submission.findFirst({
+        where: {
+          taskId: task.id,
+          feedback: { not: null }
+        },
+        select: { feedback: true }
+      });
+      feedbackTemplate = templateSub?.feedback || null;
+    }
+
+    // Strip feedback from submission if locked (but keep it if already graded)
+    if (submission && !canSeeAnswers && submission.status !== "GRADED") {
+      submission.feedback = null;
     }
 
     // Remove groups from response to keep payload clean if needed, or keep it
     const { groups: _groups, ...taskData } = task;
 
-    return NextResponse.json({ task: taskData, studentName: student?.name });
+    return NextResponse.json({ 
+      task: taskData, 
+      studentName: student?.name || "Estudiante",
+      feedbackTemplate,
+      canSeeAnswers
+    });
   } catch {
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }

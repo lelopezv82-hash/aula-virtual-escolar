@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { jwtVerify } from "jose";
 import prisma from '@/lib/prisma';
 import { BookOpen, FileText, Clock, ClipboardList } from "lucide-react";
@@ -30,6 +31,7 @@ export default async function EstudianteDashboard() {
 
   const courses = await prisma.course.findMany({
     where: studentGroupId ? {
+      active: true,
       groups: {
         some: {
           id: studentGroupId
@@ -42,6 +44,10 @@ export default async function EstudianteDashboard() {
       resources: { where: { active: true } }
     }
   });
+
+  if (courses.length > 0) {
+    redirect(`/estudiante/cursos/${courses[0].id}`);
+  }
 
   const coursesWithCount = courses.map(c => {
     const { tasks, resources, ...courseData } = c;
@@ -83,7 +89,7 @@ export default async function EstudianteDashboard() {
         {coursesWithCount.map(course => (
           <div key={course.id} className="card">
             <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 rounded-lg" style={{ background: "rgba(37, 99, 235, 0.1)", color: "var(--primary-color)" }}>
+              <div className="p-3 rounded-lg" style={{ background: "var(--primary-light)", color: "var(--primary-color)" }}>
                 <BookOpen size={24} />
               </div>
               <div>
@@ -104,10 +110,10 @@ export default async function EstudianteDashboard() {
                 <span className="flex items-center gap-1"><FileText size={14}/> {course._count.resources} recursos</span>
                 <span className="flex items-center gap-1"><Clock size={14}/> {course._count.tasks} tareas</span>
                 {course._count.exams > 0 && (
-                  <span className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-medium"><ClipboardList size={14}/> {course._count.exams} exámenes</span>
+                  <span className="flex items-center gap-1" style={{ color: 'var(--primary-color)', fontWeight: 500 }}><ClipboardList size={14}/> {course._count.exams} exámenes</span>
                 )}
               </div>
-              <Link href={`/estudiante/cursos/${course.id}`} className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.875rem' }}>
+              <Link href={`/estudiante/cursos/${course.id}`} className="btn btn-primary" style={{ display: 'inline-block', width: '100%' }}>
                 Ver Asignatura
               </Link>
             </div>

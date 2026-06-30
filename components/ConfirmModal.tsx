@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { X, AlertTriangle, Trash2, Info } from 'lucide-react';
 
 interface ConfirmModalProps {
@@ -8,7 +8,7 @@ interface ConfirmModalProps {
   title: string;
   message: string;
   confirmText?: string;
-  cancelText?: string;
+  cancelText?: string | null;
   type?: 'danger' | 'warning' | 'info';
 }
 
@@ -45,9 +45,9 @@ export default function ConfirmModal({
       case 'info':
       default:
         return {
-          iconBg: 'bg-blue-50 dark:bg-blue-950/20 ring-4 ring-blue-500/10',
-          iconColor: 'text-blue-600 dark:text-blue-400',
-          btnBg: 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 focus:ring-blue-500',
+          iconBg: 'bg-orange-50 dark:bg-orange-950/20 ring-4 ring-orange-500/10',
+          iconColor: 'text-[#f98012] dark:text-[#f98012]',
+          btnBg: 'bg-[#f98012] hover:bg-[#e06d09] dark:bg-[#e06d09] dark:hover:bg-[#f98012] focus:ring-[#f98012]',
           btnShadow: 'shadow-[0_4px_12px_rgba(37,99,235,0.2)] hover:shadow-[0_6px_16px_rgba(37,99,235,0.3)]',
           icon: <Info className="w-5.5 h-5.5" />
         };
@@ -71,7 +71,7 @@ export default function ConfirmModal({
         >
           <X className="w-4 h-4" />
         </button>
-
+ 
         {/* Content */}
         <div className="p-6 pt-8 pb-5">
           <div className="flex gap-4 items-start">
@@ -81,7 +81,7 @@ export default function ConfirmModal({
             >
               {colors.icon}
             </div>
-
+ 
             {/* Texts */}
             <div className="flex-1 flex flex-col gap-1.5">
               <h3 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white font-heading">
@@ -93,15 +93,17 @@ export default function ConfirmModal({
             </div>
           </div>
         </div>
-
+ 
         {/* Footer actions */}
         <div className="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50/50 dark:bg-zinc-900/30 border-t border-slate-100 dark:border-zinc-800/60">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-semibold rounded-lg border border-slate-200 dark:border-zinc-800 text-gray-700 dark:text-zinc-300 bg-white dark:bg-zinc-900 hover:bg-slate-50 dark:hover:bg-zinc-800/60 active:scale-[0.98] transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-slate-500/20"
-          >
-            {cancelText}
-          </button>
+          {cancelText !== null && (
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-semibold rounded-lg border border-slate-200 dark:border-zinc-800 text-gray-700 dark:text-zinc-300 bg-white dark:bg-zinc-900 hover:bg-slate-50 dark:hover:bg-zinc-800/60 active:scale-[0.98] transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-slate-500/20"
+            >
+              {cancelText}
+            </button>
+          )}
           <button
             onClick={() => {
               onConfirm();

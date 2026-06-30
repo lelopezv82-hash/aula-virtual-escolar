@@ -4,6 +4,7 @@ import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, Save, UploadCloud } from "lucide-react";
 import Link from "next/link";
+import { toColombiaISOString } from "@/lib/dateUtils";
 
 export default function EditarTareaPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -16,7 +17,10 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
   const [theme, setTheme] = useState("");
   const [period, setPeriod] = useState("");
   const [weight, setWeight] = useState("0");
+  const [duration, setDuration] = useState("");
   const [groupIds, setGroupIds] = useState<string[]>([]);
+  const [type, setType] = useState("TASK");
+  const [isExternal, setIsExternal] = useState(false);
   const [gradeGroups, setGradeGroups] = useState<{id: string, name: string}[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [existingAttachment, setExistingAttachment] = useState<string | null>(null);
@@ -62,13 +66,12 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
           setTheme(data.task.theme || "");
           setPeriod(data.task.period || "");
           setWeight(data.task.weight !== undefined ? String(data.task.weight) : "0");
+          setDuration(data.task.duration !== null && data.task.duration !== undefined ? String(data.task.duration) : "");
           setGroupIds(data.task.groups ? data.task.groups.map((g: any) => g.id) : []);
+          setType(data.task.type || "TASK");
+          setIsExternal(data.task.isExternal || false);
           // Convert date to local string for datetime-local input (yyyy-MM-ddThh:mm)
-          const date = new Date(data.task.dueDate);
-          const localDateTime = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
-            .toISOString()
-            .slice(0, 16);
-          setDueDate(localDateTime);
+          setDueDate(toColombiaISOString(data.task.dueDate));
           setExistingAttachment(data.task.attachmentUrl || null);
         } else {
           setError("No se pudo cargar la tarea");
@@ -90,7 +93,10 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
     if (theme) formData.append("theme", theme);
     if (period) formData.append("period", period);
     formData.append("weight", weight);
+    if (duration) formData.append("duration", duration);
     formData.append("groupIds", JSON.stringify(groupIds));
+    formData.append("type", type);
+    formData.append("isExternal", String(isExternal));
     if (file) {
       formData.append("file", file);
     }
@@ -117,7 +123,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
   };
 
   if (fetching) {
-    return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-blue-500" size={40} /></div>;
+    return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#f98012]" size={40} /></div>;
   }
 
   return (
@@ -151,7 +157,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
                 const allSelected = allIds.every(id => groupIds.includes(id));
                 setGroupIds(allSelected ? [] : allIds);
               }}
-              className="text-xs font-bold text-blue-600 hover:underline"
+              className="text-xs font-bold text-[#f98012] hover:underline"
             >
               {gradeGroups.map(g => (g as any).id).every(id => groupIds.includes(id)) 
                 ? "Desmarcar todos" 
@@ -176,7 +182,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
                         : [...groupIds, g.id];
                       setGroupIds(newIds);
                     }}
-                    className="rounded text-blue-600 focus:ring-blue-500"
+                    className="rounded text-[#f98012] focus:ring-[#f98012]"
                   />
                   <span>{g.name}</span>
                 </label>
@@ -229,8 +235,37 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
 
+        <div className="flex gap-4">
+          <div className="input-group flex-1">
+            <label htmlFor="type">Tipo *</label>
+            <select
+              id="type"
+              className="input-field"
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+              required
+            >
+              <option value="TASK">Tarea (Hacer)</option>
+              <option value="EXAM">Examen (Saber)</option>
+            </select>
+          </div>
+          <div className="input-group flex-1 flex items-center gap-2 pt-6">
+            <input
+              id="isExternal"
+              type="checkbox"
+              className="w-4 h-4 rounded text-[#f98012] focus:ring-[#f98012]"
+              style={{ cursor: "pointer" }}
+              checked={isExternal}
+              onChange={(e) => setIsExternal(e.target.checked)}
+            />
+            <label htmlFor="isExternal" className="font-semibold text-sm cursor-pointer select-none">
+              Trabajo fuera de la plataforma (Calificación manual)
+            </label>
+          </div>
+        </div>
+
         <div className="input-group">
-          <label htmlFor="title">Título de la Tarea</label>
+          <label htmlFor="title">Título de la Tarea / Examen</label>
           <input
             id="title"
             type="text"
@@ -255,16 +290,30 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
           />
         </div>
 
-        <div className="input-group">
-          <label htmlFor="dueDate">Fecha y Hora Límite</label>
-          <input
-            id="dueDate"
-            type="datetime-local"
-            className="input-field"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            required
-          />
+        <div className="flex gap-4">
+          <div className="input-group flex-1">
+            <label htmlFor="dueDate">Fecha y Hora Límite *</label>
+            <input
+              id="dueDate"
+              type="datetime-local"
+              className="input-field"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              required
+            />
+          </div>
+          <div className="input-group flex-1">
+            <label htmlFor="duration">Límite de Tiempo (minutos, opcional)</label>
+            <input
+              id="duration"
+              type="number"
+              min="1"
+              placeholder="Ej. 60 (vacío para ilimitado)"
+              className="input-field"
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+            />
+          </div>
         </div>
 
         {existingAttachment && (

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -335,7 +335,7 @@ export default function DocentesPage() {
 
         {loading ? (
           <div className="flex justify-center py-12">
-            <Loader2 className="animate-spin text-blue-500" size={36} />
+            <Loader2 className="animate-spin text-[#f98012]" size={36} />
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -392,7 +392,7 @@ export default function DocentesPage() {
                       <td className="py-3 px-4">
                         <div className="flex justify-end gap-1">
                           <button title="Editar" onClick={() => openEdit(teacher)}
-                            className="p-2 rounded-md hover:bg-blue-50 transition-colors" style={{ color: "var(--primary-color)" }}>
+                            className="p-2 rounded-md hover:bg-orange-50 transition-colors" style={{ color: "var(--primary-color)" }}>
                             <Edit2 size={16} />
                           </button>
                           <button title="Reiniciar contraseña" onClick={() => handleResetPassword(teacher)}
@@ -423,14 +423,10 @@ export default function DocentesPage() {
       {/* Single Teacher Modal */}
       {showModal && (
         <div
-          style={{
-            position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            zIndex: 100, padding: "1rem"
-          }}
+          className="modal-overlay"
           onClick={(e) => e.target === e.currentTarget && closeModal()}
         >
-          <div className="card" style={{ width: "100%", maxWidth: "480px", maxHeight: "90vh", overflowY: "auto" }}>
+          <div className="modal-content" style={{ maxWidth: "480px", maxHeight: "90vh", overflowY: "auto" }}>
             {/* Credentials Display */}
             {newCredentials ? (
               <div>
@@ -537,14 +533,10 @@ export default function DocentesPage() {
       {/* CSV/Excel Import Modal */}
       {showImportModal && (
         <div
-          style={{
-            position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            zIndex: 100, padding: "1rem"
-          }}
+          className="modal-overlay"
           onClick={(e) => e.target === e.currentTarget && closeImportModal()}
         >
-          <div className="card" style={{ width: "100%", maxWidth: "600px", maxHeight: "90vh", overflowY: "auto" }}>
+          <div className="modal-content" style={{ maxWidth: "600px", maxHeight: "90vh", overflowY: "auto" }}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold flex items-center gap-2">
                 <FileSpreadsheet className="text-emerald-600" />
@@ -608,7 +600,7 @@ export default function DocentesPage() {
                   <label htmlFor="teacher-csv-file" style={{ display: "block", border: "2px dashed var(--border-color)", borderRadius: "var(--radius-md)", padding: "2rem", textAlign: "center", cursor: "pointer" }}
                     onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--primary-color)")}
                     onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border-color)")}>
-                    <Upload size={32} className="mx-auto mb-2 text-blue-600" />
+                    <Upload size={32} className="mx-auto mb-2 text-[#f98012]" />
                     <p className="text-sm font-semibold">{importFile ? importFile.name : "Seleccionar Archivo CSV / Excel"}</p>
                     <p className="text-xs text-muted mt-1">Formatos soportados: .csv, .xlsx, .xls</p>
                     <input id="teacher-csv-file" type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleFileUpload} />

@@ -3,6 +3,10 @@
   position: relative;
   overflow: hidden;
   padding: 1rem;
+  background-color: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .login-card {
@@ -10,7 +14,20 @@
   max-width: 420px;
   padding: 2.5rem;
   z-index: 10;
-  background: var(--bg-glass);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.login-header h2 {
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+  font-weight: 700;
+}
+
+.login-header p {
+  color: var(--text-muted);
 }
 
 .input-group {
@@ -37,8 +54,34 @@
   color: var(--text-muted);
 }
 
+.input-field {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-family: var(--font-sans);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  outline: none;
+}
+
+.input-field::placeholder {
+  color: var(--text-muted);
+}
+
+.input-field:focus {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-glow);
+}
+
 .input-field.with-icon {
   padding-left: 2.75rem;
+}
+
+.input-field.with-icon.pr-10 {
+  padding-right: 2.75rem;
 }
 
 .alert {
@@ -49,24 +92,41 @@
 }
 
 .alert-danger {
-  background-color: rgba(239, 68, 68, 0.1);
+  background-color: rgba(220, 38, 38, 0.1);
   color: var(--danger);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(220, 38, 38, 0.2);
 }
 
+/* Login primary button override */
+.login-card .btn-primary,
+.login-card button[type="submit"] {
+  background-color: var(--primary-color);
+  border: none;
+  color: white;
+  font-weight: 500;
+  transition: background-color var(--transition-fast);
+}
+
+.login-card .btn-primary:hover,
+.login-card button[type="submit"]:hover:not(:disabled) {
+  background-color: var(--primary-hover);
+}
+
+.login-card button[type="submit"]:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* Spinner */
 .animate-spin {
   animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
 
-.input-field.with-icon.pr-10 {
-  padding-right: 2.75rem;
+.background-decorations {
+  display: none;
 }

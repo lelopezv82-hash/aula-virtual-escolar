@@ -1,15 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { ClipboardList, Plus } from "lucide-react";
+import { ClipboardList, Plus, Pencil, X, Save, Loader2, CheckCircle, Clock, AlertCircle } from "lucide-react";
 import TaskActions from "./TaskActions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import GDriveEmailDisplay from "@/components/GDriveEmailDisplay";
+import { createPortal } from "react-dom";
 
 interface Task {
   id: string;
   title: string;
+  type?: string;
   dueDate: string | Date;
   theme?: string | null;
   period?: string | null;
@@ -18,6 +20,7 @@ interface Task {
   active?: boolean;
   publishAt?: string | null;
   gdriveEmail?: string | null;
+  isExternal?: boolean;
 }
 
 interface Course {
@@ -36,11 +39,34 @@ interface Period {
   active: boolean;
 }
 
+interface StudentGradeEntry {
+  id: string;
+  name: string;
+  groupName: string;
+  submission: {
+    id: string;
+    status: string;
+    grade: number | null;
+    feedback: string | null;
+    submittedAt: string | null;
+  } | null;
+}
+
 export default function TareasDocenteClient({ courses, periods }: { courses: Course[], periods: Period[] }) {
   const router = useRouter();
   const [selectedTheme, setSelectedTheme] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState("");
   const hasFiltersApplied = selectedTheme !== "" || selectedPeriod !== "";
+
+  // Manual Grading Modal state
+  const [gradingTask, setGradingTask] = useState<Task | null>(null);
+  const [gradingStudents, setGradingStudents] = useState<StudentGradeEntry[]>([]);
+  const [gradeInputs, setGradeInputs] = useState<Record<string, string>>({});
+  const [feedbackInputs, setFeedbackInputs] = useState<Record<string, string>>({});
+  const [loadingStudents, setLoadingStudents] = useState(false);
+  const [savingGrades, setSavingGrades] = useState(false);
+  const [gradingError, setGradingError] = useState("");
+  const [gradingSaved, setGradingSaved] = useState(false);
 
   const toggleTaskActive = async (task: Task) => {
     const newVal = task.active !== false ? false : true;
@@ -56,10 +82,77 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
     }
   };
 
+  const openGradingModal = async (task: Task) => {
+    setGradingTask(task);
+    setGradingError("");
+    setGradingSaved(false);
+    setLoadingStudents(true);
+    setGradingStudents([]);
+    try {
+      const res = await fetch(`/api/docente/tareas/${task.id}/students-grades`);
+      const data = await res.json();
+      if (res.ok && data.students) {
+        setGradingStudents(data.students);
+        const inputs: Record<string, string> = {};
+        const fInputs: Record<string, string> = {};
+        data.students.forEach((s: StudentGradeEntry) => {
+          inputs[s.id] = s.submission?.grade != null ? String(s.submission.grade) : "";
+          fInputs[s.id] = s.submission?.feedback ?? "";
+        });
+        setGradeInputs(inputs);
+        setFeedbackInputs(fInputs);
+      } else {
+        setGradingError(data.error || "Error al cargar estudiantes");
+      }
+    } catch {
+      setGradingError("Error de conexión");
+    } finally {
+      setLoadingStudents(false);
+    }
+  };
+
+  const saveManualGrades = async () => {
+    if (!gradingTask) return;
+    setSavingGrades(true);
+    setGradingError("");
+    setGradingSaved(false);
+    try {
+      const promises = gradingStudents
+        .filter(s => gradeInputs[s.id] !== "")
+        .map(s =>
+          fetch("/api/docente/calificar", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              taskId: gradingTask.id,
+              studentId: s.id,
+              grade: Number(gradeInputs[s.id]),
+              feedback: feedbackInputs[s.id] || undefined,
+            }),
+          })
+        );
+      await Promise.all(promises);
+      setGradingSaved(true);
+      setTimeout(() => setGradingSaved(false), 2500);
+      router.refresh();
+    } catch {
+      setGradingError("Error al guardar calificaciones");
+    } finally {
+      setSavingGrades(false);
+    }
+  };
+
   // Extract all unique non-null themes and periods across all tasks in all courses
   const allTasks = courses.flatMap(c => c.tasks);
   const uniqueThemes = Array.from(new Set(allTasks.map(t => t.theme).filter(Boolean))) as string[];
   const uniquePeriods = Array.from(new Set(allTasks.map(t => t.period).filter(Boolean))) as string[];
+
+  const statusBadge = (sub: StudentGradeEntry["submission"]) => {
+    if (!sub) return <span className="text-xs text-muted italic">Sin entrega</span>;
+    if (sub.status === "GRADED") return <span className="badge badge-success flex items-center gap-1"><CheckCircle size={10} /> Calificada</span>;
+    if (sub.status === "SUBMITTED") return <span className="badge badge-info flex items-center gap-1"><Clock size={10} /> Entregada</span>;
+    return <span className="badge badge-danger flex items-center gap-1"><AlertCircle size={10} /> Pendiente</span>;
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -101,20 +194,18 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
       {/* Courses List */}
       <div className="flex flex-col gap-6">
         {courses.map(course => {
-          // Filter tasks of the course client-side
           const filteredTasks = course.tasks.filter(task => {
             const matchTheme = !selectedTheme || task.theme === selectedTheme;
             const matchPeriod = !selectedPeriod || task.period === selectedPeriod;
             return matchTheme && matchPeriod;
           });
 
-          // Only render the course card if it has tasks or if no filters are applied
           if (hasFiltersApplied && filteredTasks.length === 0) return null;
 
           return (
             <div key={course.id} className="card w-full">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <ClipboardList className="text-blue-600" />
+                <ClipboardList className="text-[#f98012]" />
                 {course.name}
               </h2>
               
@@ -138,7 +229,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                     <div key={periodName} className="p-3 rounded-lg border" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', opacity: isPeriodActive ? 1 : 0.6 }}>
                       <h4 className="font-bold text-xs uppercase tracking-wider mb-3 flex items-center justify-between" style={{ color: 'var(--text-secondary)' }}>
                         <span className="flex items-center gap-2">
-                          <span className={`w-2 h-2 rounded-full ${isPeriodActive ? 'bg-blue-500' : 'bg-gray-400'}`}></span>
+                          <span className={`w-2 h-2 rounded-full ${isPeriodActive ? 'bg-orange-500' : 'bg-gray-400'}`}></span>
                           {periodName}
                         </span>
                         <div className="flex items-center gap-2">
@@ -173,7 +264,14 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                                 <tr key={task.id} style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-primary)' }}>
                                   <td className="py-3 px-4 font-semibold text-sm text-slate-800">
                                     <div className="flex flex-col gap-0.5">
-                                      <span>{task.title}</span>
+                                      <div className="flex items-center gap-2">
+                                        <span>{task.title}</span>
+                                        {task.isExternal && (
+                                          <span className="text-[10px] font-bold bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-900/50">
+                                            Presencial
+                                          </span>
+                                        )}
+                                      </div>
                                       {task.gdriveEmail && (
                                         <GDriveEmailDisplay email={task.gdriveEmail} context="tasks" />
                                       )}
@@ -208,7 +306,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                                           width: "42px",
                                           height: "22px",
                                           borderRadius: "9999px",
-                                          background: task.active !== false ? "var(--success, #10b981)" : "#cbd5e1",
+                                          background: task.active !== false ? "var(--primary-color, #f98012)" : "#cbd5e1",
                                           border: "none",
                                           padding: 0,
                                           outline: "none"
@@ -233,7 +331,17 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                                     </div>
                                   </td>
                                   <td className="py-3 px-4 text-right">
-                                    <TaskActions taskId={task.id} attachmentUrl={task.attachmentUrl} />
+                                    <div className="flex items-center justify-end gap-2">
+                                      {/* Manual grade button */}
+                                      <button
+                                        title="Calificar manualmente (trabajo fuera de plataforma)"
+                                        onClick={() => openGradingModal(task)}
+                                        className="p-1.5 rounded-lg hover:bg-orange-50 text-muted hover:text-[#f98012] transition-colors"
+                                      >
+                                        <Pencil size={15} />
+                                      </button>
+                                      <TaskActions taskId={task.id} attachmentUrl={task.attachmentUrl} />
+                                    </div>
                                   </td>
                                 </tr>
                               ))}
@@ -249,7 +357,6 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
           );
         })}
 
-        {/* Global Empty State if all courses are hidden by filters */}
         {hasFiltersApplied && courses.length > 0 && courses.every(c => c.tasks.filter(t => (!selectedTheme || t.theme === selectedTheme) && (!selectedPeriod || t.period === selectedPeriod)).length === 0) && (
           <div className="card text-center py-10 text-muted">
             <ClipboardList size={40} className="mx-auto mb-3 opacity-40" />
@@ -257,6 +364,124 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
           </div>
         )}
       </div>
+
+      {/* Manual Grading Modal */}
+      {gradingTask && typeof window !== "undefined" && createPortal(
+        <div
+          className="modal-overlay"
+          onClick={e => e.target === e.currentTarget && setGradingTask(null)}
+        >
+          <div className="modal-content" style={{ maxWidth: "600px", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
+            {/* Modal header */}
+            <div className="flex justify-between items-start mb-3" style={{ flexShrink: 0 }}>
+              <div>
+                <h2 className="text-xl font-bold flex items-center gap-2">
+                  <Pencil size={18} style={{ color: "#f98012" }} />
+                  Calificación Manual
+                </h2>
+                <p className="text-sm text-muted mt-0.5">{gradingTask.title}</p>
+                <p className="text-xs text-muted mt-0.5">
+                  Asigna notas a trabajos realizados <strong>fuera de la plataforma</strong> (
+                  {gradingTask.type === "EXAM" ? "Examen — Nota del Saber" : "Tarea — Nota del Hacer"})
+                </p>
+              </div>
+              <button onClick={() => setGradingTask(null)} className="p-1 rounded-lg hover:bg-gray-100 flex-shrink-0">
+                <X size={20} />
+              </button>
+            </div>
+
+            {gradingError && <div className="alert alert-danger mb-3">{gradingError}</div>}
+            {gradingSaved && (
+              <div className="alert alert-success mb-3 flex items-center gap-2">
+                <CheckCircle size={16} /> Calificaciones guardadas correctamente.
+              </div>
+            )}
+
+            {/* Student list */}
+            <div style={{ overflowY: "auto", flex: 1, paddingRight: "2px" }}>
+              {loadingStudents ? (
+                <div className="flex justify-center py-10">
+                  <Loader2 className="animate-spin text-[#f98012]" size={32} />
+                </div>
+              ) : gradingStudents.length === 0 ? (
+                <div className="text-center py-8 text-muted text-sm">No hay estudiantes asignados a esta tarea.</div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {/* Column headers */}
+                  <div className="grid text-xs font-bold uppercase tracking-wider text-muted px-3 pb-1" style={{ gridTemplateColumns: "1fr 80px 1fr" }}>
+                    <span>Estudiante</span>
+                    <span className="text-center">Nota (1–5)</span>
+                    <span className="pl-2">Comentario</span>
+                  </div>
+
+                  {gradingStudents.map(student => (
+                    <div
+                      key={student.id}
+                      className="grid items-center gap-3 p-3 rounded-xl"
+                      style={{
+                        gridTemplateColumns: "1fr 80px 1fr",
+                        background: "var(--bg-secondary)",
+                        border: "1px solid var(--border-color)",
+                      }}
+                    >
+                      {/* Name + status */}
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div
+                          className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white"
+                          style={{ background: "linear-gradient(135deg, #f98012, #e06d09)" }}
+                        >
+                          {student.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-sm truncate">{student.name}</p>
+                          <div className="mt-0.5">{statusBadge(student.submission)}</div>
+                        </div>
+                      </div>
+
+                      {/* Grade input */}
+                      <input
+                        type="number"
+                        min="1"
+                        max="5"
+                        step="0.1"
+                        placeholder="—"
+                        value={gradeInputs[student.id] ?? ""}
+                        onChange={e => setGradeInputs(prev => ({ ...prev, [student.id]: e.target.value }))}
+                        className="input-field text-center font-bold"
+                        style={{ padding: "0.4rem 0.4rem", fontSize: "0.95rem" }}
+                      />
+
+                      {/* Feedback input */}
+                      <input
+                        type="text"
+                        placeholder="Comentario opcional…"
+                        value={feedbackInputs[student.id] ?? ""}
+                        onChange={e => setFeedbackInputs(prev => ({ ...prev, [student.id]: e.target.value }))}
+                        className="input-field text-sm"
+                        style={{ padding: "0.4rem 0.6rem" }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-end gap-3 border-t pt-4 mt-4" style={{ borderColor: "var(--border-color)", flexShrink: 0 }}>
+              <button className="btn btn-secondary" onClick={() => setGradingTask(null)}>Cerrar</button>
+              <button
+                className="btn btn-primary"
+                disabled={savingGrades || loadingStudents}
+                onClick={saveManualGrades}
+              >
+                {savingGrades ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                Guardar Calificaciones
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

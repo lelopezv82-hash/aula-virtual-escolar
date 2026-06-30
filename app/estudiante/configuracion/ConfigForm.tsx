@@ -195,7 +195,7 @@ export default function ConfigForm() {
       </div>
 
       <div className="pt-4 border-t" style={{ borderColor: "var(--border-color)" }}>
-        <button type="submit" className="btn btn-primary" disabled={loading} style={{ background: "var(--success)" }}>
+        <button type="submit" className="btn btn-primary" disabled={loading}>
           {loading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
           {loading ? "Guardando..." : "Cambiar Contraseña"}
         </button>

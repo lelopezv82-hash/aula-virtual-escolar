@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, X, ChevronLeft, ChevronRight, BookOpen } from "lucide-react";
+import { Menu, X, BookOpen, Clock, User } from "lucide-react";
 import LogoutButton from "./LogoutButton";
 import ActiveLink from "./ActiveLink";
 
@@ -32,20 +32,45 @@ export default function DashboardShell({
   children,
   themeColor,
 }: DashboardShellProps) {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [desktopCollapsed, setDesktopCollapsed] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const pathname = usePathname();
+  const [timeStr, setTimeStr] = useState("");
 
   useEffect(() => {
-    // Check local storage for desktop state
-    const savedCollapsed = localStorage.getItem("sidebar_collapsed");
-    if (savedCollapsed === "true") {
-      setDesktopCollapsed(true);
+    const updateTime = () => {
+      const options: Intl.DateTimeFormatOptions = { 
+        weekday: 'long', 
+        day: 'numeric',
+        month: 'long', 
+        year: 'numeric',
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit',
+        hour12: true 
+      };
+      setTimeStr(new Date().toLocaleDateString('es-CO', options));
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const savedState = localStorage.getItem("moodle_drawer_open");
+    if (savedState === "false") {
+      setDrawerOpen(false);
     }
 
     const checkSize = () => {
-      setIsMobile(window.innerWidth < 768);
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        setDrawerOpen(false);
+      } else {
+        const saved = localStorage.getItem("moodle_drawer_open");
+        setDrawerOpen(saved !== "false");
+      }
     };
 
     checkSize();
@@ -53,103 +78,148 @@ export default function DashboardShell({
     return () => window.removeEventListener("resize", checkSize);
   }, []);
 
-  // Close mobile sidebar on route change
   useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
+    if (isMobile) {
+      setDrawerOpen(false);
+    }
+  }, [pathname, isMobile]);
 
-  const toggleDesktopCollapse = () => {
-    const nextState = !desktopCollapsed;
-    setDesktopCollapsed(nextState);
-    localStorage.setItem("sidebar_collapsed", String(nextState));
+  const toggleDrawer = () => {
+    const nextState = !drawerOpen;
+    setDrawerOpen(nextState);
+    if (!isMobile) {
+      localStorage.setItem("moodle_drawer_open", String(nextState));
+    }
   };
 
   return (
-    <div className={`dashboard-layout ${isMobile ? "mobile-mode" : "desktop-mode"} ${desktopCollapsed ? "sidebar-collapsed" : ""}`}>
-      {/* Mobile Top Navbar */}
-      {isMobile && (
-        <header className="mobile-header">
+    <div className={`moodle-layout ${isMobile ? "mobile" : "desktop"} ${drawerOpen ? "drawer-open" : "drawer-closed"}`}>
+      {/* Top Navbar (Moodle style) */}
+      <header className="moodle-navbar">
+        <div className="navbar-left">
           <button 
-            onClick={() => setMobileOpen(true)} 
-            className="mobile-menu-btn" 
-            aria-label="Abrir menú"
+            onClick={toggleDrawer} 
+            className="navbar-toggler" 
+            aria-label="Toggle navigation"
           >
             <Menu size={24} />
           </button>
-          <div className="mobile-header-brand">
+          <div className="navbar-brand">
             <BookOpen size={24} color="var(--primary-color)" />
-            <span>{sidebarTitle}</span>
+            <span className="brand-title">{sidebarTitle}</span>
           </div>
-          <div className="mobile-header-user">
-            <div className="avatar" style={{ width: 32, height: 32, fontSize: "0.875rem", background: themeColor || "var(--primary-color)" }}>
-              {user?.name ? user.name.charAt(0).toUpperCase() : ""}
+        </div>
+
+        <div className="navbar-right">
+          {!isMobile && (
+            <div className="navbar-time">
+              <Clock size={16} />
+              <span className="capitalize">{timeStr}</span>
             </div>
-          </div>
-        </header>
-      )}
-
-      {/* Backdrop for mobile drawer */}
-      {isMobile && mobileOpen && (
-        <div 
-          className="sidebar-backdrop" 
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
-
-      {/* Sidebar Aside */}
-      <aside className={`sidebar ${isMobile ? "mobile" : ""} ${isMobile && mobileOpen ? "open" : ""} ${!isMobile && desktopCollapsed ? "collapsed" : ""}`}>
-        <div className="sidebar-header">
-          <div className="brand-container">
-            <BookOpen size={32} color="var(--primary-color)" className="brand-logo" />
-            <h2 className="brand-text">{sidebarTitle}</h2>
-          </div>
-          {isMobile ? (
-            <button 
-              onClick={() => setMobileOpen(false)} 
-              className="close-sidebar-btn" 
-              aria-label="Cerrar menú"
-            >
-              <X size={20} />
-            </button>
-          ) : (
-            <button 
-              onClick={toggleDesktopCollapse} 
-              className="collapse-sidebar-btn" 
-              title={desktopCollapsed ? "Expandir menú" : "Colapsar menú"}
-              aria-label={desktopCollapsed ? "Expandir menú" : "Colapsar menú"}
-            >
-              {desktopCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-            </button>
           )}
-        </div>
-        
-        <nav className="sidebar-nav">
-          {links.map((link) => (
-            <ActiveLink key={link.href} href={link.href}>
-              {link.icon}
-              <span className="nav-label">{link.label}</span>
-            </ActiveLink>
-          ))}
-        </nav>
-
-        <div className="sidebar-footer">
-          <div className="user-info">
-            <div className="avatar" style={{ background: themeColor || "var(--primary-color)" }}>
-              {user?.name ? user.name.charAt(0).toUpperCase() : ""}
+          
+          <div className="navbar-user">
+            <div className="user-text hidden md:block">
+              <span className="user-name">{user?.name || "Usuario"}</span>
             </div>
-            <div className="details">
-              <strong className="user-name">{user?.name || ""}</strong>
-              <span className="user-role">{roleTitle}</span>
+            <div className="user-avatar" style={{ background: themeColor || "var(--primary-color)" }}>
+              {user?.name ? user.name.charAt(0).toUpperCase() : <User size={16} />}
             </div>
           </div>
-          <LogoutButton />
+          
+          <div className="navbar-actions">
+            <LogoutButton />
+          </div>
         </div>
-      </aside>
+      </header>
 
-      {/* Main Content Area */}
-      <main className="dashboard-main">
-        {children}
-      </main>
+      <div className="moodle-body">
+        {/* Backdrop for mobile */}
+        {isMobile && drawerOpen && (
+          <div className="moodle-backdrop" onClick={() => setDrawerOpen(false)} />
+        )}
+
+        {/* Side Drawer */}
+        <aside className="moodle-drawer">
+          {isMobile && (
+            <div className="drawer-header-mobile">
+              <span>Menú de Navegación</span>
+              <button onClick={() => setDrawerOpen(false)} className="close-drawer">
+                <X size={20} />
+              </button>
+            </div>
+          )}
+
+          {/* Welcome message */}
+          <div style={{
+            padding: "1.25rem 1.25rem 1rem",
+            borderBottom: "1px solid var(--border-color)",
+          }}>
+            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 500, marginBottom: "0.2rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Bienvenido/a
+            </p>
+            <p style={{ fontSize: "0.95rem", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1.3 }}>
+              {user?.name || "Estudiante"}
+            </p>
+          </div>
+
+          <nav className="drawer-nav">
+            <ul className="nav-list">
+              {roleTitle === "Estudiante" && links.some(l => l.href.startsWith("/estudiante/cursos/")) ? (
+                <>
+                  <li style={{ 
+                    padding: "0.5rem 2rem 0.25rem", 
+                    fontSize: "0.75rem", 
+                    color: "var(--text-muted)", 
+                    fontWeight: 600, 
+                    textTransform: "uppercase", 
+                    letterSpacing: "0.05em" 
+                  }}>
+                    Asignaturas
+                  </li>
+                  {links.filter(l => l.href.startsWith("/estudiante/cursos/")).map((link) => (
+                    <li key={link.href} className="nav-item-container">
+                      <ActiveLink href={link.href}>
+                        {link.icon}
+                        <span className="nav-label">{link.label}</span>
+                      </ActiveLink>
+                    </li>
+                  ))}
+                  {links.some(l => !l.href.startsWith("/estudiante/cursos/")) && (
+                    <li style={{ padding: "0.25rem 2rem" }}>
+                      <div style={{ height: "1px", background: "var(--border-color)", margin: "0.25rem 0" }} />
+                    </li>
+                  )}
+                  {links.filter(l => !l.href.startsWith("/estudiante/cursos/")).map((link) => (
+                    <li key={link.href} className="nav-item-container">
+                      <ActiveLink href={link.href}>
+                        {link.icon}
+                        <span className="nav-label">{link.label}</span>
+                      </ActiveLink>
+                    </li>
+                  ))}
+                </>
+              ) : (
+                links.map((link) => (
+                  <li key={link.href} className="nav-item-container">
+                    <ActiveLink href={link.href}>
+                      {link.icon}
+                      <span className="nav-label">{link.label}</span>
+                    </ActiveLink>
+                  </li>
+                ))
+              )}
+            </ul>
+          </nav>
+        </aside>
+
+        {/* Main Content Area */}
+        <main className="moodle-main">
+          <div className="moodle-content-wrapper">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

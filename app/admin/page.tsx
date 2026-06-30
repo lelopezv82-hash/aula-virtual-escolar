@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+﻿import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import prisma from '@/lib/prisma';
 import { Users, GraduationCap, BookOpen, ClipboardList, ArrowRight, UserPlus, Clock } from "lucide-react";
@@ -101,7 +101,7 @@ export default async function AdminDashboard() {
         <div className="card flex flex-col gap-4">
           <div className="flex justify-between items-center">
             <h2 className="text-lg font-bold">Usuarios Registrados Recientemente</h2>
-            <Link href="/admin/estudiantes" className="text-xs text-blue-600 flex items-center gap-1 font-semibold hover:underline">
+            <Link href="/admin/estudiantes" className="text-xs text-[#f98012] flex items-center gap-1 font-semibold hover:underline">
               Ver todos <ArrowRight size={14} />
             </Link>
           </div>

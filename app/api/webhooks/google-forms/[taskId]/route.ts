@@ -61,11 +61,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ tas
       return NextResponse.json({ error: 'Estudiante no encontrado en la base de datos', studentName }, { status: 404 });
     }
 
-    // Process score: if it's a number, save it as grade.
+    // Process score: if it's a number, save it as grade (with a minimum of 1.0).
     let gradeToSave = null;
     if (score !== undefined && score !== null) {
       gradeToSave = parseFloat(score);
-      if (isNaN(gradeToSave)) gradeToSave = null;
+      if (isNaN(gradeToSave)) {
+        gradeToSave = null;
+      } else {
+        gradeToSave = Math.max(gradeToSave, 1.0);
+      }
     }
 
     // Create or update submission

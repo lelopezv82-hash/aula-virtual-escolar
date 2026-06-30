@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { Bell, BookOpen, ClipboardList, Star } from "lucide-react";
+import { formatToColombiaString } from "@/lib/dateUtils";
 
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
@@ -111,7 +112,7 @@ export default async function NotificacionesPage() {
       title: `Nueva tarea: ${t.title}`,
       subtitle: t.course.name,
       date: t.createdAt,
-      extra: `Vence: ${new Date(t.dueDate).toLocaleDateString()}`
+      extra: `Vence: ${formatToColombiaString(t.dueDate, false)}`
     });
   });
 
@@ -191,7 +192,7 @@ export default async function NotificacionesPage() {
                   <span className="badge badge-info text-xs mb-1 block">{n.extra}</span>
                 )}
                 <p className="text-xs text-muted">
-                  {n.date.toLocaleDateString()}
+                  {formatToColombiaString(n.date, false)}
                 </p>
               </div>
             </div>
