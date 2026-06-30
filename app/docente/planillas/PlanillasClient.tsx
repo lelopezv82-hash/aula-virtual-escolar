@@ -1,12 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { ArrowLeft, Download, FileSpreadsheet, FileText, Loader2, Calendar } from "lucide-react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import {
+  ArrowLeft, FileSpreadsheet, FileText, Loader2,
+  Save, Undo2, AlertTriangle, Check, Info,
+  Plus, Trash2, X
+} from "lucide-react";
 import Link from "next/link";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 // @ts-ignore
 import autoTable from "jspdf-autotable";
+
+// ── Interfaces ────────────────────────────────────────────────────────────────
 
 interface Group {
   id: string;
@@ -14,7 +20,7 @@ interface Group {
   grade?: { name: string };
 }
 
-interface Course {
+interface CourseListItem {
   id: string;
   name: string;
   groups: Group[];
@@ -27,7 +33,7 @@ interface Period {
 }
 
 interface PlanillasClientProps {
-  courses: Course[];
+  courses: CourseListItem[];
   periods: Period[];
   teacherName: string;
 }
@@ -38,399 +44,575 @@ interface Student {
   group: { name: string; grade: { name: string } };
 }
 
-interface Task {
+interface TaskItem {
   id: string;
   title: string;
-  theme?: string | null;
-  type: string;
-  weight: number;
+  type: string; // EXAM | TASK | SER | FINAL | ATTEND
   submissions: { studentId: string; grade: number | null; status: string }[];
 }
 
+interface CourseWeights {
+  id: string;
+  name: string;
+  saberPercent: number;
+  hacerPercent: number;
+  serPercent: number;
+  finalPercent: number;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+// SABER = EXAM (exámenes), HACER = TASK (tareas), SER = SER (actitudinal)
+const CATEGORIES = [
+  { type: "EXAM",   label: "SABER",       sublabel: "Exámenes",    pctKey: "saberPercent",  color: { header: "bg-purple-50 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300", cell: "bg-purple-50/20 dark:bg-purple-900/5", badge: "bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300", dot: "#a855f7", btn: "hover:bg-purple-200 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300" } },
+  { type: "TASK",   label: "HACER",       sublabel: "Tareas",      pctKey: "hacerPercent",  color: { header: "bg-orange-50 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300", cell: "bg-orange-50/20 dark:bg-orange-900/5", badge: "bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300", dot: "#d97706", btn: "hover:bg-orange-200 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300" } },
+  { type: "SER",    label: "SER",         sublabel: "Actitudinal", pctKey: "serPercent",    color: { header: "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300", cell: "bg-yellow-50/20 dark:bg-yellow-900/5", badge: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300", dot: "#b45309", btn: "hover:bg-yellow-200 bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300" } },
+  { type: "FINAL",  label: "EXAMEN FINAL", sublabel: "",           pctKey: "finalPercent",  color: { header: "bg-sky-50 dark:bg-sky-900/20 text-sky-800 dark:text-sky-300", cell: "bg-sky-50/20 dark:bg-sky-900/5", badge: "bg-sky-100 text-sky-800 dark:bg-sky-900/50 dark:text-sky-300", dot: "#0ea5e9", btn: "hover:bg-sky-200 bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300" } },
+  { type: "ATTEND", label: "ASISTENCIA",  sublabel: "",            pctKey: "",              color: { header: "bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300", cell: "bg-green-50/20 dark:bg-green-900/5", badge: "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300", dot: "#10b981", btn: "hover:bg-green-200 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300" } },
+] as const;
+
+type CatType = (typeof CATEGORIES)[number]["type"];
+
+const getDesempeno = (g: number) => {
+  if (g >= 4.6) return { label: "SUPERIOR", cls: "text-purple-700 bg-purple-50 dark:bg-purple-900/30 dark:text-purple-300" };
+  if (g >= 4.0) return { label: "ALTO",     cls: "text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-300" };
+  if (g >= 3.0) return { label: "BÁSICO",   cls: "text-green-700 bg-green-50 dark:bg-green-900/30 dark:text-green-300" };
+  return           { label: "BAJO",     cls: "text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-300" };
+};
+
+const gradeColor = (g: number | null) => {
+  if (g === null) return "inherit";
+  if (g < 3.0)   return "#dc2626";
+  if (g < 4.0)   return "#d97706";
+  return "#16a34a";
+};
+
+// ── Main Component ────────────────────────────────────────────────────────────
+
 export default function PlanillasClient({ courses, periods, teacherName }: PlanillasClientProps) {
-  const [selectedCourseId, setSelectedCourseId] = useState<string>(courses.length > 0 ? courses[0].id : "");
-  const [selectedPeriod, setSelectedPeriod] = useState<string>(periods.length > 0 ? periods[0].name : "Periodo 1");
-  const [selectedGroupId, setSelectedGroupId] = useState<string>("");
-  
-  const [students, setStudents] = useState<Student[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(false);
+  // ── Selector state ──
+  const [selectedCourseId, setSelectedCourseId] = useState(courses[0]?.id ?? "");
+  const [selectedPeriod,   setSelectedPeriod]   = useState(periods[0]?.name ?? "Periodo 1");
+  const [selectedGroupId,  setSelectedGroupId]  = useState("");
 
-  // Weights state
-  const [weights, setWeights] = useState({
-    saber: 25,
-    hacer: 40,
-    ser: 15,
-    examen: 20
-  });
+  // ── Data state ──
+  const [students,      setStudents]      = useState<Student[]>([]);
+  const [tasks,         setTasks]         = useState<TaskItem[]>([]);
+  const [courseWeights, setCourseWeights] = useState<CourseWeights | null>(null);
+  const [loading,       setLoading]       = useState(false);
 
+  // ── Grades grid state ──
+  const [gradesGrid,   setGradesGrid]   = useState<Record<string, Record<string, string>>>({});
+  const [initialGrid,  setInitialGrid]  = useState<Record<string, Record<string, string>>>({});
+
+  // ── Save state ──
+  const [saving,      setSaving]      = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError,   setSaveError]   = useState("");
+
+  // ── Add column modal ──
+  const [addModal,    setAddModal]    = useState<{ type: CatType } | null>(null);
+  const [newTaskName, setNewTaskName] = useState("");
+  const [addingTask,  setAddingTask]  = useState(false);
+
+  // ── Delete confirm ──
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // ── Derived ──
   const selectedCourse = courses.find(c => c.id === selectedCourseId);
-  const groups = selectedCourse?.groups || [];
+  const groups = selectedCourse?.groups ?? [];
 
+  // Auto-select first group on course change
   useEffect(() => {
-    if (groups.length > 0 && !selectedGroupId) {
-      setSelectedGroupId(groups[0].id);
-    } else if (groups.length === 0) {
-      setSelectedGroupId("");
-    }
-  }, [selectedCourseId, groups]);
+    setSelectedGroupId(groups[0]?.id ?? "");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCourseId]);
 
+  // Fetch when filters complete
   useEffect(() => {
-    if (selectedCourseId && selectedPeriod && selectedGroupId) {
-      fetchData();
-    } else {
-      setStudents([]);
-      setTasks([]);
-    }
+    if (selectedCourseId && selectedPeriod && selectedGroupId) fetchData();
+    else { setStudents([]); setTasks([]); setGradesGrid({}); setInitialGrid({}); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCourseId, selectedPeriod, selectedGroupId]);
 
   const fetchData = async () => {
     setLoading(true);
+    setSaveSuccess(false);
+    setSaveError("");
     try {
-      const res = await fetch(`/api/docente/planillas?courseId=${selectedCourseId}&period=${selectedPeriod}&groupId=${selectedGroupId}`);
+      const res = await fetch(
+        `/api/docente/planillas?courseId=${selectedCourseId}&period=${encodeURIComponent(selectedPeriod)}&groupId=${selectedGroupId}`
+      );
       const data = await res.json();
-      if (res.ok) {
-        setStudents(data.students || []);
-        setTasks(data.tasks || []);
+      if (!res.ok) return;
+
+      const fStudents: Student[]  = data.students ?? [];
+      const fTasks:    TaskItem[] = data.tasks    ?? [];
+      setStudents(fStudents);
+      setTasks(fTasks);
+      setCourseWeights(data.course ?? null);
+
+      // Build grid from existing submissions
+      const grid: Record<string, Record<string, string>> = {};
+      for (const s of fStudents) {
+        grid[s.id] = {};
+        for (const t of fTasks) {
+          const sub = t.submissions.find(x => x.studentId === s.id);
+          grid[s.id][t.id] = sub?.grade !== null && sub?.grade !== undefined ? String(sub.grade) : "";
+        }
       }
-    } catch (err) {
-      console.error("Error fetching planillas:", err);
-    } finally {
-      setLoading(false);
+      setGradesGrid(grid);
+      setInitialGrid(JSON.parse(JSON.stringify(grid)));
+    } catch { /* silent */ }
+    finally   { setLoading(false); }
+  };
+
+  // ── Category slices ──
+  const byType = useCallback(
+    (type: string) => tasks.filter(t => t.type === type),
+    [tasks]
+  );
+
+  const taskNumbers = useMemo(() => {
+    const map: Record<string, number> = {};
+    let n = 1;
+    for (const cat of CATEGORIES) byType(cat.type).forEach(t => { map[t.id] = n++; });
+    return map;
+  }, [byType]);
+
+  const hasChanges = useMemo(
+    () => JSON.stringify(gradesGrid) !== JSON.stringify(initialGrid),
+    [gradesGrid, initialGrid]
+  );
+
+  // ── Cell handler ──
+  const handleCell = (studentId: string, taskId: string, value: string) => {
+    if (value !== "") {
+      const p = parseFloat(value);
+      if (isNaN(p) || p < 0 || p > 5) return;
     }
+    setGradesGrid(prev => ({ ...prev, [studentId]: { ...prev[studentId], [taskId]: value } }));
   };
 
-  const currentYear = new Date().getFullYear();
-
-  // Categorize tasks
-  const isTheme = (task: Task, keyword: string) => {
-    const t = (task.theme || "").toLowerCase();
-    const title = task.title.toLowerCase();
-    const k = keyword.toLowerCase();
-    return t.includes(k) || title.includes(k);
-  };
-
-  const saberTasks = tasks.filter(t => isTheme(t, "saber") && !isTheme(t, "examen"));
-  const hacerTasks = tasks.filter(t => isTheme(t, "hacer") && !isTheme(t, "examen"));
-  const serTasks = tasks.filter(t => isTheme(t, "ser") && !isTheme(t, "examen"));
-  const examenTasks = tasks.filter(t => isTheme(t, "examen") || t.type === "EXAM");
-  
-  // If some tasks didn't match anything, let's just distribute them or show an 'Otras' column if needed
-  // For matching the UI exactly, we map grades for each student
-  
-  const getStudentGradeForTask = (studentId: string, taskId: string) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return null;
-    const sub = task.submissions.find(s => s.studentId === studentId);
-    return sub?.grade ?? null;
-  };
-
-  const calculateCategoryAverage = (studentId: string, categoryTasks: Task[]) => {
-    if (categoryTasks.length === 0) return null;
-    let sum = 0;
-    let count = 0;
-    categoryTasks.forEach(t => {
-      const grade = getStudentGradeForTask(studentId, t.id);
-      if (grade !== null) {
-        sum += grade;
-        count++;
+  // ── Save grades ──
+  const handleSave = async () => {
+    setSaving(true); setSaveError(""); setSaveSuccess(false);
+    const submissions: { studentId: string; taskId: string; grade: string | null }[] = [];
+    for (const sid of Object.keys(gradesGrid)) {
+      for (const tid of Object.keys(gradesGrid[sid])) {
+        if (gradesGrid[sid][tid] !== (initialGrid[sid]?.[tid] ?? ""))
+          submissions.push({ studentId: sid, taskId: tid, grade: gradesGrid[sid][tid] || null });
       }
-    });
-    return count > 0 ? sum / count : null;
+    }
+    try {
+      const res  = await fetch("/api/docente/planillas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId: selectedCourseId, submissions })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSaveSuccess(true);
+        setInitialGrid(JSON.parse(JSON.stringify(gradesGrid)));
+        setTimeout(() => setSaveSuccess(false), 3000);
+      } else setSaveError(data.error ?? "Error al guardar");
+    } catch { setSaveError("Error de conexión"); }
+    finally   { setSaving(false); }
   };
 
-  const getDesempeno = (grade: number) => {
-    if (grade >= 4.6) return "SUPERIOR";
-    if (grade >= 4.0) return "ALTO";
-    if (grade >= 3.0) return "BÁSICO";
-    return "BAJO";
+  // ── Add column ──
+  const openAddModal = (type: CatType) => { setAddModal({ type }); setNewTaskName(""); };
+  const handleAddTask = async () => {
+    if (!newTaskName.trim() || !addModal) return;
+    setAddingTask(true);
+    try {
+      const res = await fetch(`/api/docente/cursos/${selectedCourseId}/grades/spreadsheet/columns`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newTaskName.trim(), type: addModal.type, period: selectedPeriod })
+      });
+      if (res.ok) { setAddModal(null); fetchData(); }
+      else        { const d = await res.json(); alert(d.error ?? "Error al crear columna."); }
+    } catch { alert("Error de conexión."); }
+    setAddingTask(false);
   };
 
-  const getColorForGrade = (grade: number | null) => {
-    if (grade === null) return "inherit";
-    if (grade < 3.0) return "#dc2626"; // red
-    if (grade < 4.0) return "#d97706"; // orange/yellow
-    return "#16a34a"; // green
+  // ── Delete column ──
+  const handleDeleteTask = async (taskId: string, taskTitle: string) => {
+    if (!confirm(`⚠️ ¿Eliminar "${taskTitle}"? Se borrarán TODAS las notas asociadas. Esta acción no se puede deshacer.`)) return;
+    setDeletingId(taskId);
+    try {
+      const res = await fetch(`/api/docente/cursos/${selectedCourseId}/grades/spreadsheet/columns?taskId=${taskId}`, { method: "DELETE" });
+      if (res.ok) fetchData();
+      else        alert("Error eliminando columna.");
+    } catch { alert("Error de conexión."); }
+    setDeletingId(null);
   };
 
+  // ── Per-student stats ──
+  const calcStats = useCallback((studentId: string) => {
+    const g = gradesGrid[studentId] ?? {};
+    const avg = (list: TaskItem[]) => {
+      const vals = list.map(t => parseFloat(g[t.id])).filter(v => !isNaN(v) && v >= 1 && v <= 5);
+      return vals.length ? vals.reduce((a, b) => a + b) / vals.length : null;
+    };
+    const sp = courseWeights?.saberPercent  ?? 25;
+    const hp = courseWeights?.hacerPercent  ?? 40;
+    const ep = courseWeights?.serPercent    ?? 15;
+    const fp = courseWeights?.finalPercent  ?? 20;
+
+    const saber = avg(byType("EXAM"));
+    const hacer = avg(byType("TASK"));
+    const ser   = avg(byType("SER"));
+    const final = avg(byType("FINAL"));
+
+    const hasAny = saber !== null || hacer !== null || ser !== null || final !== null;
+    const total = hasAny
+      ? (saber ?? 0) * (sp / 100) + (hacer ?? 0) * (hp / 100) + (ser ?? 0) * (ep / 100) + (final ?? 0) * (fp / 100)
+      : null;
+
+    return { saber, hacer, ser, final, total,
+      pondSaber: saber !== null ? saber * (sp / 100) : null,
+      pondHacer: hacer !== null ? hacer * (hp / 100) : null,
+      pondSer:   ser   !== null ? ser   * (ep / 100) : null,
+      pondFinal: final !== null ? final * (fp / 100) : null,
+    };
+  }, [gradesGrid, byType, courseWeights]);
+
+  // ── Export ──
   const exportToExcel = () => {
-    const table = document.getElementById("planillas-table");
-    if (!table) return;
-    const wb = XLSX.utils.table_to_book(table, { sheet: "Planilla" });
+    const t = document.getElementById("planillas-table");
+    if (!t) return;
+    const wb = XLSX.utils.table_to_book(t, { sheet: "Planilla" });
     XLSX.writeFile(wb, `Planilla_${selectedCourse?.name}_${selectedPeriod}.xlsx`);
   };
-
   const exportToPDF = () => {
     const doc = new jsPDF("landscape");
-    doc.text(`Consolidado de Calificaciones - ${selectedCourse?.name}`, 14, 15);
-    doc.text(`Docente: ${teacherName} | Periodo: ${selectedPeriod}`, 14, 22);
-    autoTable(doc, { 
-      html: '#planillas-table', 
-      startY: 30,
-      styles: { fontSize: 8 }
-    });
+    doc.text(`Consolidado — ${selectedCourse?.name ?? ""}  |  ${selectedPeriod}  |  Docente: ${teacherName}`, 14, 14);
+    autoTable(doc, { html: "#planillas-table", startY: 22, styles: { fontSize: 7 } });
     doc.save(`Planilla_${selectedCourse?.name}_${selectedPeriod}.pdf`);
   };
 
+  const sp = courseWeights?.saberPercent  ?? 25;
+  const hp = courseWeights?.hacerPercent  ?? 40;
+  const ep = courseWeights?.serPercent    ?? 15;
+  const fp = courseWeights?.finalPercent  ?? 20;
+
+  const showFinal  = byType("FINAL").length  > 0 || fp > 0;
+  const showAttend = byType("ATTEND").length > 0;
+
+  // ── Render helpers ──────────────────────────────────────────────────────────
+
+  const renderCatHeader = (cat: typeof CATEGORIES[number]) => {
+    const catTasks = byType(cat.type);
+    const pct = cat.pctKey ? (courseWeights as any)?.[cat.pctKey] : null;
+    return (
+      <th
+        key={cat.type}
+        colSpan={Math.max(1, catTasks.length) + 1 /* +1 for add-button slot */}
+        className={`border border-gray-200 dark:border-gray-700 p-2 uppercase tracking-wide font-bold text-xs ${cat.color.header}`}
+      >
+        <div className="flex items-center justify-center gap-2">
+          <span>{cat.label}{pct != null ? ` (${pct}%)` : ""}</span>
+          <button
+            onClick={() => openAddModal(cat.type as CatType)}
+            className={`p-1 rounded transition-colors ${cat.color.btn}`}
+            title={`Agregar columna de ${cat.label}`}
+          >
+            <Plus size={13} />
+          </button>
+        </div>
+      </th>
+    );
+  };
+
+  const renderTaskNumHeader = (cat: typeof CATEGORIES[number]) => {
+    const catTasks = byType(cat.type);
+    return (
+      <>
+        {catTasks.length === 0
+          ? <th key={`${cat.type}-empty`} className="border border-gray-200 dark:border-gray-700 p-1 font-normal italic text-gray-400 w-12">—</th>
+          : catTasks.map(t => (
+              <th key={t.id} title={t.title} className="border border-gray-200 dark:border-gray-700 p-1 w-12 cursor-help text-center group relative">
+                <div className="flex flex-col items-center">
+                  <span>{taskNumbers[t.id]}</span>
+                  <button
+                    onClick={() => handleDeleteTask(t.id, t.title)}
+                    disabled={deletingId === t.id}
+                    className="opacity-0 group-hover:opacity-100 absolute -top-0.5 -right-0.5 text-red-400 hover:text-red-600 transition-all"
+                    title="Eliminar columna"
+                  >
+                    {deletingId === t.id ? <Loader2 size={10} className="animate-spin" /> : <X size={10} />}
+                  </button>
+                </div>
+              </th>
+            ))
+        }
+        {/* Empty "add" slot for visual alignment */}
+        <th className="border border-gray-200 dark:border-gray-700 w-4 p-0" />
+      </>
+    );
+  };
+
+  const renderStudentCatCells = (studentId: string, cat: typeof CATEGORIES[number]) => {
+    const catTasks = byType(cat.type);
+    const g        = gradesGrid[studentId] ?? {};
+    return (
+      <>
+        {catTasks.length === 0
+          ? <td key={`${cat.type}-empty`} className={`p-1 border border-gray-100 dark:border-gray-700 ${cat.color.cell}`}></td>
+          : catTasks.map(t => {
+              const val       = g[t.id] ?? "";
+              const num       = parseFloat(val);
+              const isLow     = val !== "" && !isNaN(num) && num < 3.0;
+              const isChanged = val !== (initialGrid[studentId]?.[t.id] ?? "");
+              return (
+                <td key={t.id}
+                  className={`p-1 border border-gray-100 dark:border-gray-700 text-center ${
+                    isChanged ? "bg-amber-50 dark:bg-amber-900/20"
+                    : isLow   ? "bg-red-50/60 dark:bg-red-900/10"
+                    : cat.color.cell
+                  }`}
+                >
+                  <input
+                    type="number"
+                    min="1.0"
+                    max="5.0"
+                    step="0.1"
+                    value={val}
+                    placeholder="—"
+                    onChange={e => handleCell(studentId, t.id, e.target.value)}
+                    className={`w-12 text-center font-bold rounded border px-1 py-0.5 bg-white dark:bg-gray-800 text-xs outline-none focus:ring-1 focus:ring-orange-400 transition-colors ${
+                      isLow     ? "text-red-600 border-red-200 dark:border-red-700"
+                      : val !== "" ? "text-green-700 dark:text-green-400 border-green-200 dark:border-green-700"
+                      : "text-gray-400 border-gray-200 dark:border-gray-600"
+                    } ${isChanged ? "border-amber-300 dark:border-amber-600" : ""}`}
+                    style={{ MozAppearance: "textfield" } as React.CSSProperties}
+                  />
+                </td>
+              );
+            })
+        }
+        {/* Empty slot aligned with add-btn header */}
+        <td className="border border-gray-100 dark:border-gray-700 w-4 p-0" />
+      </>
+    );
+  };
+
+  const pondCell = (val: number | null, color: string) => (
+    <td className="p-1.5 border border-gray-200 dark:border-gray-700 bg-blue-50/40 dark:bg-blue-900/10 font-bold text-center text-xs">
+      <span style={{ color: val !== null ? color : "#9ca3af" }}>
+        {val !== null ? val.toFixed(2) : "—"}
+      </span>
+    </td>
+  );
+
+  // ── Main render ─────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col gap-6 animate-fade-in pb-10">
-      
+    <div className="flex flex-col gap-5 animate-fade-in pb-12">
+
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <Link href="/docente" className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-            <ArrowLeft size={24} />
+            <ArrowLeft size={22} />
           </Link>
           <div>
             <h1 className="text-2xl font-bold">Consolidado de Calificaciones</h1>
-            <p className="text-muted text-sm">{selectedCourse?.name || "Asignatura"}</p>
+            <p className="text-muted text-sm">{selectedCourse?.name ?? "Selecciona una asignatura"}</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 text-sm font-semibold mr-4 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-muted">
-            <span className="flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-semibold px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-muted">
             {students.length} estudiantes
+          </span>
+          <button onClick={exportToExcel} className="btn btn-secondary flex items-center gap-1.5 text-sm">
+            <FileSpreadsheet size={15} /> Excel
+          </button>
+          <button onClick={exportToPDF} className="btn btn-primary flex items-center gap-1.5 text-sm" style={{ background: "#f97316", borderColor: "#ea580c" }}>
+            <FileText size={15} /> PDF
+          </button>
+        </div>
+      </div>
+
+      {/* Selectors */}
+      <div className="card p-4 rounded-xl border flex flex-wrap gap-5 items-end" style={{ borderColor: "var(--border-color)" }}>
+        {[
+          { label: "Asignatura", value: selectedCourseId, onChange: setSelectedCourseId,
+            options: courses.map(c => ({ value: c.id, label: c.name })) },
+          { label: "Periodo",    value: selectedPeriod,   onChange: setSelectedPeriod,
+            options: periods.map(p => ({ value: p.name, label: p.name })) },
+          { label: "Grado y Curso (Grupo)", value: selectedGroupId, onChange: setSelectedGroupId,
+            options: groups.map(g => ({ value: g.id, label: g.grade?.name ? `${g.grade.name} — ${g.name}` : g.name })) },
+        ].map(({ label, value, onChange, options }) => (
+          <div key={label} className="flex-1 min-w-[170px]">
+            <label className="block text-xs font-bold text-muted uppercase tracking-wider mb-1.5">{label}</label>
+            <select
+              className="w-full p-2.5 rounded-lg border bg-slate-50 dark:bg-slate-800 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{ borderColor: "var(--border-color)" }}
+              value={value}
+              onChange={e => onChange(e.target.value)}
+            >
+              {options.length === 0 && <option value="">Sin opciones</option>}
+              {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
           </div>
-          <button onClick={exportToExcel} className="btn btn-secondary flex items-center gap-2 text-sm bg-white border border-gray-200 shadow-sm" style={{ color: "#374151" }}>
-            <FileSpreadsheet size={16} /> Exportar Excel
-          </button>
-          <button onClick={exportToPDF} className="btn btn-primary flex items-center gap-2 text-sm" style={{ background: "#f97316", borderColor: "#ea580c" }}>
-            <FileText size={16} /> Exportar PDF
-          </button>
-        </div>
+        ))}
       </div>
 
-      {/* Selectors Card */}
-      <div className="card p-4 rounded-xl border flex flex-wrap gap-6 items-end bg-white dark:bg-gray-900 shadow-sm" style={{ borderColor: "var(--border-color)" }}>
-        <div className="flex-1 min-w-[200px]">
-          <label className="block text-xs font-bold text-muted uppercase tracking-wider mb-2">Asignatura</label>
-          <select 
-            className="w-full p-2.5 rounded-lg border bg-slate-50 dark:bg-slate-800 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500" 
-            style={{ borderColor: "var(--border-color)" }}
-            value={selectedCourseId}
-            onChange={(e) => setSelectedCourseId(e.target.value)}
-          >
-            {courses.length === 0 && <option value="">Sin asignaturas</option>}
-            {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
+      {/* Unsaved changes bar */}
+      {hasChanges && (
+        <div className="flex justify-between items-center bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-xl p-4">
+          <div className="flex items-center gap-2 text-orange-800 dark:text-orange-300 text-sm font-semibold">
+            <AlertTriangle size={18} className="text-orange-500" />
+            Hay notas editadas sin guardar.
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => { setGradesGrid(JSON.parse(JSON.stringify(initialGrid))); setSaveError(""); }} disabled={saving}
+              className="btn btn-secondary py-1.5 px-3 text-xs flex items-center gap-1.5">
+              <Undo2 size={14} /> Descartar
+            </button>
+            <button onClick={handleSave} disabled={saving}
+              className="btn btn-primary py-1.5 px-4 text-xs flex items-center gap-1.5">
+              {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+              Guardar Notas
+            </button>
+          </div>
         </div>
-        
-        <div className="flex-1 min-w-[150px]">
-          <label className="block text-xs font-bold text-muted uppercase tracking-wider mb-2">Periodo</label>
-          <select 
-            className="w-full p-2.5 rounded-lg border bg-slate-50 dark:bg-slate-800 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500" 
-            style={{ borderColor: "var(--border-color)" }}
-            value={selectedPeriod}
-            onChange={(e) => setSelectedPeriod(e.target.value)}
-          >
-            {periods.length === 0 && <option value="">Sin periodos</option>}
-            {periods.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
-          </select>
+      )}
+      {saveSuccess && (
+        <div className="flex items-center gap-2 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300 rounded-xl p-4 text-sm font-bold">
+          <Check size={18} /> Calificaciones guardadas correctamente.
         </div>
+      )}
+      {saveError && <div className="alert alert-danger">{saveError}</div>}
 
-        <div className="flex-1 min-w-[200px]">
-          <label className="block text-xs font-bold text-muted uppercase tracking-wider mb-2">Grado y Curso (Grupo)</label>
-          <select 
-            className="w-full p-2.5 rounded-lg border bg-slate-50 dark:bg-slate-800 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500" 
-            style={{ borderColor: "var(--border-color)" }}
-            value={selectedGroupId}
-            onChange={(e) => setSelectedGroupId(e.target.value)}
-          >
-            {groups.length === 0 && <option value="">Sin grupos asignados</option>}
-            {groups.map(g => (
-              <option key={g.id} value={g.id}>{g.grade?.name ? `${g.grade.name} - ${g.name}` : g.name}</option>
-            ))}
-          </select>
-        </div>
-      </div>
+      {/* Main spreadsheet card */}
+      <div className="card rounded-2xl border shadow-sm overflow-hidden bg-white dark:bg-gray-900" style={{ borderColor: "var(--border-color)" }}>
 
-      {/* Info Card mimicking the image */}
-      <div className="card rounded-2xl border shadow-sm p-0 overflow-hidden bg-white dark:bg-gray-900" style={{ borderColor: "var(--border-color)" }}>
-        
-        <div className="flex items-center justify-center py-3 bg-orange-100 dark:bg-orange-950/30 border-b" style={{ borderColor: "var(--border-color)" }}>
+        {/* Period banner */}
+        <div className="flex items-center justify-center py-2.5 bg-orange-100 dark:bg-orange-950/30 border-b" style={{ borderColor: "var(--border-color)" }}>
           <span className="font-bold text-orange-600 dark:text-orange-400 bg-white dark:bg-gray-800 px-4 py-1 rounded-full shadow-sm text-sm">
             {selectedPeriod}
           </span>
         </div>
-        
-        <div className="text-center py-2 border-b text-xs font-bold text-gray-600 dark:text-gray-400" style={{ borderColor: "var(--border-color)" }}>
-          <span className="underline decoration-gray-400 underline-offset-2">Planilla de Notas (Excel)</span> <span className="font-normal">Resumen por Periodo (Tarjetas)</span>
-        </div>
 
-        <div className="flex justify-between items-center p-4 border-b text-sm" style={{ borderColor: "var(--border-color)" }}>
-          <div>
-            <div className="text-xs font-bold text-gray-400 uppercase">Docente</div>
-            <div className="font-bold">{teacherName}</div>
-          </div>
-          <div>
-            <div className="text-xs font-bold text-gray-400 uppercase">Asignatura</div>
-            <div className="font-bold">{selectedCourse?.name || "-"}</div>
-          </div>
-          <div>
-            <div className="text-xs font-bold text-gray-400 uppercase">Año Lectivo</div>
-            <div className="font-bold">{currentYear}</div>
-          </div>
-          <div>
-            <div className="text-xs font-bold text-gray-400 uppercase">Periodo</div>
-            <div className="font-bold">{selectedPeriod}</div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-800/50">
-          <div className="text-xs font-bold text-gray-500 whitespace-nowrap">% PESOS DE EVALUACIÓN</div>
-          <div className="flex items-center gap-3 text-sm font-bold flex-1">
-            <span style={{ color: "#a855f7" }}>Saber <input type="number" value={weights.saber} onChange={e => setWeights({...weights, saber: parseInt(e.target.value) || 0})} className="w-12 text-center rounded border p-1 bg-white" /> %</span>
-            <span style={{ color: "#d97706" }}>Hacer <input type="number" value={weights.hacer} onChange={e => setWeights({...weights, hacer: parseInt(e.target.value) || 0})} className="w-12 text-center rounded border p-1 bg-white" /> %</span>
-            <span style={{ color: "#eab308" }}>Ser <input type="number" value={weights.ser} onChange={e => setWeights({...weights, ser: parseInt(e.target.value) || 0})} className="w-12 text-center rounded border p-1 bg-white" /> %</span>
-            <span style={{ color: "#3b82f6" }}>Exam. Final <input type="number" value={weights.examen} onChange={e => setWeights({...weights, examen: parseInt(e.target.value) || 0})} className="w-12 text-center rounded border p-1 bg-white" /> %</span>
-            <span className="text-green-600">Total: {weights.saber + weights.hacer + weights.ser + weights.examen}%</span>
-          </div>
-          <button className="text-xs font-bold text-green-600 border border-green-200 bg-green-50 px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-green-100 transition-colors">
-            + Activar Asistencia
-          </button>
-        </div>
-
-        {/* The Spreadsheet */}
-        <div className="overflow-x-auto">
-          {loading ? (
-            <div className="flex justify-center py-20">
-              <Loader2 className="animate-spin text-blue-500" size={40} />
+        {/* Meta info */}
+        <div className="grid grid-cols-2 md:grid-cols-4 text-sm p-4 border-b gap-4" style={{ borderColor: "var(--border-color)" }}>
+          {[
+            { label: "Docente",      value: teacherName },
+            { label: "Asignatura",   value: selectedCourse?.name ?? "—" },
+            { label: "Año Lectivo",  value: new Date().getFullYear() },
+            { label: "Periodo",      value: selectedPeriod },
+          ].map(({ label, value }) => (
+            <div key={label}>
+              <div className="text-xs font-bold text-gray-400 uppercase mb-0.5">{label}</div>
+              <div className="font-bold">{value}</div>
             </div>
-          ) : (
-            <table id="planillas-table" className="w-full text-center text-sm border-collapse">
+          ))}
+        </div>
+
+        {/* Weights legend */}
+        <div className="flex flex-wrap items-center gap-3 px-4 py-2.5 border-b text-xs bg-gray-50 dark:bg-gray-800/50" style={{ borderColor: "var(--border-color)" }}>
+          <span className="font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Pesos:</span>
+          {[
+            { dot: "#a855f7", text: `SABER (Exámenes): ${sp}%` },
+            { dot: "#d97706", text: `HACER (Tareas): ${hp}%` },
+            { dot: "#b45309", text: `SER (Actitudinal): ${ep}%` },
+            ...(showFinal ? [{ dot: "#0ea5e9", text: `Examen Final: ${fp}%` }] : []),
+          ].map(({ dot, text }) => (
+            <span key={text} className="flex items-center gap-1 font-semibold text-gray-700 dark:text-gray-300">
+              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: dot }} />
+              {text}
+            </span>
+          ))}
+          <span className="ml-auto text-[10px] text-gray-400 italic">
+            💡 Cambia los pesos desde "Mis Cursos → Calificaciones"
+          </span>
+        </div>
+
+        {/* Table */}
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="animate-spin text-orange-500" size={40} />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table id="planillas-table" className="w-full border-collapse text-xs text-center">
               <thead>
-                <tr className="bg-gray-50 dark:bg-gray-800/80">
-                  <th rowSpan={2} className="border p-2 font-bold text-gray-600 dark:text-gray-300 w-8">No.</th>
-                  <th rowSpan={2} className="border p-2 font-bold text-gray-600 dark:text-gray-300 text-left w-64">Nombre Completo</th>
-                  <th colSpan={Math.max(saberTasks.length, 1)} className="border p-2 font-bold" style={{ color: "#a855f7", backgroundColor: "#f3e8ff" }}>SABER ({weights.saber}%) <span className="text-xs">+</span></th>
-                  <th colSpan={Math.max(hacerTasks.length, 1)} className="border p-2 font-bold" style={{ color: "#d97706", backgroundColor: "#fef3c7" }}>HACER ({weights.hacer}%) <span className="text-xs">+</span></th>
-                  <th colSpan={Math.max(serTasks.length, 1)} className="border p-2 font-bold" style={{ color: "#b45309", backgroundColor: "#fef3c7" }}>SER ({weights.ser}%) <span className="text-xs">+</span></th>
-                  <th colSpan={Math.max(examenTasks.length, 1)} className="border p-2 font-bold" style={{ color: "#1d4ed8", backgroundColor: "#dbeafe" }}>EXAMEN FINAL ({weights.examen}%) <span className="text-xs">+</span></th>
-                  <th colSpan={4} className="border p-2 font-bold text-blue-700 bg-blue-50 dark:bg-blue-900/20">DEF (PONDERADA)</th>
-                  <th rowSpan={2} className="border p-2 font-bold">Def (Final)</th>
-                  <th rowSpan={2} className="border p-2 font-bold">Desempeño</th>
+                {/* Row 1: Category headers */}
+                <tr className="bg-gray-100 dark:bg-gray-800">
+                  <th rowSpan={2} className="border border-gray-200 dark:border-gray-700 p-2 w-8">No.</th>
+                  <th rowSpan={2} className="border border-gray-200 dark:border-gray-700 p-2 text-left min-w-[200px]">Nombre Completo</th>
+                  {CATEGORIES.map(cat => {
+                    if (cat.type === "FINAL"  && !showFinal)  return null;
+                    if (cat.type === "ATTEND" && !showAttend) return null;
+                    return renderCatHeader(cat);
+                  })}
+                  <th colSpan={showFinal ? 4 : 3} className="border border-gray-200 dark:border-gray-700 p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 uppercase tracking-wide font-bold text-xs">
+                    DEF (Ponderada)
+                  </th>
+                  <th rowSpan={2} className="border border-gray-200 dark:border-gray-700 p-2 bg-gray-100 dark:bg-gray-800 font-bold">Def Final</th>
+                  <th rowSpan={2} className="border border-gray-200 dark:border-gray-700 p-2 font-bold">Desempeño</th>
                 </tr>
-                <tr className="bg-gray-50 dark:bg-gray-800/80 text-xs">
-                  {saberTasks.length === 0 ? <th className="border p-1">1</th> : saberTasks.map((t, i) => <th key={t.id} className="border p-1" title={t.title}>{i + 1}</th>)}
-                  {hacerTasks.length === 0 ? <th className="border p-1">1</th> : hacerTasks.map((t, i) => <th key={t.id} className="border p-1" title={t.title}>{i + 1}</th>)}
-                  {serTasks.length === 0 ? <th className="border p-1">1</th> : serTasks.map((t, i) => <th key={t.id} className="border p-1" title={t.title}>{i + 1}</th>)}
-                  {examenTasks.length === 0 ? <th className="border p-1">1</th> : examenTasks.map((t, i) => <th key={t.id} className="border p-1" title={t.title}>{i + 1}</th>)}
-                  
-                  <th className="border p-1 text-gray-500">Saber×{weights.saber}%</th>
-                  <th className="border p-1 text-gray-500">Hacer×{weights.hacer}%</th>
-                  <th className="border p-1 text-gray-500">Ser×{weights.ser}%</th>
-                  <th className="border p-1 text-gray-500">Final×{weights.examen}%</th>
+
+                {/* Row 2: Task numbers */}
+                <tr className="bg-gray-50 dark:bg-gray-800/60 font-semibold text-gray-500 dark:text-gray-400">
+                  {CATEGORIES.map(cat => {
+                    if (cat.type === "FINAL"  && !showFinal)  return null;
+                    if (cat.type === "ATTEND" && !showAttend) return null;
+                    return <React.Fragment key={cat.type}>{renderTaskNumHeader(cat)}</React.Fragment>;
+                  })}
+                  <th className="border border-gray-200 dark:border-gray-700 p-1 bg-blue-50/50 dark:bg-blue-900/10 w-16">Saber×{sp}%</th>
+                  <th className="border border-gray-200 dark:border-gray-700 p-1 bg-blue-50/50 dark:bg-blue-900/10 w-16">Hacer×{hp}%</th>
+                  <th className="border border-gray-200 dark:border-gray-700 p-1 bg-blue-50/50 dark:bg-blue-900/10 w-16">Ser×{ep}%</th>
+                  {showFinal && <th className="border border-gray-200 dark:border-gray-700 p-1 bg-blue-50/50 dark:bg-blue-900/10 w-16">Final×{fp}%</th>}
                 </tr>
               </thead>
+
               <tbody>
                 {students.length === 0 ? (
                   <tr>
-                    <td colSpan={14} className="py-8 text-muted">No hay estudiantes en este grupo</td>
+                    <td colSpan={30} className="py-14 text-muted font-medium italic">
+                      No hay estudiantes en este grupo o aún no hay actividades para este periodo.
+                    </td>
                   </tr>
                 ) : (
-                  students.map((student, index) => {
-                    const saberAvg = calculateCategoryAverage(student.id, saberTasks);
-                    const hacerAvg = calculateCategoryAverage(student.id, hacerTasks);
-                    const serAvg = calculateCategoryAverage(student.id, serTasks);
-                    const examAvg = calculateCategoryAverage(student.id, examenTasks);
-
-                    const saberPond = saberAvg !== null ? saberAvg * (weights.saber / 100) : null;
-                    const hacerPond = hacerAvg !== null ? hacerAvg * (weights.hacer / 100) : null;
-                    const serPond = serAvg !== null ? serAvg * (weights.ser / 100) : null;
-                    const examPond = examAvg !== null ? examAvg * (weights.examen / 100) : null;
-
-                    let finalGrade = 0;
-                    let validCategories = 0;
-                    if (saberPond !== null) { finalGrade += saberPond; validCategories++; }
-                    if (hacerPond !== null) { finalGrade += hacerPond; validCategories++; }
-                    if (serPond !== null) { finalGrade += serPond; validCategories++; }
-                    if (examPond !== null) { finalGrade += examPond; validCategories++; }
-
-                    // If not all categories have grades, this is a partial final grade. 
-                    // Let's just show the raw sum if there's at least one grade.
-                    const displayFinal = validCategories > 0 ? finalGrade : null;
-                    
-                    const desempeno = displayFinal !== null ? getDesempeno(displayFinal) : "—";
-                    const desempenoColor = desempeno === "BAJO" ? "#dc2626" : desempeno !== "—" ? "#16a34a" : "inherit";
-
-                    const renderCell = (grade: number | null) => (
-                      <span style={{ color: getColorForGrade(grade), fontWeight: 600 }}>
-                        {grade !== null ? grade.toFixed(1) : "—"}
-                      </span>
-                    );
-
-                    const renderPond = (pond: number | null, colorStr: string) => (
-                      <span style={{ color: pond !== null ? colorStr : "#9ca3af", fontWeight: pond !== null ? 700 : 400 }}>
-                        {pond !== null ? pond.toFixed(2) : "—"}
-                      </span>
-                    );
+                  students.map((student, idx) => {
+                    const stats = calcStats(student.id);
+                    const desemp = stats.total !== null ? getDesempeno(stats.total) : null;
 
                     return (
-                      <tr key={student.id} className="border-b hover:bg-slate-50 dark:hover:bg-slate-800/30" style={{ borderColor: "var(--border-color)" }}>
-                        <td className="p-2 text-gray-400">{index + 1}</td>
-                        <td className="p-2 text-left">
+                      <tr key={student.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                        <td className="p-2 border border-gray-200 dark:border-gray-700 text-gray-400 font-medium text-center">{idx + 1}</td>
+                        <td className="p-2 border border-gray-200 dark:border-gray-700 text-left">
                           <div className="font-bold text-gray-800 dark:text-gray-200 leading-tight">{student.name}</div>
-                          <div className="text-[10px] text-gray-400">{student.group.grade?.name} - {student.group.name}</div>
+                          <div className="text-[10px] text-gray-400 mt-0.5">{student.group.grade?.name} — {student.group.name}</div>
                         </td>
 
-                        {/* Saber */}
-                        {saberTasks.length === 0 ? <td className="p-2 border-x border-gray-100">
-                          <div className="w-8 mx-auto border border-gray-200 rounded py-0.5 bg-white text-gray-300">—</div>
-                        </td> : saberTasks.map(t => (
-                          <td key={t.id} className="p-2 border-x border-gray-100">
-                            <div className="w-8 mx-auto border border-gray-200 rounded py-0.5 bg-white shadow-sm">{renderCell(getStudentGradeForTask(student.id, t.id))}</div>
-                          </td>
-                        ))}
+                        {/* Category cells */}
+                        {CATEGORIES.map(cat => {
+                          if (cat.type === "FINAL"  && !showFinal)  return null;
+                          if (cat.type === "ATTEND" && !showAttend) return null;
+                          return <React.Fragment key={cat.type}>{renderStudentCatCells(student.id, cat)}</React.Fragment>;
+                        })}
 
-                        {/* Hacer */}
-                        {hacerTasks.length === 0 ? <td className="p-2 border-x border-gray-100">
-                          <div className="w-8 mx-auto border border-gray-200 rounded py-0.5 bg-white text-gray-300">—</div>
-                        </td> : hacerTasks.map(t => (
-                          <td key={t.id} className="p-2 border-x border-gray-100">
-                            <div className="w-8 mx-auto border border-gray-200 rounded py-0.5 bg-white shadow-sm">{renderCell(getStudentGradeForTask(student.id, t.id))}</div>
-                          </td>
-                        ))}
-
-                        {/* Ser */}
-                        {serTasks.length === 0 ? <td className="p-2 border-x border-gray-100">
-                          <div className="w-8 mx-auto border border-gray-200 rounded py-0.5 bg-white text-gray-300">—</div>
-                        </td> : serTasks.map(t => (
-                          <td key={t.id} className="p-2 border-x border-gray-100">
-                            <div className="w-8 mx-auto border border-gray-200 rounded py-0.5 bg-white shadow-sm">{renderCell(getStudentGradeForTask(student.id, t.id))}</div>
-                          </td>
-                        ))}
-
-                        {/* Examen */}
-                        {examenTasks.length === 0 ? <td className="p-2 border-x border-gray-100">
-                          <div className="w-8 mx-auto border border-blue-200 rounded py-0.5 bg-blue-50 text-blue-300">—</div>
-                        </td> : examenTasks.map(t => (
-                          <td key={t.id} className="p-2 border-x border-gray-100">
-                            <div className="w-8 mx-auto border border-blue-200 rounded py-0.5 bg-blue-50 shadow-sm">{renderCell(getStudentGradeForTask(student.id, t.id))}</div>
-                          </td>
-                        ))}
-
-                        {/* Ponderadas */}
-                        <td className="p-2 border-l border-gray-200 bg-gray-50/50 dark:bg-gray-800/30">
-                          {renderPond(saberPond, "#a855f7")}
-                        </td>
-                        <td className="p-2 bg-gray-50/50 dark:bg-gray-800/30">
-                          {renderPond(hacerPond, "#d97706")}
-                        </td>
-                        <td className="p-2 bg-gray-50/50 dark:bg-gray-800/30">
-                          {renderPond(serPond, "#b45309")}
-                        </td>
-                        <td className="p-2 border-r border-gray-200 bg-gray-50/50 dark:bg-gray-800/30">
-                          {renderPond(examPond, "#1d4ed8")}
-                        </td>
+                        {/* Ponderated */}
+                        {pondCell(stats.pondSaber, "#a855f7")}
+                        {pondCell(stats.pondHacer, "#d97706")}
+                        {pondCell(stats.pondSer,   "#b45309")}
+                        {showFinal && pondCell(stats.pondFinal, "#0ea5e9")}
 
                         {/* Final */}
-                        <td className="p-2 font-bold text-base" style={{ color: getColorForGrade(displayFinal) }}>
-                          {displayFinal !== null ? displayFinal.toFixed(2) : "—"}
+                        <td className="p-2 border border-gray-200 dark:border-gray-700 font-extrabold text-sm text-center" style={{ color: gradeColor(stats.total) }}>
+                          {stats.total !== null ? stats.total.toFixed(2) : "—"}
                         </td>
-                        
+
                         {/* Desempeño */}
-                        <td className="p-2 font-bold text-xs uppercase" style={{ color: desempenoColor }}>
-                          {desempeno}
+                        <td className="p-2 border border-gray-200 dark:border-gray-700 text-center">
+                          {desemp
+                            ? <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${desemp.cls}`}>{desemp.label}</span>
+                            : "—"}
                         </td>
                       </tr>
                     );
@@ -438,9 +620,90 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 )}
               </tbody>
             </table>
-          )}
-        </div>
+          </div>
+        )}
       </div>
+
+      {/* Directorio de evaluaciones */}
+      {tasks.length > 0 && (
+        <div className="card p-5 border rounded-xl bg-gray-50 dark:bg-gray-900" style={{ borderColor: "var(--border-color)" }}>
+          <h3 className="font-bold text-sm text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-1.5">
+            <Info size={16} className="text-gray-400" />
+            Directorio de Evaluaciones — {selectedPeriod}
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+            {tasks.map(t => {
+              const cat = CATEGORIES.find(c => c.type === t.type) ?? CATEGORIES[4];
+              return (
+                <div key={t.id} className="flex gap-2 items-start justify-between p-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm group">
+                  <div className="flex gap-2 items-start">
+                    <span className={`px-2 py-0.5 rounded font-black flex-shrink-0 ${cat.color.badge}`}>
+                      {taskNumbers[t.id]}
+                    </span>
+                    <div>
+                      <p className="font-bold text-gray-800 dark:text-gray-200 leading-tight max-w-[160px] truncate" title={t.title}>{t.title}</p>
+                      <p className="text-gray-400 mt-0.5">{cat.label}{cat.sublabel ? ` — ${cat.sublabel}` : ""}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteTask(t.id, t.title)}
+                    disabled={deletingId === t.id}
+                    className="text-gray-300 hover:text-red-500 transition-colors p-1 opacity-0 group-hover:opacity-100 flex-shrink-0"
+                    title="Eliminar esta evaluación"
+                  >
+                    {deletingId === t.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Add column modal */}
+      {addModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4 animate-fade-in">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md shadow-2xl animate-scale-in">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-lg">
+                Agregar columna —{" "}
+                {CATEGORIES.find(c => c.type === addModal.type)?.label}
+              </h3>
+              <button onClick={() => setAddModal(null)} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                <X size={20} />
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              Se creará para el periodo <strong>{selectedPeriod}</strong> y se asignará al grupo seleccionado.
+            </p>
+            <input
+              type="text"
+              autoFocus
+              placeholder={
+                addModal.type === "EXAM"   ? "Ej: Evaluación Unidad 1" :
+                addModal.type === "TASK"   ? "Ej: Taller de Comprensión" :
+                addModal.type === "SER"    ? "Ej: Autoevaluación" :
+                addModal.type === "FINAL"  ? "Ej: Examen Final" :
+                "Ej: Semana 1"
+              }
+              value={newTaskName}
+              onChange={e => setNewTaskName(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleAddTask()}
+              className="input-field w-full mb-5"
+            />
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setAddModal(null)} className="btn btn-secondary">Cancelar</button>
+              <button
+                onClick={handleAddTask}
+                disabled={addingTask || !newTaskName.trim()}
+                className="btn btn-primary min-w-[120px]"
+              >
+                {addingTask ? <Loader2 size={16} className="animate-spin mx-auto" /> : "Crear Columna"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
