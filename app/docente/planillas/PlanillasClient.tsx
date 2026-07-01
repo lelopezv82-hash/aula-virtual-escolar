@@ -69,11 +69,11 @@ interface CourseWeights {
 
 // SABER = EXAM (exámenes), HACER = TASK (tareas), SER = SER (actitudinal)
 const CATEGORIES = [
-  { type: "EXAM",   label: "SABER",       sublabel: "Exámenes",    pctKey: "saberPercent",  color: { header: "bg-purple-50 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300", cell: "bg-purple-50/20 dark:bg-purple-900/5", badge: "bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300", dot: "#a855f7", btn: "hover:bg-purple-200 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300" } },
-  { type: "TASK",   label: "HACER",       sublabel: "Tareas",      pctKey: "hacerPercent",  color: { header: "bg-orange-50 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300", cell: "bg-orange-50/20 dark:bg-orange-900/5", badge: "bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300", dot: "#d97706", btn: "hover:bg-orange-200 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300" } },
-  { type: "SER",    label: "SER",         sublabel: "Actitudinal", pctKey: "serPercent",    color: { header: "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300", cell: "bg-yellow-50/20 dark:bg-yellow-900/5", badge: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300", dot: "#b45309", btn: "hover:bg-yellow-200 bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300" } },
-  { type: "FINAL",  label: "EXAMEN FINAL", sublabel: "",           pctKey: "finalPercent",  color: { header: "bg-sky-50 dark:bg-sky-900/20 text-sky-800 dark:text-sky-300", cell: "bg-sky-50/20 dark:bg-sky-900/5", badge: "bg-sky-100 text-sky-800 dark:bg-sky-900/50 dark:text-sky-300", dot: "#0ea5e9", btn: "hover:bg-sky-200 bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300" } },
-  { type: "ATTEND", label: "ASISTENCIA",  sublabel: "",            pctKey: "",              color: { header: "bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300", cell: "bg-green-50/20 dark:bg-green-900/5", badge: "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300", dot: "#10b981", btn: "hover:bg-green-200 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300" } },
+  { type: "EXAM",   label: "SABER",       sublabel: "Exámenes",    pctKey: "saberPercent",  color: { header: "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300", cell: "bg-purple-50/60 dark:bg-purple-900/10", cellBorder: "border-l-purple-300 dark:border-l-purple-700", badge: "bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300", dot: "#a855f7", btn: "hover:bg-purple-200 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300" } },
+  { type: "TASK",   label: "HACER",       sublabel: "Tareas",      pctKey: "hacerPercent",  color: { header: "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300", cell: "bg-orange-50/60 dark:bg-orange-900/10", cellBorder: "border-l-orange-300 dark:border-l-orange-700", badge: "bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300", dot: "#d97706", btn: "hover:bg-orange-200 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300" } },
+  { type: "SER",    label: "SER",         sublabel: "Actitudinal", pctKey: "serPercent",    color: { header: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300", cell: "bg-yellow-50/60 dark:bg-yellow-900/10", cellBorder: "border-l-yellow-400 dark:border-l-yellow-700", badge: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300", dot: "#b45309", btn: "hover:bg-yellow-200 bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300" } },
+  { type: "FINAL",  label: "EXAMEN FINAL", sublabel: "",           pctKey: "finalPercent",  color: { header: "bg-sky-100 dark:bg-sky-900/30 text-sky-800 dark:text-sky-300", cell: "bg-sky-50/60 dark:bg-sky-900/10", cellBorder: "border-l-sky-300 dark:border-l-sky-700", badge: "bg-sky-100 text-sky-800 dark:bg-sky-900/50 dark:text-sky-300", dot: "#0ea5e9", btn: "hover:bg-sky-200 bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300" } },
+  { type: "ATTEND", label: "ASISTENCIA",  sublabel: "",            pctKey: "",              color: { header: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300", cell: "bg-green-50/60 dark:bg-green-900/10", cellBorder: "border-l-green-300 dark:border-l-green-700", badge: "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300", dot: "#10b981", btn: "hover:bg-green-200 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300" } },
 ] as const;
 
 type CatType = (typeof CATEGORIES)[number]["type"];
@@ -741,14 +741,14 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     );
   };
 
-  const renderStudentCatCells = (studentId: string, cat: typeof CATEGORIES[number]) => {
+  const renderStudentCatCells = (studentId: string, cat: typeof CATEGORIES[number], isFirst: boolean = false) => {
     const catTasks = byType(cat.type);
     const g        = gradesGrid[studentId] ?? {};
     return (
       <>
         {catTasks.length === 0
-          ? <td key={`${cat.type}-empty`} className={`p-1 border border-gray-100 dark:border-gray-700 ${cat.color.cell}`}></td>
-          : catTasks.map(t => {
+          ? <td key={`${cat.type}-empty`} className={`p-1 border border-gray-100 dark:border-gray-700 ${cat.color.cell} ${isFirst ? `border-l-2 ${cat.color.cellBorder}` : ""}`}></td>
+          : catTasks.map((t, tIdx) => {
               const val       = g[t.id] ?? "";
               const num       = parseFloat(val);
               const isLow     = val !== "" && !isNaN(num) && num < 3.0;
@@ -759,7 +759,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     isChanged ? "bg-amber-50 dark:bg-amber-900/20"
                     : isLow   ? "bg-red-50/60 dark:bg-red-900/10"
                     : cat.color.cell
-                  }`}
+                  } ${tIdx === 0 ? `border-l-2 ${cat.color.cellBorder}` : ""}`}
                   style={{ width: "56px", minWidth: "56px" }}
                 >
                   <input
@@ -1123,9 +1123,16 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                         {pondCell(stats.pondSer,   "#b45309")}
                         {showFinal && pondCell(stats.pondFinal, "#0ea5e9")}
 
-                        {/* Final */}
-                        <td className="p-2 border border-gray-200 dark:border-gray-700 font-extrabold text-sm text-center" style={{ color: gradeColor(stats.total) }}>
-                          {stats.total !== null ? stats.total.toFixed(2) : "—"}
+                        {/* Final — same color scale as Desempeño */}
+                        <td className="p-2 border border-gray-200 dark:border-gray-700 text-center">
+                          {stats.total !== null ? (() => {
+                            const d = getDesempeno(stats.total);
+                            return (
+                              <span className={`inline-block px-2 py-0.5 rounded font-extrabold text-sm ${d.cls}`}>
+                                {stats.total.toFixed(2)}
+                              </span>
+                            );
+                          })() : <span className="text-gray-400 font-bold">—</span>}
                         </td>
 
                         {/* Desempeño */}
