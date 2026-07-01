@@ -75,8 +75,8 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
     headers: string[];
     headerIndex: number;
   } | null>(null);
-  const [excelStudentCol, setExcelStudentCol] = useState<string>("");
-  const [excelTaskMappings, setExcelTaskMappings] = useState<Record<string, string>>({});
+  const [excelStudentCol, setExcelStudentCol] = useState<number>(-1);
+  const [excelTaskMappings, setExcelTaskMappings] = useState<Record<string, number>>({});
 
   // Fetch spreadsheet data
   useEffect(() => {
@@ -446,14 +446,15 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
           const h = targetRow[idx];
           excelHeaders.push(h ? String(h).trim() : colLetter(idx));
         }
-        
-        const studentCol = excelHeaders.find(h => {
+
+        // Auto-select student column (store index)
+        const studentColIdx = excelHeaders.findIndex(h => {
           if (!h) return false;
           const nh = h.toLowerCase();
           return nh.includes("nombre") || nh.includes("estudiante") || nh.includes("alumno") || nh.includes("estudiantes") || nh.includes("nombres") || nh.includes("completo");
-        }) || excelHeaders[0] || "";
+        });
 
-        const mappings: Record<string, string> = {};
+        const mappings: Record<string, number> = {};
         const allPlatformTasks = [...saberTasks, ...hacerTasks, ...serTasks, ...finalTasks, ...attendTasks];
         allPlatformTasks.forEach(t => {
           const category = t.type === "EXAM" ? "SABER" : t.type === "TASK" ? "HACER" : t.type === "SER" ? "SER" : t.type === "FINAL" ? "EXAMEN FINAL" : "ASISTENCIA";
@@ -462,17 +463,19 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
           const normTitle = (t.title || "").toLowerCase();
           const numStr = String(taskNumbers[t.id]);
 
-          const matchedCol = excelHeaders.find(h => {
+          // Skip weight-label columns (e.g. "SABER 30%", "HACER 50%")
+          const matchedIdx = excelHeaders.findIndex(h => {
             if (!h) return false;
+            if (/%/.test(h)) return false;
             const nh = h.toLowerCase();
             return nh === normLabel || nh.includes(normLabel) || nh.includes(normTitle) || normTitle.includes(nh) || nh === numStr || nh === `nota ${numStr}` || nh === `nota_${numStr}`;
-          }) || "";
+          });
 
-          mappings[t.id] = matchedCol;
+          mappings[t.id] = matchedIdx; // -1 if no match
         });
 
         setCustomExcelData({ rows, headers: excelHeaders, headerIndex });
-        setExcelStudentCol(studentCol);
+        setExcelStudentCol(studentColIdx);
         setExcelTaskMappings(mappings);
 
       } catch (err: any) {
@@ -494,13 +497,14 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
       excelHeaders.push(h ? String(h).trim() : colLetter(idx));
     }
     
-    const studentCol = excelHeaders.find(h => {
+    // Auto-select student column (store index)
+    const studentColIdx = excelHeaders.findIndex(h => {
       if (!h) return false;
       const nh = h.toLowerCase();
       return nh.includes("nombre") || nh.includes("estudiante") || nh.includes("alumno") || nh.includes("estudiantes") || nh.includes("nombres") || nh.includes("completo");
-    }) || excelHeaders[0] || "";
+    });
 
-    const mappings: Record<string, string> = {};
+    const mappings: Record<string, number> = {};
     const allPlatformTasks = [...saberTasks, ...hacerTasks, ...serTasks, ...finalTasks, ...attendTasks];
     allPlatformTasks.forEach(t => {
       const category = t.type === "EXAM" ? "SABER" : t.type === "TASK" ? "HACER" : t.type === "SER" ? "SER" : t.type === "FINAL" ? "EXAMEN FINAL" : "ASISTENCIA";
@@ -508,27 +512,28 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
       const normLabel = platformLabel.toLowerCase();
       const normTitle = (t.title || "").toLowerCase();
 
-      const matchedCol = excelHeaders.find(h => {
+      const matchedIdx = excelHeaders.findIndex(h => {
         if (!h) return false;
+        if (/%/.test(h)) return false;
         const nh = h.toLowerCase();
         return nh === normLabel || nh.includes(normLabel) || nh.includes(normTitle) || normTitle.includes(nh);
-      }) || "";
+      });
 
-      mappings[t.id] = matchedCol;
+      mappings[t.id] = matchedIdx;
     });
 
     setCustomExcelData({ rows, headers: excelHeaders, headerIndex: newIndex });
-    setExcelStudentCol(studentCol);
+    setExcelStudentCol(studentColIdx);
     setExcelTaskMappings(mappings);
   };
 
   const confirmCustomExcelSync = () => {
-    if (!customExcelData || !excelStudentCol) return;
+    if (!customExcelData || excelStudentCol === -1) return;
 
     const { rows, headers, headerIndex } = customExcelData;
-    const studentColIdx = headers.indexOf(excelStudentCol);
-    if (studentColIdx === -1) {
-      alert("No se encontró la columna de nombres seleccionada.");
+    const studentColIdx = excelStudentCol; // already stored as index
+    if (studentColIdx === -1 || studentColIdx >= headers.length) {
+      alert("Selecciona la columna de nombres de estudiantes.");
       return;
     }
 
@@ -592,11 +597,9 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
       }
 
       Object.keys(excelTaskMappings).forEach(taskId => {
-        const excelColHeader = excelTaskMappings[taskId];
-        if (!excelColHeader) return;
-
-        const excelColIdx = headers.indexOf(excelColHeader);
-        if (excelColIdx === -1) return;
+        const excelColIdx = excelTaskMappings[taskId];
+        if (excelColIdx === undefined || excelColIdx === -1) return;
+        if (excelColIdx >= headers.length) return;
 
         const gradeVal = row[excelColIdx];
         
@@ -1491,13 +1494,13 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
                 </p>
                 <select
                   value={excelStudentCol}
-                  onChange={(e) => setExcelStudentCol(e.target.value)}
+                  onChange={(e) => setExcelStudentCol(Number(e.target.value))}
                   className="w-full p-2.5 rounded-lg border bg-white dark:bg-gray-800 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 mt-1 border-slate-200 dark:border-slate-700"
                   style={{ color: "var(--text-primary)" }}
                 >
-                  <option value="">-- Selecciona una columna --</option>
-                  {customExcelData.headers.map(h => (
-                    <option key={h} value={h}>{h}</option>
+                  <option value={-1}>-- Selecciona una columna --</option>
+                  {customExcelData.headers.map((h, idx) => (
+                    <option key={idx} value={idx}>{colLetter(idx)}{customExcelData.headerIndex + 1}: {h}</option>
                   ))}
                 </select>
               </div>
@@ -1533,14 +1536,14 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
                             </td>
                             <td className="p-2 w-64">
                               <select
-                                value={excelTaskMappings[t.id] || ""}
-                                onChange={(e) => setExcelTaskMappings(prev => ({ ...prev, [t.id]: e.target.value }))}
+                                value={excelTaskMappings[t.id] ?? -1}
+                                onChange={(e) => setExcelTaskMappings(prev => ({ ...prev, [t.id]: Number(e.target.value) }))}
                                 className="w-full p-2 rounded-lg border bg-white dark:bg-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold border-gray-200 dark:border-gray-700"
                                 style={{ color: "var(--text-primary)" }}
                               >
-                                <option value="">-- No importar --</option>
-                                {customExcelData.headers.map(h => (
-                                  <option key={h} value={h}>{h}</option>
+                                <option value={-1}>-- No importar --</option>
+                                {customExcelData.headers.map((h, idx) => (
+                                  <option key={idx} value={idx}>{colLetter(idx)}{customExcelData.headerIndex + 1}: {h}</option>
                                 ))}
                               </select>
                             </td>
@@ -1565,7 +1568,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
               <button
                 type="button"
                 onClick={confirmCustomExcelSync}
-                disabled={!excelStudentCol}
+                disabled={excelStudentCol === -1}
                 className="btn btn-primary text-xs py-2 px-6 font-bold"
                 style={{ background: "#f97316", borderColor: "#ea580c" }}
               >

@@ -2339,7 +2339,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 >
                   <option value={-1}>-- Selecciona una columna --</option>
                   {customExcelData.headers.map((h, idx) => (
-                    <option key={idx} value={idx}>{colLetter(idx)}: {h}</option>
+                    <option key={idx} value={idx}>{colLetter(idx)}{customExcelData.headerIndex + 1}: {h}</option>
                   ))}
                 </select>
               </div>
@@ -2389,7 +2389,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                                 >
                                   <option value={-1}>-- No importar esta columna --</option>
                                   {customExcelData.headers.map((h, idx) => (
-                                    <option key={idx} value={idx}>{colLetter(idx)}: {h}</option>
+                                    <option key={idx} value={idx}>{colLetter(idx)}{customExcelData.headerIndex + 1}: {h}</option>
                                   ))}
                                 </select>
                               </td>
