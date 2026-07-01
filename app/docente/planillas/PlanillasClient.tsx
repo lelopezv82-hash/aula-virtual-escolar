@@ -794,13 +794,46 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         }
 
         // Custom Excel Sheet detected!
-        // Find header row (first row with text cells)
+        // Find header row using a smart scoring algorithm
         let headerIndex = 0;
-        for (let i = 0; i < Math.min(10, rows.length); i++) {
+        let maxScore = -999;
+        
+        for (let i = 0; i < Math.min(15, rows.length); i++) {
           const r = rows[i];
-          if (r && r.some(cell => cell !== undefined && cell !== null && String(cell).trim().length > 1)) {
+          if (!r) continue;
+          
+          let score = 0;
+          let hasStudentCol = false;
+          let nonArr = r.filter(cell => cell !== undefined && cell !== null && String(cell).trim() !== "");
+          score += Math.min(10, nonArr.length); // Up to 10 points for number of columns filled
+          
+          r.forEach(cell => {
+            if (cell === undefined || cell === null) return;
+            const val = String(cell).toLowerCase();
+            
+            // Student name column indicators
+            if (val.includes("nombre") || val.includes("estudiante") || val.includes("alumno") || val.includes("completo") || val.includes("nombres") || val.includes("estudiantes")) {
+              hasStudentCol = true;
+            }
+            
+            // Evaluation indicators
+            if (val.includes("saber") || val.includes("hacer") || val.includes("ser") || val.includes("nota") || val.includes("calificacion") || val.includes("taller") || val.includes("tarea") || val.includes("examen") || val.includes("evaluacion") || val.includes("def") || val.includes("promedio") || val.includes("asistencia")) {
+              score += 3;
+            }
+            
+            // Meta row indicators (negative)
+            if (val.includes("institucion") || val.includes("educativa") || val.includes("colegio") || val.includes("escuela") || val.includes("docente") || val.includes("profesor") || val.includes("asignatura") || val.includes("materia") || val.includes("periodo") || val.includes("curso") || val.includes("grado") || val.includes("planilla") || val.includes("consolidado")) {
+              score -= 5;
+            }
+          });
+          
+          if (hasStudentCol) {
+            score += 15; // heavily prioritize rows with a student column
+          }
+          
+          if (score > maxScore && nonArr.length > 1) {
+            maxScore = score;
             headerIndex = i;
-            break;
           }
         }
 
@@ -822,11 +855,12 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             const platformLabel = `${cat.label} ${taskNumbers[t.id]}`;
             const normLabel = platformLabel.toLowerCase();
             const normTitle = t.title.toLowerCase();
+            const numStr = String(taskNumbers[t.id]);
 
             // Try to match column header
             const matchedCol = excelHeaders.find(h => {
               const nh = h.toLowerCase();
-              return nh === normLabel || nh.includes(normLabel) || nh.includes(normTitle) || normTitle.includes(nh);
+              return nh === normLabel || nh.includes(normLabel) || nh.includes(normTitle) || normTitle.includes(nh) || nh === numStr || nh === `nota ${numStr}` || nh === `nota_${numStr}`;
             }) || "";
 
             mappings[t.id] = matchedCol;
