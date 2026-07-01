@@ -169,6 +169,15 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [savingGlobalLate, setSavingGlobalLate] = useState(false);
   const [resettingSubmissions, setResettingSubmissions] = useState<string | null>(null);
 
+  // ── Custom Excel Sync Wizard State ──
+  const [customExcelData, setCustomExcelData] = useState<{
+    rows: any[][];
+    headers: string[];
+    headerIndex: number;
+  } | null>(null);
+  const [excelStudentCol, setExcelStudentCol] = useState<string>("");
+  const [excelTaskMappings, setExcelTaskMappings] = useState<Record<string, string>>({});
+
   // ── Derived ──
   const selectedCourse = courses.find(c => c.id === selectedCourseId);
   const groups = selectedCourse?.groups ?? [];
@@ -739,67 +748,203 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         
         // Convert to 2D Array
         const rows = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1 });
-        if (rows.length < 3) {
-          alert("El archivo Excel no tiene el formato correcto.");
+        if (rows.length < 2) {
+          alert("El archivo Excel no tiene suficientes filas.");
           return;
         }
 
-        const metadataRow = rows[0]; // Row 1: ["STUDENT_ID", "STUDENT_NAME", "GROUP", taskId1, taskId2, ...]
-        if (metadataRow[0] !== "STUDENT_ID" || metadataRow[1] !== "STUDENT_NAME") {
-          alert("El formato de archivo no es compatible. Por favor descarga la plantilla sincronizable primero.");
-          return;
-        }
+        // Detect if it is the synchronizable template with hidden task IDs
+        const row1 = rows[0];
+        if (row1 && row1[0] === "STUDENT_ID" && row1[1] === "STUDENT_NAME") {
+          // Process synchronizable template directly (original logic)
+          const taskIds = row1.slice(3);
+          const updatedGradesGrid = { ...gradesGrid };
 
-        const taskIds = metadataRow.slice(3); // Column D onwards
-        const updatedGradesGrid = { ...gradesGrid };
+          for (let i = 2; i < rows.length; i++) {
+            const row = rows[i];
+            if (!row || row.length === 0) continue;
+            
+            const studentId = row[0];
+            if (!studentId || typeof studentId !== "string" || studentId === "STUDENT_ID") continue;
 
-        let importedCount = 0;
+            const studentExists = students.some(s => s.id === studentId);
+            if (!studentExists) continue;
 
-        // Rows 3 onwards are students
-        for (let i = 2; i < rows.length; i++) {
-          const row = rows[i];
-          if (!row || row.length === 0) continue;
-          
-          const studentId = row[0];
-          if (!studentId || typeof studentId !== "string" || studentId === "STUDENT_ID") continue;
+            if (!updatedGradesGrid[studentId]) updatedGradesGrid[studentId] = {};
 
-          // Check if student exists in our local list to avoid garbage imports
-          const studentExists = students.some(s => s.id === studentId);
-          if (!studentExists) continue;
-
-          if (!updatedGradesGrid[studentId]) {
-            updatedGradesGrid[studentId] = {};
+            taskIds.forEach((taskId, index) => {
+              if (!taskId) return;
+              const colIndex = index + 3;
+              const gradeVal = row[colIndex];
+              
+              let formattedGrade = "";
+              if (gradeVal !== undefined && gradeVal !== null && gradeVal !== "") {
+                const num = parseFloat(gradeVal);
+                if (!isNaN(num) && num >= 1.0 && num <= 5.0) {
+                  formattedGrade = num.toFixed(1);
+                }
+              }
+              updatedGradesGrid[studentId][taskId] = formattedGrade;
+            });
           }
 
-          // Read grades
-          taskIds.forEach((taskId, index) => {
-            if (!taskId) return;
-            const colIndex = index + 3; // Col D onwards
-            const gradeVal = row[colIndex];
-            
-            // Format grade value to string with 1 decimal place, e.g. "4.3" or ""
-            let formattedGrade = "";
-            if (gradeVal !== undefined && gradeVal !== null && gradeVal !== "") {
-              const num = parseFloat(gradeVal);
-              if (!isNaN(num) && num >= 1.0 && num <= 5.0) {
-                formattedGrade = num.toFixed(1);
-              }
-            }
-            
-            updatedGradesGrid[studentId][taskId] = formattedGrade;
-            importedCount++;
-          });
+          setGradesGrid(updatedGradesGrid);
+          alert(`Sincronización exitosa. Se leyeron calificaciones para los estudiantes en pantalla. Revisa los cambios resaltados en amarillo y presiona 'Guardar' para confirmarlos.`);
+          return;
         }
 
-        setGradesGrid(updatedGradesGrid);
-        alert(`Sincronización exitosa. Se leyeron calificaciones para los estudiantes en pantalla. Revisa los cambios resaltados en amarillo y presiona 'Guardar' para confirmarlos.`);
+        // Custom Excel Sheet detected!
+        // Find header row (first row with text cells)
+        let headerIndex = 0;
+        for (let i = 0; i < Math.min(10, rows.length); i++) {
+          const r = rows[i];
+          if (r && r.some(cell => cell !== undefined && cell !== null && String(cell).trim().length > 1)) {
+            headerIndex = i;
+            break;
+          }
+        }
+
+        const excelHeaders = rows[headerIndex].map((h, idx) => h ? String(h).trim() : `Columna ${idx + 1}`);
+        
+        // Auto-select student column
+        const studentCol = excelHeaders.find(h => {
+          const nh = h.toLowerCase();
+          return nh.includes("nombre") || nh.includes("estudiante") || nh.includes("alumno") || nh.includes("estudiantes") || nh.includes("nombres") || nh.includes("completo");
+        }) || excelHeaders[0] || "";
+
+        // Auto-select mappings for each task
+        const mappings: Record<string, string> = {};
+        CATEGORIES.forEach(cat => {
+          if (cat.type === "FINAL" && !showFinal) return;
+          if (cat.type === "ATTEND" && !showAttend) return;
+          const catTasks = byType(cat.type);
+          catTasks.forEach(t => {
+            const platformLabel = `${cat.label} ${taskNumbers[t.id]}`;
+            const normLabel = platformLabel.toLowerCase();
+            const normTitle = t.title.toLowerCase();
+
+            // Try to match column header
+            const matchedCol = excelHeaders.find(h => {
+              const nh = h.toLowerCase();
+              return nh === normLabel || nh.includes(normLabel) || nh.includes(normTitle) || normTitle.includes(nh);
+            }) || "";
+
+            mappings[t.id] = matchedCol;
+          });
+        });
+
+        // Open mapping wizard
+        setCustomExcelData({ rows, headers: excelHeaders, headerIndex });
+        setExcelStudentCol(studentCol);
+        setExcelTaskMappings(mappings);
+
       } catch (err) {
         console.error(err);
-        alert("Ocurrió un error al procesar el archivo Excel. Asegúrate de usar la plantilla correcta.");
+        alert("Ocurrió un error al procesar el archivo Excel. Asegúrate de usar la planilla correcta.");
       }
     };
     reader.readAsBinaryString(file);
     e.target.value = "";
+  };
+
+  const confirmCustomExcelSync = () => {
+    if (!customExcelData || !excelStudentCol) return;
+
+    const { rows, headers, headerIndex } = customExcelData;
+    const studentColIdx = headers.indexOf(excelStudentCol);
+    if (studentColIdx === -1) {
+      alert("No se encontró la columna de nombres seleccionada.");
+      return;
+    }
+
+    const updatedGradesGrid = { ...gradesGrid };
+    
+    // Fuzzy matching helpers
+    const normalizeName = (name: string) => {
+      return name
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // Remove accents
+        .trim()
+        .replace(/\s+/g, " ");
+    };
+
+    const findBestStudentMatch = (excelName: string) => {
+      if (!excelName) return null;
+      const normExcel = normalizeName(excelName);
+      
+      // 1. Exact match
+      let match = students.find(s => normalizeName(s.name) === normExcel);
+      if (match) return match;
+
+      // 2. Token match
+      const excelTokens = normExcel.split(" ").filter(t => t.length > 2);
+      if (excelTokens.length === 0) return null;
+
+      let bestStudent: typeof students[number] | null = null;
+      let maxSharedTokens = 0;
+
+      students.forEach(student => {
+        const normStudent = normalizeName(student.name);
+        const studentTokens = normStudent.split(" ").filter(t => t.length > 2);
+        
+        const shared = studentTokens.filter(t => excelTokens.includes(t)).length;
+        if (shared > maxSharedTokens) {
+          maxSharedTokens = shared;
+          bestStudent = student;
+        }
+      });
+
+      if (maxSharedTokens >= 2 || (maxSharedTokens >= 1 && excelTokens.length === 1)) {
+        return bestStudent;
+      }
+      return null;
+    };
+
+    let matchedCount = 0;
+
+    // Process rows starting after header row
+    for (let i = headerIndex + 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || row.length === 0) continue;
+
+      const excelName = row[studentColIdx];
+      if (!excelName) continue;
+
+      const studentMatch = findBestStudentMatch(String(excelName));
+      if (!studentMatch) continue;
+
+      matchedCount++;
+
+      if (!updatedGradesGrid[studentMatch.id]) {
+        updatedGradesGrid[studentMatch.id] = {};
+      }
+
+      // Apply mappings for each task
+      Object.keys(excelTaskMappings).forEach(taskId => {
+        const excelColHeader = excelTaskMappings[taskId];
+        if (!excelColHeader) return; // Do not import
+
+        const excelColIdx = headers.indexOf(excelColHeader);
+        if (excelColIdx === -1) return;
+
+        const gradeVal = row[excelColIdx];
+        
+        let formattedGrade = "";
+        if (gradeVal !== undefined && gradeVal !== null && gradeVal !== "") {
+          const num = parseFloat(gradeVal);
+          if (!isNaN(num) && num >= 1.0 && num <= 5.0) {
+            formattedGrade = num.toFixed(1);
+          }
+        }
+        updatedGradesGrid[studentMatch.id][taskId] = formattedGrade;
+      });
+    }
+
+    setGradesGrid(updatedGradesGrid);
+    setCustomExcelData(null); // Close modal
+    
+    alert(`Sincronización finalizada.\n\n- Estudiantes coincidentes: ${matchedCount} de ${students.length}.\n- Revisa las notas resaltadas en amarillo y haz clic en 'Guardar' para confirmarlas.`);
   };
 
   const exportToPDF = () => {
@@ -2008,6 +2153,137 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             <div className="flex justify-end border-t pt-4" style={{ borderColor: "var(--border-color)" }}>
               <button className="btn btn-secondary" onClick={() => setQuestionsModalTask(null)}>Cerrar</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Excel Synchronization Mapping Modal */}
+      {customExcelData && (
+        <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50 animate-fade-in px-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-2xl shadow-2xl animate-scale-in max-h-[85vh] flex flex-col" style={{ color: "var(--text-primary)" }}>
+            
+            {/* Header */}
+            <div className="flex justify-between items-center mb-4 pb-2 border-b" style={{ borderColor: "var(--border-color)" }}>
+              <div>
+                <h3 className="font-extrabold text-lg text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                  <FileSpreadsheet className="text-green-600 animate-bounce" size={22} /> Sincronizar Excel Personalizado
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Asocia las columnas de tu archivo local con las evaluaciones de la plataforma.
+                </p>
+              </div>
+              <button 
+                onClick={() => setCustomExcelData(null)} 
+                className="text-gray-400 hover:text-red-500 rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Scrollable Form */}
+            <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-4 text-xs">
+              
+              {/* Student Name Column Selector */}
+              <div className="p-4 rounded-xl border bg-slate-50 dark:bg-slate-800/30 flex flex-col gap-2" style={{ borderColor: "var(--border-color)" }}>
+                <label className="font-extrabold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                  1. Columna de Nombres de Estudiantes
+                </label>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                  Selecciona la columna del Excel que contiene los nombres completos de tus alumnos.
+                </p>
+                <select
+                  value={excelStudentCol}
+                  onChange={(e) => setExcelStudentCol(e.target.value)}
+                  className="w-full p-2.5 rounded-lg border bg-white dark:bg-gray-800 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 mt-1"
+                  style={{ borderColor: "var(--border-color)", color: "var(--text-primary)" }}
+                >
+                  <option value="">-- Selecciona una columna --</option>
+                  {customExcelData.headers.map(h => (
+                    <option key={h} value={h}>{h}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Platform Task Mapping Grid */}
+              <div className="flex flex-col gap-3">
+                <label className="font-extrabold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                  2. Asociar Evaluaciones
+                </label>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">
+                  Asocia cada columna de tu Excel local con la respectiva actividad en la plataforma:
+                </p>
+                
+                <div className="border rounded-xl overflow-hidden" style={{ borderColor: "var(--border-color)" }}>
+                  <table className="w-full border-collapse text-left text-xs">
+                    <thead>
+                      <tr className="bg-slate-100 dark:bg-slate-800 border-b font-bold text-gray-600 dark:text-gray-300" style={{ borderColor: "var(--border-color)" }}>
+                        <th className="p-3">Evaluación en Plataforma</th>
+                        <th className="p-3">Columna en tu Excel</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                      {CATEGORIES.map(cat => {
+                        if (cat.type === "FINAL" && !showFinal) return null;
+                        if (cat.type === "ATTEND" && !showAttend) return null;
+                        const catTasks = byType(cat.type);
+                        
+                        return catTasks.map(t => {
+                          const platformLabel = `${cat.label} ${taskNumbers[t.id]}`;
+                          return (
+                            <tr key={t.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/10">
+                              <td className="p-3 font-semibold text-gray-700 dark:text-gray-300">
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-black mr-2 uppercase ${cat.color.badge}`}>
+                                  {platformLabel}
+                                </span>
+                                {t.title}
+                              </td>
+                              <td className="p-2 w-72">
+                                <select
+                                  value={excelTaskMappings[t.id] || ""}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setExcelTaskMappings(prev => ({ ...prev, [t.id]: val }));
+                                  }}
+                                  className="w-full p-2 rounded-lg border bg-white dark:bg-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold"
+                                  style={{ borderColor: "var(--border-color)", color: "var(--text-primary)" }}
+                                >
+                                  <option value="">-- No importar esta columna --</option>
+                                  {customExcelData.headers.map(h => (
+                                    <option key={h} value={h}>{h}</option>
+                                  ))}
+                                </select>
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-2 pt-4 border-t mt-4" style={{ borderColor: "var(--border-color)" }}>
+              <button 
+                type="button" 
+                onClick={() => setCustomExcelData(null)}
+                className="btn btn-secondary text-xs py-2 px-4"
+              >
+                Cancelar
+              </button>
+              <button 
+                type="button" 
+                onClick={confirmCustomExcelSync}
+                disabled={!excelStudentCol}
+                className="btn btn-primary text-xs py-2 px-6 font-bold animate-pulse"
+                style={{ background: "#f97316", borderColor: "#ea580c" }}
+              >
+                Sincronizar Calificaciones
+              </button>
+            </div>
+
           </div>
         </div>
       )}

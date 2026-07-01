@@ -58,6 +58,15 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
   const [gradesGrid, setGradesGrid] = useState<Record<string, Record<string, string>>>({});
   const [initialGradesGrid, setInitialGradesGrid] = useState<Record<string, Record<string, string>>>({});
 
+  // ── Custom Excel Sync Wizard State ──
+  const [customExcelData, setCustomExcelData] = useState<{
+    rows: any[][];
+    headers: string[];
+    headerIndex: number;
+  } | null>(null);
+  const [excelStudentCol, setExcelStudentCol] = useState<string>("");
+  const [excelTaskMappings, setExcelTaskMappings] = useState<Record<string, string>>({});
+
   // Fetch spreadsheet data
   useEffect(() => {
     async function loadData() {
@@ -332,60 +341,189 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
         const ws = wb.Sheets[wsname];
         
         const rows = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1 });
-        if (rows.length < 3) {
-          alert("El archivo Excel no tiene el formato correcto.");
+        if (rows.length < 2) {
+          alert("El archivo Excel no tiene suficientes filas.");
           return;
         }
 
         const metadataRow = rows[0];
-        if (metadataRow[0] !== "STUDENT_ID" || metadataRow[1] !== "STUDENT_NAME") {
-          alert("El formato de archivo no es compatible. Por favor descarga la plantilla sincronizable primero.");
+        if (metadataRow && metadataRow[0] === "STUDENT_ID" && metadataRow[1] === "STUDENT_NAME") {
+          // Process synchronizable template (original logic)
+          const taskIds = metadataRow.slice(3);
+          const updatedGradesGrid = { ...gradesGrid };
+
+          for (let i = 2; i < rows.length; i++) {
+            const row = rows[i];
+            if (!row || row.length === 0) continue;
+            
+            const studentId = row[0];
+            if (!studentId || typeof studentId !== "string" || studentId === "STUDENT_ID") continue;
+
+            const studentExists = students.some(s => s.id === studentId);
+            if (!studentExists) continue;
+
+            if (!updatedGradesGrid[studentId]) updatedGradesGrid[studentId] = {};
+
+            taskIds.forEach((taskId, index) => {
+              if (!taskId) return;
+              const colIndex = index + 3;
+              const gradeVal = row[colIndex];
+              
+              let formattedGrade = "";
+              if (gradeVal !== undefined && gradeVal !== null && gradeVal !== "") {
+                const num = parseFloat(gradeVal);
+                if (!isNaN(num) && num >= 1.0 && num <= 5.0) {
+                  formattedGrade = num.toFixed(1);
+                }
+              }
+              updatedGradesGrid[studentId][taskId] = formattedGrade;
+            });
+          }
+
+          setGradesGrid(updatedGradesGrid);
+          alert(`Sincronización exitosa. Se leyeron calificaciones para los estudiantes en pantalla. Revisa los cambios resaltados en amarillo y presiona 'Guardar' para confirmarlos.`);
           return;
         }
 
-        const taskIds = metadataRow.slice(3);
-        const updatedGradesGrid = { ...gradesGrid };
-
-        for (let i = 2; i < rows.length; i++) {
-          const row = rows[i];
-          if (!row || row.length === 0) continue;
-          
-          const studentId = row[0];
-          if (!studentId || typeof studentId !== "string" || studentId === "STUDENT_ID") continue;
-
-          const studentExists = students.some(s => s.id === studentId);
-          if (!studentExists) continue;
-
-          if (!updatedGradesGrid[studentId]) {
-            updatedGradesGrid[studentId] = {};
+        // Custom Excel Sheet detected!
+        let headerIndex = 0;
+        for (let i = 0; i < Math.min(10, rows.length); i++) {
+          const r = rows[i];
+          if (r && r.some(cell => cell !== undefined && cell !== null && String(cell).trim().length > 1)) {
+            headerIndex = i;
+            break;
           }
-
-          taskIds.forEach((taskId, index) => {
-            if (!taskId) return;
-            const colIndex = index + 3;
-            const gradeVal = row[colIndex];
-            
-            let formattedGrade = "";
-            if (gradeVal !== undefined && gradeVal !== null && gradeVal !== "") {
-              const num = parseFloat(gradeVal);
-              if (!isNaN(num) && num >= 1.0 && num <= 5.0) {
-                formattedGrade = num.toFixed(1);
-              }
-            }
-            
-            updatedGradesGrid[studentId][taskId] = formattedGrade;
-          });
         }
 
-        setGradesGrid(updatedGradesGrid);
-        alert(`Sincronización exitosa. Se leyeron calificaciones para los estudiantes en pantalla. Revisa los cambios resaltados en amarillo y presiona 'Guardar' para confirmarlos.`);
+        const excelHeaders = rows[headerIndex].map((h, idx) => h ? String(h).trim() : `Columna ${idx + 1}`);
+        
+        const studentCol = excelHeaders.find(h => {
+          const nh = h.toLowerCase();
+          return nh.includes("nombre") || nh.includes("estudiante") || nh.includes("alumno") || nh.includes("estudiantes") || nh.includes("nombres") || nh.includes("completo");
+        }) || excelHeaders[0] || "";
+
+        const mappings: Record<string, string> = {};
+        const allPlatformTasks = [...saberTasks, ...hacerTasks, ...serTasks, ...finalTasks, ...attendTasks];
+        allPlatformTasks.forEach(t => {
+          const category = t.type === "EXAM" ? "SABER" : t.type === "TASK" ? "HACER" : t.type === "SER" ? "SER" : t.type === "FINAL" ? "EXAMEN FINAL" : "ASISTENCIA";
+          const platformLabel = `${category} ${taskNumbers[t.id]}`;
+          const normLabel = platformLabel.toLowerCase();
+          const normTitle = t.title.toLowerCase();
+
+          const matchedCol = excelHeaders.find(h => {
+            const nh = h.toLowerCase();
+            return nh === normLabel || nh.includes(normLabel) || nh.includes(normTitle) || normTitle.includes(nh);
+          }) || "";
+
+          mappings[t.id] = matchedCol;
+        });
+
+        setCustomExcelData({ rows, headers: excelHeaders, headerIndex });
+        setExcelStudentCol(studentCol);
+        setExcelTaskMappings(mappings);
+
       } catch (err) {
         console.error(err);
-        alert("Ocurrió un error al procesar el archivo Excel. Asegúrate de usar la plantilla correcta.");
+        alert("Ocurrió un error al procesar el archivo Excel. Asegúrate de usar la planilla correcta.");
       }
     };
     reader.readAsBinaryString(file);
     e.target.value = "";
+  };
+
+  const confirmCustomExcelSync = () => {
+    if (!customExcelData || !excelStudentCol) return;
+
+    const { rows, headers, headerIndex } = customExcelData;
+    const studentColIdx = headers.indexOf(excelStudentCol);
+    if (studentColIdx === -1) {
+      alert("No se encontró la columna de nombres seleccionada.");
+      return;
+    }
+
+    const updatedGradesGrid = { ...gradesGrid };
+    
+    const normalizeName = (name: string) => {
+      return name
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim()
+        .replace(/\s+/g, " ");
+    };
+
+    const findBestStudentMatch = (excelName: string) => {
+      if (!excelName) return null;
+      const normExcel = normalizeName(excelName);
+      
+      let match = students.find(s => normalizeName(s.name) === normExcel);
+      if (match) return match;
+
+      const excelTokens = normExcel.split(" ").filter(t => t.length > 2);
+      if (excelTokens.length === 0) return null;
+
+      let bestStudent: typeof students[number] | null = null;
+      let maxSharedTokens = 0;
+
+      students.forEach(student => {
+        const normStudent = normalizeName(student.name);
+        const studentTokens = normStudent.split(" ").filter(t => t.length > 2);
+        
+        const shared = studentTokens.filter(t => excelTokens.includes(t)).length;
+        if (shared > maxSharedTokens) {
+          maxSharedTokens = shared;
+          bestStudent = student;
+        }
+      });
+
+      if (maxSharedTokens >= 2 || (maxSharedTokens >= 1 && excelTokens.length === 1)) {
+        return bestStudent;
+      }
+      return null;
+    };
+
+    let matchedCount = 0;
+
+    for (let i = headerIndex + 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || row.length === 0) continue;
+
+      const excelName = row[studentColIdx];
+      if (!excelName) continue;
+
+      const studentMatch = findBestStudentMatch(String(excelName));
+      if (!studentMatch) continue;
+
+      matchedCount++;
+
+      if (!updatedGradesGrid[studentMatch.id]) {
+        updatedGradesGrid[studentMatch.id] = {};
+      }
+
+      Object.keys(excelTaskMappings).forEach(taskId => {
+        const excelColHeader = excelTaskMappings[taskId];
+        if (!excelColHeader) return;
+
+        const excelColIdx = headers.indexOf(excelColHeader);
+        if (excelColIdx === -1) return;
+
+        const gradeVal = row[excelColIdx];
+        
+        let formattedGrade = "";
+        if (gradeVal !== undefined && gradeVal !== null && gradeVal !== "") {
+          const num = parseFloat(gradeVal);
+          if (!isNaN(num) && num >= 1.0 && num <= 5.0) {
+            formattedGrade = num.toFixed(1);
+          }
+        }
+        updatedGradesGrid[studentMatch.id][taskId] = formattedGrade;
+      });
+    }
+
+    setGradesGrid(updatedGradesGrid);
+    setCustomExcelData(null);
+    
+    alert(`Sincronización finalizada.\n\n- Estudiantes coincidentes: ${matchedCount} de ${students.length}.\n- Revisa las notas resaltadas en amarillo y haz clic en 'Guardar' para confirmarlas.`);
   };
 
   const openAddModal = (type: "EXAM" | "TASK" | "SER" | "FINAL" | "ATTEND") => {
@@ -495,6 +633,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
   const showAttend = attendTasks.length > 0;
 
   return (
+    <>
     <div className="flex flex-col gap-4">
       {/* Save bar */}
       {hasChanges && (
@@ -1180,5 +1319,128 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
         </div>
       </div>
     </div>
+
+      {/* ── Custom Excel Sync Mapping Modal ── */}
+      {customExcelData && (
+        <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50 px-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-2xl shadow-2xl max-h-[85vh] flex flex-col">
+
+            {/* Header */}
+            <div className="flex justify-between items-center mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">
+              <div>
+                <h3 className="font-extrabold text-lg text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                  📤 Importar desde Excel Local
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Indica cuál columna tiene los nombres y asocia cada actividad de la plataforma con la columna de tu Excel.
+                </p>
+              </div>
+              <button
+                onClick={() => setCustomExcelData(null)}
+                className="text-gray-400 hover:text-red-500 rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Scrollable body */}
+            <div className="flex-1 overflow-y-auto flex flex-col gap-5 pr-1">
+
+              {/* Step 1: Student name column */}
+              <div className="p-4 rounded-xl border bg-slate-50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700 flex flex-col gap-2">
+                <label className="font-extrabold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                  1. Columna de Nombres de Estudiantes
+                </label>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                  ¿Cuál columna de tu Excel contiene los nombres completos de los alumnos?
+                </p>
+                <select
+                  value={excelStudentCol}
+                  onChange={(e) => setExcelStudentCol(e.target.value)}
+                  className="w-full p-2.5 rounded-lg border bg-white dark:bg-gray-800 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 mt-1 border-slate-200 dark:border-slate-700"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  <option value="">-- Selecciona una columna --</option>
+                  {customExcelData.headers.map(h => (
+                    <option key={h} value={h}>{h}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Step 2: Task Mappings */}
+              <div className="flex flex-col gap-2">
+                <label className="font-extrabold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                  2. Asociar Actividades
+                </label>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">
+                  Para cada actividad de la plataforma, selecciona la columna correspondiente de tu Excel. Deja en blanco las que no quieras importar.
+                </p>
+
+                <div className="border rounded-xl overflow-hidden border-gray-200 dark:border-gray-700">
+                  <table className="w-full border-collapse text-xs text-left">
+                    <thead>
+                      <tr className="bg-slate-100 dark:bg-slate-800 border-b border-gray-200 dark:border-gray-700 font-bold text-gray-600 dark:text-gray-300">
+                        <th className="p-3">Actividad en la Plataforma</th>
+                        <th className="p-3">Columna en tu Excel</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                      {[...saberTasks, ...hacerTasks, ...serTasks, ...finalTasks, ...attendTasks].map(t => {
+                        const category = t.type === "EXAM" ? "SABER" : t.type === "TASK" ? "HACER" : t.type === "SER" ? "SER" : t.type === "FINAL" ? "FINAL" : "ASISTENCIA";
+                        const bgClass = t.type === "EXAM" ? "bg-purple-100 text-purple-800" : t.type === "TASK" ? "bg-orange-100 text-orange-800" : t.type === "SER" ? "bg-yellow-100 text-yellow-800" : t.type === "FINAL" ? "bg-sky-100 text-sky-800" : "bg-green-100 text-green-800";
+                        return (
+                          <tr key={t.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/20">
+                            <td className="p-3 font-semibold text-gray-700 dark:text-gray-300">
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded font-black mr-2 uppercase ${bgClass}`}>
+                                {category} {taskNumbers[t.id]}
+                              </span>
+                              {t.title}
+                            </td>
+                            <td className="p-2 w-64">
+                              <select
+                                value={excelTaskMappings[t.id] || ""}
+                                onChange={(e) => setExcelTaskMappings(prev => ({ ...prev, [t.id]: e.target.value }))}
+                                className="w-full p-2 rounded-lg border bg-white dark:bg-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold border-gray-200 dark:border-gray-700"
+                                style={{ color: "var(--text-primary)" }}
+                              >
+                                <option value="">-- No importar --</option>
+                                {customExcelData.headers.map(h => (
+                                  <option key={h} value={h}>{h}</option>
+                                ))}
+                              </select>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-end gap-2 pt-4 border-t border-gray-200 dark:border-gray-700 mt-4">
+              <button
+                type="button"
+                onClick={() => setCustomExcelData(null)}
+                className="btn btn-secondary text-xs py-2 px-4"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmCustomExcelSync}
+                disabled={!excelStudentCol}
+                className="btn btn-primary text-xs py-2 px-6 font-bold"
+                style={{ background: "#f97316", borderColor: "#ea580c" }}
+              >
+                Sincronizar Calificaciones
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+    </>
   );
 }
