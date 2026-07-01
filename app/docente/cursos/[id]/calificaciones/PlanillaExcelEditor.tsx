@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Loader2, Save, Undo2, Info, AlertTriangle, Check, Plus, Trash2, X, Percent } from "lucide-react";
+import * as XLSX from "xlsx";
 
 interface Student {
   id: string;
@@ -272,6 +273,119 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
     } finally {
       setSaving(false);
     }
+  };
+
+  const exportToExcelSync = () => {
+    // 1. Prepare headers
+    const row1 = ["STUDENT_ID", "STUDENT_NAME", "GROUP"];
+    const row2 = ["ID Estudiante", "Nombre Completo", "Grupo"];
+
+    // Get all active tasks
+    const activeTasks: Task[] = [];
+    saberTasks.forEach(t => { activeTasks.push(t); row1.push(t.id); row2.push(`SABER ${taskNumbers[t.id]} - ${t.title}`); });
+    hacerTasks.forEach(t => { activeTasks.push(t); row1.push(t.id); row2.push(`HACER ${taskNumbers[t.id]} - ${t.title}`); });
+    serTasks.forEach(t => { activeTasks.push(t); row1.push(t.id); row2.push(`SER ${taskNumbers[t.id]} - ${t.title}`); });
+    finalTasks.forEach(t => { activeTasks.push(t); row1.push(t.id); row2.push(`EXAMEN FINAL ${taskNumbers[t.id]} - ${t.title}`); });
+    attendTasks.forEach(t => { activeTasks.push(t); row1.push(t.id); row2.push(`ASISTENCIA ${taskNumbers[t.id]} - ${t.title}`); });
+
+    const dataRows = [row1, row2];
+
+    // Add student rows
+    students.forEach(student => {
+      const row = [student.id, student.name, student.groupName];
+      const studentGrades = gradesGrid[student.id] || {};
+      activeTasks.forEach(t => {
+        row.push(studentGrades[t.id] || "");
+      });
+      dataRows.push(row);
+    });
+
+    // Create workbook
+    const ws = XLSX.utils.aoa_to_sheet(dataRows);
+    
+    // Hide the first row
+    ws["!rows"] = [];
+    ws["!rows"][0] = { hidden: true };
+
+    // Auto-fit column widths
+    const max_cols = row2.length;
+    ws["!cols"] = Array.from({ length: max_cols }, () => ({ wch: 15 }));
+    ws["!cols"][0] = { wch: 25 }; // student ID
+    ws["!cols"][1] = { wch: 30 }; // student name
+    ws["!cols"][2] = { wch: 15 }; // group
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Calificaciones");
+    XLSX.writeFile(wb, `Sincro_Planilla_${courseName}_${activePeriod}.xlsx`);
+  };
+
+  const importFromExcelSync = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: "binary" });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        
+        const rows = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1 });
+        if (rows.length < 3) {
+          alert("El archivo Excel no tiene el formato correcto.");
+          return;
+        }
+
+        const metadataRow = rows[0];
+        if (metadataRow[0] !== "STUDENT_ID" || metadataRow[1] !== "STUDENT_NAME") {
+          alert("El formato de archivo no es compatible. Por favor descarga la plantilla sincronizable primero.");
+          return;
+        }
+
+        const taskIds = metadataRow.slice(3);
+        const updatedGradesGrid = { ...gradesGrid };
+
+        for (let i = 2; i < rows.length; i++) {
+          const row = rows[i];
+          if (!row || row.length === 0) continue;
+          
+          const studentId = row[0];
+          if (!studentId || typeof studentId !== "string" || studentId === "STUDENT_ID") continue;
+
+          const studentExists = students.some(s => s.id === studentId);
+          if (!studentExists) continue;
+
+          if (!updatedGradesGrid[studentId]) {
+            updatedGradesGrid[studentId] = {};
+          }
+
+          taskIds.forEach((taskId, index) => {
+            if (!taskId) return;
+            const colIndex = index + 3;
+            const gradeVal = row[colIndex];
+            
+            let formattedGrade = "";
+            if (gradeVal !== undefined && gradeVal !== null && gradeVal !== "") {
+              const num = parseFloat(gradeVal);
+              if (!isNaN(num) && num >= 1.0 && num <= 5.0) {
+                formattedGrade = num.toFixed(1);
+              }
+            }
+            
+            updatedGradesGrid[studentId][taskId] = formattedGrade;
+          });
+        }
+
+        setGradesGrid(updatedGradesGrid);
+        alert(`Sincronización exitosa. Se leyeron calificaciones para los estudiantes en pantalla. Revisa los cambios resaltados en amarillo y presiona 'Guardar' para confirmarlos.`);
+      } catch (err) {
+        console.error(err);
+        alert("Ocurrió un error al procesar el archivo Excel. Asegúrate de usar la plantilla correcta.");
+      }
+    };
+    reader.readAsBinaryString(file);
+    e.target.value = "";
   };
 
   const openAddModal = (type: "EXAM" | "TASK" | "SER" | "FINAL" | "ATTEND") => {
@@ -604,8 +718,32 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
             </button>
           )}
 
+          {/* Excel Sync Controls */}
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg p-1 ml-auto">
+            <button 
+              onClick={exportToExcelSync} 
+              type="button"
+              className="text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-gray-900 px-2.5 py-1.5 rounded-md flex items-center gap-1"
+              title="Descargar planilla limpia con códigos ocultos para calificar en Excel"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-green-600 animate-pulse"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> Descargar Sincro
+            </button>
+            <label 
+              className="text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-gray-900 px-2.5 py-1.5 rounded-md flex items-center gap-1 cursor-pointer"
+              title="Cargar archivo Excel para sincronizar las notas con la plataforma"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Cargar Sincro
+              <input 
+                type="file" 
+                accept=".xlsx,.xls" 
+                onChange={importFromExcelSync} 
+                className="hidden" 
+              />
+            </label>
+          </div>
+
           {pctSuccess && (
-            <span className="flex items-center gap-1 text-green-700 font-bold ml-auto">
+            <span className="flex items-center gap-1 text-green-700 font-bold ml-2">
               <Check size={13} /> Guardado
             </span>
           )}

@@ -668,13 +668,140 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     return <span className="badge badge-danger flex items-center gap-1"><AlertCircle size={10} /> Pendiente</span>;
   };
 
-  // ── Export ──
+  // ── Export & Sync ──
   const exportToExcel = () => {
     const t = document.getElementById("planillas-table");
     if (!t) return;
     const wb = XLSX.utils.table_to_book(t, { sheet: "Planilla" });
     XLSX.writeFile(wb, `Planilla_${selectedCourse?.name}_${selectedPeriod}.xlsx`);
   };
+
+  const exportToExcelSync = () => {
+    // 1. Prepare headers
+    const row1 = ["STUDENT_ID", "STUDENT_NAME", "GROUP"];
+    const row2 = ["ID Estudiante", "Nombre Completo", "Grupo"];
+
+    // Get all tasks in the order they appear in the table
+    const activeTasks: TaskItem[] = [];
+    CATEGORIES.forEach(cat => {
+      if (cat.type === "FINAL" && !showFinal) return;
+      if (cat.type === "ATTEND" && !showAttend) return;
+      const catTasks = byType(cat.type);
+      catTasks.forEach(t => {
+        activeTasks.push(t);
+        row1.push(t.id);
+        row2.push(`${cat.label} ${taskNumbers[t.id]} - ${t.title}`);
+      });
+    });
+
+    const dataRows = [row1, row2];
+
+    // Add student rows
+    students.forEach(student => {
+      const row = [student.id, student.name, `${student.group.grade?.name || ""} - ${student.group.name}`];
+      const studentGrades = gradesGrid[student.id] || {};
+      activeTasks.forEach(t => {
+        row.push(studentGrades[t.id] || "");
+      });
+      dataRows.push(row);
+    });
+
+    // Create workbook
+    const ws = XLSX.utils.aoa_to_sheet(dataRows);
+    
+    // Hide the first row (metadata row)
+    ws["!rows"] = [];
+    ws["!rows"][0] = { hidden: true };
+
+    // Auto-fit column widths
+    const max_cols = row2.length;
+    ws["!cols"] = Array.from({ length: max_cols }, () => ({ wch: 15 }));
+    ws["!cols"][0] = { wch: 25 }; // student ID
+    ws["!cols"][1] = { wch: 30 }; // student name
+    ws["!cols"][2] = { wch: 15 }; // group
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Calificaciones");
+    XLSX.writeFile(wb, `Sincro_Planilla_${selectedCourse?.name}_${selectedPeriod}.xlsx`);
+  };
+
+  const importFromExcelSync = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: "binary" });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        
+        // Convert to 2D Array
+        const rows = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1 });
+        if (rows.length < 3) {
+          alert("El archivo Excel no tiene el formato correcto.");
+          return;
+        }
+
+        const metadataRow = rows[0]; // Row 1: ["STUDENT_ID", "STUDENT_NAME", "GROUP", taskId1, taskId2, ...]
+        if (metadataRow[0] !== "STUDENT_ID" || metadataRow[1] !== "STUDENT_NAME") {
+          alert("El formato de archivo no es compatible. Por favor descarga la plantilla sincronizable primero.");
+          return;
+        }
+
+        const taskIds = metadataRow.slice(3); // Column D onwards
+        const updatedGradesGrid = { ...gradesGrid };
+
+        let importedCount = 0;
+
+        // Rows 3 onwards are students
+        for (let i = 2; i < rows.length; i++) {
+          const row = rows[i];
+          if (!row || row.length === 0) continue;
+          
+          const studentId = row[0];
+          if (!studentId || typeof studentId !== "string" || studentId === "STUDENT_ID") continue;
+
+          // Check if student exists in our local list to avoid garbage imports
+          const studentExists = students.some(s => s.id === studentId);
+          if (!studentExists) continue;
+
+          if (!updatedGradesGrid[studentId]) {
+            updatedGradesGrid[studentId] = {};
+          }
+
+          // Read grades
+          taskIds.forEach((taskId, index) => {
+            if (!taskId) return;
+            const colIndex = index + 3; // Col D onwards
+            const gradeVal = row[colIndex];
+            
+            // Format grade value to string with 1 decimal place, e.g. "4.3" or ""
+            let formattedGrade = "";
+            if (gradeVal !== undefined && gradeVal !== null && gradeVal !== "") {
+              const num = parseFloat(gradeVal);
+              if (!isNaN(num) && num >= 1.0 && num <= 5.0) {
+                formattedGrade = num.toFixed(1);
+              }
+            }
+            
+            updatedGradesGrid[studentId][taskId] = formattedGrade;
+            importedCount++;
+          });
+        }
+
+        setGradesGrid(updatedGradesGrid);
+        alert(`Sincronización exitosa. Se leyeron calificaciones para los estudiantes en pantalla. Revisa los cambios resaltados en amarillo y presiona 'Guardar' para confirmarlos.`);
+      } catch (err) {
+        console.error(err);
+        alert("Ocurrió un error al procesar el archivo Excel. Asegúrate de usar la plantilla correcta.");
+      }
+    };
+    reader.readAsBinaryString(file);
+    e.target.value = "";
+  };
+
   const exportToPDF = () => {
     const doc = new jsPDF("landscape");
     doc.text(`Consolidado — ${selectedCourse?.name ?? ""}  |  ${selectedPeriod}  |  Docente: ${teacherName}`, 14, 14);
@@ -808,12 +935,36 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             <p className="text-muted text-sm">{selectedCourse?.name ?? "Selecciona una asignatura"}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap">
           <span className="text-sm font-semibold px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-muted">
             {students.length} estudiantes
           </span>
+          
+          {/* Excel Sync Toolbar */}
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-1">
+            <button 
+              onClick={exportToExcelSync} 
+              className="text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-gray-900 px-2.5 py-1.5 rounded-md flex items-center gap-1"
+              title="Descargar planilla limpia con códigos ocultos para calificar en Excel"
+            >
+              <FileSpreadsheet size={13} className="text-green-600 animate-pulse" /> Descargar Sincro
+            </button>
+            <label 
+              className="text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-gray-900 px-2.5 py-1.5 rounded-md flex items-center gap-1 cursor-pointer"
+              title="Cargar archivo Excel para sincronizar las notas con la plataforma"
+            >
+              <Plus size={13} className="text-blue-600" /> Cargar Sincro
+              <input 
+                type="file" 
+                accept=".xlsx,.xls" 
+                onChange={importFromExcelSync} 
+                className="hidden" 
+              />
+            </label>
+          </div>
+
           <button onClick={exportToExcel} className="btn btn-secondary flex items-center gap-1.5 text-sm">
-            <FileSpreadsheet size={15} /> Excel
+            <FileSpreadsheet size={15} /> Excel (Vista)
           </button>
           <button onClick={exportToPDF} className="btn btn-primary flex items-center gap-1.5 text-sm" style={{ background: "#f97316", borderColor: "#ea580c" }}>
             <FileText size={15} /> PDF
