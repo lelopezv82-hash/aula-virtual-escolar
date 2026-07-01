@@ -230,6 +230,40 @@ export default function ExamenNativo({
                       );
                     })}
                   </div>
+                ) : q.type === "CHECKBOX" ? (
+                  <div className="flex flex-col gap-2 text-xs">
+                    {q.options.map((opt) => {
+                      const studentAnsList = typeof studentAns === 'string' ? studentAns.split(',').filter(Boolean) : [];
+                      const isSelected = studentAnsList.includes(opt.id);
+                      const isOptCorrect = opt.isCorrect;
+
+                      let optStyle = "border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900";
+                      let icon = null;
+
+                      if (isOptCorrect) {
+                        optStyle = "border-green-500 bg-green-50/30 dark:border-green-900/50 dark:bg-green-950/20 font-bold text-green-700 dark:text-green-600";
+                        if (isSelected) {
+                          icon = <Check size={14} className="text-green-500" />;
+                        }
+                      } else if (isSelected && !isOptCorrect) {
+                        optStyle = "border-red-500 bg-red-50/30 dark:border-red-900/50 dark:bg-red-950/20 font-bold text-red-700 dark:text-red-600";
+                        icon = <X size={14} className="text-red-500" />;
+                      }
+
+                      return (
+                        <div key={opt.id} className={`flex items-center gap-2 p-2.5 rounded border ${optStyle}`}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            disabled
+                            className="h-4 w-4 text-[#f98012] rounded"
+                          />
+                          <span className="flex-1">{opt.text}</span>
+                          {icon}
+                        </div>
+                      );
+                    })}
+                  </div>
                 ) : (
                   <div className="text-xs flex flex-col gap-2">
                     <div className={`p-2.5 rounded border ${isCorrect ? "border-green-500 bg-green-50/10" : "border-red-500 bg-red-50/10"}`}>
@@ -248,7 +282,9 @@ export default function ExamenNativo({
                     <span className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
                       {(q.type === "MULTIPLE_CHOICE" || q.type === "TRUE_FALSE") 
                         ? detail.correctOptionText || q.options.find(o => o.id === detail.correctOptionId)?.text || q.options.find(o => o.isCorrect)?.text || "(Sin especificar)"
-                        : detail.correctText || q.options[0]?.text || "(Sin especificar)"}
+                        : q.type === "CHECKBOX"
+                          ? q.options.filter(o => o.isCorrect).map(o => o.text).join(", ")
+                          : detail.correctText || q.options[0]?.text || "(Sin especificar)"}
                     </span>
                   </div>
                 )}
@@ -337,6 +373,46 @@ export default function ExamenNativo({
                         />
                         <span>{opt.text}</span>
                       </label>
+                    );
+                  })}
+                </div>
+              ) : q.type === "CHECKBOX" ? (
+                <div className="flex flex-col gap-2.5 text-xs">
+                  {q.options.map((opt) => {
+                    const studentAnsList = studentAns ? studentAns.split(',').filter(Boolean) : [];
+                    const isSelected = studentAnsList.includes(opt.id);
+                    return (
+                      <div
+                        key={opt.id}
+                        onClick={() => {
+                          if (isDisabled) return;
+                          let newList: string[];
+                          if (isSelected) {
+                            newList = studentAnsList.filter(id => id !== opt.id);
+                          } else {
+                            newList = [...studentAnsList, opt.id];
+                          }
+                          handleAnswerChange(q.id, newList.join(','));
+                        }}
+                        className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                          isDisabled ? "cursor-not-allowed opacity-75" : "cursor-pointer"
+                        } ${
+                          isSelected 
+                            ? "bg-orange-50/50 border-[#f98012] text-[#7c3d00] dark:bg-orange-950/20 dark:border-orange-900" 
+                            : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:bg-gray-50/80 dark:hover:bg-gray-800/30"
+                        }`}
+                        style={{ cursor: isDisabled ? "not-allowed" : "pointer" }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          disabled={isDisabled}
+                          readOnly
+                          className="h-4 w-4 text-[#f98012] rounded"
+                          style={{ cursor: isDisabled ? "not-allowed" : "pointer" }}
+                        />
+                        <span>{opt.text}</span>
+                      </div>
                     );
                   })}
                 </div>

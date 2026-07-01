@@ -73,8 +73,8 @@ export default function QuestionEditor({ taskId, initialQuestions }: QuestionEdi
     const newOptions = [...formOptions];
     newOptions.splice(index, 1);
     
-    // Ensure at least one is correct if type is multiple choice or true/false
-    if ((formType === "MULTIPLE_CHOICE" || formType === "TRUE_FALSE") && !newOptions.some(o => o.isCorrect)) {
+    // Ensure at least one is correct if type is options-based
+    if ((formType === "MULTIPLE_CHOICE" || formType === "TRUE_FALSE" || formType === "CHECKBOX") && !newOptions.some(o => o.isCorrect)) {
       newOptions[0].isCorrect = true;
     }
     setFormOptions(newOptions);
@@ -100,13 +100,13 @@ export default function QuestionEditor({ taskId, initialQuestions }: QuestionEdi
       return;
     }
 
-    if (formType === "MULTIPLE_CHOICE" || formType === "TRUE_FALSE") {
+    if (formType === "MULTIPLE_CHOICE" || formType === "TRUE_FALSE" || formType === "CHECKBOX") {
       if (formOptions.length < 2) {
         setError("Las preguntas deben tener al menos 2 opciones.");
         return;
       }
       if (!formOptions.some(o => o.isCorrect)) {
-        setError("Debe marcar una opción como correcta.");
+        setError("Debe marcar al menos una opción como correcta.");
         return;
       }
       if (formOptions.some(o => !o.text.trim())) {
@@ -133,7 +133,7 @@ export default function QuestionEditor({ taskId, initialQuestions }: QuestionEdi
           type: formType,
           points: formPoints,
           order: isNew ? questions.length : questions.find(q => q.id === editingId)?.order || 0,
-          options: (formType === "MULTIPLE_CHOICE" || formType === "TRUE_FALSE") ? formOptions : []
+          options: (formType === "MULTIPLE_CHOICE" || formType === "TRUE_FALSE" || formType === "CHECKBOX") ? formOptions : []
         })
       });
 
@@ -286,6 +286,7 @@ export default function QuestionEditor({ taskId, initialQuestions }: QuestionEdi
               >
                 <option value="MULTIPLE_CHOICE">Opción Múltiple</option>
                 <option value="TRUE_FALSE">Verdadero / Falso</option>
+                <option value="CHECKBOX">Múltiple Respuesta (Casillas)</option>
                 <option value="TEXT">Respuesta de Texto Corto</option>
               </select>
             </div>
@@ -304,11 +305,11 @@ export default function QuestionEditor({ taskId, initialQuestions }: QuestionEdi
           </div>
 
           {/* Options / Answers Section */}
-          {(formType === "MULTIPLE_CHOICE" || formType === "TRUE_FALSE") ? (
+          {(formType === "MULTIPLE_CHOICE" || formType === "TRUE_FALSE" || formType === "CHECKBOX") ? (
             <div className="flex flex-col gap-2.5 mt-2">
               <div className="flex justify-between items-center">
                 <label className="text-xs font-bold text-muted">Opciones (Selecciona la correcta)</label>
-                {formType === "MULTIPLE_CHOICE" && (
+                {(formType === "MULTIPLE_CHOICE" || formType === "CHECKBOX") && (
                   <div className="flex items-center gap-2">
                     <button 
                       type="button" 
@@ -338,13 +339,26 @@ export default function QuestionEditor({ taskId, initialQuestions }: QuestionEdi
               <div className="flex flex-col gap-2">
                 {formOptions.map((opt, index) => (
                   <div key={index} className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="correct-option"
-                      checked={opt.isCorrect}
-                      onChange={() => handleOptionCorrectChange(index)}
-                      className="cursor-pointer h-4 w-4 text-[#f98012]"
-                    />
+                    {formType === "CHECKBOX" ? (
+                      <input
+                        type="checkbox"
+                        checked={opt.isCorrect}
+                        onChange={() => {
+                          const newOptions = [...formOptions];
+                          newOptions[index].isCorrect = !newOptions[index].isCorrect;
+                          setFormOptions(newOptions);
+                        }}
+                        className="cursor-pointer h-4 w-4 text-[#f98012] rounded"
+                      />
+                    ) : (
+                      <input
+                        type="radio"
+                        name="correct-option"
+                        checked={opt.isCorrect}
+                        onChange={() => handleOptionCorrectChange(index)}
+                        className="cursor-pointer h-4 w-4 text-[#f98012]"
+                      />
+                    )}
                     {formType === "TRUE_FALSE" ? (
                       <span className="text-sm font-semibold p-1.5" style={{ color: "var(--text-primary)" }}>{opt.text}</span>
                     ) : (
@@ -436,15 +450,15 @@ export default function QuestionEditor({ taskId, initialQuestions }: QuestionEdi
                         {q.points} pt{q.points !== 1 ? "s" : ""}
                       </span>
                       <span className="text-xs text-muted">
-                        ({q.type === "MULTIPLE_CHOICE" ? "Opción Múltiple" : q.type === "TRUE_FALSE" ? "Verdadero / Falso" : "Respuesta de Texto"})
+                        ({q.type === "MULTIPLE_CHOICE" ? "Opción Múltiple" : q.type === "TRUE_FALSE" ? "Verdadero / Falso" : q.type === "CHECKBOX" ? "Múltiple Respuesta" : "Respuesta de Texto"})
                       </span>
                     </h4>
 
-                    {(q.type === "MULTIPLE_CHOICE" || q.type === "TRUE_FALSE") && (
+                    {(q.type === "MULTIPLE_CHOICE" || q.type === "TRUE_FALSE" || q.type === "CHECKBOX") && (
                       <ul className="list-disc pl-5 mt-2 flex flex-col gap-1 text-xs">
                         {q.options.map((opt, oIdx) => (
                           <li key={oIdx} className="flex items-center gap-1.5 text-muted">
-                            <span className={`inline-block h-2 w-2 rounded-full ${opt.isCorrect ? "bg-green-500" : "bg-gray-300"}`} />
+                            <span className={`inline-block h-2 w-2 ${q.type === "CHECKBOX" ? "rounded-sm" : "rounded-full"} ${opt.isCorrect ? "bg-green-500" : "bg-gray-300"}`} />
                             <span className={opt.isCorrect ? "font-bold text-green-600 dark:text-green-400" : ""}>{opt.text}</span>
                             {opt.isCorrect && <Check size={12} className="text-green-500" />}
                           </li>

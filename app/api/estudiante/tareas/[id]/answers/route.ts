@@ -161,6 +161,24 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           points: isCorrect ? q.points : 0,
           maxPoints: q.points
         });
+      } else if (q.type === 'CHECKBOX') {
+        // studentAns is a comma-separated string of selected option IDs
+        const selectedIds = typeof studentAns === 'string' ? studentAns.split(',').filter(Boolean) : [];
+        const correctIds = q.options.filter(o => o.isCorrect).map(o => o.id);
+        // Must select exactly all correct and no incorrect options
+        const allCorrectSelected = correctIds.every(id => selectedIds.includes(id));
+        const noIncorrectSelected = selectedIds.every(id => correctIds.includes(id));
+        isCorrect = allCorrectSelected && noIncorrectSelected && correctIds.length > 0;
+        if (isCorrect) earnedPoints += q.points;
+        details.push({
+          questionId: q.id,
+          questionText: q.text,
+          studentAnswer: studentAns,
+          correctOptionIds: correctIds,
+          isCorrect,
+          points: isCorrect ? q.points : 0,
+          maxPoints: q.points
+        });
       } else {
         // TEXT question
         const correctOpt = q.options.find(o => o.isCorrect);
