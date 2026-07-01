@@ -441,12 +441,42 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
         }
 
         const targetRow = rows[headerIndex] || [];
+        const nextRow = rows[headerIndex + 1] || [];
         const excelHeaders: string[] = [];
-        for (let idx = 0; idx < targetRow.length; idx++) {
-          const h = targetRow[idx];
-          excelHeaders.push(h ? String(h).trim() : colLetter(idx));
-        }
+        const maxLen = Math.max(targetRow.length, nextRow.length);
+        const isCategoryName = (str: string) => {
+          const s = str.toLowerCase();
+          return s.includes("saber") || s.includes("hacer") || s.includes("ser") || s.includes("final") || s.includes("asistencia") || s.includes("evalua") || s.includes("nota");
+        };
 
+        for (let idx = 0; idx < maxLen; idx++) {
+          const h = targetRow[idx] ? String(targetRow[idx]).trim() : "";
+          const sub = nextRow[idx] ? String(nextRow[idx]).trim() : "";
+          
+          let combined = "";
+          if (h && sub) {
+            if (h.toLowerCase() === sub.toLowerCase()) {
+              combined = h;
+            } else if (isCategoryName(h) && sub.length <= 12) {
+              combined = `${h} - ${sub}`;
+            } else {
+              combined = h;
+            }
+          } else if (h) {
+            combined = h;
+          } else if (sub) {
+            const isNoteLabel = /^[0-9a-zA-Z\s\-_#]{1,10}$/.test(sub);
+            if (isNoteLabel) {
+              combined = sub;
+            } else {
+              combined = colLetter(idx);
+            }
+          } else {
+            combined = colLetter(idx);
+          }
+          excelHeaders.push(combined);
+        }
+        
         // Auto-select student column (store index)
         const studentColIdx = excelHeaders.findIndex(h => {
           if (!h) return false;
@@ -463,12 +493,34 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
           const normTitle = (t.title || "").toLowerCase();
           const numStr = String(taskNumbers[t.id]);
 
-          // Skip weight-label columns (e.g. "SABER 30%", "HACER 50%")
+          // Try to match column header (skip weight-only label cols like "SABER 30%")
           const matchedIdx = excelHeaders.findIndex(h => {
             if (!h) return false;
-            if (/%/.test(h)) return false;
-            const nh = h.toLowerCase();
-            return nh === normLabel || nh.includes(normLabel) || nh.includes(normTitle) || normTitle.includes(nh) || nh === numStr || nh === `nota ${numStr}` || nh === `nota_${numStr}`;
+            const nh = h.toLowerCase().trim();
+            if (nh === "saber 30%" || nh === "hacer 50%" || nh === "ser 20%") return false;
+
+            // Exact matches
+            if (nh === normLabel || nh === normTitle || nh === numStr) return true;
+
+            // e.g. "saber 30% - 1" contains "saber" and "1"
+            const categoryLabelForCheck = t.type === "EXAM" ? "saber" : t.type === "TASK" ? "hacer" : t.type === "SER" ? "ser" : t.type === "FINAL" ? "final" : "asistencia";
+            const hasCategory = nh.includes(categoryLabelForCheck);
+            const hasNum = nh.includes(` ${numStr}`) || nh.endsWith(`-${numStr}`) || nh.endsWith(` ${numStr}`) || nh.includes(`-${numStr}-`) || nh.includes(` ${numStr} `) || nh.endsWith(` - ${numStr}`);
+            if (hasCategory && hasNum) return true;
+
+            // Fallback to simple number match ONLY if the column doesn't mention another category
+            const mentionsOtherCategory = ["saber", "hacer", "ser", "final", "asistencia"].some(c => {
+              if (c === categoryLabelForCheck) return false;
+              return nh.includes(c);
+            });
+            
+            if (!mentionsOtherCategory) {
+              if (nh === numStr || nh === `nota ${numStr}` || nh === `nota_${numStr}` || nh.endsWith(` - ${numStr}`) || nh.endsWith(`-${numStr}`) || nh.endsWith(` ${numStr}`)) {
+                return true;
+              }
+            }
+
+            return nh.includes(normLabel) || nh.includes(normTitle) || normTitle.includes(nh);
           });
 
           mappings[t.id] = matchedIdx; // -1 if no match
@@ -491,10 +543,40 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
     if (!customExcelData) return;
     const { rows } = customExcelData;
     const targetRow = rows[newIndex] || [];
+    const nextRow = rows[newIndex + 1] || [];
     const excelHeaders: string[] = [];
-    for (let idx = 0; idx < targetRow.length; idx++) {
-      const h = targetRow[idx];
-      excelHeaders.push(h ? String(h).trim() : colLetter(idx));
+    const maxLen = Math.max(targetRow.length, nextRow.length);
+    const isCategoryName = (str: string) => {
+      const s = str.toLowerCase();
+      return s.includes("saber") || s.includes("hacer") || s.includes("ser") || s.includes("final") || s.includes("asistencia") || s.includes("evalua") || s.includes("nota");
+    };
+
+    for (let idx = 0; idx < maxLen; idx++) {
+      const h = targetRow[idx] ? String(targetRow[idx]).trim() : "";
+      const sub = nextRow[idx] ? String(nextRow[idx]).trim() : "";
+      
+      let combined = "";
+      if (h && sub) {
+        if (h.toLowerCase() === sub.toLowerCase()) {
+          combined = h;
+        } else if (isCategoryName(h) && sub.length <= 12) {
+          combined = `${h} - ${sub}`;
+        } else {
+          combined = h;
+        }
+      } else if (h) {
+        combined = h;
+      } else if (sub) {
+        const isNoteLabel = /^[0-9a-zA-Z\s\-_#]{1,10}$/.test(sub);
+        if (isNoteLabel) {
+          combined = sub;
+        } else {
+          combined = colLetter(idx);
+        }
+      } else {
+        combined = colLetter(idx);
+      }
+      excelHeaders.push(combined);
     }
     
     // Auto-select student column (store index)
@@ -512,11 +594,35 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
       const normLabel = platformLabel.toLowerCase();
       const normTitle = (t.title || "").toLowerCase();
 
+      // Try to match column header (skip weight-only label cols like "SABER 30%")
       const matchedIdx = excelHeaders.findIndex(h => {
         if (!h) return false;
-        if (/%/.test(h)) return false;
-        const nh = h.toLowerCase();
-        return nh === normLabel || nh.includes(normLabel) || nh.includes(normTitle) || normTitle.includes(nh);
+        const nh = h.toLowerCase().trim();
+        if (nh === "saber 30%" || nh === "hacer 50%" || nh === "ser 20%") return false;
+
+        // Exact matches
+        if (nh === normLabel || nh === normTitle) return true;
+
+        // e.g. "saber 30% - 1" contains "saber" and "1"
+        const categoryLabelForCheck = t.type === "EXAM" ? "saber" : t.type === "TASK" ? "hacer" : t.type === "SER" ? "ser" : t.type === "FINAL" ? "final" : "asistencia";
+        const hasCategory = nh.includes(categoryLabelForCheck);
+        const hasNum = nh.includes(` ${taskNumbers[t.id]}`) || nh.endsWith(`-${taskNumbers[t.id]}`) || nh.endsWith(` ${taskNumbers[t.id]}`) || nh.endsWith(` - ${taskNumbers[t.id]}`);
+        if (hasCategory && hasNum) return true;
+
+        // Fallback to simple number match ONLY if the column doesn't mention another category
+        const mentionsOtherCategory = ["saber", "hacer", "ser", "final", "asistencia"].some(c => {
+          if (c === categoryLabelForCheck) return false;
+          return nh.includes(c);
+        });
+        
+        if (!mentionsOtherCategory) {
+          const numStr = String(taskNumbers[t.id]);
+          if (nh === numStr || nh === `nota ${numStr}` || nh === `nota_${numStr}` || nh.endsWith(` - ${numStr}`) || nh.endsWith(`-${numStr}`) || nh.endsWith(` ${numStr}`)) {
+            return true;
+          }
+        }
+
+        return nh.includes(normLabel) || nh.includes(normTitle);
       });
 
       mappings[t.id] = matchedIdx;
