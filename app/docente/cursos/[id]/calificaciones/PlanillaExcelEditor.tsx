@@ -431,6 +431,37 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
     e.target.value = "";
   };
 
+  const handleHeaderRowChange = (newIndex: number) => {
+    if (!customExcelData) return;
+    const { rows } = customExcelData;
+    const excelHeaders = rows[newIndex].map((h, idx) => h ? String(h).trim() : `Columna ${idx + 1}`);
+    
+    const studentCol = excelHeaders.find(h => {
+      const nh = h.toLowerCase();
+      return nh.includes("nombre") || nh.includes("estudiante") || nh.includes("alumno") || nh.includes("estudiantes") || nh.includes("nombres") || nh.includes("completo");
+    }) || excelHeaders[0] || "";
+
+    const mappings: Record<string, string> = {};
+    const allPlatformTasks = [...saberTasks, ...hacerTasks, ...serTasks, ...finalTasks, ...attendTasks];
+    allPlatformTasks.forEach(t => {
+      const category = t.type === "EXAM" ? "SABER" : t.type === "TASK" ? "HACER" : t.type === "SER" ? "SER" : t.type === "FINAL" ? "EXAMEN FINAL" : "ASISTENCIA";
+      const platformLabel = `${category} ${taskNumbers[t.id]}`;
+      const normLabel = platformLabel.toLowerCase();
+      const normTitle = t.title.toLowerCase();
+
+      const matchedCol = excelHeaders.find(h => {
+        const nh = h.toLowerCase();
+        return nh === normLabel || nh.includes(normLabel) || nh.includes(normTitle) || normTitle.includes(nh);
+      }) || "";
+
+      mappings[t.id] = matchedCol;
+    });
+
+    setCustomExcelData({ rows, headers: excelHeaders, headerIndex: newIndex });
+    setExcelStudentCol(studentCol);
+    setExcelTaskMappings(mappings);
+  };
+
   const confirmCustomExcelSync = () => {
     if (!customExcelData || !excelStudentCol) return;
 
@@ -1361,6 +1392,34 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
 
             {/* Scrollable body */}
             <div className="flex-1 overflow-y-auto flex flex-col gap-5 pr-1">
+
+              {/* Header Row Selector */}
+              <div className="p-4 rounded-xl border bg-slate-50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700 flex flex-col gap-2">
+                <label className="font-extrabold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                  📌 ¿En qué fila están los encabezados (nombres de las columnas)?
+                </label>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                  Si tu Excel tiene filas de título o vacías al inicio, selecciona la fila que tiene los nombres de las columnas (ej: Nombres, Notas, Tareas).
+                </p>
+                <select
+                  value={customExcelData.headerIndex}
+                  onChange={(e) => handleHeaderRowChange(parseInt(e.target.value))}
+                  className="w-full p-2.5 rounded-lg border bg-white dark:bg-gray-800 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 mt-1 border-slate-200 dark:border-slate-700"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  {customExcelData.rows.slice(0, 15).map((row, idx) => {
+                    const rowPreview = row
+                      .filter(cell => cell !== undefined && cell !== null && String(cell).trim() !== "")
+                      .slice(0, 4)
+                      .join(" | ");
+                    return (
+                      <option key={idx} value={idx}>
+                        Fila {idx + 1}: {rowPreview ? (rowPreview.length > 80 ? rowPreview.substring(0, 80) + "..." : rowPreview) : "(Vacía)"}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
 
               {/* Step 1: Student name column */}
               <div className="p-4 rounded-xl border bg-slate-50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700 flex flex-col gap-2">
