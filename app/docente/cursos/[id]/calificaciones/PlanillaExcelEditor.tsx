@@ -26,6 +26,17 @@ interface PlanillaExcelEditorProps {
   activePeriod: string;
 }
 
+/** Converts a 0-based column index to Excel column letters: 0→A, 25→Z, 26→AA … */
+const colLetter = (idx: number): string => {
+  let s = "";
+  let n = idx;
+  do {
+    s = String.fromCharCode(65 + (n % 26)) + s;
+    n = Math.floor(n / 26) - 1;
+  } while (n >= 0);
+  return s;
+};
+
 export default function PlanillaExcelEditor({ courseId, activePeriod }: PlanillaExcelEditorProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -433,7 +444,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
         const excelHeaders: string[] = [];
         for (let idx = 0; idx < targetRow.length; idx++) {
           const h = targetRow[idx];
-          excelHeaders.push(h ? String(h).trim() : `Columna ${idx + 1}`);
+          excelHeaders.push(h ? String(h).trim() : colLetter(idx));
         }
         
         const studentCol = excelHeaders.find(h => {
@@ -480,7 +491,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
     const excelHeaders: string[] = [];
     for (let idx = 0; idx < targetRow.length; idx++) {
       const h = targetRow[idx];
-      excelHeaders.push(h ? String(h).trim() : `Columna ${idx + 1}`);
+      excelHeaders.push(h ? String(h).trim() : colLetter(idx));
     }
     
     const studentCol = excelHeaders.find(h => {

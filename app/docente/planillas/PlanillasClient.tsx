@@ -92,6 +92,17 @@ const gradeColor = (g: number | null) => {
   return "#16a34a";
 };
 
+/** Converts a 0-based column index to Excel column letters: 0→A, 25→Z, 26→AA … */
+const colLetter = (idx: number): string => {
+  let s = "";
+  let n = idx;
+  do {
+    s = String.fromCharCode(65 + (n % 26)) + s;
+    n = Math.floor(n / 26) - 1;
+  } while (n >= 0);
+  return s;
+};
+
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function PlanillasClient({ courses, periods, teacherName }: PlanillasClientProps) {
@@ -841,7 +852,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         const excelHeaders: string[] = [];
         for (let idx = 0; idx < targetRow.length; idx++) {
           const h = targetRow[idx];
-          excelHeaders.push(h ? String(h).trim() : `Columna ${idx + 1}`);
+          excelHeaders.push(h ? String(h).trim() : colLetter(idx));
         }
         
         // Auto-select student column
@@ -895,7 +906,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     const excelHeaders: string[] = [];
     for (let idx = 0; idx < targetRow.length; idx++) {
       const h = targetRow[idx];
-      excelHeaders.push(h ? String(h).trim() : `Columna ${idx + 1}`);
+      excelHeaders.push(h ? String(h).trim() : colLetter(idx));
     }
     
     // Auto-select student column
