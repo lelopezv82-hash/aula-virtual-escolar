@@ -169,9 +169,6 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [savingGlobalLate, setSavingGlobalLate] = useState(false);
   const [resettingSubmissions, setResettingSubmissions] = useState<string | null>(null);
 
-  // ── Column popover ──
-  const [openPopoverTaskId, setOpenPopoverTaskId] = useState<string | null>(null);
-
   // ── Derived ──
   const selectedCourse = courses.find(c => c.id === selectedCourseId);
   const groups = selectedCourse?.groups ?? [];
@@ -720,21 +717,14 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
   const renderTaskNumHeader = (cat: typeof CATEGORIES[number]) => {
     const catTasks = byType(cat.type);
-    const catLabel = cat.type === "EXAM" ? "Saber" : cat.type === "TASK" ? "Hacer" : cat.type === "SER" ? "Ser" : cat.type === "FINAL" ? "Examen Final" : "Asistencia";
     return (
       <>
         {catTasks.length === 0
           ? <th key={`${cat.type}-empty`} className="border border-gray-200 dark:border-gray-700 p-1 font-normal italic text-gray-400" style={{ width: "56px", minWidth: "56px" }}>—</th>
           : catTasks.map(t => (
-              <th key={t.id} className="border border-gray-200 dark:border-gray-700 p-1 text-center group relative" style={{ width: "56px", minWidth: "56px", overflow: "visible" }}>
+              <th key={t.id} title={t.title} className="border border-gray-200 dark:border-gray-700 p-1 cursor-help text-center group relative" style={{ width: "56px", minWidth: "56px" }}>
                 <div className="flex flex-col items-center">
-                  <button
-                    onClick={() => setOpenPopoverTaskId(prev => prev === t.id ? null : t.id)}
-                    className="cursor-pointer hover:text-[#f98012] hover:underline font-bold transition-colors"
-                    title={`Ver: ${t.title}`}
-                  >
-                    {taskNumbers[t.id]}
-                  </button>
+                  <span>{taskNumbers[t.id]}</span>
                   <button
                     onClick={() => handleDeleteTask(t.id, t.title)}
                     disabled={deletingId === t.id}
@@ -744,41 +734,6 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     {deletingId === t.id ? <Loader2 size={10} className="animate-spin" /> : <X size={10} />}
                   </button>
                 </div>
-
-                {/* Popover */}
-                {openPopoverTaskId === t.id && (
-                  <div
-                    className="absolute z-50 top-full left-1/2 -translate-x-1/2 mt-1 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl p-3 text-left animate-fade-in"
-                    style={{ minWidth: "220px" }}
-                  >
-                    <div className="flex justify-between items-start gap-2 mb-2">
-                      <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${cat.color.badge}`}>{catLabel}</span>
-                      <button onClick={() => setOpenPopoverTaskId(null)} className="text-gray-400 hover:text-red-500 shrink-0"><X size={14} /></button>
-                    </div>
-                    <h4 className="font-bold text-sm text-gray-800 dark:text-gray-200 leading-tight mb-1.5">{t.title}</h4>
-                    <div className="flex flex-col gap-1 text-[11px] text-gray-500 dark:text-gray-400 mb-3">
-                      <span>Columna <strong className="text-gray-700 dark:text-gray-300">#{taskNumbers[t.id]}</strong></span>
-                      {t.isExternal && <span className="text-orange-600 dark:text-orange-400 font-medium">📎 Evaluación externa</span>}
-                      {!t.isExternal && <span className="text-blue-600 dark:text-blue-400 font-medium">📝 Evaluación en plataforma</span>}
-                    </div>
-                    <div className="flex gap-1.5">
-                      {!t.isExternal && (
-                        <button
-                          onClick={() => { setOpenPopoverTaskId(null); openQuestionsModal(t); }}
-                          className="flex-1 text-[11px] font-bold text-white bg-[#f98012] hover:bg-[#e0720f] rounded-lg py-1.5 px-2 transition-colors flex items-center justify-center gap-1"
-                        >
-                          <Eye size={12} /> Gestionar
-                        </button>
-                      )}
-                      <button
-                        onClick={() => { setOpenPopoverTaskId(null); openGradingModal(t); }}
-                        className="flex-1 text-[11px] font-bold text-[#f98012] border border-[#f98012] hover:bg-orange-50 dark:hover:bg-orange-950/20 rounded-lg py-1.5 px-2 transition-colors flex items-center justify-center gap-1"
-                      >
-                        <Pencil size={12} /> Calificar
-                      </button>
-                    </div>
-                  </div>
-                )}
               </th>
             ))
         }
