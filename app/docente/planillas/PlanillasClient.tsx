@@ -838,10 +838,15 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         }
 
         const targetRow = rows[headerIndex] || [];
-        const excelHeaders = targetRow.map((h, idx) => h ? String(h).trim() : `Columna ${idx + 1}`);
+        const excelHeaders: string[] = [];
+        for (let idx = 0; idx < targetRow.length; idx++) {
+          const h = targetRow[idx];
+          excelHeaders.push(h ? String(h).trim() : `Columna ${idx + 1}`);
+        }
         
         // Auto-select student column
         const studentCol = excelHeaders.find(h => {
+          if (!h) return false;
           const nh = h.toLowerCase();
           return nh.includes("nombre") || nh.includes("estudiante") || nh.includes("alumno") || nh.includes("estudiantes") || nh.includes("nombres") || nh.includes("completo");
         }) || excelHeaders[0] || "";
@@ -855,11 +860,12 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           catTasks.forEach(t => {
             const platformLabel = `${cat.label} ${taskNumbers[t.id]}`;
             const normLabel = platformLabel.toLowerCase();
-            const normTitle = t.title.toLowerCase();
+            const normTitle = (t.title || "").toLowerCase();
             const numStr = String(taskNumbers[t.id]);
 
             // Try to match column header
             const matchedCol = excelHeaders.find(h => {
+              if (!h) return false;
               const nh = h.toLowerCase();
               return nh === normLabel || nh.includes(normLabel) || nh.includes(normTitle) || normTitle.includes(nh) || nh === numStr || nh === `nota ${numStr}` || nh === `nota_${numStr}`;
             }) || "";
@@ -885,10 +891,16 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const handleHeaderRowChange = (newIndex: number) => {
     if (!customExcelData) return;
     const { rows } = customExcelData;
-    const excelHeaders = rows[newIndex].map((h, idx) => h ? String(h).trim() : `Columna ${idx + 1}`);
+    const targetRow = rows[newIndex] || [];
+    const excelHeaders: string[] = [];
+    for (let idx = 0; idx < targetRow.length; idx++) {
+      const h = targetRow[idx];
+      excelHeaders.push(h ? String(h).trim() : `Columna ${idx + 1}`);
+    }
     
     // Auto-select student column
     const studentCol = excelHeaders.find(h => {
+      if (!h) return false;
       const nh = h.toLowerCase();
       return nh.includes("nombre") || nh.includes("estudiante") || nh.includes("alumno") || nh.includes("estudiantes") || nh.includes("nombres") || nh.includes("completo");
     }) || excelHeaders[0] || "";
@@ -902,10 +914,11 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       catTasks.forEach(t => {
         const platformLabel = `${cat.label} ${taskNumbers[t.id]}`;
         const normLabel = platformLabel.toLowerCase();
-        const normTitle = t.title.toLowerCase();
+        const normTitle = (t.title || "").toLowerCase();
 
         // Try to match column header
         const matchedCol = excelHeaders.find(h => {
+          if (!h) return false;
           const nh = h.toLowerCase();
           return nh === normLabel || nh.includes(normLabel) || nh.includes(normTitle) || normTitle.includes(nh);
         }) || "";

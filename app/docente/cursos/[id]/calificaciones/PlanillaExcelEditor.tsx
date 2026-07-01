@@ -430,9 +430,14 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
         }
 
         const targetRow = rows[headerIndex] || [];
-        const excelHeaders = targetRow.map((h, idx) => h ? String(h).trim() : `Columna ${idx + 1}`);
+        const excelHeaders: string[] = [];
+        for (let idx = 0; idx < targetRow.length; idx++) {
+          const h = targetRow[idx];
+          excelHeaders.push(h ? String(h).trim() : `Columna ${idx + 1}`);
+        }
         
         const studentCol = excelHeaders.find(h => {
+          if (!h) return false;
           const nh = h.toLowerCase();
           return nh.includes("nombre") || nh.includes("estudiante") || nh.includes("alumno") || nh.includes("estudiantes") || nh.includes("nombres") || nh.includes("completo");
         }) || excelHeaders[0] || "";
@@ -443,10 +448,11 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
           const category = t.type === "EXAM" ? "SABER" : t.type === "TASK" ? "HACER" : t.type === "SER" ? "SER" : t.type === "FINAL" ? "EXAMEN FINAL" : "ASISTENCIA";
           const platformLabel = `${category} ${taskNumbers[t.id]}`;
           const normLabel = platformLabel.toLowerCase();
-          const normTitle = t.title.toLowerCase();
+          const normTitle = (t.title || "").toLowerCase();
           const numStr = String(taskNumbers[t.id]);
 
           const matchedCol = excelHeaders.find(h => {
+            if (!h) return false;
             const nh = h.toLowerCase();
             return nh === normLabel || nh.includes(normLabel) || nh.includes(normTitle) || normTitle.includes(nh) || nh === numStr || nh === `nota ${numStr}` || nh === `nota_${numStr}`;
           }) || "";
@@ -470,9 +476,15 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
   const handleHeaderRowChange = (newIndex: number) => {
     if (!customExcelData) return;
     const { rows } = customExcelData;
-    const excelHeaders = rows[newIndex].map((h, idx) => h ? String(h).trim() : `Columna ${idx + 1}`);
+    const targetRow = rows[newIndex] || [];
+    const excelHeaders: string[] = [];
+    for (let idx = 0; idx < targetRow.length; idx++) {
+      const h = targetRow[idx];
+      excelHeaders.push(h ? String(h).trim() : `Columna ${idx + 1}`);
+    }
     
     const studentCol = excelHeaders.find(h => {
+      if (!h) return false;
       const nh = h.toLowerCase();
       return nh.includes("nombre") || nh.includes("estudiante") || nh.includes("alumno") || nh.includes("estudiantes") || nh.includes("nombres") || nh.includes("completo");
     }) || excelHeaders[0] || "";
@@ -483,9 +495,10 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
       const category = t.type === "EXAM" ? "SABER" : t.type === "TASK" ? "HACER" : t.type === "SER" ? "SER" : t.type === "FINAL" ? "EXAMEN FINAL" : "ASISTENCIA";
       const platformLabel = `${category} ${taskNumbers[t.id]}`;
       const normLabel = platformLabel.toLowerCase();
-      const normTitle = t.title.toLowerCase();
+      const normTitle = (t.title || "").toLowerCase();
 
       const matchedCol = excelHeaders.find(h => {
+        if (!h) return false;
         const nh = h.toLowerCase();
         return nh === normLabel || nh.includes(normLabel) || nh.includes(normTitle) || normTitle.includes(nh);
       }) || "";
