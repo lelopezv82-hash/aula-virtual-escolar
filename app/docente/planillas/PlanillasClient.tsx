@@ -1072,102 +1072,155 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     setExcelTaskMappings(mappings);
   };
 
-  const confirmCustomExcelSync = () => {
+  const confirmCustomExcelSync = async () => {
     if (!customExcelData || excelStudentCol === -1) return;
 
     const { rows, headers, headerIndex } = customExcelData;
-    const studentColIdx = excelStudentCol; // already stored as index
+    const studentColIdx = excelStudentCol;
     if (studentColIdx === -1 || studentColIdx >= headers.length) {
       alert("Selecciona la columna de nombres de estudiantes.");
       return;
     }
 
-    const updatedGradesGrid = { ...gradesGrid };
-    
-    // Fuzzy matching helpers
-    const normalizeName = (name: string) => {
-      return name
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "") // Remove accents
-        .trim()
-        .replace(/\s+/g, " ");
+    // ── Step 1: Detect Excel grade columns not yet mapped to any platform task ──
+    // All indices currently used by a task or student column
+    const usedIndices = new Set<number>([studentColIdx, ...Object.values(excelTaskMappings).filter(v => v !== -1)]);
+
+    // Determine which column type (SABER/HACER/SER) each unmapped column belongs to
+    const detectCatFromHeader = (h: string): CatType | null => {
+      const nh = h.toLowerCase();
+      if (nh.includes("saber") || nh.includes("examen")) return "EXAM";
+      if (nh.includes("hacer") || nh.includes("tarea")) return "TASK";
+      if (nh.includes("ser") || nh.includes("autoevaluacion") || nh.includes("autoevaluación")) return "SER";
+      if (nh.includes("final")) return "FINAL";
+      if (nh.includes("asistencia")) return "ATTEND";
+      return null;
     };
+
+    // Find grade-like columns that are not already mapped and are not the student or % label columns
+    const unmappedGradeCols: { idx: number; header: string; catType: CatType }[] = [];
+    headers.forEach((h, idx) => {
+      if (usedIndices.has(idx)) return;
+      if (!h || h === colLetter(idx)) return; // skip empty/fallback columns
+      const nh = h.toLowerCase().trim();
+      if (nh === "no." || nh === "no" || nh === "#") return; // skip row number columns
+      const cat = detectCatFromHeader(h);
+      if (cat) {
+        unmappedGradeCols.push({ idx, header: h, catType: cat });
+      }
+    });
+
+    // ── Step 2: Auto-create missing tasks for unmapped grade columns ──
+    const createdTaskMap: Record<number, string> = {}; // colIdx → new taskId
+
+    if (unmappedGradeCols.length > 0) {
+      const defaultDueDate = (() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 30);
+        d.setHours(23, 59, 0, 0);
+        const pad = (n: number) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      })();
+
+      for (const col of unmappedGradeCols) {
+        try {
+          const fd = new FormData();
+          fd.append("title", col.header);
+          fd.append("type", col.catType);
+          fd.append("period", selectedPeriod);
+          fd.append("description", `Importado desde Excel — columna ${colLetter(col.idx)}`);
+          fd.append("dueDate", defaultDueDate);
+          fd.append("courseId", selectedCourseId);
+          fd.append("isExternal", "true");
+          fd.append("weight", "0");
+          fd.append("groupIds", JSON.stringify(selectedGroupId ? [selectedGroupId] : []));
+          const themeMap: Record<CatType, string> = { EXAM: "Saber", TASK: "Hacer", SER: "Ser", FINAL: "Examen Final", ATTEND: "Asistencia" };
+          fd.append("theme", themeMap[col.catType] ?? "");
+          fd.append("allowLateSubmission", "false");
+
+          const res = await fetch("/api/docente/tareas", { method: "POST", body: fd });
+          if (res.ok) {
+            const data = await res.json();
+            const newId = data.task?.id ?? data.id;
+            if (newId) createdTaskMap[col.idx] = newId;
+          }
+        } catch {
+          // skip individual failures, continue
+        }
+      }
+    }
+
+    // ── Step 3: Apply grades (existing + newly created tasks) ──
+    const updatedGradesGrid = { ...gradesGrid };
+
+    const normalizeName = (name: string) =>
+      name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, " ");
 
     const findBestStudentMatch = (excelName: string) => {
       if (!excelName) return null;
       const normExcel = normalizeName(excelName);
-      
-      // 1. Exact match
       let match = students.find(s => normalizeName(s.name) === normExcel);
       if (match) return match;
-
-      // 2. Token match
       const excelTokens = normExcel.split(" ").filter(t => t.length > 2);
       if (excelTokens.length === 0) return null;
-
       let bestStudent: typeof students[number] | null = null;
       let maxSharedTokens = 0;
-
       students.forEach(student => {
         const normStudent = normalizeName(student.name);
         const studentTokens = normStudent.split(" ").filter(t => t.length > 2);
-        
         const shared = studentTokens.filter(t => excelTokens.includes(t)).length;
-        if (shared > maxSharedTokens) {
-          maxSharedTokens = shared;
-          bestStudent = student;
-        }
+        if (shared > maxSharedTokens) { maxSharedTokens = shared; bestStudent = student; }
       });
-
-      if (maxSharedTokens >= 2 || (maxSharedTokens >= 1 && excelTokens.length === 1)) {
-        return bestStudent;
-      }
+      if (maxSharedTokens >= 2 || (maxSharedTokens >= 1 && excelTokens.length === 1)) return bestStudent;
       return null;
     };
 
-    let matchedCount = 0;
+    // Build combined mappings: existing + newly created
+    const allMappings: Record<string, number> = { ...excelTaskMappings }; // taskId → colIdx
+    Object.entries(createdTaskMap).forEach(([colIdxStr, newTaskId]) => {
+      allMappings[newTaskId] = Number(colIdxStr);
+    });
 
-    // Process rows starting after header row
+    let matchedCount = 0;
     for (let i = headerIndex + 1; i < rows.length; i++) {
       const row = rows[i];
       if (!row || row.length === 0) continue;
-
       const excelName = row[studentColIdx];
       if (!excelName) continue;
-
       const studentMatch = findBestStudentMatch(String(excelName));
       if (!studentMatch) continue;
-
       matchedCount++;
-
-      if (!updatedGradesGrid[studentMatch.id]) {
-        updatedGradesGrid[studentMatch.id] = {};
-      }
-
-      // Apply mappings for each task
-      Object.keys(excelTaskMappings).forEach(taskId => {
-        const excelColIdx = excelTaskMappings[taskId];
-        if (excelColIdx === undefined || excelColIdx === -1) return; // Do not import
+      if (!updatedGradesGrid[studentMatch.id]) updatedGradesGrid[studentMatch.id] = {};
+      Object.keys(allMappings).forEach(taskId => {
+        const excelColIdx = allMappings[taskId];
+        if (excelColIdx === undefined || excelColIdx === -1) return;
         if (excelColIdx >= headers.length) return;
-
         const gradeVal = row[excelColIdx];
-        
         let formattedGrade = "";
         if (gradeVal !== undefined && gradeVal !== null && gradeVal !== "") {
           const num = parseFloat(gradeVal);
-          if (!isNaN(num) && num >= 1.0 && num <= 5.0) {
-            formattedGrade = num.toFixed(1);
-          }
+          if (!isNaN(num) && num >= 1.0 && num <= 5.0) formattedGrade = num.toFixed(1);
         }
         updatedGradesGrid[studentMatch.id][taskId] = formattedGrade;
       });
     }
 
     setGradesGrid(updatedGradesGrid);
-    setCustomExcelData(null); // Close modal
-    
-    alert(`Sincronización finalizada.\n\n- Estudiantes coincidentes: ${matchedCount} de ${students.length}.\n- Revisa las notas resaltadas en amarillo y haz clic en 'Guardar' para confirmarlas.`);
+    setCustomExcelData(null);
+
+    // ── Step 4: Refresh tasks from server if new tasks were created ──
+    const createdCount = Object.keys(createdTaskMap).length;
+    if (createdCount > 0) {
+      await fetchData(); // refresh task list so new columns appear in planilla
+    }
+
+    const createdNames = unmappedGradeCols.filter(c => createdTaskMap[c.idx]).map(c => c.header).join(", ");
+    alert(
+      `Sincronización finalizada.\n\n` +
+      `- Estudiantes coincidentes: ${matchedCount} de ${students.length}.\n` +
+      (createdCount > 0 ? `- Evaluaciones creadas automáticamente (${createdCount}): ${createdNames}.\n` : "") +
+      `- Revisa las notas resaltadas en amarillo y haz clic en 'Guardar' para confirmarlas.`
+    );
   };
 
   const exportToPDF = () => {
