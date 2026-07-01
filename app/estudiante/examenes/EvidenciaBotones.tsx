@@ -279,7 +279,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm, label
                       {nativeTask.questions.map((q: any, index: number) => {
                         const studentAns = studentAnswers[q.id];
                         const detail = feedbackDetails.find((d: any) => d.questionId === q.id) || {};
-                        const isCorrect = detail.isCorrect ?? (q.type === "MULTIPLE_CHOICE"
+                        const isCorrect = detail.isCorrect ?? ((q.type === "MULTIPLE_CHOICE" || q.type === "TRUE_FALSE")
                           ? q.options.find((o: any) => o.isCorrect)?.id === studentAns
                           : q.options[0]?.text?.trim().toLowerCase() === studentAns?.trim().toLowerCase());
 
@@ -298,7 +298,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm, label
                               </span>
                             </div>
 
-                            {q.type === "MULTIPLE_CHOICE" ? (
+                            {(q.type === "MULTIPLE_CHOICE" || q.type === "TRUE_FALSE") ? (
                               <div className="flex flex-col gap-3 mt-4">
                                 {q.options.map((opt: any) => {
                                   const isSelected = studentAns === opt.id;
@@ -351,7 +351,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm, label
                                <div className="p-3 rounded-r-[4px] rounded-l-none bg-[#f8f9fa] border-l-4 border-l-[#137333] text-xs mt-2 flex flex-col gap-1">
                                  <span className="font-bold text-[#137333]">Respuesta correcta:</span>
                                  <span className="font-semibold text-sm" style={{ color: "#202124" }}>
-                                   {q.type === "MULTIPLE_CHOICE" 
+                                   {(q.type === "MULTIPLE_CHOICE" || q.type === "TRUE_FALSE") 
                                      ? detail.correctOptionText || q.options.find((o: any) => o.id === detail.correctOptionId)?.text || q.options.find((o: any) => o.isCorrect)?.text || "(Sin especificar)"
                                      : detail.correctText || q.options[0]?.text || "(Sin especificar)"}
                                  </span>

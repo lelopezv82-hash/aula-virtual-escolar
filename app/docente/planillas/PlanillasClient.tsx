@@ -874,7 +874,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       {saveError && <div className="alert alert-danger">{saveError}</div>}
 
       {/* Main spreadsheet card */}
-      <div className="card rounded-2xl border shadow-sm overflow-hidden bg-white dark:bg-gray-900" style={{ borderColor: "var(--border-color)" }}>
+      <div className="rounded-2xl border shadow-sm bg-white dark:bg-gray-900" style={{ borderColor: "var(--border-color)" }}>
 
         {/* Period banner */}
         <div className="flex items-center justify-center py-2.5 bg-orange-100 dark:bg-orange-950/30 border-b" style={{ borderColor: "var(--border-color)" }}>
@@ -1039,7 +1039,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             <Loader2 className="animate-spin text-orange-500" size={40} />
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto w-full">
             <table id="planillas-table" className="border-collapse text-xs text-center" style={{ tableLayout: "fixed", width: "max-content", minWidth: "100%" }}>
               <colgroup>
                 <col style={{ width: "36px" }} />{/* No. */}

@@ -144,7 +144,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       const studentAns = finalAnswers[q.id];
       let isCorrect = false;
 
-      if (q.type === 'MULTIPLE_CHOICE') {
+      if (q.type === 'MULTIPLE_CHOICE' || q.type === 'TRUE_FALSE') {
         const correctOpt = q.options.find(o => o.isCorrect);
         // studentAns is the selected option ID
         if (correctOpt && studentAns === correctOpt.id) {

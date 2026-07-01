@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { Plus, Trash2, Check, Save, Loader2, ArrowUp, ArrowDown, Edit3, X } from "lucide-react";
@@ -73,8 +73,8 @@ export default function QuestionEditor({ taskId, initialQuestions }: QuestionEdi
     const newOptions = [...formOptions];
     newOptions.splice(index, 1);
     
-    // Ensure at least one is correct if type is multiple choice
-    if (formType === "MULTIPLE_CHOICE" && !newOptions.some(o => o.isCorrect)) {
+    // Ensure at least one is correct if type is multiple choice or true/false
+    if ((formType === "MULTIPLE_CHOICE" || formType === "TRUE_FALSE") && !newOptions.some(o => o.isCorrect)) {
       newOptions[0].isCorrect = true;
     }
     setFormOptions(newOptions);
@@ -100,9 +100,9 @@ export default function QuestionEditor({ taskId, initialQuestions }: QuestionEdi
       return;
     }
 
-    if (formType === "MULTIPLE_CHOICE") {
+    if (formType === "MULTIPLE_CHOICE" || formType === "TRUE_FALSE") {
       if (formOptions.length < 2) {
-        setError("Las preguntas de opción múltiple deben tener al menos 2 opciones.");
+        setError("Las preguntas deben tener al menos 2 opciones.");
         return;
       }
       if (!formOptions.some(o => o.isCorrect)) {
@@ -133,7 +133,7 @@ export default function QuestionEditor({ taskId, initialQuestions }: QuestionEdi
           type: formType,
           points: formPoints,
           order: isNew ? questions.length : questions.find(q => q.id === editingId)?.order || 0,
-          options: formType === "MULTIPLE_CHOICE" ? formOptions : []
+          options: (formType === "MULTIPLE_CHOICE" || formType === "TRUE_FALSE") ? formOptions : []
         })
       });
 
@@ -266,11 +266,26 @@ export default function QuestionEditor({ taskId, initialQuestions }: QuestionEdi
               <label className="text-xs font-bold text-muted">Tipo de Pregunta</label>
               <select
                 value={formType}
-                onChange={(e) => setFormType(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setFormType(val);
+                  if (val === "TRUE_FALSE") {
+                    setFormOptions([
+                      { text: "Verdadero", isCorrect: true },
+                      { text: "Falso", isCorrect: false }
+                    ]);
+                  } else if (val === "MULTIPLE_CHOICE" && formOptions.length === 2 && formOptions[0].text === "Verdadero" && formOptions[1].text === "Falso") {
+                    setFormOptions([
+                      { text: "Opción A", isCorrect: true },
+                      { text: "Opción B", isCorrect: false }
+                    ]);
+                  }
+                }}
                 className="text-sm p-2 rounded border focus:outline-none"
                 style={{ backgroundColor: "var(--bg-primary)", borderColor: "var(--border-color)" }}
               >
                 <option value="MULTIPLE_CHOICE">Opción Múltiple</option>
+                <option value="TRUE_FALSE">Verdadero / Falso</option>
                 <option value="TEXT">Respuesta de Texto Corto</option>
               </select>
             </div>
@@ -289,33 +304,35 @@ export default function QuestionEditor({ taskId, initialQuestions }: QuestionEdi
           </div>
 
           {/* Options / Answers Section */}
-          {formType === "MULTIPLE_CHOICE" ? (
+          {(formType === "MULTIPLE_CHOICE" || formType === "TRUE_FALSE") ? (
             <div className="flex flex-col gap-2.5 mt-2">
               <div className="flex justify-between items-center">
                 <label className="text-xs font-bold text-muted">Opciones (Selecciona la correcta)</label>
-                <div className="flex items-center gap-2">
-                  <button 
-                    type="button" 
-                    onClick={handleAddOption}
-                    className="text-xs text-[#f98012] hover:text-[#f98012] font-bold flex items-center gap-0.5"
-                  >
-                    <Plus size={14} /> Añadir opción
-                  </button>
-                  <span className="text-[10px] text-muted">|</span>
-                  <button 
-                    type="button" 
-                    onClick={() => {
-                      setFormOptions([
-                        { text: "Verdadero", isCorrect: true },
-                        { text: "Falso", isCorrect: false }
-                      ]);
-                    }}
-                    className="text-xs text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 font-bold flex items-center gap-1 bg-green-50 dark:bg-green-950/20 px-2 py-0.5 rounded border border-green-200 dark:border-green-900/40"
-                    title="Configurar opciones rápidas como Verdadero / Falso"
-                  >
-                    Verdadero / Falso
-                  </button>
-                </div>
+                {formType === "MULTIPLE_CHOICE" && (
+                  <div className="flex items-center gap-2">
+                    <button 
+                      type="button" 
+                      onClick={handleAddOption}
+                      className="text-xs text-[#f98012] hover:text-[#f98012] font-bold flex items-center gap-0.5"
+                    >
+                      <Plus size={14} /> Añadir opción
+                    </button>
+                    <span className="text-[10px] text-muted">|</span>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        setFormOptions([
+                          { text: "Verdadero", isCorrect: true },
+                          { text: "Falso", isCorrect: false }
+                        ]);
+                      }}
+                      className="text-xs text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 font-bold flex items-center gap-1 bg-green-50 dark:bg-green-950/20 px-2 py-0.5 rounded border border-green-200 dark:border-green-900/40"
+                      title="Configurar opciones rápidas como Verdadero / Falso"
+                    >
+                      Verdadero / Falso
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col gap-2">
@@ -328,22 +345,28 @@ export default function QuestionEditor({ taskId, initialQuestions }: QuestionEdi
                       onChange={() => handleOptionCorrectChange(index)}
                       className="cursor-pointer h-4 w-4 text-[#f98012]"
                     />
-                    <input
-                      type="text"
-                      value={opt.text}
-                      onChange={(e) => handleOptionTextChange(index, e.target.value)}
-                      placeholder={`Opción ${index + 1}`}
-                      className="flex-1 text-sm p-1.5 rounded border focus:outline-none"
-                      style={{ backgroundColor: "var(--bg-primary)", borderColor: "var(--border-color)" }}
-                    />
-                    {formOptions.length > 1 && (
-                      <button 
-                        type="button"
-                        onClick={() => handleRemoveOption(index)}
-                        className="text-muted hover:text-red-500 p-1"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                    {formType === "TRUE_FALSE" ? (
+                      <span className="text-sm font-semibold p-1.5" style={{ color: "var(--text-primary)" }}>{opt.text}</span>
+                    ) : (
+                      <>
+                        <input
+                          type="text"
+                          value={opt.text}
+                          onChange={(e) => handleOptionTextChange(index, e.target.value)}
+                          placeholder={`Opción ${index + 1}`}
+                          className="flex-1 text-sm p-1.5 rounded border focus:outline-none"
+                          style={{ backgroundColor: "var(--bg-primary)", borderColor: "var(--border-color)" }}
+                        />
+                        {formOptions.length > 1 && (
+                          <button 
+                            type="button"
+                            onClick={() => handleRemoveOption(index)}
+                            className="text-muted hover:text-red-500 p-1"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
                 ))}
@@ -413,11 +436,11 @@ export default function QuestionEditor({ taskId, initialQuestions }: QuestionEdi
                         {q.points} pt{q.points !== 1 ? "s" : ""}
                       </span>
                       <span className="text-xs text-muted">
-                        ({q.type === "MULTIPLE_CHOICE" ? "Opción Múltiple" : "Respuesta de Texto"})
+                        ({q.type === "MULTIPLE_CHOICE" ? "Opción Múltiple" : q.type === "TRUE_FALSE" ? "Verdadero / Falso" : "Respuesta de Texto"})
                       </span>
                     </h4>
 
-                    {q.type === "MULTIPLE_CHOICE" && (
+                    {(q.type === "MULTIPLE_CHOICE" || q.type === "TRUE_FALSE") && (
                       <ul className="list-disc pl-5 mt-2 flex flex-col gap-1 text-xs">
                         {q.options.map((opt, oIdx) => (
                           <li key={oIdx} className="flex items-center gap-1.5 text-muted">
