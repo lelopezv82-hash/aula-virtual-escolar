@@ -429,7 +429,8 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
           }
         }
 
-        const excelHeaders = rows[headerIndex].map((h, idx) => h ? String(h).trim() : `Columna ${idx + 1}`);
+        const targetRow = rows[headerIndex] || [];
+        const excelHeaders = targetRow.map((h, idx) => h ? String(h).trim() : `Columna ${idx + 1}`);
         
         const studentCol = excelHeaders.find(h => {
           const nh = h.toLowerCase();
@@ -457,9 +458,9 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
         setExcelStudentCol(studentCol);
         setExcelTaskMappings(mappings);
 
-      } catch (err) {
+      } catch (err: any) {
         console.error(err);
-        alert("Ocurrió un error al procesar el archivo Excel. Asegúrate de usar la planilla correcta.");
+        alert(`Ocurrió un error al procesar el archivo Excel: ${err?.message || err}`);
       }
     };
     reader.readAsBinaryString(file);
