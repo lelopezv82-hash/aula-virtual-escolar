@@ -499,28 +499,31 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
             const nh = h.toLowerCase().trim();
             if (nh === "saber 30%" || nh === "hacer 50%" || nh === "ser 20%") return false;
 
+            // Clean percentage to avoid e.g. "30%" matching digit "3"
+            const nhClean = nh.replace(/\d+%/g, "");
+
             // Exact matches
             if (nh === normLabel || nh === normTitle || nh === numStr) return true;
 
             // e.g. "saber 30% - 1" contains "saber" and "1"
             const categoryLabelForCheck = t.type === "EXAM" ? "saber" : t.type === "TASK" ? "hacer" : t.type === "SER" ? "ser" : t.type === "FINAL" ? "final" : "asistencia";
-            const hasCategory = nh.includes(categoryLabelForCheck);
-            const hasNum = nh.includes(` ${numStr}`) || nh.endsWith(`-${numStr}`) || nh.endsWith(` ${numStr}`) || nh.includes(`-${numStr}-`) || nh.includes(` ${numStr} `) || nh.endsWith(` - ${numStr}`);
+            const hasCategory = nhClean.includes(categoryLabelForCheck);
+            const hasNum = nhClean.includes(` ${numStr}`) || nhClean.endsWith(`-${numStr}`) || nhClean.endsWith(` ${numStr}`) || nhClean.includes(`-${numStr}-`) || nhClean.includes(` ${numStr} `) || nhClean.endsWith(` - ${numStr}`);
             if (hasCategory && hasNum) return true;
 
             // Fallback to simple number match ONLY if the column doesn't mention another category
             const mentionsOtherCategory = ["saber", "hacer", "ser", "final", "asistencia"].some(c => {
               if (c === categoryLabelForCheck) return false;
-              return nh.includes(c);
+              return nhClean.includes(c);
             });
             
             if (!mentionsOtherCategory) {
-              if (nh === numStr || nh === `nota ${numStr}` || nh === `nota_${numStr}` || nh.endsWith(` - ${numStr}`) || nh.endsWith(`-${numStr}`) || nh.endsWith(` ${numStr}`)) {
+              if (nhClean === numStr || nhClean === `nota ${numStr}` || nhClean === `nota_${numStr}` || nhClean.endsWith(` - ${numStr}`) || nhClean.endsWith(`-${numStr}`) || nhClean.endsWith(` ${numStr}`)) {
                 return true;
               }
             }
 
-            return nh.includes(normLabel) || nh.includes(normTitle) || normTitle.includes(nh);
+            return nhClean.includes(normLabel) || nhClean.includes(normTitle) || normTitle.includes(nhClean);
           });
 
           mappings[t.id] = matchedIdx; // -1 if no match
@@ -551,8 +554,17 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
       return s.includes("saber") || s.includes("hacer") || s.includes("ser") || s.includes("final") || s.includes("asistencia") || s.includes("evalua") || s.includes("nota");
     };
 
+    let lastCategoryHeader = "";
     for (let idx = 0; idx < maxLen; idx++) {
-      const h = targetRow[idx] ? String(targetRow[idx]).trim() : "";
+      const val = targetRow[idx] ? String(targetRow[idx]).trim() : "";
+      const isCat = val.toLowerCase().includes("saber") || val.toLowerCase().includes("hacer") || val.toLowerCase().includes("ser") || val.toLowerCase().includes("final") || val.toLowerCase().includes("asistencia");
+      if (isCat) {
+        lastCategoryHeader = val;
+      } else if (val) {
+        lastCategoryHeader = "";
+      }
+
+      const h = val || lastCategoryHeader;
       const sub = nextRow[idx] ? String(nextRow[idx]).trim() : "";
       
       let combined = "";
@@ -600,29 +612,32 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
         const nh = h.toLowerCase().trim();
         if (nh === "saber 30%" || nh === "hacer 50%" || nh === "ser 20%") return false;
 
+        // Clean percentage to avoid e.g. "30%" matching digit "3"
+        const nhClean = nh.replace(/\d+%/g, "");
+
         // Exact matches
         if (nh === normLabel || nh === normTitle) return true;
 
         // e.g. "saber 30% - 1" contains "saber" and "1"
         const categoryLabelForCheck = t.type === "EXAM" ? "saber" : t.type === "TASK" ? "hacer" : t.type === "SER" ? "ser" : t.type === "FINAL" ? "final" : "asistencia";
-        const hasCategory = nh.includes(categoryLabelForCheck);
-        const hasNum = nh.includes(` ${taskNumbers[t.id]}`) || nh.endsWith(`-${taskNumbers[t.id]}`) || nh.endsWith(` ${taskNumbers[t.id]}`) || nh.endsWith(` - ${taskNumbers[t.id]}`);
+        const hasCategory = nhClean.includes(categoryLabelForCheck);
+        const hasNum = nhClean.includes(` ${taskNumbers[t.id]}`) || nhClean.endsWith(`-${taskNumbers[t.id]}`) || nhClean.endsWith(` ${taskNumbers[t.id]}`) || nhClean.endsWith(` - ${taskNumbers[t.id]}`);
         if (hasCategory && hasNum) return true;
 
         // Fallback to simple number match ONLY if the column doesn't mention another category
         const mentionsOtherCategory = ["saber", "hacer", "ser", "final", "asistencia"].some(c => {
           if (c === categoryLabelForCheck) return false;
-          return nh.includes(c);
+          return nhClean.includes(c);
         });
         
         if (!mentionsOtherCategory) {
           const numStr = String(taskNumbers[t.id]);
-          if (nh === numStr || nh === `nota ${numStr}` || nh === `nota_${numStr}` || nh.endsWith(` - ${numStr}`) || nh.endsWith(`-${numStr}`) || nh.endsWith(` ${numStr}`)) {
+          if (nhClean === numStr || nhClean === `nota ${numStr}` || nhClean === `nota_${numStr}` || nhClean.endsWith(` - ${numStr}`) || nhClean.endsWith(`-${numStr}`) || nhClean.endsWith(` ${numStr}`)) {
             return true;
           }
         }
 
-        return nh.includes(normLabel) || nh.includes(normTitle);
+        return nhClean.includes(normLabel) || nhClean.includes(normTitle);
       });
 
       mappings[t.id] = matchedIdx;
