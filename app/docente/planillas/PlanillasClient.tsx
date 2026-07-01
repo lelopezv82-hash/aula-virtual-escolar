@@ -1108,6 +1108,22 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             </label>
           </div>
 
+          {/* Import from any local Excel */}
+          <label
+            className="flex items-center gap-1.5 cursor-pointer px-3 py-1.5 rounded-lg text-xs font-bold border transition-all
+              bg-orange-50 border-orange-300 text-orange-700 hover:bg-orange-100 hover:border-orange-400 dark:bg-orange-900/20 dark:border-orange-700 dark:text-orange-300 dark:hover:bg-orange-900/40"
+            title="Sube tu planilla Excel local y sincroniza las notas con la plataforma"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Importar mi Excel
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={importFromExcelSync}
+              className="hidden"
+            />
+          </label>
+
           <button onClick={exportToExcel} className="btn btn-secondary flex items-center gap-1.5 text-sm">
             <FileSpreadsheet size={15} /> Excel (Vista)
           </button>
