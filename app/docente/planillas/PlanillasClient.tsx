@@ -2813,39 +2813,38 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
       {/* ── Sync Confirm Modal ── */}
       {syncConfirmOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] px-4 animate-fade-in">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
-            <div className="h-1.5 w-full" style={{ background: "linear-gradient(90deg,#f97316,#fb923c)" }} />
-            <div className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "rgba(249,115,22,0.12)" }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-start justify-center pt-20 pb-10 overflow-y-auto z-[60] px-4 animate-fade-in">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in">
+            <div className="h-1.5 w-full bg-gradient-to-r from-orange-500 to-amber-500" />
+            <div className="p-5">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-orange-100 dark:bg-orange-950/50">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                 </div>
-                <div>
-                  <h3 className="text-lg font-extrabold text-gray-800 dark:text-gray-100 mb-1">¿Confirmar sincronización?</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Esta acción importará las calificaciones del Excel a la planilla de la plataforma.
-                    Las notas quedarán resaltadas para que puedas revisarlas antes de guardar.
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-extrabold text-gray-800 dark:text-gray-100">¿Confirmar sincronización?</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
+                    Importará las calificaciones del Excel a la planilla. Las notas quedarán resaltadas para revisión antes de guardar.
+                  </p>
+                  <p className="text-[11px] text-orange-600 dark:text-orange-400 mt-2 font-semibold flex items-center gap-1">
+                    <span>⚠️</span> Recuerda hacer clic en "Guardar" al finalizar.
                   </p>
                 </div>
               </div>
-              <div className="mt-4 p-3 rounded-xl text-xs" style={{ background: "rgba(249,115,22,0.07)", border: "1px solid rgba(249,115,22,0.2)", color: "#92400e" }}>
-                💡 Esta acción <strong>no guarda automáticamente</strong>. Debes hacer clic en <strong>"Guardar"</strong> después de revisar.
-              </div>
-              <div className="flex gap-3 mt-6 justify-end">
+              <div className="flex gap-2 mt-5 justify-end">
                 <button
                   onClick={() => setSyncConfirmOpen(false)}
-                  className="px-5 py-2.5 rounded-xl text-sm font-semibold border transition-all hover:bg-gray-50 dark:hover:bg-gray-800"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold border transition-all hover:bg-gray-50 dark:hover:bg-gray-800"
                   style={{ borderColor: "var(--border-color)", color: "var(--text-primary)" }}
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={confirmCustomExcelSync}
-                  className="px-6 py-2.5 rounded-xl text-sm font-bold text-white flex items-center gap-2 transition-all hover:brightness-110 shadow-lg"
-                  style={{ background: "linear-gradient(135deg,#f97316,#ea580c)", boxShadow: "0 4px 15px rgba(249,115,22,0.35)" }}
+                  className="px-4 py-2 rounded-lg text-xs font-bold text-white flex items-center gap-1.5 transition-all hover:brightness-110 shadow-md"
+                  style={{ background: "linear-gradient(135deg,#f97316,#ea580c)" }}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                   Sí, sincronizar
                 </button>
               </div>
@@ -2856,39 +2855,39 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
       {/* ── Sync Result Modal ── */}
       {syncResultMsg && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] px-4 animate-fade-in">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
-            <div className="h-1.5 w-full" style={{ background: "linear-gradient(90deg,#10b981,#059669)" }} />
-            <div className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "rgba(16,185,129,0.12)" }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-start justify-center pt-20 pb-10 overflow-y-auto z-[60] px-4 animate-fade-in">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in">
+            <div className="h-1.5 w-full bg-gradient-to-r from-emerald-500 to-green-600" />
+            <div className="p-5">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-emerald-100 dark:bg-emerald-950/50">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                 </div>
-                <div>
-                  <h3 className="text-lg font-extrabold text-gray-800 dark:text-gray-100 mb-1">¡Sincronización exitosa!</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Las calificaciones fueron importadas a la planilla.</p>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-extrabold text-gray-800 dark:text-gray-100">¡Sincronización exitosa!</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Las calificaciones fueron importadas a la planilla.</p>
                 </div>
               </div>
-              <div className="mt-5 flex flex-col gap-2.5">
-                <div className="flex items-center justify-between p-3.5 rounded-xl" style={{ background: "rgba(16,185,129,0.07)", border: "1px solid rgba(16,185,129,0.2)" }}>
-                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Estudiantes coincidentes</span>
-                  <span className="text-xl font-extrabold" style={{ color: "#059669" }}>{syncResultMsg.matched} <span className="text-sm font-normal text-gray-400">/ {syncResultMsg.total}</span></span>
+              <div className="mt-4 flex flex-col gap-2">
+                <div className="flex items-center justify-between p-3 rounded-lg border bg-slate-50 dark:bg-slate-800/20" style={{ borderColor: "var(--border-color)" }}>
+                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Estudiantes coincidentes</span>
+                  <span className="text-sm font-extrabold text-emerald-600">{syncResultMsg.matched} / {syncResultMsg.total}</span>
                 </div>
                 {syncResultMsg.created > 0 && (
-                  <div className="p-3 rounded-xl text-xs" style={{ background: "rgba(59,130,246,0.07)", border: "1px solid rgba(59,130,246,0.2)", color: "#1e40af" }}>
-                    <span className="font-bold">🆕 {syncResultMsg.created} evaluación(es) creada(s) automáticamente:</span>
-                    <br /><span className="opacity-80">{syncResultMsg.createdNames}</span>
+                  <div className="p-3 rounded-lg border bg-blue-50/50 dark:bg-blue-950/20 text-xs" style={{ borderColor: "rgba(59,130,246,0.2)", color: "#1e3a8a" }}>
+                    <span className="font-bold">🆕 {syncResultMsg.created} evaluación(es) creada(s):</span>
+                    <p className="mt-1 opacity-90 truncate">{syncResultMsg.createdNames}</p>
                   </div>
                 )}
-                <div className="p-3 rounded-xl text-xs" style={{ background: "rgba(249,115,22,0.07)", border: "1px solid rgba(249,115,22,0.2)", color: "#92400e" }}>
-                  📝 Revisa las notas resaltadas en <strong>amarillo</strong> y haz clic en <strong>"Guardar"</strong> para confirmarlas en la base de datos.
+                <div className="p-3 rounded-lg border bg-amber-50/50 dark:bg-amber-950/20 text-xs" style={{ borderColor: "rgba(245,158,11,0.2)", color: "#78350f" }}>
+                  📝 Revisa las notas en <strong>amarillo</strong> y haz clic en <strong>"Guardar"</strong> para confirmarlas.
                 </div>
               </div>
-              <div className="flex justify-end mt-6">
+              <div className="flex justify-end mt-5">
                 <button
                   onClick={() => setSyncResultMsg(null)}
-                  className="px-6 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:brightness-110 shadow-lg"
-                  style={{ background: "linear-gradient(135deg,#10b981,#059669)", boxShadow: "0 4px 15px rgba(16,185,129,0.35)" }}
+                  className="px-5 py-2 rounded-lg text-xs font-bold text-white transition-all hover:brightness-110 shadow-md"
+                  style={{ background: "linear-gradient(135deg,#10b981,#059669)" }}
                 >
                   Entendido ✓
                 </button>
