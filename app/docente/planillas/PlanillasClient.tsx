@@ -1094,101 +1094,23 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     setExcelTaskMappings(mappings);
   };
 
-  const confirmCustomExcelSync = async () => {
+  const confirmCustomExcelSync = () => {
     if (!customExcelData || excelStudentCol === -1) return;
 
     const { rows, headers, headerIndex } = customExcelData;
     const studentColIdx = excelStudentCol;
-    if (studentColIdx === -1 || studentColIdx >= headers.length) {
-      alert("Selecciona la columna de nombres de estudiantes.");
-      return;
-    }
+    if (studentColIdx === -1 || studentColIdx >= headers.length) return;
 
-    // ── Step 1: Detect Excel grade columns not yet mapped to any platform task ──
-    // All indices currently used by a task or student column
-    const usedIndices = new Set<number>([studentColIdx, ...Object.values(excelTaskMappings).filter(v => v !== -1)]);
-
-    // Determine which column type (SABER/HACER/SER) each unmapped column belongs to
-    const detectCatFromHeader = (h: string): CatType | null => {
-      const nh = h.toLowerCase();
-      if (nh.includes("saber") || nh.includes("examen")) return "EXAM";
-      if (nh.includes("hacer") || nh.includes("tarea")) return "TASK";
-      if (nh.includes("ser") || nh.includes("autoevaluacion") || nh.includes("autoevaluación")) return "SER";
-      if (nh.includes("final")) return "FINAL";
-      if (nh.includes("asistencia")) return "ATTEND";
-      return null;
-    };
-
-    // Find grade-like columns that are not already mapped and are not the student or % label columns
-    const unmappedGradeCols: { idx: number; header: string; catType: CatType }[] = [];
-    headers.forEach((h, idx) => {
-      if (usedIndices.has(idx)) return;
-      if (!h || h === colLetter(idx)) return; // skip empty/fallback columns
-      const nh = h.toLowerCase().trim();
-      if (nh === "no." || nh === "no" || nh === "#") return; // skip row number columns
-      const cat = detectCatFromHeader(h);
-      if (cat) {
-        // Check if this column has at least one valid grade (numeric value between 1.0 and 5.0) in the rows
-        let hasAtLeastOneGrade = false;
-        for (let i = headerIndex + 1; i < rows.length; i++) {
-          const row = rows[i];
-          if (!row || row.length <= idx) continue;
-          const val = row[idx];
-          if (val !== undefined && val !== null && String(val).trim() !== "") {
-            const num = parseFloat(val);
-            if (!isNaN(num) && num >= 1.0 && num <= 5.0) {
-              hasAtLeastOneGrade = true;
-              break;
-            }
-          }
-        }
-        if (hasAtLeastOneGrade) {
-          unmappedGradeCols.push({ idx, header: h, catType: cat });
-        }
+    // ── Only use task mappings the user explicitly configured ──
+    // Filter out any entries mapped to -1 (not imported)
+    const activeMappings: Record<string, number> = {};
+    Object.entries(excelTaskMappings).forEach(([taskId, colIdx]) => {
+      if (colIdx !== undefined && colIdx !== -1) {
+        activeMappings[taskId] = colIdx;
       }
     });
 
-    // ── Step 2: Auto-create missing tasks for unmapped grade columns ──
-    const createdTaskMap: Record<number, string> = {}; // colIdx → new taskId
-
-    if (unmappedGradeCols.length > 0) {
-      const defaultDueDate = (() => {
-        const d = new Date();
-        d.setDate(d.getDate() + 30);
-        d.setHours(23, 59, 0, 0);
-        const pad = (n: number) => String(n).padStart(2, "0");
-        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-      })();
-
-      for (const col of unmappedGradeCols) {
-        try {
-          const fd = new FormData();
-          fd.append("title", col.header);
-          fd.append("type", col.catType);
-          fd.append("period", selectedPeriod);
-          fd.append("description", `Importado desde Excel — columna ${colLetter(col.idx)}`);
-          fd.append("dueDate", defaultDueDate);
-          fd.append("courseId", selectedCourseId);
-          fd.append("isExternal", "true");
-          fd.append("weight", "0");
-          fd.append("groupIds", JSON.stringify(selectedGroupId ? [selectedGroupId] : []));
-          const themeMap: Record<CatType, string> = { EXAM: "Saber", TASK: "Hacer", SER: "Ser", FINAL: "Examen Final", ATTEND: "Asistencia" };
-          fd.append("theme", themeMap[col.catType] ?? "");
-          fd.append("allowLateSubmission", "false");
-
-          const res = await fetch("/api/docente/tareas", { method: "POST", body: fd });
-          if (res.ok) {
-            const data = await res.json();
-            const newId = data.task?.id ?? data.id;
-            if (newId) createdTaskMap[col.idx] = newId;
-          }
-        } catch {
-          // skip individual failures, continue
-        }
-      }
-    }
-
-    // ── Step 3: Apply grades (existing + newly created tasks) ──
+    // ── Apply grades only for existing platform tasks ──
     const updatedGradesGrid = { ...gradesGrid };
 
     const normalizeName = (name: string) =>
@@ -1218,25 +1140,17 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       return null;
     };
 
-    // Build combined mappings: existing + newly created
-    const allMappings: Record<string, number> = { ...excelTaskMappings }; // taskId → colIdx
-    Object.entries(createdTaskMap).forEach(([colIdxStr, newTaskId]) => {
-      allMappings[newTaskId] = Number(colIdxStr);
-    });
-
     let matchedCount = 0;
     for (let i = headerIndex + 1; i < rows.length; i++) {
       const row = rows[i];
       if (!row || row.length === 0) continue;
       const excelName = row[studentColIdx];
-      if (!excelName) continue;
+      if (!excelName || String(excelName).trim() === "") continue;
       const studentMatch = findBestStudentMatch(String(excelName));
       if (!studentMatch) continue;
       matchedCount++;
       if (!updatedGradesGrid[studentMatch.id]) updatedGradesGrid[studentMatch.id] = {};
-      Object.keys(allMappings).forEach(taskId => {
-        const excelColIdx = allMappings[taskId];
-        if (excelColIdx === undefined || excelColIdx === -1) return;
+      Object.entries(activeMappings).forEach(([taskId, excelColIdx]) => {
         if (excelColIdx >= headers.length) return;
         const gradeVal = row[excelColIdx];
         if (gradeVal !== undefined && gradeVal !== null && String(gradeVal).trim() !== "") {
@@ -1249,18 +1163,11 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       });
     }
 
+    // Apply grades and close modals — no fetchData() call to avoid overwriting
     setGradesGrid(updatedGradesGrid);
     setCustomExcelData(null);
     setSyncConfirmOpen(false);
-
-    // ── Step 4: Refresh tasks from server if new tasks were created ──
-    const createdCount = Object.keys(createdTaskMap).length;
-    if (createdCount > 0) {
-      await fetchData(); // refresh task list so new columns appear in planilla
-    }
-
-    const createdNames = unmappedGradeCols.filter(c => createdTaskMap[c.idx]).map(c => c.header).join(", ");
-    setSyncResultMsg({ matched: matchedCount, total: students.length, created: createdCount, createdNames });
+    setSyncResultMsg({ matched: matchedCount, total: students.length, created: 0, createdNames: "" });
   };
 
 
