@@ -20,15 +20,15 @@ export default async function CursoLayout({
 
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
-  if (!token) redirect("/login");
+  if (!token) redirect("/");
 
   let studentId = "";
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    if (payload.role !== "STUDENT") redirect("/login");
+    if (payload.role !== "STUDENT") redirect("/");
     studentId = payload.id as string;
   } catch {
-    redirect("/login");
+    redirect("/");
   }
 
   const studentRecord = await prisma.user.findUnique({

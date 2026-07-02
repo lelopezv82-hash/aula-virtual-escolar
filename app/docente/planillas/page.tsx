@@ -10,14 +10,14 @@ export default async function PlanillasPage() {
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
 
-  if (!token) redirect("/login");
+  if (!token) redirect("/");
 
   let payload: any;
   try {
     const verified = await jwtVerify(token, JWT_SECRET);
     payload = verified.payload;
   } catch {
-    redirect("/login");
+    redirect("/");
   }
 
   // Get active periods

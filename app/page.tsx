@@ -54,7 +54,7 @@ export default function Home() {
         <div className="logo-container">
           <div className="logo-image-wrapper">
             <Image 
-              src="/classroom_logo.png" 
+              src="/book_laptop_logo.png" 
               alt="Aula Virtual Logo" 
               width={180} 
               height={180} 

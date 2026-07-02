@@ -12,21 +12,21 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const token = cookieStore.get("auth_token")?.value;
 
   if (!token) {
-    redirect("/login");
+    redirect("/");
   }
 
   let user: any = null;
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     if (payload.role !== "ADMIN" && payload.role !== "SUPER_ADMIN") {
-      redirect("/login");
+      redirect("/");
     }
     if (payload.mustChangePassword === true) {
       redirect("/change-password");
     }
     user = payload;
   } catch {
-    redirect("/login");
+    redirect("/");
   }
 
   const isSuperAdmin = user.role === "SUPER_ADMIN";

@@ -9,14 +9,14 @@ const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-sec
 export default async function EstudianteConfiguracionPage() {
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
-  if (!token) redirect("/login");
+  if (!token) redirect("/");
 
   let userId = "";
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     userId = payload.id as string;
   } catch {
-    redirect("/login");
+    redirect("/");
   }
 
   const student = await prisma.user.findUnique({

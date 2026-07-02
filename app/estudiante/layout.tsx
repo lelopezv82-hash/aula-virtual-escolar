@@ -13,21 +13,21 @@ export default async function EstudianteLayout({ children }: { children: React.R
   const token = cookieStore.get("auth_token")?.value;
 
   if (!token) {
-    redirect("/login");
+    redirect("/");
   }
 
   let user: any = null;
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     if (payload.role !== "STUDENT") {
-      redirect("/login");
+      redirect("/");
     }
     if (payload.mustChangePassword === true) {
       redirect("/change-password");
     }
     user = payload;
   } catch {
-    redirect("/login");
+    redirect("/");
   }
 
   const studentRecord = await prisma.user.findUnique({

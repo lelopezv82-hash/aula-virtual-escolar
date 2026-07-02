@@ -12,21 +12,21 @@ export default async function DocenteLayout({ children }: { children: React.Reac
   const token = cookieStore.get("auth_token")?.value;
 
   if (!token) {
-    redirect("/login");
+    redirect("/");
   }
 
   let user: any = null;
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     if (payload.role !== "TEACHER") {
-      redirect("/login");
+      redirect("/");
     }
     if (payload.mustChangePassword === true) {
       redirect("/change-password");
     }
     user = payload;
   } catch {
-    redirect("/login");
+    redirect("/");
   }
 
   const links = [
