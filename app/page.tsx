@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { User, Lock, ArrowRight, Loader2, Eye, EyeOff } from "lucide-react";
 import "./page.css";
 
@@ -52,16 +51,6 @@ export default function Home() {
     <div className="landing-container flex flex-col items-center justify-center">
       <div className="glass-panel landing-card animate-fade-in">
         <div className="logo-container">
-          <div className="logo-image-wrapper">
-            <Image 
-              src="/book_laptop_logo.png" 
-              alt="Aula Virtual Logo" 
-              width={180} 
-              height={180} 
-              className="logo-image"
-              priority
-            />
-          </div>
           <h1 className="logo-text">Aula Virtual</h1>
           <p className="subtitle">
             Conectando conocimiento, innovación y aprendizaje.
