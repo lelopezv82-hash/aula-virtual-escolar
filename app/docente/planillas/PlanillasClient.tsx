@@ -912,7 +912,12 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         });
 
         // Auto-select mappings for each task (store index, -1 = don't import)
+        // Each Excel column can only be claimed by ONE platform task.
         const mappings: Record<string, number> = {};
+        const usedColIndices = new Set<number>();
+        // Reserve the student column so it's never auto-mapped to a task
+        if (studentColIdx !== -1) usedColIndices.add(studentColIdx);
+
         CATEGORIES.forEach(cat => {
           if (cat.type === "FINAL" && !showFinal) return;
           if (cat.type === "ATTEND" && !showAttend) return;
@@ -924,7 +929,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             const numStr = String(taskNumbers[t.id]);
 
             // Try to match column header (skip weight-only label cols like "SABER 30%")
-            const matchedIdx = excelHeaders.findIndex(h => {
+            const matchedIdx = excelHeaders.findIndex((h, idx) => {
+              if (usedColIndices.has(idx)) return false; // already claimed by another task
               if (!h) return false;
               const nh = h.toLowerCase().trim();
               if (nh === "saber 30%" || nh === "hacer 50%" || nh === "ser 20%") return false;
@@ -945,7 +951,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 if (otherCat.type === cat.type) return false;
                 return nhClean.includes(otherCat.label.toLowerCase());
               });
-              
+
               if (!mentionsOtherCategory) {
                 if (nhClean === numStr || nhClean === `nota ${numStr}` || nhClean === `nota_${numStr}` || nhClean.endsWith(` - ${numStr}`) || nhClean.endsWith(`-${numStr}`) || nhClean.endsWith(` ${numStr}`)) {
                   return true;
@@ -958,6 +964,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               return nhClean.includes(normLabel);
             });
 
+            if (matchedIdx !== -1) usedColIndices.add(matchedIdx); // mark column as taken
             mappings[t.id] = matchedIdx; // -1 if no match
           });
         });
@@ -1033,7 +1040,11 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     });
 
     // Auto-select mappings for each task (store index, -1 = don't import)
+    // Each Excel column can only be claimed by ONE platform task.
     const mappings: Record<string, number> = {};
+    const usedColIndicesH = new Set<number>();
+    if (studentColIdx !== -1) usedColIndicesH.add(studentColIdx);
+
     CATEGORIES.forEach(cat => {
       if (cat.type === "FINAL" && !showFinal) return;
       if (cat.type === "ATTEND" && !showAttend) return;
@@ -1042,9 +1053,11 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         const platformLabel = `${cat.label} ${taskNumbers[t.id]}`;
         const normLabel = platformLabel.toLowerCase();
         const normTitle = (t.title || "").toLowerCase();
+        const numStr = String(taskNumbers[t.id]);
 
         // Try to match column header (skip weight-only label cols like "SABER 30%")
-        const matchedIdx = excelHeaders.findIndex(h => {
+        const matchedIdx = excelHeaders.findIndex((h, idx) => {
+          if (usedColIndicesH.has(idx)) return false; // already claimed
           if (!h) return false;
           const nh = h.toLowerCase().trim();
           if (nh === "saber 30%" || nh === "hacer 50%" || nh === "ser 20%") return false;
@@ -1057,7 +1070,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
           // e.g. "saber 30% - 1" contains "saber" and "1"
           const hasCategory = nhClean.includes(cat.label.toLowerCase());
-          const hasNum = nhClean.includes(` ${taskNumbers[t.id]}`) || nhClean.endsWith(`-${taskNumbers[t.id]}`) || nhClean.endsWith(` ${taskNumbers[t.id]}`) || nhClean.endsWith(` - ${taskNumbers[t.id]}`);
+          const hasNum = nhClean.includes(` ${numStr}`) || nhClean.endsWith(`-${numStr}`) || nhClean.endsWith(` ${numStr}`) || nhClean.endsWith(` - ${numStr}`);
           if (hasCategory && hasNum) return true;
 
           // Fallback to simple number match ONLY if the column doesn't mention another category
@@ -1065,9 +1078,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             if (otherCat.type === cat.type) return false;
             return nhClean.includes(otherCat.label.toLowerCase());
           });
-          
+
           if (!mentionsOtherCategory) {
-            const numStr = String(taskNumbers[t.id]);
             if (nhClean === numStr || nhClean === `nota ${numStr}` || nhClean === `nota_${numStr}` || nhClean.endsWith(` - ${numStr}`) || nhClean.endsWith(`-${numStr}`) || nhClean.endsWith(` ${numStr}`)) {
               return true;
             }
@@ -1079,6 +1091,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           return nh.includes(normLabel);
         });
 
+        if (matchedIdx !== -1) usedColIndicesH.add(matchedIdx); // mark column as taken
         mappings[t.id] = matchedIdx; // -1 if no match
       });
     });
