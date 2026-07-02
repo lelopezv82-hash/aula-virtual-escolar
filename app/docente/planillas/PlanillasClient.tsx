@@ -185,6 +185,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     rows: any[][];
     headers: string[];
     headerIndex: number;
+    workbook: XLSX.WorkBook;
+    fileName: string;
   } | null>(null);
   const [excelStudentCol, setExcelStudentCol] = useState<number>(-1);
   const [excelTaskMappings, setExcelTaskMappings] = useState<Record<string, number>>({});
@@ -950,7 +952,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         });
 
         // Open mapping wizard
-        setCustomExcelData({ rows, headers: excelHeaders, headerIndex });
+        setCustomExcelData({ rows, headers: excelHeaders, headerIndex, workbook: wb, fileName: file.name });
         setExcelStudentCol(studentColIdx);
         setExcelTaskMappings(mappings);
 
@@ -1067,7 +1069,13 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       });
     });
 
-    setCustomExcelData({ rows, headers: excelHeaders, headerIndex: newIndex });
+    setCustomExcelData({ 
+      rows, 
+      headers: excelHeaders, 
+      headerIndex: newIndex,
+      workbook: customExcelData.workbook,
+      fileName: customExcelData.fileName
+    });
     setExcelStudentCol(studentColIdx);
     setExcelTaskMappings(mappings);
   };
@@ -1221,6 +1229,102 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       (createdCount > 0 ? `- Evaluaciones creadas automáticamente (${createdCount}): ${createdNames}.\n` : "") +
       `- Revisa las notas resaltadas en amarillo y haz clic en 'Guardar' para confirmarlas.`
     );
+  };
+
+  const exportCustomExcelWithGrades = () => {
+    if (!customExcelData || excelStudentCol === -1) return;
+
+    const { rows, headers, headerIndex, workbook, fileName } = customExcelData;
+    const studentColIdx = excelStudentCol;
+    if (studentColIdx === -1 || studentColIdx >= headers.length) {
+      alert("Selecciona la columna de nombres de estudiantes.");
+      return;
+    }
+
+    const wsName = workbook.SheetNames[0];
+    const ws = workbook.Sheets[wsName];
+    if (!ws) {
+      alert("No se encontró la hoja de cálculo en el archivo original.");
+      return;
+    }
+
+    const normalizeName = (name: string) =>
+      name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, " ");
+
+    const findBestStudentMatch = (excelName: string) => {
+      if (!excelName) return null;
+      const normExcel = normalizeName(excelName);
+      let match = students.find(s => normalizeName(s.name) === normExcel);
+      if (match) return match;
+      const excelTokens = normExcel.split(" ").filter(t => t.length > 2);
+      if (excelTokens.length === 0) return null;
+      let bestStudent: typeof students[number] | null = null;
+      let maxSharedTokens = 0;
+      students.forEach(student => {
+        const normStudent = normalizeName(student.name);
+        const studentTokens = normStudent.split(" ").filter(t => t.length > 2);
+        const shared = studentTokens.filter(t => excelTokens.includes(t)).length;
+        if (shared > maxSharedTokens) { maxSharedTokens = shared; bestStudent = student; }
+      });
+      if (maxSharedTokens >= 2 || (maxSharedTokens >= 1 && excelTokens.length === 1)) return bestStudent;
+      return null;
+    };
+
+    // Iterate through rows (starting after the header row)
+    for (let i = headerIndex + 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || row.length === 0) continue;
+      const excelName = row[studentColIdx];
+      if (!excelName) continue;
+      
+      const studentMatch = findBestStudentMatch(String(excelName));
+      if (!studentMatch) continue;
+
+      const studentGrades = gradesGrid[studentMatch.id] || {};
+      
+      Object.keys(excelTaskMappings).forEach(taskId => {
+        const excelColIdx = excelTaskMappings[taskId];
+        if (excelColIdx === undefined || excelColIdx === -1) return;
+        if (excelColIdx >= headers.length) return;
+        
+        const gradeVal = studentGrades[taskId];
+        const cellRef = XLSX.utils.encode_cell({ r: i, c: excelColIdx });
+        let cell = ws[cellRef];
+        
+        if (gradeVal !== undefined && gradeVal !== null && gradeVal !== "") {
+          const num = parseFloat(gradeVal);
+          if (!isNaN(num)) {
+            if (cell) {
+              cell.t = "n";
+              cell.v = num;
+              if (cell.w) delete cell.w;
+            } else {
+              ws[cellRef] = { t: "n", v: num };
+            }
+          } else {
+            if (cell) {
+              cell.t = "s";
+              cell.v = gradeVal;
+              if (cell.w) delete cell.w;
+            } else {
+              ws[cellRef] = { t: "s", v: gradeVal };
+            }
+          }
+        } else {
+          if (cell) {
+            cell.t = "s";
+            cell.v = "";
+            if (cell.w) delete cell.w;
+          } else {
+            ws[cellRef] = { t: "s", v: "" };
+          }
+        }
+      });
+    }
+
+    // Write file and trigger download
+    XLSX.writeFile(workbook, `Rellenado_${fileName}`);
+    setCustomExcelData(null);
   };
 
   const exportToPDF = () => {
@@ -2592,6 +2696,15 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 className="btn btn-secondary text-xs py-2 px-4"
               >
                 Cancelar
+              </button>
+              <button 
+                type="button" 
+                onClick={exportCustomExcelWithGrades}
+                disabled={excelStudentCol === -1}
+                className="btn text-xs py-2 px-6 font-bold flex items-center gap-1.5 text-white transition-all"
+                style={{ background: "#16a34a", borderColor: "#15803d" }}
+              >
+                <FileSpreadsheet size={14} /> Rellenar y Descargar Excel
               </button>
               <button 
                 type="button" 
