@@ -235,3 +235,63 @@
     font-size: 2rem;
   }
 }
+
+/* Speech Bubble (Tooltip) style for login validation errors */
+.speech-bubble {
+  position: absolute;
+  left: calc(100% + 15px);
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: var(--danger);
+  color: white;
+  padding: 0.5rem 0.8rem;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: var(--shadow-md);
+  z-index: 50;
+  animation: popIn 0.2s ease-out forwards;
+}
+
+.speech-bubble::before {
+  content: '';
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: transparent var(--danger) transparent transparent;
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(-50%) scale(0.95); }
+  to { opacity: 1; transform: translateY(-50%) scale(1); }
+}
+
+@media (max-width: 768px) {
+  .speech-bubble {
+    position: absolute;
+    left: 0;
+    top: calc(100% + 8px);
+    transform: none;
+    width: 100%;
+    white-space: normal;
+    animation: popInMobile 0.2s ease-out forwards;
+  }
+  
+  .speech-bubble::before {
+    right: auto;
+    left: 20px;
+    bottom: 100%;
+    top: auto;
+    transform: none;
+    border-color: transparent transparent var(--danger) transparent;
+  }
+}
+
+@keyframes popInMobile {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

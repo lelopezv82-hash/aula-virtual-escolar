@@ -10,12 +10,14 @@ export default function Home() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [errorField, setErrorField] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setErrorField("");
     setLoading(true);
 
     try {
@@ -39,9 +41,11 @@ export default function Home() {
         }
       } else {
         setError(data.error || "Error al iniciar sesión");
+        setErrorField(data.field || "both");
       }
     } catch {
       setError("Error de conexión. Inténtalo de nuevo.");
+      setErrorField("connection");
     } finally {
       setLoading(false);
     }
@@ -57,7 +61,7 @@ export default function Home() {
           </p>
         </div>
 
-        {error && (
+        {error && errorField === "connection" && (
           <div className="alert alert-danger animate-fade-in mt-2 mb-4">
             {error}
           </div>
@@ -66,17 +70,27 @@ export default function Home() {
         <form onSubmit={handleLogin} className="mt-4 flex flex-col gap-4 text-left">
           <div className="input-group">
             <label htmlFor="username">Usuario</label>
-            <div className="input-wrapper">
+            <div className="input-wrapper relative">
               <User className="input-icon" size={20} />
               <input
                 id="username"
                 type="text"
                 className="input-field with-icon"
-                placeholder="Ej. juan.perez"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  if (errorField === "username" || errorField === "both") {
+                    setErrorField("");
+                    setError("");
+                  }
+                }}
                 required
               />
+              {(errorField === "username" || errorField === "both") && (
+                <div className="speech-bubble">
+                  {errorField === "both" ? "El usuario o la contraseña son incorrectos" : error}
+                </div>
+              )}
             </div>
           </div>
 
@@ -88,9 +102,14 @@ export default function Home() {
                 id="password"
                 type={showPassword ? "text" : "password"}
                 className="input-field with-icon pr-10"
-                placeholder="••••••••"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (errorField === "password" || errorField === "both") {
+                    setErrorField("");
+                    setError("");
+                  }
+                }}
                 required
               />
               <button
@@ -114,6 +133,11 @@ export default function Home() {
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
+              {(errorField === "password" || errorField === "both") && (
+                <div className="speech-bubble">
+                  {errorField === "both" ? "El usuario o la contraseña son incorrectos" : error}
+                </div>
+              )}
             </div>
           </div>
 
