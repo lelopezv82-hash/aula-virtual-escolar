@@ -1186,7 +1186,12 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     const updatedGradesGrid = { ...gradesGrid };
 
     const normalizeName = (name: string) =>
-      name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, " ");
+      name.toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, " ")
+        .trim()
+        .replace(/\s+/g, " ");
 
     const findBestStudentMatch = (excelName: string) => {
       if (!excelName) return null;
@@ -1229,7 +1234,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         if (excelColIdx >= headers.length) return;
         const gradeVal = row[excelColIdx];
         if (gradeVal !== undefined && gradeVal !== null && String(gradeVal).trim() !== "") {
-          const num = parseFloat(gradeVal);
+          const cleanGrade = String(gradeVal).replace(",", ".").trim();
+          const num = parseFloat(cleanGrade);
           if (!isNaN(num) && num >= 1.0 && num <= 5.0) {
             updatedGradesGrid[studentMatch.id][taskId] = num.toFixed(1);
           }
