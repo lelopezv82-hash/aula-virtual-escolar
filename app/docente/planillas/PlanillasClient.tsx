@@ -952,7 +952,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 }
               }
 
-              return nhClean.includes(normLabel) || nhClean.includes(normTitle) || normTitle.includes(nhClean);
+              if (normTitle.length > 2) {
+                if (nhClean.includes(normTitle) || normTitle.includes(nhClean)) return true;
+              }
+              return nhClean.includes(normLabel);
             });
 
             mappings[t.id] = matchedIdx; // -1 if no match
@@ -1070,7 +1073,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             }
           }
 
-          return nh.includes(normLabel) || nh.includes(normTitle);
+          if (normTitle.length > 2) {
+            if (nh.includes(normTitle)) return true;
+          }
+          return nh.includes(normLabel);
         });
 
         mappings[t.id] = matchedIdx; // -1 if no match
