@@ -19,7 +19,7 @@ export default function Home() {
           </div>
           <h1 className="logo-text">Aula Virtual</h1>
           <p className="subtitle">
-            Tu portal digital hacia el aprendizaje y la excelencia académica
+            Conectando conocimiento, innovación y aprendizaje.
           </p>
         </div>
         
