@@ -1117,7 +1117,23 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       if (nh === "no." || nh === "no" || nh === "#") return; // skip row number columns
       const cat = detectCatFromHeader(h);
       if (cat) {
-        unmappedGradeCols.push({ idx, header: h, catType: cat });
+        // Check if this column has at least one valid grade (numeric value between 1.0 and 5.0) in the rows
+        let hasAtLeastOneGrade = false;
+        for (let i = headerIndex + 1; i < rows.length; i++) {
+          const row = rows[i];
+          if (!row || row.length <= idx) continue;
+          const val = row[idx];
+          if (val !== undefined && val !== null && String(val).trim() !== "") {
+            const num = parseFloat(val);
+            if (!isNaN(num) && num >= 1.0 && num <= 5.0) {
+              hasAtLeastOneGrade = true;
+              break;
+            }
+          }
+        }
+        if (hasAtLeastOneGrade) {
+          unmappedGradeCols.push({ idx, header: h, catType: cat });
+        }
       }
     });
 
