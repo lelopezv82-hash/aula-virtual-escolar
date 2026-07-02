@@ -1327,6 +1327,178 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     setCustomExcelData(null);
   };
 
+  const exportToOfficialTemplate = () => {
+    // ── Column layout (matches template image exactly) ──────────────────────
+    // A(0):  No.
+    // B(1):  NOMBRE COMPLETO
+    // C–F(2–5):   SABER 30% → 4 slots
+    // G–P(6–15):  HACER 50% → 10 slots
+    // Q–S(16–18): SER 20%   → 3 slots
+    // T(19): DEF SABER  (formula)
+    // U(20): DEF HACER  (formula)
+    // V(21): DEF SER    (formula)
+    // W(22): DEF final  (formula)
+    // X(23): DESEMPEÑO  (formula)
+    const TOTAL_COLS = 24;
+    const SABER_START = 2;  const SABER_SLOTS = 4;
+    const HACER_START = 6;  const HACER_SLOTS = 10;
+    const SER_START  = 16;  const SER_SLOTS   = 3;
+    const COL_DEF_SABER = 19;
+    const COL_DEF_HACER = 20;
+    const COL_DEF_SER   = 21;
+    const COL_DEF       = 22;
+    const COL_DESEMP    = 23;
+
+    const saberTasks = byType("EXAM").slice(0, SABER_SLOTS);
+    const hacerTasks = byType("TASK").slice(0, HACER_SLOTS);
+    const serTasks   = byType("SER").slice(0, SER_SLOTS);
+
+    const saberPct = (courseWeights?.saberPercent ?? 30) / 100;
+    const hacerPct = (courseWeights?.hacerPercent ?? 50) / 100;
+    const serPct   = (courseWeights?.serPercent   ?? 20) / 100;
+
+    const selectedGroup = groups.find(g => g.id === selectedGroupId);
+    const gradeLabel = selectedGroup?.grade?.name
+      ? `${selectedGroup.grade.name} - ${selectedGroup.name}`
+      : (selectedGroup?.name ?? "");
+
+    // Helper: build empty row of TOTAL_COLS cells
+    const emptyRow = () => Array<any>(TOTAL_COLS).fill("");
+
+    // ── Row 0: INSTITUCIÓN EDUCATIVA ─────────────────────────────────────
+    const r0 = emptyRow(); r0[0] = "INSTITUCIÓN EDUCATIVA";
+    // ── Row 1: School name ───────────────────────────────────────────────
+    const r1 = emptyRow(); r1[0] = "MONSEÑOR DÍAZ PLATA";
+    // ── Row 2: LISTADO DE DESEMPEÑO ──────────────────────────────────────
+    const r2 = emptyRow(); r2[0] = "LISTADO DE DESEMPEÑO 2026";
+    // ── Row 3: empty ─────────────────────────────────────────────────────
+    const r3 = emptyRow();
+    // ── Row 4: meta (DOCENTE / ASIGNATURA / GRADO / PERIODO) ────────────
+    const r4 = emptyRow();
+    r4[0]  = "DOCENTE:";   r4[1]  = teacherName;
+    r4[4]  = "ASIGNATURA:"; r4[5]  = selectedCourse?.name ?? "";
+    r4[11] = "GRADO:";     r4[12] = gradeLabel;
+    r4[16] = "PERIODO:";   r4[17] = selectedPeriod;
+    // ── Row 5: empty ─────────────────────────────────────────────────────
+    const r5 = emptyRow();
+    // ── Row 6: category headers ──────────────────────────────────────────
+    const r6 = emptyRow();
+    r6[0]  = "No.";
+    r6[1]  = "NOMBRE COMPLETO";
+    r6[SABER_START] = `SABER ${Math.round(saberPct * 100)}%`;
+    r6[HACER_START] = `HACER ${Math.round(hacerPct * 100)}%`;
+    r6[SER_START]   = `SER ${Math.round(serPct * 100)}%`;
+    r6[COL_DEF_SABER] = "DEF";
+    r6[COL_DEF]     = "DEF";
+    r6[COL_DESEMP]  = "DESEMPEÑO";
+    // ── Row 7: sub-column numbers ─────────────────────────────────────────
+    const r7 = emptyRow();
+    for (let j = 0; j < SABER_SLOTS; j++) r7[SABER_START + j] = j + 1;
+    for (let j = 0; j < HACER_SLOTS; j++) r7[HACER_START + j] = j + 1;
+    for (let j = 0; j < SER_SLOTS;   j++) r7[SER_START   + j] = j + 1;
+    r7[COL_DEF_SABER] = "SABER";
+    r7[COL_DEF_HACER] = "HACER";
+    r7[COL_DEF_SER]   = "SER";
+
+    const wsData: any[][] = [r0, r1, r2, r3, r4, r5, r6, r7];
+
+    // ── Data rows start at Excel row 9 (1-indexed), index 8 ──────────────
+    const FIRST_DATA_EXCEL_ROW = 9;
+
+    students.forEach((student, i) => {
+      const grades = gradesGrid[student.id] || {};
+      const excelRow = FIRST_DATA_EXCEL_ROW + i; // 1-indexed for formulas
+
+      const row: any[] = [i + 1, student.name];
+
+      // SABER slots
+      for (let j = 0; j < SABER_SLOTS; j++) {
+        const t = saberTasks[j];
+        const v = t ? grades[t.id] : undefined;
+        row.push(v ? parseFloat(v) : "");
+      }
+      // HACER slots
+      for (let j = 0; j < HACER_SLOTS; j++) {
+        const t = hacerTasks[j];
+        const v = t ? grades[t.id] : undefined;
+        row.push(v ? parseFloat(v) : "");
+      }
+      // SER slots
+      for (let j = 0; j < SER_SLOTS; j++) {
+        const t = serTasks[j];
+        const v = t ? grades[t.id] : undefined;
+        row.push(v ? parseFloat(v) : "");
+      }
+
+      // Excel column letters for formula references
+      const sE = "C"; const sL = "F"; // SABER C:F
+      const hE = "G"; const hL = "P"; // HACER G:P
+      const aE = "Q"; const aL = "S"; // SER   Q:S
+      const dS = "T"; const dH = "U"; const dA = "V"; const dF = "W";
+
+      row.push({ t: "n", f: `IFERROR(AVERAGE(${sE}${excelRow}:${sL}${excelRow})*${saberPct},0)` });
+      row.push({ t: "n", f: `IFERROR(AVERAGE(${hE}${excelRow}:${hL}${excelRow})*${hacerPct},0)` });
+      row.push({ t: "n", f: `IFERROR(AVERAGE(${aE}${excelRow}:${aL}${excelRow})*${serPct},0)` });
+      row.push({ t: "n", f: `IFERROR(${dS}${excelRow}+${dH}${excelRow}+${dA}${excelRow},0)` });
+      row.push({ t: "s", f: `IF(${dF}${excelRow}=0,"",IF(${dF}${excelRow}>=4.6,"SUPERIOR",IF(${dF}${excelRow}>=4.0,"ALTO",IF(${dF}${excelRow}>=3.0,"BÁSICO","BAJO"))))` });
+
+      wsData.push(row);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    // ── Column widths ────────────────────────────────────────────────────
+    ws["!cols"] = [
+      { wch: 5 },   // A: No.
+      { wch: 28 },  // B: Nombre
+      ...Array(SABER_SLOTS).fill(null).map(() => ({ wch: 7 })),  // C-F
+      ...Array(HACER_SLOTS).fill(null).map(() => ({ wch: 7 })),  // G-P
+      ...Array(SER_SLOTS).fill(null).map(() => ({ wch: 7 })),    // Q-S
+      { wch: 10 }, { wch: 10 }, { wch: 10 },  // T-V: DEF sub
+      { wch: 10 },  // W: DEF
+      { wch: 13 },  // X: DESEMPEÑO
+    ];
+
+    // ── Row heights ───────────────────────────────────────────────────────
+    ws["!rows"] = [
+      { hpt: 18 }, // Row 1: Institution
+      { hpt: 28 }, // Row 2: School name
+      { hpt: 18 }, // Row 3: Listado
+      { hpt: 10 }, // Row 4: empty
+      { hpt: 20 }, // Row 5: meta
+      { hpt: 10 }, // Row 6: empty
+      { hpt: 30 }, // Row 7: category headers
+      { hpt: 20 }, // Row 8: sub-numbers
+    ];
+
+    // ── Cell merges ───────────────────────────────────────────────────────
+    ws["!merges"] = [
+      // Title rows
+      { s: { r: 0, c: 0 }, e: { r: 0, c: TOTAL_COLS - 1 } }, // INSTITUCIÓN
+      { s: { r: 1, c: 0 }, e: { r: 1, c: TOTAL_COLS - 1 } }, // School name
+      { s: { r: 2, c: 0 }, e: { r: 2, c: TOTAL_COLS - 1 } }, // Listado
+      // Meta row
+      { s: { r: 4, c: 1  }, e: { r: 4, c: 3  } },  // Teacher name value
+      { s: { r: 4, c: 5  }, e: { r: 4, c: 10 } },  // Subject value
+      { s: { r: 4, c: 12 }, e: { r: 4, c: 15 } },  // Grade value
+      { s: { r: 4, c: 17 }, e: { r: 4, c: TOTAL_COLS - 1 } }, // Period value
+      // Category header row (row 6) — "No." and "NOMBRE" span 2 rows
+      { s: { r: 6, c: 0 }, e: { r: 7, c: 0 } },  // No.
+      { s: { r: 6, c: 1 }, e: { r: 7, c: 1 } },  // NOMBRE COMPLETO
+      { s: { r: 6, c: SABER_START }, e: { r: 6, c: SABER_START + SABER_SLOTS - 1 } }, // SABER
+      { s: { r: 6, c: HACER_START }, e: { r: 6, c: HACER_START + HACER_SLOTS - 1 } }, // HACER
+      { s: { r: 6, c: SER_START   }, e: { r: 6, c: SER_START   + SER_SLOTS   - 1 } }, // SER
+      { s: { r: 6, c: COL_DEF_SABER }, e: { r: 6, c: COL_DEF_SER } }, // DEF (3 sub-cols)
+      { s: { r: 6, c: COL_DEF    }, e: { r: 7, c: COL_DEF    } }, // DEF final spans 2 rows
+      { s: { r: 6, c: COL_DESEMP }, e: { r: 7, c: COL_DESEMP } }, // DESEMPEÑO spans 2 rows
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Planilla Oficial");
+    const safeName = (selectedCourse?.name ?? "").replace(/[\\/:*?"<>|]/g, "_");
+    XLSX.writeFile(wb, `Planilla_Oficial_${safeName}_${selectedPeriod}.xlsx`);
+  };
+
   const exportToPDF = () => {
     const doc = new jsPDF("landscape");
     doc.text(`Consolidado — ${selectedCourse?.name ?? ""}  |  ${selectedPeriod}  |  Docente: ${teacherName}`, 14, 14);
@@ -1504,6 +1676,9 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             />
           </label>
 
+          <button onClick={exportToOfficialTemplate} className="btn btn-secondary flex items-center gap-1.5 text-sm" style={{ background: "#1d4ed8", borderColor: "#1e40af", color: "#fff" }} title="Genera la planilla oficial en formato Monseñor Díaz Plata con todas las notas">
+            <FileSpreadsheet size={15} /> Planilla Oficial
+          </button>
           <button onClick={exportToExcel} className="btn btn-secondary flex items-center gap-1.5 text-sm">
             <FileSpreadsheet size={15} /> Excel (Vista)
           </button>
