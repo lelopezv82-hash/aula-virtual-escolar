@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowLeft, FileSpreadsheet, FileText, Loader2,
   Save, Undo2, AlertTriangle, Check, Info,
@@ -130,6 +131,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [saving,      setSaving]      = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError,   setSaveError]   = useState("");
+
+  // ── Portal mount guard (SSR-safe) ──
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => { setIsMounted(true); }, []);
 
   // ── Add column modal ──
   const [addModal,    setAddModal]    = useState<{ type: CatType } | null>(null);
@@ -2811,9 +2816,9 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         </div>
       )}
 
-      {/* ── Sync Confirm Modal ── */}
-      {syncConfirmOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-start justify-center pt-20 pb-10 overflow-y-auto z-[60] px-4 animate-fade-in">
+      {/* ── Sync Confirm Modal (portal → escapes overflow:hidden) ── */}
+      {isMounted && syncConfirmOpen && createPortal(
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999] px-4 animate-fade-in">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in">
             <div className="h-1.5 w-full bg-gradient-to-r from-orange-500 to-amber-500" />
             <div className="p-5">
@@ -2827,7 +2832,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     Importará las calificaciones del Excel a la planilla. Las notas quedarán resaltadas para revisión antes de guardar.
                   </p>
                   <p className="text-[11px] text-orange-600 dark:text-orange-400 mt-2 font-semibold flex items-center gap-1">
-                    <span>⚠️</span> Recuerda hacer clic en "Guardar" al finalizar.
+                    <span>⚠️</span> Recuerda hacer clic en &quot;Guardar&quot; al finalizar.
                   </p>
                 </div>
               </div>
@@ -2850,12 +2855,13 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* ── Sync Result Modal ── */}
-      {syncResultMsg && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-start justify-center pt-20 pb-10 overflow-y-auto z-[60] px-4 animate-fade-in">
+      {/* ── Sync Result Modal (portal → escapes overflow:hidden) ── */}
+      {isMounted && syncResultMsg && createPortal(
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999] px-4 animate-fade-in">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in">
             <div className="h-1.5 w-full bg-gradient-to-r from-emerald-500 to-green-600" />
             <div className="p-5">
@@ -2880,7 +2886,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                   </div>
                 )}
                 <div className="p-3 rounded-lg border bg-amber-50/50 dark:bg-amber-950/20 text-xs" style={{ borderColor: "rgba(245,158,11,0.2)", color: "#78350f" }}>
-                  📝 Revisa las notas en <strong>amarillo</strong> y haz clic en <strong>"Guardar"</strong> para confirmarlas.
+                  📝 Revisa las notas en <strong>amarillo</strong> y haz clic en <strong>&quot;Guardar&quot;</strong> para confirmarlas.
                 </div>
               </div>
               <div className="flex justify-end mt-5">
@@ -2894,7 +2900,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
