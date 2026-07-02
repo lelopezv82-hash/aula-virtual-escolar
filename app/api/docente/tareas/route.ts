@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       }
     }
 
-    if (!title || !dueDate || !courseId || !theme || !period || !groupIds || groupIds.length === 0) {
+    if (!title || (!isExternal && !dueDate) || !courseId || !theme || !period || !groupIds || groupIds.length === 0) {
       return NextResponse.json({ error: 'Faltan datos obligatorios (título, fecha límite, curso, tema, periodo y al menos un grupo)' }, { status: 400 });
     }
 
@@ -122,11 +122,15 @@ export async function POST(request: Request) {
       }
     }
 
+    const parsedDueDate = dueDate && dueDate.trim() !== ""
+      ? (fromColombiaLocalStringToDate(dueDate) || new Date())
+      : new Date("9999-12-31T23:59:59Z");
+
     const task = await prisma.task.create({
       data: {
         title,
         description,
-        dueDate: fromColombiaLocalStringToDate(dueDate) || new Date(),
+        dueDate: parsedDueDate,
         attachmentUrl,
         gdriveEmail,
         courseId,

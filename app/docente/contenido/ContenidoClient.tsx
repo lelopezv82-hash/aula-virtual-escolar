@@ -905,7 +905,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                                           </span>
                                         </td>
                                         <td className="py-3 px-4 text-muted text-sm">
-                                          {new Date(task.dueDate).toLocaleString()}
+                                          {new Date(task.dueDate).getFullYear() >= 9000 ? "Sin fecha límite" : new Date(task.dueDate).toLocaleString()}
                                         </td>
                                         <td className="py-3 px-4 text-center">
                                            <div className="flex flex-col items-center justify-center gap-1">
@@ -1230,11 +1230,11 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                   value={taskForm.weight} onChange={e => setTaskForm({ ...taskForm, weight: parseInt(e.target.value, 10) || 0 })} required />
               </div>
               <div className="input-group flex-1">
-                <label className="text-xs font-bold mb-1">Fecha Límite de Entrega *</label>
+                <label className="text-xs font-bold mb-1">Fecha Límite de Entrega {taskForm.isExternal ? "(Opcional)" : "*"}</label>
                 <input type="datetime-local" className="input-field py-1.5 px-3 text-xs"
-                  value={taskForm.dueDate} onChange={e => setTaskForm({ ...taskForm, dueDate: e.target.value })} required />
+                  value={taskForm.dueDate} onChange={e => setTaskForm({ ...taskForm, dueDate: e.target.value })} required={!taskForm.isExternal} />
               </div>
-              {taskForm.type === "EXAM" && (
+              {(taskForm.type === "EXAM" || taskForm.type === "FINAL") && (
                 <div className="input-group flex-1">
                   <label className="text-xs font-bold mb-1">Límite de Tiempo (minutos, opcional)</label>
                   <input type="number" className="input-field py-1.5 px-3 text-xs" min="1" placeholder="Ej. 60"

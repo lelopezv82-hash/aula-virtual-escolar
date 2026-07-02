@@ -10,6 +10,7 @@ export function toColombiaISOString(dateInput: Date | string | null | undefined)
   if (!dateInput) return "";
   const d = new Date(dateInput);
   if (isNaN(d.getTime())) return "";
+  if (d.getFullYear() >= 9000) return "";
   
   // Colombia is always UTC-5 (300 minutes behind UTC)
   const colTime = new Date(d.getTime() - 5 * 60 * 60 * 1000);
@@ -44,6 +45,7 @@ export function formatToColombiaString(
   if (!dateInput) return "";
   const d = new Date(dateInput);
   if (isNaN(d.getTime())) return "";
+  if (d.getFullYear() >= 9000) return "Sin fecha límite";
   
   if (includeTime) {
     return d.toLocaleString('es-CO', { timeZone: 'America/Bogota' });

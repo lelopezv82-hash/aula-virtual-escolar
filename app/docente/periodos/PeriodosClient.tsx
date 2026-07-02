@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { 
@@ -457,7 +457,7 @@ export default function PeriodosClient({ courses }: PeriodosClientProps) {
                                     )}
                                   </div>
                                   <div className="flex flex-wrap gap-2 items-center text-[10px] text-muted mt-1">
-                                    <span className="font-medium">Vence: {new Date(task.dueDate).toLocaleDateString()}</span>
+                                    <span className="font-medium">Vence: {new Date(task.dueDate).getFullYear() >= 9000 ? "Sin fecha límite" : new Date(task.dueDate).toLocaleDateString()}</span>
                                     {task.weight !== undefined && task.weight !== null && (
                                       <span className="px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(16, 185, 129, 0.08)", color: "#10b981" }}>
                                         Peso: {task.weight}%

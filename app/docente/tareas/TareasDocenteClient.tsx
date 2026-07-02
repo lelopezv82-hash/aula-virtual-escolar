@@ -294,7 +294,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                                     </span>
                                   </td>
                                   <td className="py-3 px-4 text-muted text-sm">
-                                    {new Date(task.dueDate).toLocaleDateString()}
+                                    {new Date(task.dueDate).getFullYear() >= 9000 ? "Sin fecha límite" : new Date(task.dueDate).toLocaleDateString()}
                                   </td>
                                   <td className="py-3 px-4 text-center">
                                     <div className="flex flex-col items-center justify-center gap-1">

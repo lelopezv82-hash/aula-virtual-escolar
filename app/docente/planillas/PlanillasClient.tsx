@@ -414,6 +414,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       // Format datetime-local
       const toLocal = (d: string | null) => {
         if (!d) return "";
+        if (d.startsWith("9999") || d.startsWith("2100")) return "";
         const date = new Date(d);
         const pad = (n: number) => String(n).padStart(2, "0");
         return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
@@ -2074,7 +2075,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               </div>
 
               {/* Row 3: Porcentaje, Fecha Límite & Límite de Tiempo */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className={(addModal?.type === "EXAM" || addModal?.type === "FINAL") ? "grid grid-cols-3 gap-4" : "grid grid-cols-2 gap-4"}>
                 <div className="input-group">
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
                     Porcentaje de la Nota (0-100) *
@@ -2091,30 +2092,32 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 </div>
                 <div className="input-group">
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Fecha Límite de Entrega *
+                    Fecha Límite de Entrega {newTaskIsExternal ? "(Opcional)" : "*"}
                   </label>
                   <input
                     type="datetime-local"
                     value={newTaskDueDate}
                     onChange={e => setNewTaskDueDate(e.target.value)}
                     className="input-field w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
-                    required
+                    required={!newTaskIsExternal}
                   />
                 </div>
-                <div className="input-group">
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Límite de Tiempo (minutos, opcional)
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    placeholder="Ej. 60"
-                    value={newTaskDuration}
-                    onChange={e => setNewTaskDuration(e.target.value)}
-                    className="input-field w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316] disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400 disabled:cursor-not-allowed"
-                    disabled={newTaskIsExternal}
-                  />
-                </div>
+                {(addModal?.type === "EXAM" || addModal?.type === "FINAL") && (
+                  <div className="input-group">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                      Límite de Tiempo (minutos, opcional)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="Ej. 60"
+                      value={newTaskDuration}
+                      onChange={e => setNewTaskDuration(e.target.value)}
+                      className="input-field w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316] disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400 disabled:cursor-not-allowed"
+                      disabled={newTaskIsExternal}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Row 4: Programar Publicación Automática */}

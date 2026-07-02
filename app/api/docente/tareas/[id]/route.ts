@@ -119,7 +119,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       }
     }
 
-    if (!title || !dueDate || !theme || !period || !groupIds || groupIds.length === 0) {
+    if (!title || (!isExternal && !dueDate) || !theme || !period || !groupIds || groupIds.length === 0) {
       return NextResponse.json({ error: 'Faltan datos obligatorios (título, fecha límite, tema, periodo y al menos un grupo)' }, { status: 400 });
     }
 
@@ -177,12 +177,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       }
     }
 
+    const parsedDueDate = dueDate && dueDate.trim() !== ""
+      ? (fromColombiaLocalStringToDate(dueDate) || new Date())
+      : new Date("9999-12-31T23:59:59Z");
+
     const updatedTask = await prisma.task.update({
       where: { id: resolvedParams.id },
       data: {
         title,
         description,
-        dueDate: fromColombiaLocalStringToDate(dueDate) || new Date(),
+        dueDate: parsedDueDate,
         attachmentUrl,
         gdriveEmail,
         theme,
