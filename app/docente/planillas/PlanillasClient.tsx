@@ -190,6 +190,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   } | null>(null);
   const [excelStudentCol, setExcelStudentCol] = useState<number>(-1);
   const [excelTaskMappings, setExcelTaskMappings] = useState<Record<string, number>>({});
+  const [syncConfirmOpen, setSyncConfirmOpen] = useState(false);
+  const [syncResultMsg, setSyncResultMsg] = useState<{ matched: number; total: number; created: number; createdNames: string } | null>(null);
 
   // ── Derived ──
   const selectedCourse = courses.find(c => c.id === selectedCourseId);
@@ -1205,17 +1207,18 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         if (excelColIdx === undefined || excelColIdx === -1) return;
         if (excelColIdx >= headers.length) return;
         const gradeVal = row[excelColIdx];
-        let formattedGrade = "";
-        if (gradeVal !== undefined && gradeVal !== null && gradeVal !== "") {
+        if (gradeVal !== undefined && gradeVal !== null && String(gradeVal).trim() !== "") {
           const num = parseFloat(gradeVal);
-          if (!isNaN(num) && num >= 1.0 && num <= 5.0) formattedGrade = num.toFixed(1);
+          if (!isNaN(num) && num >= 1.0 && num <= 5.0) {
+            updatedGradesGrid[studentMatch.id][taskId] = num.toFixed(1);
+          }
         }
-        updatedGradesGrid[studentMatch.id][taskId] = formattedGrade;
       });
     }
 
     setGradesGrid(updatedGradesGrid);
     setCustomExcelData(null);
+    setSyncConfirmOpen(false);
 
     // ── Step 4: Refresh tasks from server if new tasks were created ──
     const createdCount = Object.keys(createdTaskMap).length;
@@ -1224,12 +1227,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     }
 
     const createdNames = unmappedGradeCols.filter(c => createdTaskMap[c.idx]).map(c => c.header).join(", ");
-    alert(
-      `Sincronización finalizada.\n\n` +
-      `- Estudiantes coincidentes: ${matchedCount} de ${students.length}.\n` +
-      (createdCount > 0 ? `- Evaluaciones creadas automáticamente (${createdCount}): ${createdNames}.\n` : "") +
-      `- Revisa las notas resaltadas en amarillo y haz clic en 'Guardar' para confirmarlas.`
-    );
+    setSyncResultMsg({ matched: matchedCount, total: students.length, created: createdCount, createdNames });
   };
 
 
@@ -2783,15 +2781,103 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
               <button 
                 type="button" 
-                onClick={confirmCustomExcelSync}
+                onClick={() => setSyncConfirmOpen(true)}
                 disabled={excelStudentCol === -1}
-                className="btn btn-primary text-xs py-2 px-6 font-bold animate-pulse"
-                style={{ background: "#f97316", borderColor: "#ea580c" }}
+                className="btn btn-primary text-xs py-2 px-6 font-bold flex items-center gap-2 transition-all hover:brightness-110"
+                style={{ background: "linear-gradient(135deg, #f97316, #ea580c)", borderColor: "#ea580c", opacity: excelStudentCol === -1 ? 0.5 : 1 }}
               >
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                 Sincronizar Calificaciones
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* ── Sync Confirm Modal ── */}
+      {syncConfirmOpen && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] px-4 animate-fade-in">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
+            <div className="h-1.5 w-full" style={{ background: "linear-gradient(90deg,#f97316,#fb923c)" }} />
+            <div className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "rgba(249,115,22,0.12)" }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-extrabold text-gray-800 dark:text-gray-100 mb-1">¿Confirmar sincronización?</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Esta acción importará las calificaciones del Excel a la planilla de la plataforma.
+                    Las notas quedarán resaltadas para que puedas revisarlas antes de guardar.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 p-3 rounded-xl text-xs" style={{ background: "rgba(249,115,22,0.07)", border: "1px solid rgba(249,115,22,0.2)", color: "#92400e" }}>
+                💡 Esta acción <strong>no guarda automáticamente</strong>. Debes hacer clic en <strong>"Guardar"</strong> después de revisar.
+              </div>
+              <div className="flex gap-3 mt-6 justify-end">
+                <button
+                  onClick={() => setSyncConfirmOpen(false)}
+                  className="px-5 py-2.5 rounded-xl text-sm font-semibold border transition-all hover:bg-gray-50 dark:hover:bg-gray-800"
+                  style={{ borderColor: "var(--border-color)", color: "var(--text-primary)" }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmCustomExcelSync}
+                  className="px-6 py-2.5 rounded-xl text-sm font-bold text-white flex items-center gap-2 transition-all hover:brightness-110 shadow-lg"
+                  style={{ background: "linear-gradient(135deg,#f97316,#ea580c)", boxShadow: "0 4px 15px rgba(249,115,22,0.35)" }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Sí, sincronizar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Sync Result Modal ── */}
+      {syncResultMsg && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] px-4 animate-fade-in">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
+            <div className="h-1.5 w-full" style={{ background: "linear-gradient(90deg,#10b981,#059669)" }} />
+            <div className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "rgba(16,185,129,0.12)" }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-extrabold text-gray-800 dark:text-gray-100 mb-1">¡Sincronización exitosa!</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Las calificaciones fueron importadas a la planilla.</p>
+                </div>
+              </div>
+              <div className="mt-5 flex flex-col gap-2.5">
+                <div className="flex items-center justify-between p-3.5 rounded-xl" style={{ background: "rgba(16,185,129,0.07)", border: "1px solid rgba(16,185,129,0.2)" }}>
+                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Estudiantes coincidentes</span>
+                  <span className="text-xl font-extrabold" style={{ color: "#059669" }}>{syncResultMsg.matched} <span className="text-sm font-normal text-gray-400">/ {syncResultMsg.total}</span></span>
+                </div>
+                {syncResultMsg.created > 0 && (
+                  <div className="p-3 rounded-xl text-xs" style={{ background: "rgba(59,130,246,0.07)", border: "1px solid rgba(59,130,246,0.2)", color: "#1e40af" }}>
+                    <span className="font-bold">🆕 {syncResultMsg.created} evaluación(es) creada(s) automáticamente:</span>
+                    <br /><span className="opacity-80">{syncResultMsg.createdNames}</span>
+                  </div>
+                )}
+                <div className="p-3 rounded-xl text-xs" style={{ background: "rgba(249,115,22,0.07)", border: "1px solid rgba(249,115,22,0.2)", color: "#92400e" }}>
+                  📝 Revisa las notas resaltadas en <strong>amarillo</strong> y haz clic en <strong>"Guardar"</strong> para confirmarlas en la base de datos.
+                </div>
+              </div>
+              <div className="flex justify-end mt-6">
+                <button
+                  onClick={() => setSyncResultMsg(null)}
+                  className="px-6 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:brightness-110 shadow-lg"
+                  style={{ background: "linear-gradient(135deg,#10b981,#059669)", boxShadow: "0 4px 15px rgba(16,185,129,0.35)" }}
+                >
+                  Entendido ✓
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
