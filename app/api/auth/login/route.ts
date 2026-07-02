@@ -33,7 +33,8 @@ export async function POST(request: Request) {
       id: user.id,
       username: user.username,
       role: user.role,
-      name: user.name
+      name: user.name,
+      mustChangePassword: user.mustChangePassword
     })
       .setProtectedHeader({ alg: 'HS256' })
       .setExpirationTime('24h')
@@ -45,7 +46,8 @@ export async function POST(request: Request) {
         id: user.id,
         username: user.username,
         role: user.role,
-        name: user.name
+        name: user.name,
+        mustChangePassword: user.mustChangePassword
       }
     });
 

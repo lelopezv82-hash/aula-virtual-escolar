@@ -22,6 +22,9 @@ export default async function EstudianteLayout({ children }: { children: React.R
     if (payload.role !== "STUDENT") {
       redirect("/login");
     }
+    if (payload.mustChangePassword === true) {
+      redirect("/change-password");
+    }
     user = payload;
   } catch {
     redirect("/login");

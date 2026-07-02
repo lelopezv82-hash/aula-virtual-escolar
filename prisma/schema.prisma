@@ -19,6 +19,7 @@ model User {
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   passwordPlain       String?
+  mustChangePassword  Boolean              @default(true)
   googleAccessToken   String?
   googleDriveFolderId String?
   googleRefreshToken  String?

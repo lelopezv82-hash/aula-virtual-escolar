@@ -21,6 +21,9 @@ export default async function DocenteLayout({ children }: { children: React.Reac
     if (payload.role !== "TEACHER") {
       redirect("/login");
     }
+    if (payload.mustChangePassword === true) {
+      redirect("/change-password");
+    }
     user = payload;
   } catch {
     redirect("/login");
