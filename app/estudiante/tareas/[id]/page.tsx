@@ -298,6 +298,28 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
           {task.description}
         </p>
 
+        {task.resources && task.resources.length > 0 && (
+          <div className="mb-4 border-t pt-4" style={{ borderColor: "var(--border-color)" }}>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted mb-2">Materiales y Recursos Vinculados</h3>
+            <div className="flex flex-col gap-2">
+              {task.resources.map((r: any) => (
+                <div key={r.id} className="flex items-center gap-2 p-2.5 border rounded-lg bg-slate-50 dark:bg-slate-900/40 text-sm" style={{ borderColor: "var(--border-color)" }}>
+                  <span className="text-base">{r.type === "PDF" ? "📄" : r.type === "WORD" ? "📝" : r.type === "PPT" ? "📊" : r.type === "IMAGE" ? "🖼️" : r.type === "VIDEO" ? "🎬" : r.type === "LINK" ? "🔗" : "📋"}</span>
+                  <span className="font-semibold flex-1">{r.title}</span>
+                  <a
+                    href={r.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[#f98012] font-semibold hover:underline text-xs"
+                  >
+                    Ver Material →
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Normal file link if it is not embedded as Google Form */}
         {task.attachmentUrl && !isGoogleForm && (
           <div className="flex items-center gap-3 p-4 border rounded-md" style={{ borderColor: "var(--border-color)", background: "var(--bg-primary)" }}>

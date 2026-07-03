@@ -28,6 +28,9 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState("");
   const [periods, setPeriods] = useState<{id: string, name: string, active: boolean}[]>([]);
+  const [courseId, setCourseId] = useState("");
+  const [allResources, setAllResources] = useState<{id: string, title: string, type: string}[]>([]);
+  const [selectedResourceIds, setSelectedResourceIds] = useState<string[]>([]);
 
   useEffect(() => {
     // Fetch grade groups
@@ -70,9 +73,10 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
           setGroupIds(data.task.groups ? data.task.groups.map((g: any) => g.id) : []);
           setType(data.task.type || "TASK");
           setIsExternal(data.task.isExternal || false);
-          // Convert date to local string for datetime-local input (yyyy-MM-ddThh:mm)
           setDueDate(toColombiaISOString(data.task.dueDate));
           setExistingAttachment(data.task.attachmentUrl || null);
+          setCourseId(data.task.courseId || "");
+          setSelectedResourceIds(data.task.resources ? data.task.resources.map((r: any) => r.id) : []);
         } else {
           setError("No se pudo cargar la tarea");
         }
@@ -80,6 +84,19 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
       .catch(() => setError("Error de conexión al cargar la tarea"))
       .finally(() => setFetching(false));
   }, [taskId]);
+
+  useEffect(() => {
+    if (!courseId) {
+      setAllResources([]);
+      return;
+    }
+    fetch(`/api/docente/recursos?courseId=${courseId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.resources) setAllResources(data.resources);
+      })
+      .catch(() => console.error("Failed to load resources for course"));
+  }, [courseId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,6 +112,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
     formData.append("weight", weight);
     if (duration) formData.append("duration", duration);
     formData.append("groupIds", JSON.stringify(groupIds));
+    formData.append("resourceIds", JSON.stringify(selectedResourceIds));
     formData.append("type", type);
     formData.append("isExternal", String(isExternal));
     if (file) {
@@ -189,6 +207,35 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
               );
             })}
           </div>
+        </div>
+
+        <div className="input-group">
+          <label className="font-semibold text-xs mb-1.5 block">Vincular con Contenido / Materiales</label>
+          {allResources.length === 0 ? (
+            <p className="text-xs text-muted italic">No hay recursos de contenido creados en esta asignatura.</p>
+          ) : (
+            <div className="border rounded-lg p-3 max-h-[160px] overflow-y-auto flex flex-col gap-2 bg-slate-50 dark:bg-slate-900" style={{ borderColor: 'var(--border-color)' }}>
+              {allResources.map(r => {
+                const isChecked = selectedResourceIds.includes(r.id);
+                return (
+                  <label key={r.id} className="flex items-center gap-2 text-sm font-medium cursor-pointer hover:text-primary">
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => {
+                        const newIds = isChecked
+                          ? selectedResourceIds.filter(id => id !== r.id)
+                          : [...selectedResourceIds, r.id];
+                        setSelectedResourceIds(newIds);
+                      }}
+                      className="rounded text-[#f98012] focus:ring-[#f98012]"
+                    />
+                    <span>{r.title} ({r.type})</span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div className="flex gap-4">

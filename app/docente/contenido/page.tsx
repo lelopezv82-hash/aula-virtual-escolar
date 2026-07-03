@@ -40,7 +40,8 @@ export default async function ContenidoPage() {
             include: {
               grade: true
             }
-          }
+          },
+          resources: true
         },
         orderBy: { createdAt: 'desc' }
       }
@@ -102,6 +103,11 @@ export default async function ContenidoPage() {
         grade: {
           name: g.grade.name
         }
+      })),
+      resources: t.resources.map(r => ({
+        id: r.id,
+        title: r.title,
+        type: r.type
       }))
     }))
   }));

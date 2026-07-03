@@ -34,6 +34,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       where: { id: resolvedParams.id },
       include: {
         groups: true,
+        resources: true,
         questions: {
           orderBy: { order: 'asc' },
           include: {

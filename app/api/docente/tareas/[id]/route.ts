@@ -28,7 +28,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       where: { id: resolvedParams.id },
       include: { 
         course: true,
-        groups: true
+        groups: true,
+        resources: true
       }
     });
 
@@ -100,6 +101,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const weightRaw = formData.get('weight') as string | null;
     const weight = weightRaw ? parseInt(weightRaw, 10) : 0;
     const groupIdsJson = formData.get('groupIds') as string | null;
+    const resourceIdsJson = formData.get('resourceIds') as string | null;
     const publishAtRaw = formData.get('publishAt') as string | null;
     const publishAt = fromColombiaLocalStringToDate(publishAtRaw);
     const durationRaw = formData.get('duration') as string | null;
@@ -110,12 +112,20 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const isExternal = isExternalRaw === 'true';
 
     let groupIds: string[] = [];
-
     if (groupIdsJson) {
       try {
         groupIds = JSON.parse(groupIdsJson);
       } catch {
         groupIds = [groupIdsJson];
+      }
+    }
+
+    let resourceIds: string[] = [];
+    if (resourceIdsJson) {
+      try {
+        resourceIds = JSON.parse(resourceIdsJson);
+      } catch {
+        resourceIds = [resourceIdsJson];
       }
     }
 
@@ -194,6 +204,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         publishAt,
         groups: {
           set: groupIds.map(id => ({ id }))
+        },
+        resources: {
+          set: resourceIds.map(id => ({ id }))
         },
         weight: isNaN(weight) ? 0 : weight,
         duration: duration && !isNaN(duration) ? duration : null,

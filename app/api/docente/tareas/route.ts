@@ -37,6 +37,7 @@ export async function POST(request: Request) {
     const weightRaw = formData.get('weight') as string | null;
     const weight = weightRaw ? parseInt(weightRaw, 10) : 0;
     const groupIdsJson = formData.get('groupIds') as string | null;
+    const resourceIdsJson = formData.get('resourceIds') as string | null;
     const publishAtRaw = formData.get('publishAt') as string | null;
     const publishAt = fromColombiaLocalStringToDate(publishAtRaw);
     const durationRaw = formData.get('duration') as string | null;
@@ -47,13 +48,20 @@ export async function POST(request: Request) {
     const isExternal = isExternalRaw === 'true';
 
     let groupIds: string[] = [];
-
-
     if (groupIdsJson) {
       try {
         groupIds = JSON.parse(groupIdsJson);
       } catch {
         groupIds = [groupIdsJson];
+      }
+    }
+
+    let resourceIds: string[] = [];
+    if (resourceIdsJson) {
+      try {
+        resourceIds = JSON.parse(resourceIdsJson);
+      } catch {
+        resourceIds = [resourceIdsJson];
       }
     }
 
@@ -139,6 +147,9 @@ export async function POST(request: Request) {
         publishAt,
         groups: {
           connect: groupIds.map(id => ({ id }))
+        },
+        resources: {
+          connect: resourceIds.map(id => ({ id }))
         },
         weight: isNaN(weight) ? 0 : weight,
         duration: duration && !isNaN(duration) ? duration : null,
