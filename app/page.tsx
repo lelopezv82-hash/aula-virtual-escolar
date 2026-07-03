@@ -75,7 +75,7 @@ export default function Home() {
               <input
                 id="username"
                 type="text"
-                className="input-field with-icon"
+                className={`input-field with-icon ${(errorField === "username" || errorField === "both") ? "is-invalid" : ""}`}
                 value={username}
                 onChange={(e) => {
                   setUsername(e.target.value);
@@ -88,7 +88,7 @@ export default function Home() {
               />
               {(errorField === "username" || errorField === "both") && (
                 <div className="speech-bubble">
-                  {errorField === "both" ? "El usuario o la contraseña son incorrectos" : error}
+                  {errorField === "both" ? "El usuario es incorrecto" : error}
                 </div>
               )}
             </div>
@@ -101,7 +101,7 @@ export default function Home() {
               <input
                 id="password"
                 type={showPassword ? "text" : "password"}
-                className="input-field with-icon pr-10"
+                className={`input-field with-icon pr-10 ${(errorField === "password" || errorField === "both") ? "is-invalid" : ""}`}
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
@@ -135,7 +135,7 @@ export default function Home() {
               </button>
               {(errorField === "password" || errorField === "both") && (
                 <div className="speech-bubble">
-                  {errorField === "both" ? "El usuario o la contraseña son incorrectos" : error}
+                  {errorField === "both" ? "La contraseña es incorrecta" : error}
                 </div>
               )}
             </div>

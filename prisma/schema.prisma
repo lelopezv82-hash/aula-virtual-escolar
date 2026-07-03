@@ -19,16 +19,16 @@ model User {
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   passwordPlain       String?
-  mustChangePassword  Boolean              @default(true)
   googleAccessToken   String?
   googleDriveFolderId String?
   googleRefreshToken  String?
   googleTokenExpiry   DateTime?
   groupId             String?
+  mustChangePassword  Boolean              @default(true)
+  additionalGrades    AdditionalGrade[]
   coursesAsTeacher    Course[]             @relation("TeacherCourses")
   googleDriveAccounts GoogleDriveAccount[]
   submissions         Submission[]
-  additionalGrades    AdditionalGrade[]
   group               GradeGroup?          @relation("GroupStudents", fields: [groupId], references: [id])
 
   @@index([groupId])
@@ -36,26 +36,26 @@ model User {
 }
 
 model Course {
-  id            String       @id @default(uuid())
-  name          String
-  description   String?
-  teacherId     String
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  period1Active Boolean      @default(true)
-  period2Active Boolean      @default(true)
-  period3Active Boolean      @default(true)
-  period4Active Boolean      @default(true)
-  active        Boolean      @default(true)
-  saberPercent  Int          @default(30)
-  hacerPercent  Int          @default(50)
-  serPercent    Int          @default(20)
-  finalPercent  Int          @default(0)
+  id               String            @id @default(uuid())
+  name             String
+  description      String?
+  teacherId        String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  period1Active    Boolean           @default(true)
+  period2Active    Boolean           @default(true)
+  period3Active    Boolean           @default(true)
+  period4Active    Boolean           @default(true)
+  active           Boolean           @default(true)
+  hacerPercent     Int               @default(50)
+  saberPercent     Int               @default(30)
+  serPercent       Int               @default(20)
+  finalPercent     Int               @default(0)
+  additionalGrades AdditionalGrade[]
   teacher          User              @relation("TeacherCourses", fields: [teacherId], references: [id], onDelete: Cascade)
   resources        Resource[]
   tasks            Task[]
   groups           GradeGroup[]      @relation("GroupCourses")
-  additionalGrades AdditionalGrade[]
 
   @@index([teacherId])
 }
@@ -99,8 +99,8 @@ model Task {
   type                String       @default("TASK")
   duration            Int?
   isExternal          Boolean      @default(false)
-  submissions         Submission[]
   questions           Question[]
+  submissions         Submission[]
   course              Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
   groups              GradeGroup[] @relation("GroupTasks")
 
@@ -203,13 +203,13 @@ model Question {
   id        String   @id @default(uuid())
   taskId    String
   text      String
-  type      String   @default("MULTIPLE_CHOICE") // MULTIPLE_CHOICE | TEXT
+  type      String   @default("MULTIPLE_CHOICE")
   points    Float    @default(1.0)
   order     Int      @default(0)
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  options   Option[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  options   Option[]
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   @@index([taskId])
 }
@@ -219,9 +219,9 @@ model Option {
   questionId String
   text       String
   isCorrect  Boolean  @default(false)
-  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@index([questionId])
 }
@@ -234,8 +234,8 @@ model AdditionalGrade {
   grade     Float
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
   course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, courseId, period])
   @@index([studentId])
