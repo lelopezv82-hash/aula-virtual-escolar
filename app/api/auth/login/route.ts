@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     });
 
     if (!user) {
-      return NextResponse.json({ error: 'El usuario es incorrecto', field: 'both' }, { status: 401 });
+      return NextResponse.json({ error: 'El usuario es incorrecto', field: 'username' }, { status: 401 });
     }
 
     const passwordMatch = await bcrypt.compare(password, user.password);

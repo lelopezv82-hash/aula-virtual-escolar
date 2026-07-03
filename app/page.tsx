@@ -135,7 +135,7 @@ export default function Home() {
               </button>
               {(errorField === "password" || errorField === "both") && (
                 <div className="speech-bubble">
-                  {errorField === "both" ? "La contraseña es incorrecta" : error}
+                  {error}
                 </div>
               )}
             </div>
