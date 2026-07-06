@@ -19,13 +19,21 @@ async function checkAuth() {
   }
 }
 
-// GET all periods
+// GET all periods (with their assigned courses)
 export async function GET() {
   const user = await checkAuth();
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   try {
-    const periods = await prisma.period.findMany();
+    const periods = await prisma.period.findMany({
+      include: {
+        periodCourses: {
+          include: {
+            course: { select: { id: true, name: true } }
+          }
+        }
+      }
+    });
     periods.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
     return NextResponse.json({ periods });
   } catch {
@@ -67,13 +75,14 @@ export async function POST(request: Request) {
   }
 }
 
-// PATCH update period (rename or toggle active status)
+// PATCH update period (rename or toggle active status or assign courses)
 export async function PATCH(request: Request) {
   const user = await checkAuth();
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   try {
-    const { id, name, active } = await request.json();
+    const body = await request.json();
+    const { id, name, active, courseIds } = body;
     if (!id) {
       return NextResponse.json({ error: 'ID de periodo no proporcionado' }, { status: 400 });
     }
@@ -135,6 +144,17 @@ export async function PATCH(request: Request) {
         where: { period: oldPeriod.name },
         data: { period: updateData.name }
       });
+    }
+
+    // Handle course assignments if courseIds provided
+    if (Array.isArray(courseIds)) {
+      await prisma.periodCourse.deleteMany({ where: { periodId: id } });
+      if (courseIds.length > 0) {
+        await prisma.periodCourse.createMany({
+          data: courseIds.map((cId: string) => ({ periodId: id, courseId: cId })),
+          skipDuplicates: true,
+        });
+      }
     }
 
     return NextResponse.json({ success: true, period: updatedPeriod });

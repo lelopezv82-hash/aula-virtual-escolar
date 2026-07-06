@@ -15,8 +15,17 @@ export default async function GestionPeriodosPage() {
   if (!token) return null;
 
   const { payload } = await jwtVerify(token, JWT_SECRET);
+  const teacherId = payload.id as string;
 
   const periods = await prisma.period.findMany({
+    include: {
+      periodCourses: true,
+    },
+    orderBy: { name: "asc" },
+  });
+
+  const courses = await prisma.course.findMany({
+    where: { teacherId },
     orderBy: { name: "asc" },
   });
 
@@ -24,6 +33,12 @@ export default async function GestionPeriodosPage() {
     id: p.id,
     name: p.name,
     active: p.active,
+    courseIds: p.periodCourses.map((pc) => pc.courseId),
+  }));
+
+  const serializedCourses = courses.map((c) => ({
+    id: c.id,
+    name: c.name,
   }));
 
   return (
@@ -31,11 +46,14 @@ export default async function GestionPeriodosPage() {
       <div className="dashboard-header mb-6">
         <h1>Gestión Periodos</h1>
         <p className="text-muted">
-          Crea, edita y activa/desactiva los periodos lectivos para todas tus asignaturas.
+          Crea, edita y activa/desactiva los periodos lectivos y asigna asignaturas a cada uno.
         </p>
       </div>
 
-      <GestionPeriodosClient initialPeriods={serializedPeriods} />
+      <GestionPeriodosClient 
+        initialPeriods={serializedPeriods} 
+        courses={serializedCourses} 
+      />
     </div>
   );
 }

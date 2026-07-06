@@ -56,6 +56,7 @@ model Course {
   resources        Resource[]
   tasks            Task[]
   groups           GradeGroup[]      @relation("GroupCourses")
+  periodCourses    PeriodCourse[]
 
   @@index([teacherId])
 }
@@ -159,11 +160,25 @@ model GradeGroup {
 }
 
 model Period {
+  id           String         @id @default(uuid())
+  name         String         @unique
+  active       Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  periodCourses PeriodCourse[]
+}
+
+model PeriodCourse {
   id        String   @id @default(uuid())
-  name      String   @unique
-  active    Boolean  @default(true)
+  periodId  String
+  courseId  String
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  period    Period   @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([periodId, courseId])
+  @@index([periodId])
+  @@index([courseId])
 }
 
 model GoogleDriveAccount {
