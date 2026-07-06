@@ -422,7 +422,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     try {
       const res = await fetch("/api/docente/tareas", { method: "POST", body: buildFormData() });
       if (res.ok) { setAddModal(null); fetchData(); }
-      else { const d = await res.json(); alert(d.error ?? "Error al crear la evaluación."); }
+      else { const d = await res.json(); alert(d.error ?? (addModal.type === "EXAM" ? "Error al crear el examen." : addModal.type === "TASK" ? "Error al crear la tarea." : "Error al crear la evaluación.")); }
     } catch { alert("Error de conexión."); }
     setAddingTask(false);
   };
@@ -1871,10 +1871,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                         <button onClick={() => openGradingModal(t)} className="p-1 rounded hover:bg-orange-50 dark:hover:bg-orange-900/20 text-gray-400 hover:text-[#f98012] transition-colors" title="Calificar estudiantes">
                           <Pencil size={13} />
                         </button>
-                        <button onClick={() => openEditModal(t)} disabled={loadingEdit} className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-400 hover:text-blue-600 transition-colors" title="Editar evaluación">
+                        <button onClick={() => openEditModal(t)} disabled={loadingEdit} className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-400 hover:text-blue-600 transition-colors" title={t.type === "EXAM" ? "Editar examen" : t.type === "TASK" ? "Editar tarea" : "Editar evaluación"}>
                           {loadingEdit ? <Loader2 size={13} className="animate-spin" /> : <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>}
                         </button>
-                        <button onClick={() => handleDeleteTask(t.id, t.title)} disabled={deletingId === t.id} className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100" title="Eliminar evaluación">
+                        <button onClick={() => handleDeleteTask(t.id, t.title)} disabled={deletingId === t.id} className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100" title={t.type === "EXAM" ? "Eliminar examen" : t.type === "TASK" ? "Eliminar tarea" : "Eliminar evaluación"}>
                           {deletingId === t.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
                         </button>
                       </div>
@@ -1910,8 +1910,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             <div className="flex justify-between items-center pb-2 border-b border-gray-200 dark:border-gray-800">
               <h3 className="font-bold text-xl text-gray-900 dark:text-gray-100">
                 {editTaskId
-                  ? (addModal.type === "EXAM" ? "Editar Examen" : "Editar Evaluación")
-                  : (addModal.type === "EXAM" ? "Nuevo Examen" : "Nueva Evaluación")}
+                  ? (addModal.type === "EXAM" ? "Editar Examen" : addModal.type === "TASK" ? "Editar Tarea" : "Editar Evaluación")
+                  : (addModal.type === "EXAM" ? "Nuevo Examen" : addModal.type === "TASK" ? "Nueva Tarea" : "Nueva Evaluación")}
               </h3>
               <button onClick={() => { setAddModal(null); setEditTaskId(null); }} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
                 <X size={24} />
@@ -1940,7 +1940,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               <div className="grid grid-cols-2 gap-4">
                 <div className="input-group">
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    {addModal.type === "EXAM" ? "Título del Examen *" : "Título de la Evaluación *"}
+                    {addModal.type === "EXAM" ? "Título del Examen *" : addModal.type === "TASK" ? "Título de la Tarea *" : "Título de la Evaluación *"}
                   </label>
                   <input
                     type="text"
@@ -2217,7 +2217,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 {addingTask ? <Loader2 size={16} className="animate-spin mx-auto" /> : (
                   <>
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                    <span>{editTaskId ? "Guardar Cambios" : (addModal.type === "EXAM" ? "Crear Examen" : "Crear Tarea")}</span>
+                    <span>{editTaskId ? "Guardar Cambios" : (addModal.type === "EXAM" ? "Crear Examen" : addModal.type === "TASK" ? "Crear Tarea" : "Crear Evaluación")}</span>
                   </>
                 )}
               </button>
