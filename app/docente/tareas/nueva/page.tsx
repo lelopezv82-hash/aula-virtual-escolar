@@ -241,16 +241,29 @@ export default function NuevaTareaPage() {
           </div>
         </div>
 
-        <div className="input-group">
-          <label className="font-semibold text-xs mb-1.5 block">Vincular con Contenido / Materiales</label>
+        {/* Vincular con Recursos/Guías */}
+        <div className="border-l-4 border-[#f97316] bg-orange-50 dark:bg-orange-900/10 rounded-r-lg p-4">
+          <label className="font-bold text-xs mb-2 flex items-center gap-1.5 text-[#f97316]">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            Vincular con Recurso o Guía (Opcional)
+          </label>
           {allResources.length === 0 ? (
-            <p className="text-xs text-muted italic">No hay recursos de contenido creados en esta asignatura.</p>
+            <div className="text-center py-2">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                No hay recursos creados para esta asignatura.{" "}
+                <a href="/docente/contenido" target="_blank" className="text-[#f97316] hover:underline font-bold">
+                  Ir a Gestión Contenido
+                </a>{" "}
+                para agregar materiales.
+              </p>
+            </div>
           ) : (
-            <div className="border rounded-lg p-3 max-h-[160px] overflow-y-auto flex flex-col gap-2 bg-slate-50 dark:bg-slate-900" style={{ borderColor: 'var(--border-color)' }}>
+            <div className="border border-orange-200 dark:border-orange-800 rounded-lg max-h-[150px] overflow-y-auto flex flex-col divide-y divide-orange-100 dark:divide-orange-900/30 bg-white dark:bg-gray-900">
               {allResources.map(r => {
                 const isChecked = selectedResourceIds.includes(r.id);
+                const typeLabel = r.type === "GUIDE" ? "Guía" : r.type === "VIDEO" ? "Video" : r.type === "LINK" ? "Enlace" : r.type;
                 return (
-                  <label key={r.id} className="flex items-center gap-2 text-sm font-medium cursor-pointer hover:text-primary">
+                  <label key={r.id} className={`flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-orange-50 dark:hover:bg-orange-900/10 transition-colors ${ isChecked ? "bg-orange-50 dark:bg-orange-900/10" : "" }`}>
                     <input
                       type="checkbox"
                       checked={isChecked}
@@ -260,9 +273,10 @@ export default function NuevaTareaPage() {
                           : [...selectedResourceIds, r.id];
                         setSelectedResourceIds(newIds);
                       }}
-                      className="rounded text-[#f98012] focus:ring-[#f98012]"
+                      className="w-3.5 h-3.5 rounded text-[#f97316] focus:ring-[#f97316]"
                     />
-                    <span>{r.title} ({r.type})</span>
+                    <span className="text-xs font-semibold flex-1 truncate">{r.title}</span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300">{typeLabel}</span>
                   </label>
                 );
               })}
