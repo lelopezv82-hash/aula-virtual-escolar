@@ -170,7 +170,11 @@ export default async function CursoExamenesPage({
                     )}
                   </div>
                   <h3 className="font-bold text-base mb-0.5" style={{ color: "#8b5cf6" }}>{exam.title}</h3>
-                  <p className="text-sm text-muted truncate">{exam.description || "Sin descripción"}</p>
+                  <p className="text-sm text-muted truncate">
+                    {exam.description
+                      ? exam.description.replace(/Importado desde Excel\s*([—–-]\s*columna\s*[A-Z]+)?/gi, "").trim() || "Sin descripción"
+                      : "Sin descripción"}
+                  </p>
                   <div className="flex items-center gap-1 text-xs text-muted mt-1">
                     <Clock size={12} />
                     <span>Vence: {formatToColombiaString(activeDeadline)} {hasExtension && "(Prórroga)"}</span>

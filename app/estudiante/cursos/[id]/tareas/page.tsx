@@ -128,7 +128,11 @@ export default async function CursoTareasPage({
                     )}
                   </div>
                   <h3 className="font-bold text-base mb-0.5" style={{ color: "var(--primary-color)" }}>{task.title}</h3>
-                  <p className="text-sm text-muted truncate">{task.description || "Sin descripción"}</p>
+                  <p className="text-sm text-muted truncate">
+                    {task.description
+                      ? task.description.replace(/Importado desde Excel\s*([—–-]\s*columna\s*[A-Z]+)?/gi, "").trim() || "Sin descripción"
+                      : "Sin descripción"}
+                  </p>
                   <div className="flex items-center gap-1 text-xs text-muted mt-1">
                     <Clock size={12} />
                     <span>Vence: {formatToColombiaString(activeDeadline)} {hasExtension && "(Prórroga)"}</span>

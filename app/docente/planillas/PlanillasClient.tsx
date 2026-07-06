@@ -403,16 +403,27 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     fd.append("description", newTaskDescription.trim());
     fd.append("dueDate", newTaskDueDate);
     fd.append("courseId", selectedCourseId);
-    fd.append("isExternal", String(newTaskIsExternal));
+    
+    if (addModal.type === "SER") {
+      fd.append("isExternal", "true");
+      fd.append("theme", "Actitudinal");
+    } else {
+      fd.append("isExternal", String(newTaskIsExternal));
+      fd.append("theme", newTaskTheme.trim());
+    }
+
     if (newTaskDuration) fd.append("duration", newTaskDuration);
     fd.append("weight", newTaskWeight);
     fd.append("groupIds", JSON.stringify(newTaskGroupIds));
-    fd.append("theme", newTaskTheme.trim());
-    if (newTaskPublishAt) fd.append("publishAt", newTaskPublishAt);
-    fd.append("allowLateSubmission", String(newTaskAllowLateSubmission));
-    if (newTaskExternalUrl.trim()) fd.append("externalUrl", newTaskExternalUrl.trim());
-    if (newTaskFile) fd.append("file", newTaskFile);
-    if (newTaskResourceIds.length > 0) fd.append("resourceIds", JSON.stringify(newTaskResourceIds));
+    
+    if (addModal.type !== "SER") {
+      if (newTaskPublishAt) fd.append("publishAt", newTaskPublishAt);
+      fd.append("allowLateSubmission", String(newTaskAllowLateSubmission));
+      if (newTaskExternalUrl.trim()) fd.append("externalUrl", newTaskExternalUrl.trim());
+      if (newTaskFile) fd.append("file", newTaskFile);
+      if (newTaskResourceIds.length > 0) fd.append("resourceIds", JSON.stringify(newTaskResourceIds));
+    }
+
     return fd;
   };
 
@@ -1910,8 +1921,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             <div className="flex justify-between items-center pb-2 border-b border-gray-200 dark:border-gray-800">
               <h3 className="font-bold text-xl text-gray-900 dark:text-gray-100">
                 {editTaskId
-                  ? (addModal.type === "EXAM" ? "Editar Examen" : addModal.type === "TASK" ? "Editar Tarea" : "Editar Evaluación")
-                  : (addModal.type === "EXAM" ? "Nuevo Examen" : addModal.type === "TASK" ? "Nueva Tarea" : "Nueva Evaluación")}
+                  ? (addModal.type === "EXAM" ? "Editar Examen" : addModal.type === "TASK" ? "Editar Tarea" : addModal.type === "SER" ? "Editar Evaluación Actitudinal" : "Editar Evaluación")
+                  : (addModal.type === "EXAM" ? "Nuevo Examen" : addModal.type === "TASK" ? "Nueva Tarea" : addModal.type === "SER" ? "Nueva Evaluación Actitudinal" : "Nueva Evaluación")}
               </h3>
               <button onClick={() => { setAddModal(null); setEditTaskId(null); }} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
                 <X size={24} />
@@ -1936,42 +1947,57 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 </div>
               </div>
 
-              {/* Row 2: Título del Examen & Tema */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Row 2: Título & (Tema - hidden for SER) */}
+              {addModal.type === "SER" ? (
+                /* SER: solo nombre */
                 <div className="input-group">
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    {addModal.type === "EXAM" ? "Título del Examen *" : addModal.type === "TASK" ? "Título de la Tarea *" : "Título de la Evaluación *"}
-                  </label>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Nombre de la Evaluación Actitudinal *</label>
                   <input
                     type="text"
                     autoFocus
-                    placeholder={
-                      addModal.type === "EXAM"   ? "Ej. Taller de cinemática" :
-                      addModal.type === "TASK"   ? "Ej. Taller de Comprensión" :
-                      addModal.type === "SER"    ? "Ej. Coevaluación" :
-                      addModal.type === "FINAL"  ? "Ej. Examen Final" :
-                      "Ej. Asistencia Semana 1"
-                    }
+                    placeholder="Ej. Coevaluación, Autoevaluación"
                     value={newTaskName}
                     onChange={e => setNewTaskName(e.target.value)}
                     className="input-field w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
                     required
                   />
                 </div>
-                <div className="input-group">
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Tema *</label>
-                  <input
-                    type="text"
-                    placeholder="Ej. Dinámica, Termodinámica"
-                    value={newTaskTheme}
-                    onChange={e => setNewTaskTheme(e.target.value)}
-                    className="input-field w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
-                    required
-                  />
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="input-group">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                      {addModal.type === "EXAM" ? "Título del Examen *" : addModal.type === "TASK" ? "Título de la Tarea *" : "Título de la Evaluación *"}
+                    </label>
+                    <input
+                      type="text"
+                      autoFocus
+                      placeholder={
+                        addModal.type === "EXAM"   ? "Ej. Taller de cinemática" :
+                        addModal.type === "TASK"   ? "Ej. Taller de Comprensión" :
+                        addModal.type === "FINAL"  ? "Ej. Examen Final" :
+                        "Ej. Asistencia Semana 1"
+                      }
+                      value={newTaskName}
+                      onChange={e => setNewTaskName(e.target.value)}
+                      className="input-field w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
+                      required
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Tema *</label>
+                    <input
+                      type="text"
+                      placeholder="Ej. Dinámica, Termodinámica"
+                      value={newTaskTheme}
+                      onChange={e => setNewTaskTheme(e.target.value)}
+                      className="input-field w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Row 3: Porcentaje, Fecha Límite & Límite de Tiempo */}
+              {/* Row 3: Porcentaje & Fecha */}
               <div className={(addModal?.type === "EXAM" || addModal?.type === "FINAL") ? "grid grid-cols-3 gap-4" : "grid grid-cols-2 gap-4"}>
                 <div className="input-group">
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
@@ -1989,14 +2015,14 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 </div>
                 <div className="input-group">
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Fecha Límite de Entrega {newTaskIsExternal ? "(Opcional)" : "*"}
+                    {addModal.type === "SER" ? "Fecha *" : `Fecha Límite de Entrega ${newTaskIsExternal ? "(Opcional)" : "*"}`}
                   </label>
                   <input
                     type="datetime-local"
                     value={newTaskDueDate}
                     onChange={e => setNewTaskDueDate(e.target.value)}
                     className="input-field w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
-                    required={!newTaskIsExternal}
+                    required={addModal.type === "SER" ? true : !newTaskIsExternal}
                   />
                 </div>
                 {(addModal?.type === "EXAM" || addModal?.type === "FINAL") && (
@@ -2017,57 +2043,62 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 )}
               </div>
 
-              {/* Row 4: Programar Publicación Automática */}
-              <div className="input-group">
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                  Programar Publicación Automática (Fecha y Hora - Opcional)
-                </label>
-                <input
-                  type="datetime-local"
-                  value={newTaskPublishAt}
-                  onChange={e => setNewTaskPublishAt(e.target.value)}
-                  className="input-field w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
-                />
-                <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 block">
-                  Dejar vacío para publicar inmediatamente. Si se define, la tarea se publicará automáticamente al llegar el momento.
-                </span>
-              </div>
-
-              {/* Checkboxes structured in styled containers */}
-              <div className="flex flex-col gap-3">
-                {/* Checkbox 1: isExternal */}
-                <div className="border border-gray-300 dark:border-gray-750 rounded-lg p-3 bg-white dark:bg-gray-900 flex items-start gap-3">
-                  <input
-                    id="isExternalCheck"
-                    type="checkbox"
-                    checked={newTaskIsExternal}
-                    onChange={e => setNewTaskIsExternal(e.target.checked)}
-                    className="w-4 h-4 rounded text-[#f97316] focus:ring-[#f97316] mt-0.5 cursor-pointer"
-                  />
-                  <div className="flex flex-col gap-0.5">
-                    <label htmlFor="isExternalCheck" className="font-bold text-xs text-gray-800 dark:text-gray-200 cursor-pointer select-none">
-                      Trabajo fuera de la plataforma (Calificación manual)
+              {/* Row 4 & Checkboxes — hidden for SER */}
+              {addModal.type !== "SER" && (
+                <>
+                  {/* Row 4: Programar Publicación Automática */}
+                  <div className="input-group">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                      Programar Publicación Automática (Fecha y Hora - Opcional)
                     </label>
-                    <span className="text-[10px] text-gray-400 dark:text-gray-500 leading-tight">
-                      Si se activa, los estudiantes no tendrán que entregar archivos ni responder cuestionarios. La calificación la registrarás tú directamente.
+                    <input
+                      type="datetime-local"
+                      value={newTaskPublishAt}
+                      onChange={e => setNewTaskPublishAt(e.target.value)}
+                      className="input-field w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
+                    />
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 block">
+                      Dejar vacío para publicar inmediatamente. Si se define, la tarea se publicará automáticamente al llegar el momento.
                     </span>
                   </div>
-                </div>
 
-                {/* Checkbox 2: allowLateSubmission */}
-                <div className="border border-gray-300 dark:border-gray-750 rounded-lg p-3 bg-white dark:bg-gray-900 flex items-center gap-3">
-                  <input
-                    id="allowLateCheck"
-                    type="checkbox"
-                    checked={newTaskAllowLateSubmission}
-                    onChange={e => setNewTaskAllowLateSubmission(e.target.checked)}
-                    className="w-4 h-4 rounded text-[#f97316] focus:ring-[#f97316] cursor-pointer"
-                  />
-                  <label htmlFor="allowLateCheck" className="font-bold text-xs text-gray-800 dark:text-gray-200 cursor-pointer select-none">
-                    Permitir entregas tardías (Prórroga)
-                  </label>
-                </div>
-              </div>
+                  {/* Checkboxes structured in styled containers */}
+                  <div className="flex flex-col gap-3">
+                    {/* Checkbox 1: isExternal */}
+                    <div className="border border-gray-300 dark:border-gray-750 rounded-lg p-3 bg-white dark:bg-gray-900 flex items-start gap-3">
+                      <input
+                        id="isExternalCheck"
+                        type="checkbox"
+                        checked={newTaskIsExternal}
+                        onChange={e => setNewTaskIsExternal(e.target.checked)}
+                        className="w-4 h-4 rounded text-[#f97316] focus:ring-[#f97316] mt-0.5 cursor-pointer"
+                      />
+                      <div className="flex flex-col gap-0.5">
+                        <label htmlFor="isExternalCheck" className="font-bold text-xs text-gray-800 dark:text-gray-200 cursor-pointer select-none">
+                          Trabajo fuera de la plataforma (Calificación manual)
+                        </label>
+                        <span className="text-[10px] text-gray-400 dark:text-gray-500 leading-tight">
+                          Si se activa, los estudiantes no tendrán que entregar archivos ni responder cuestionarios. La calificación la registrarás tú directamente.
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Checkbox 2: allowLateSubmission */}
+                    <div className="border border-gray-300 dark:border-gray-750 rounded-lg p-3 bg-white dark:bg-gray-900 flex items-center gap-3">
+                      <input
+                        id="allowLateCheck"
+                        type="checkbox"
+                        checked={newTaskAllowLateSubmission}
+                        onChange={e => setNewTaskAllowLateSubmission(e.target.checked)}
+                        className="w-4 h-4 rounded text-[#f97316] focus:ring-[#f97316] cursor-pointer"
+                      />
+                      <label htmlFor="allowLateCheck" className="font-bold text-xs text-gray-800 dark:text-gray-200 cursor-pointer select-none">
+                        Permitir entregas tardías (Prórroga)
+                      </label>
+                    </div>
+                  </div>
+                </>
+              )}
 
               {/* Course Groups Assignment Checkboxes */}
               {groups.length > 0 && (
@@ -2104,10 +2135,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               {/* Description */}
               <div className="input-group">
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                  {addModal.type === "EXAM" ? "Descripción del Examen" : "Descripción de la Tarea"}
+                  {addModal.type === "EXAM" ? "Descripción del Examen" : addModal.type === "SER" ? "Descripción (Opcional)" : "Descripción de la Tarea"}
                 </label>
                 <textarea
-                  placeholder="Escribe las instrucciones aquí..."
+                  placeholder={addModal.type === "SER" ? "Ej. Criterios de evaluación actitudinal..." : "Escribe las instrucciones aquí..."}
                   value={newTaskDescription}
                   onChange={e => setNewTaskDescription(e.target.value)}
                   className="w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
@@ -2116,7 +2147,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               </div>
 
               {/* Task Additions: Enlace Externo & Archivo Adjunto */}
-              {addModal.type !== "EXAM" && (
+              {addModal.type !== "EXAM" && addModal.type !== "SER" && (
                 <>
                   {/* Enlace Externo */}
                   <div className="input-group">
@@ -2158,49 +2189,51 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 </>
               )}
 
-              {/* Vincular con Recursos/Guías */}
-              <div className="input-group">
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1.5">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                  Vincular con Recurso o Guía (Opcional)
-                </label>
-                {loadingResources ? (
-                  <div className="flex items-center gap-2 text-xs text-gray-400 py-2">
-                    <Loader2 size={13} className="animate-spin" /> Cargando recursos...
-                  </div>
-                ) : modalResources.length === 0 ? (
-                  <div className="border border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-3 text-center">
-                    <p className="text-[11px] text-gray-400 dark:text-gray-500">
-                      No hay recursos creados para esta asignatura. Ve a{" "}
-                      <a href="/docente/contenido" target="_blank" className="text-[#f97316] hover:underline font-bold">Gestión Contenido</a>{" "}
-                      para agregar materiales.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg max-h-[140px] overflow-y-auto flex flex-col divide-y divide-gray-100 dark:divide-gray-800">
-                    {modalResources.map(r => {
-                      const isChecked = newTaskResourceIds.includes(r.id);
-                      const typeLabel = r.type === "GUIDE" ? "Guía" : r.type === "VIDEO" ? "Video" : r.type === "LINK" ? "Enlace" : r.type;
-                      return (
-                        <label key={r.id} className={`flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-orange-50 dark:hover:bg-orange-900/10 transition-colors ${ isChecked ? "bg-orange-50 dark:bg-orange-900/10" : "" }`}>
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => {
-                              setNewTaskResourceIds(prev =>
-                                isChecked ? prev.filter(id => id !== r.id) : [...prev, r.id]
-                              );
-                            }}
-                            className="w-3.5 h-3.5 rounded text-[#f97316] focus:ring-[#f97316] cursor-pointer"
-                          />
-                          <span className="text-[11px] font-semibold text-gray-800 dark:text-gray-200 flex-1 truncate">{r.title}</span>
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300">{typeLabel}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+              {/* Vincular con Recursos/Guías — hidden for SER */}
+              {addModal.type !== "SER" && (
+                <div className="input-group">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                    Vincular con Recurso o Guía (Opcional)
+                  </label>
+                  {loadingResources ? (
+                    <div className="flex items-center gap-2 text-xs text-gray-400 py-2">
+                      <Loader2 size={13} className="animate-spin" /> Cargando recursos...
+                    </div>
+                  ) : modalResources.length === 0 ? (
+                    <div className="border border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-3 text-center">
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                        No hay recursos creados para esta asignatura. Ve a{" "}
+                        <a href="/docente/contenido" target="_blank" className="text-[#f97316] hover:underline font-bold">Gestión Contenido</a>{" "}
+                        para agregar materiales.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg max-h-[140px] overflow-y-auto flex flex-col divide-y divide-gray-100 dark:divide-gray-800">
+                      {modalResources.map(r => {
+                        const isChecked = newTaskResourceIds.includes(r.id);
+                        const typeLabel = r.type === "GUIDE" ? "Guía" : r.type === "VIDEO" ? "Video" : r.type === "LINK" ? "Enlace" : r.type;
+                        return (
+                          <label key={r.id} className={`flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-orange-50 dark:hover:bg-orange-900/10 transition-colors ${ isChecked ? "bg-orange-50 dark:bg-orange-900/10" : "" }`}>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                setNewTaskResourceIds(prev =>
+                                  isChecked ? prev.filter(id => id !== r.id) : [...prev, r.id]
+                                );
+                              }}
+                              className="w-3.5 h-3.5 rounded text-[#f97316] focus:ring-[#f97316] cursor-pointer"
+                            />
+                            <span className="text-[11px] font-semibold text-gray-800 dark:text-gray-200 flex-1 truncate">{r.title}</span>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300">{typeLabel}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
 
             </div>
 
@@ -2217,7 +2250,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 {addingTask ? <Loader2 size={16} className="animate-spin mx-auto" /> : (
                   <>
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                    <span>{editTaskId ? "Guardar Cambios" : (addModal.type === "EXAM" ? "Crear Examen" : addModal.type === "TASK" ? "Crear Tarea" : "Crear Evaluación")}</span>
+                    <span>{editTaskId ? "Guardar Cambios" : (addModal.type === "EXAM" ? "Crear Examen" : addModal.type === "TASK" ? "Crear Tarea" : addModal.type === "SER" ? "Crear Evaluación Actitudinal" : "Crear Evaluación")}</span>
                   </>
                 )}
               </button>

@@ -157,7 +157,11 @@ export default async function TareasEstudiantePage() {
                     )}
                   </div>
                   <h3 style={{ fontWeight: 700, fontSize: "1.1rem", margin: "0 0 0.25rem", color: "var(--primary-color)" }}>{task.title}</h3>
-                  <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", margin: "0 0 0.5rem 0", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{task.description}</p>
+                  <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", margin: "0 0 0.5rem 0", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                    {task.description
+                      ? task.description.replace(/Importado desde Excel\s*([—–-]\s*columna\s*[A-Z]+)?/gi, "").trim()
+                      : ""}
+                  </p>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.75rem", color: "var(--text-muted)" }}>
                     <Clock size={12} />
                     <span>Vence: {formatToColombiaString(activeDeadline)} {hasExtension && "(Prórroga)"}</span>

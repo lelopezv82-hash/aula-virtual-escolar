@@ -295,7 +295,9 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
       <div className="card mb-6">
         <h2 className="text-lg font-bold mb-2">Instrucciones</h2>
         <p className="whitespace-pre-wrap mb-4" style={{ color: "var(--text-secondary)" }}>
-          {task.description}
+          {task.description
+            ? task.description.replace(/Importado desde Excel\s*([—–-]\s*columna\s*[A-Z]+)?/gi, "").trim()
+            : ""}
         </p>
 
         {task.resources && task.resources.length > 0 && (
