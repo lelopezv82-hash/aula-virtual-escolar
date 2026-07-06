@@ -1648,7 +1648,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           ))}
         </div>
 
-        {/* Editable Weights exactly styled as requested */}
+        {/* Static Weights view */}
         <div className="border-b px-4 py-3 bg-white dark:bg-gray-900" style={{ borderColor: "var(--border-color)" }}>
           <div className="flex flex-wrap items-center gap-4">
 
@@ -1660,111 +1660,31 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
             {/* SABER */}
             <div className="flex items-center gap-2">
-              <span className="font-bold text-purple-700 dark:text-purple-400 text-xs">Saber</span>
-              <div className="flex items-center bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-full px-2.5 py-0.5">
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={pctForm.saber}
-                  onChange={e => {
-                    setPctForm(p => ({ ...p, saber: Math.max(0, Math.min(100, parseInt(e.target.value) || 0)) }));
-                    setPctSuccess(false);
-                  }}
-                  className="w-8 text-center font-bold bg-transparent border-none outline-none text-purple-700 dark:text-purple-400 text-xs p-0"
-                />
-                <span className="text-purple-700 dark:text-purple-400 font-semibold text-xs ml-0.5">%</span>
-              </div>
+              <span className="font-bold text-purple-700 dark:text-purple-400 text-xs">Saber:</span>
+              <span className="font-bold text-purple-800 dark:text-purple-300 text-xs">{courseWeights?.saberPercent ?? 30}%</span>
             </div>
 
             {/* HACER */}
             <div className="flex items-center gap-2">
-              <span className="font-bold text-orange-700 dark:text-orange-400 text-xs">Hacer</span>
-              <div className="flex items-center bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800 rounded-full px-2.5 py-0.5">
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={pctForm.hacer}
-                  onChange={e => {
-                    setPctForm(p => ({ ...p, hacer: Math.max(0, Math.min(100, parseInt(e.target.value) || 0)) }));
-                    setPctSuccess(false);
-                  }}
-                  className="w-8 text-center font-bold bg-transparent border-none outline-none text-orange-700 dark:text-orange-400 text-xs p-0"
-                />
-                <span className="text-orange-700 dark:text-orange-400 font-semibold text-xs ml-0.5">%</span>
-              </div>
+              <span className="font-bold text-orange-700 dark:text-orange-400 text-xs">Hacer:</span>
+              <span className="font-bold text-orange-800 dark:text-orange-300 text-xs">{courseWeights?.hacerPercent ?? 50}%</span>
             </div>
 
             {/* SER */}
             <div className="flex items-center gap-2">
-              <span className="font-bold text-yellow-700 dark:text-yellow-500 text-xs">Ser</span>
-              <div className="flex items-center bg-yellow-50 dark:bg-yellow-950/40 border border-yellow-200 dark:border-yellow-800 rounded-full px-2.5 py-0.5">
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={pctForm.ser}
-                  onChange={e => {
-                    setPctForm(p => ({ ...p, ser: Math.max(0, Math.min(100, parseInt(e.target.value) || 0)) }));
-                    setPctSuccess(false);
-                  }}
-                  className="w-8 text-center font-bold bg-transparent border-none outline-none text-yellow-700 dark:text-yellow-500 text-xs p-0"
-                />
-                <span className="text-yellow-700 dark:text-yellow-500 font-semibold text-xs ml-0.5">%</span>
-              </div>
+              <span className="font-bold text-yellow-700 dark:text-yellow-500 text-xs">Ser:</span>
+              <span className="font-bold text-yellow-800 dark:text-yellow-400 text-xs">{courseWeights?.serPercent ?? 20}%</span>
             </div>
 
             {/* EXAMEN FINAL */}
             <div className="flex items-center gap-2">
-              <span className="font-bold text-sky-700 dark:text-sky-400 text-xs">Exam. Final</span>
-              <div className="flex items-center bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 rounded-full px-2.5 py-0.5">
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={pctForm.final}
-                  onChange={e => {
-                    setPctForm(p => ({ ...p, final: Math.max(0, Math.min(100, parseInt(e.target.value) || 0)) }));
-                    setPctSuccess(false);
-                  }}
-                  className="w-8 text-center font-bold bg-transparent border-none outline-none text-sky-700 dark:text-sky-400 text-xs p-0"
-                />
-                <span className="text-sky-700 dark:text-sky-400 font-semibold text-xs ml-0.5">%</span>
-              </div>
-            </div>
-
-            {/* Total Indicator */}
-            <div className={`font-bold text-xs px-2.5 py-1 rounded-full ${
-              pctTotal === 100
-                ? "text-green-700 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800"
-                : "text-red-700 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800"
-            }`}>
-              Total: {pctTotal}%
+              <span className="font-bold text-sky-700 dark:text-sky-400 text-xs">Exam. Final:</span>
+              <span className="font-bold text-sky-800 dark:text-sky-300 text-xs">{courseWeights?.finalPercent ?? 0}%</span>
             </div>
 
             {/* Actions aligned to the right or next in line */}
             <div className="flex items-center gap-2 ml-auto">
-              {pctChanged && pctTotal === 100 && (
-                <button
-                  onClick={handleSavePct}
-                  disabled={savingPct}
-                  className="text-xs font-bold text-[#f97316] border border-[#f97316] bg-white dark:bg-gray-900 px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-orange-50 transition-colors"
-                >
-                  {savingPct ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-                  Guardar Pesos
-                </button>
-              )}
-
-              {pctSuccess && (
-                <span className="flex items-center gap-1 text-green-700 dark:text-green-400 font-bold text-xs mr-2 animate-fade-in">
-                  <Check size={13} /> Pesos guardados
-                </span>
-              )}
-              {pctError && (
-                <span className="text-red-600 text-xs font-semibold mr-2">{pctError}</span>
-              )}
-
+              <span className="text-[10px] text-gray-400 dark:text-gray-500 italic mr-2">Configurables en Gestión Asignaturas</span>
               <button
                 onClick={() => openAddModal("FINAL")}
                 className="text-xs font-bold text-sky-600 border border-sky-200 bg-white dark:bg-gray-900 px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-sky-50 transition-colors"

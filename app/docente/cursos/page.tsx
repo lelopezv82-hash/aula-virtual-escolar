@@ -463,8 +463,58 @@ export default function CursosPage() {
               />
             </div>
 
+            {/* Pesos de Evaluación */}
+            {(() => {
+              const formTotalPct = courseForm.saberPercent + courseForm.hacerPercent + courseForm.serPercent + courseForm.finalPercent;
+              return (
+                <div className="border border-gray-200 dark:border-gray-800 rounded-xl p-4 bg-slate-50/50 dark:bg-slate-900/30 mb-5">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="font-bold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="5" x2="5" y2="19"></line><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg>
+                      Pesos de Evaluación
+                    </span>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                      formTotalPct === 100
+                        ? "text-green-700 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800"
+                        : "text-red-700 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800"
+                    }`}>
+                      Total: {formTotalPct}%
+                    </span>
+                  </div>
 
-            
+                  <div className="grid grid-cols-2 gap-4">
+                    {[
+                      { label: "Saber (Exámenes)", colorText: "text-purple-700 dark:text-purple-400", bgInput: "bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300", key: "saberPercent" },
+                      { label: "Hacer (Tareas)", colorText: "text-orange-700 dark:text-orange-400", bgInput: "bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300", key: "hacerPercent" },
+                      { label: "Ser (Actitudinal)", colorText: "text-yellow-800 dark:text-yellow-500", bgInput: "bg-yellow-50 dark:bg-yellow-950/40 border-yellow-200 dark:border-yellow-800 text-yellow-850 dark:text-yellow-400", key: "serPercent" },
+                      { label: "Examen Final", colorText: "text-sky-700 dark:text-sky-400", bgInput: "bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800 text-sky-700 dark:text-sky-300", key: "finalPercent" },
+                    ].map(({ label, colorText, bgInput, key }) => (
+                      <div key={key} className="input-group">
+                        <label className={`block font-bold text-[11px] mb-1.5 ${colorText}`}>{label} *</label>
+                        <div className={`flex items-center border rounded-lg px-2.5 py-1 ${bgInput}`}>
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={courseForm[key as keyof typeof courseForm]}
+                            onChange={(e) => setCourseForm({ ...courseForm, [key]: Math.max(0, Math.min(100, parseInt(e.target.value) || 0)) })}
+                            className="w-full text-center font-bold bg-transparent border-none outline-none text-xs p-0 focus:ring-0"
+                          />
+                          <span className="font-semibold text-xs ml-1">%</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {formTotalPct !== 100 && (
+                    <p className="text-[10px] text-red-500 font-semibold mt-3 text-center">
+                      ⚠️ La suma de los porcentajes debe ser exactamente 100%.
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+
             <div className="flex justify-end gap-3 border-t pt-4" style={{ borderColor: "var(--border-color)" }}>
               <button type="button" className="btn btn-secondary" onClick={() => setShowCourseModal(false)}>
                 Cancelar
@@ -472,7 +522,7 @@ export default function CursosPage() {
               <button
                 type="submit"
                 className="btn btn-primary"
-                disabled={saving}
+                disabled={saving || (courseForm.saberPercent + courseForm.hacerPercent + courseForm.serPercent + courseForm.finalPercent) !== 100}
               >
                 {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
                 {editCourse ? "Guardar Cambios" : "Crear Asignatura"}
