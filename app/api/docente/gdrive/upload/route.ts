@@ -67,8 +67,9 @@ export async function POST(request: Request) {
     const fileBuffer = Buffer.from(await file.arrayBuffer());
 
     // Check if a stored file already exists for this period — if so, update it
-    const existingSyncFiles = (course.gDriveSyncFiles as Record<string, string> | null) || {};
-    const storedFileId = existingSyncFiles[period];
+    const existingSyncFiles = (course.gDriveSyncFiles as Record<string, any> | null) || {};
+    const fileEntry = existingSyncFiles[period];
+    const storedFileId: string | undefined = typeof fileEntry === 'object' ? fileEntry?.fileId : (typeof fileEntry === 'string' ? fileEntry : undefined);
 
     let finalFileId: string;
     let finalWebViewLink: string;

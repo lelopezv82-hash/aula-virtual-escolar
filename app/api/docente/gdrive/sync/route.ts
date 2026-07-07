@@ -220,8 +220,20 @@ export async function POST(request: Request) {
     const folderPath = `${gradeName}/${course.name}/${period}`;
     const filename = `Sincro_Planilla_${course.name}_${period}.xlsx`;
 
-    const folderId = await resolveDriveFolderPath(accountToken, teacherId, folderPath);
-    const file = await findFileInFolder(accountToken, folderId, filename);
+    // Check if we already have a stored file ID to use directly
+    const preSyncFiles = (existingSyncFiles) as Record<string, any>;
+    const preSyncEntry = preSyncFiles[period];
+    const preSyncFileId: string | undefined = typeof preSyncEntry === 'object' ? preSyncEntry?.fileId : (typeof preSyncEntry === 'string' ? preSyncEntry : undefined);
+
+    let file: { id: string; webViewLink?: string } | null = null;
+    if (preSyncFileId) {
+      // Use stored ID directly — no folder search needed
+      file = { id: preSyncFileId };
+    } else {
+      // Fall back to folder search by filename
+      const folderId = await resolveDriveFolderPath(accountToken, teacherId, folderPath);
+      file = await findFileInFolder(accountToken, folderId, filename);
+    }
 
     let isOfficialFormat = false;
     let loadedWorkbook: any = null;
