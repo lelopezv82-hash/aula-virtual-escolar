@@ -335,8 +335,8 @@ export async function POST(request: Request) {
     const existingSyncFiles = (courseForSync?.gDriveSyncFiles as Record<string, string> | null) || {};
     const storedFileId = existingSyncFiles[period];
 
-    let finalFileId: string;
-    let finalWebViewLink: string;
+    let finalFileId: string | undefined;
+    let finalWebViewLink: string = '';
 
     if (storedFileId) {
       // Try to update the existing file by its stored ID
@@ -358,8 +358,8 @@ export async function POST(request: Request) {
           teacherId,
           folderPath
         );
-        finalFileId = uploadRes.id;
-        finalWebViewLink = uploadRes.url;
+        finalFileId = uploadRes?.id;
+        finalWebViewLink = uploadRes?.url || '';
       }
     } else if (file) {
       // Found via folder search (old sync files before this fix)
@@ -375,9 +375,16 @@ export async function POST(request: Request) {
         teacherId,
         folderPath
       );
-      finalFileId = uploadRes.id;
-      finalWebViewLink = uploadRes.url;
+      finalFileId = uploadRes?.id;
+      finalWebViewLink = uploadRes?.url || '';
     }
+
+    // Validate that we got a real file ID before touching the DB
+    if (!finalFileId) {
+      throw new Error('El archivo fue procesado en Drive pero no se pudo obtener su ID. Intente nuevamente.');
+    }
+
+    const isNew = !storedFileId;
 
     // Save the file ID to DB so GET can find it instantly next time
     await prisma.course.update({
@@ -387,10 +394,14 @@ export async function POST(request: Request) {
       }
     });
 
+    const drivePath = `Aula Virtual Escolar / ${gradeName} / ${course.name} / ${period}`;
+
     return NextResponse.json({
       success: true,
-      message: storedFileId ? 'Planilla sincronizada correctamente.' : 'Planilla creada y sincronizada correctamente.',
-      webViewLink: finalWebViewLink
+      message: isNew ? 'Planilla creada y sincronizada correctamente.' : 'Planilla sincronizada correctamente.',
+      webViewLink: finalWebViewLink,
+      fileId: finalFileId,
+      drivePath
     });
 
 

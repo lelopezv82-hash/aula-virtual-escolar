@@ -109,6 +109,10 @@ export async function POST(request: Request) {
     }
 
     // Save the file ID to DB
+    if (!finalFileId) {
+      throw new Error('El archivo fue subido pero no se pudo obtener su ID de Google Drive. Intente nuevamente.');
+    }
+
     await prisma.course.update({
       where: { id: courseId },
       data: {
@@ -116,11 +120,14 @@ export async function POST(request: Request) {
       }
     });
 
+    const drivePath = `Aula Virtual Escolar / ${gradeName} / ${course.name} / ${period}`;
+
     return NextResponse.json({
       success: true,
       message: 'Archivo subido a Google Drive correctamente.',
       webViewLink: finalWebViewLink,
       fileId: finalFileId,
+      drivePath,
     });
 
   } catch (error: any) {
