@@ -811,6 +811,21 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       return null;
     };
 
+    const cleanForNumber = (header: string): string => {
+      return header.toLowerCase()
+        .replace(/\d+%/g, "")
+        .replace(/[^0-9]/g, " ")
+        .trim();
+    };
+
+    const getColumnNumber = (header: string): number | null => {
+      const nums = cleanForNumber(header).split(/\s+/).filter(x => x.length > 0);
+      if (nums.length > 0) {
+        return parseInt(nums[nums.length - 1], 10);
+      }
+      return null;
+    };
+
     const excelColsByCat: Record<string, number[]> = {
       EXAM: [],
       TASK: [],
@@ -832,49 +847,70 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       const platformTasks = byType(cat.type);
       const excelCols = excelColsByCat[cat.type];
 
-      platformTasks.forEach((task, index) => {
-        if (index < excelCols.length) {
-          const colIdx = excelCols[index];
-          mappings[task.id] = colIdx;
-          usedColIndices.add(colIdx);
+      platformTasks.forEach(task => {
+        mappings[task.id] = -1;
+      });
+
+      const freeExcelCols = new Set<number>(excelCols);
+      const unmappedTasks: TaskItem[] = [];
+
+      // Step 1: Match by exact task visual number
+      platformTasks.forEach(task => {
+        const taskNum = taskNumbers[task.id];
+        let matchedColIdx: number | null = null;
+
+        for (const colIdx of freeExcelCols) {
+          const colHeader = excelHeaders[colIdx];
+          const colNum = getColumnNumber(colHeader);
+          if (colNum === taskNum) {
+            matchedColIdx = colIdx;
+            break;
+          }
+        }
+
+        if (matchedColIdx !== null) {
+          mappings[task.id] = matchedColIdx;
+          freeExcelCols.delete(matchedColIdx);
+          usedColIndices.add(matchedColIdx);
         } else {
-          mappings[task.id] = -1;
+          unmappedTasks.push(task);
         }
       });
-    });
 
-    CATEGORIES.forEach(cat => {
-      if (cat.type === "FINAL" && !showFinal) return;
-      if (cat.type === "ATTEND" && !showAttend) return;
+      // Step 2: Match by task title (fuzzy string matching)
+      const tasksStillUnmapped: TaskItem[] = [];
+      unmappedTasks.forEach(task => {
+        const normTitle = (task.title || "").toLowerCase().trim();
+        if (normTitle.length < 3) {
+          tasksStillUnmapped.push(task);
+          return;
+        }
 
-      const platformTasks = byType(cat.type);
-      platformTasks.forEach(task => {
-        if (mappings[task.id] !== -1) return;
+        let matchedColIdx: number | null = null;
+        for (const colIdx of freeExcelCols) {
+          const colHeader = excelHeaders[colIdx].toLowerCase().trim();
+          if (colHeader.includes(normTitle) || normTitle.includes(colHeader)) {
+            matchedColIdx = colIdx;
+            break;
+          }
+        }
 
-        const platformLabel = `${cat.label} ${taskNumbers[task.id]}`;
-        const normLabel = platformLabel.toLowerCase();
-        const normTitle = (task.title || "").toLowerCase();
-        const numStr = String(taskNumbers[task.id]);
+        if (matchedColIdx !== null) {
+          mappings[task.id] = matchedColIdx;
+          freeExcelCols.delete(matchedColIdx);
+          usedColIndices.add(matchedColIdx);
+        } else {
+          tasksStillUnmapped.push(task);
+        }
+      });
 
-        const matchedIdx = excelHeaders.findIndex((h, idx) => {
-          if (usedColIndices.has(idx)) return false;
-          if (!h) return false;
-          const nh = h.toLowerCase().trim();
-          if (nh === "saber 30%" || nh === "hacer 50%" || nh === "ser 20%") return false;
-
-          const nhClean = nh.replace(/\d+%/g, "");
-          if (nh === normLabel || nh === normTitle || nh === numStr) return true;
-
-          const hasCategory = nhClean.includes(cat.label.toLowerCase());
-          const hasNum = nhClean.includes(` ${numStr}`) || nhClean.endsWith(`-${numStr}`) || nhClean.endsWith(` ${numStr}`) || nhClean.includes(`-${numStr}-`) || nhClean.includes(` ${numStr} `);
-          if (hasCategory && hasNum) return true;
-
-          return false;
-        });
-
-        if (matchedIdx !== -1) {
-          mappings[task.id] = matchedIdx;
-          usedColIndices.add(matchedIdx);
+      // Step 3: Fallback to sequential position for remaining unmapped columns
+      const sortedFreeCols = Array.from(freeExcelCols).sort((a, b) => a - b);
+      tasksStillUnmapped.forEach((task, index) => {
+        if (index < sortedFreeCols.length) {
+          const colIdx = sortedFreeCols[index];
+          mappings[task.id] = colIdx;
+          usedColIndices.add(colIdx);
         }
       });
     });
