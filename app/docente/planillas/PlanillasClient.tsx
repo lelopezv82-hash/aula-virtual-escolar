@@ -793,6 +793,95 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     XLSX.writeFile(wb, `Sincro_Planilla_${selectedCourse?.name}_${selectedPeriod}.xlsx`);
   };
 
+  const buildExcelMappings = (excelHeaders: string[], studentColIdx: number): Record<string, number> => {
+    const mappings: Record<string, number> = {};
+    const usedColIndices = new Set<number>();
+    if (studentColIdx !== -1) usedColIndices.add(studentColIdx);
+
+    const getColCategory = (header: string): string | null => {
+      const h = header.toLowerCase();
+      if (h.includes("def") || h.includes("promedio") || h.includes("desempeño") || h.includes("total") || h.includes("nota final") || h.includes("planilla")) {
+        return null;
+      }
+      if (h.includes("saber") || h.includes("exam") || h.includes("evaluaci") || h.includes("quiz") || h.includes("prueba")) return "EXAM";
+      if (h.includes("hacer") || h.includes("taller") || h.includes("tarea") || h.includes("actividad") || h.includes("trabajo") || h.includes("proyecto") || h.includes("clase")) return "TASK";
+      if (h.includes("ser") || h.includes("actit") || h.includes("auto") || h.includes("coev") || h.includes("portamiento") || h.includes("disciplina")) return "SER";
+      if (h.includes("final") || h.includes("examen f")) return "FINAL";
+      if (h.includes("asistencia") || h.includes("asist") || h.includes("falta")) return "ATTEND";
+      return null;
+    };
+
+    const excelColsByCat: Record<string, number[]> = {
+      EXAM: [],
+      TASK: [],
+      SER: [],
+      FINAL: [],
+      ATTEND: []
+    };
+
+    excelHeaders.forEach((h, idx) => {
+      if (idx === studentColIdx) return;
+      const cat = getColCategory(h);
+      if (cat) excelColsByCat[cat].push(idx);
+    });
+
+    CATEGORIES.forEach(cat => {
+      if (cat.type === "FINAL" && !showFinal) return;
+      if (cat.type === "ATTEND" && !showAttend) return;
+
+      const platformTasks = byType(cat.type);
+      const excelCols = excelColsByCat[cat.type];
+
+      platformTasks.forEach((task, index) => {
+        if (index < excelCols.length) {
+          const colIdx = excelCols[index];
+          mappings[task.id] = colIdx;
+          usedColIndices.add(colIdx);
+        } else {
+          mappings[task.id] = -1;
+        }
+      });
+    });
+
+    CATEGORIES.forEach(cat => {
+      if (cat.type === "FINAL" && !showFinal) return;
+      if (cat.type === "ATTEND" && !showAttend) return;
+
+      const platformTasks = byType(cat.type);
+      platformTasks.forEach(task => {
+        if (mappings[task.id] !== -1) return;
+
+        const platformLabel = `${cat.label} ${taskNumbers[task.id]}`;
+        const normLabel = platformLabel.toLowerCase();
+        const normTitle = (task.title || "").toLowerCase();
+        const numStr = String(taskNumbers[task.id]);
+
+        const matchedIdx = excelHeaders.findIndex((h, idx) => {
+          if (usedColIndices.has(idx)) return false;
+          if (!h) return false;
+          const nh = h.toLowerCase().trim();
+          if (nh === "saber 30%" || nh === "hacer 50%" || nh === "ser 20%") return false;
+
+          const nhClean = nh.replace(/\d+%/g, "");
+          if (nh === normLabel || nh === normTitle || nh === numStr) return true;
+
+          const hasCategory = nhClean.includes(cat.label.toLowerCase());
+          const hasNum = nhClean.includes(` ${numStr}`) || nhClean.endsWith(`-${numStr}`) || nhClean.endsWith(` ${numStr}`) || nhClean.includes(`-${numStr}-`) || nhClean.includes(` ${numStr} `);
+          if (hasCategory && hasNum) return true;
+
+          return false;
+        });
+
+        if (matchedIdx !== -1) {
+          mappings[task.id] = matchedIdx;
+          usedColIndices.add(matchedIdx);
+        }
+      });
+    });
+
+    return mappings;
+  };
+
   const importFromExcelSync = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -805,17 +894,14 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
         
-        // Convert to 2D Array
         const rows = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1 });
         if (rows.length < 2) {
           alert("El archivo Excel no tiene suficientes filas.");
           return;
         }
 
-        // Detect if it is the synchronizable template with hidden task IDs
         const row1 = rows[0];
         if (row1 && row1[0] === "STUDENT_ID" && row1[1] === "STUDENT_NAME") {
-          // Process synchronizable template directly (original logic)
           const taskIds = row1.slice(3);
           const updatedGradesGrid = { ...gradesGrid };
 
@@ -852,8 +938,6 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           return;
         }
 
-        // Custom Excel Sheet detected!
-        // Find header row using a smart scoring algorithm
         let headerIndex = 0;
         let maxScore = -999;
         
@@ -864,30 +948,27 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           let score = 0;
           let hasStudentCol = false;
           let nonArr = r.filter(cell => cell !== undefined && cell !== null && String(cell).trim() !== "");
-          score += Math.min(10, nonArr.length); // Up to 10 points for number of columns filled
+          score += Math.min(10, nonArr.length);
           
           r.forEach(cell => {
             if (cell === undefined || cell === null) return;
             const val = String(cell).toLowerCase();
             
-            // Student name column indicators
             if (val.includes("nombre") || val.includes("estudiante") || val.includes("alumno") || val.includes("completo") || val.includes("nombres") || val.includes("estudiantes")) {
               hasStudentCol = true;
             }
             
-            // Evaluation indicators
             if (val.includes("saber") || val.includes("hacer") || val.includes("ser") || val.includes("nota") || val.includes("calificacion") || val.includes("taller") || val.includes("tarea") || val.includes("examen") || val.includes("evaluacion") || val.includes("def") || val.includes("promedio") || val.includes("asistencia")) {
               score += 3;
             }
             
-            // Meta row indicators (negative)
             if (val.includes("institucion") || val.includes("educativa") || val.includes("colegio") || val.includes("escuela") || val.includes("docente") || val.includes("profesor") || val.includes("asignatura") || val.includes("materia") || val.includes("periodo") || val.includes("curso") || val.includes("grado") || val.includes("planilla") || val.includes("consolidado")) {
               score -= 5;
             }
           });
           
           if (hasStudentCol) {
-            score += 15; // heavily prioritize rows with a student column
+            score += 15;
           }
           
           if (score > maxScore && nonArr.length > 1) {
@@ -942,70 +1023,15 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           excelHeaders.push(combined);
         }
         
-        // Auto-select student column (store index)
         const studentColIdx = excelHeaders.findIndex(h => {
           if (!h) return false;
           const nh = h.toLowerCase();
           return nh.includes("nombre") || nh.includes("estudiante") || nh.includes("alumno") || nh.includes("estudiantes") || nh.includes("nombres") || nh.includes("completo");
         });
 
-        // Auto-select mappings for each task (store index, -1 = don't import)
-        // Each Excel column can only be claimed by ONE platform task.
-        const mappings: Record<string, number> = {};
-        const usedColIndices = new Set<number>();
-        // Reserve the student column so it's never auto-mapped to a task
-        if (studentColIdx !== -1) usedColIndices.add(studentColIdx);
 
-        CATEGORIES.forEach(cat => {
-          if (cat.type === "FINAL" && !showFinal) return;
-          if (cat.type === "ATTEND" && !showAttend) return;
-          const catTasks = byType(cat.type);
-          catTasks.forEach(t => {
-            const platformLabel = `${cat.label} ${taskNumbers[t.id]}`;
-            const normLabel = platformLabel.toLowerCase();
-            const normTitle = (t.title || "").toLowerCase();
-            const numStr = String(taskNumbers[t.id]);
-
-            // Try to match column header (skip weight-only label cols like "SABER 30%")
-            const matchedIdx = excelHeaders.findIndex((h, idx) => {
-              if (usedColIndices.has(idx)) return false; // already claimed by another task
-              if (!h) return false;
-              const nh = h.toLowerCase().trim();
-              if (nh === "saber 30%" || nh === "hacer 50%" || nh === "ser 20%") return false;
-
-              // Clean percentage to avoid e.g. "30%" matching digit "3"
-              const nhClean = nh.replace(/\d+%/g, "");
-
-              // Exact matches
-              if (nh === normLabel || nh === normTitle || nh === numStr) return true;
-
-              // e.g. "saber 30% - 1" contains "saber" and "1"
-              const hasCategory = nhClean.includes(cat.label.toLowerCase());
-              const hasNum = nhClean.includes(` ${numStr}`) || nhClean.endsWith(`-${numStr}`) || nhClean.endsWith(` ${numStr}`) || nhClean.includes(`-${numStr}-`) || nhClean.includes(` ${numStr} `) || nhClean.endsWith(` - ${numStr}`);
-              if (hasCategory && hasNum) return true;
-
-              // Fallback to simple number match ONLY if the column doesn't mention another category
-              const mentionsOtherCategory = CATEGORIES.some(otherCat => {
-                if (otherCat.type === cat.type) return false;
-                return nhClean.includes(otherCat.label.toLowerCase());
-              });
-
-              if (!mentionsOtherCategory) {
-                if (nhClean === numStr || nhClean === `nota ${numStr}` || nhClean === `nota_${numStr}` || nhClean.endsWith(` - ${numStr}`) || nhClean.endsWith(`-${numStr}`) || nhClean.endsWith(` ${numStr}`)) {
-                  return true;
-                }
-              }
-
-              if (normTitle.length > 2) {
-                if (nhClean.includes(normTitle) || normTitle.includes(nhClean)) return true;
-              }
-              return nhClean.includes(normLabel);
-            });
-
-            if (matchedIdx !== -1) usedColIndices.add(matchedIdx); // mark column as taken
-            mappings[t.id] = matchedIdx; // -1 if no match
-          });
-        });
+        // Use smart sequential-positional category mapping instead of complex text parsing
+        const mappings = buildExcelMappings(excelHeaders, studentColIdx);
 
         // If student column was detected, skip the wizard and go straight to preview
         if (studentColIdx !== -1) {
@@ -1125,62 +1151,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       return nh.includes("nombre") || nh.includes("estudiante") || nh.includes("alumno") || nh.includes("estudiantes") || nh.includes("nombres") || nh.includes("completo");
     });
 
-    // Auto-select mappings for each task (store index, -1 = don't import)
-    // Each Excel column can only be claimed by ONE platform task.
-    const mappings: Record<string, number> = {};
-    const usedColIndicesH = new Set<number>();
-    if (studentColIdx !== -1) usedColIndicesH.add(studentColIdx);
-
-    CATEGORIES.forEach(cat => {
-      if (cat.type === "FINAL" && !showFinal) return;
-      if (cat.type === "ATTEND" && !showAttend) return;
-      const catTasks = byType(cat.type);
-      catTasks.forEach(t => {
-        const platformLabel = `${cat.label} ${taskNumbers[t.id]}`;
-        const normLabel = platformLabel.toLowerCase();
-        const normTitle = (t.title || "").toLowerCase();
-        const numStr = String(taskNumbers[t.id]);
-
-        // Try to match column header (skip weight-only label cols like "SABER 30%")
-        const matchedIdx = excelHeaders.findIndex((h, idx) => {
-          if (usedColIndicesH.has(idx)) return false; // already claimed
-          if (!h) return false;
-          const nh = h.toLowerCase().trim();
-          if (nh === "saber 30%" || nh === "hacer 50%" || nh === "ser 20%") return false;
-
-          // Clean percentage to avoid e.g. "30%" matching digit "3"
-          const nhClean = nh.replace(/\d+%/g, "");
-
-          // Exact matches
-          if (nh === normLabel || nh === normTitle) return true;
-
-          // e.g. "saber 30% - 1" contains "saber" and "1"
-          const hasCategory = nhClean.includes(cat.label.toLowerCase());
-          const hasNum = nhClean.includes(` ${numStr}`) || nhClean.endsWith(`-${numStr}`) || nhClean.endsWith(` ${numStr}`) || nhClean.endsWith(` - ${numStr}`);
-          if (hasCategory && hasNum) return true;
-
-          // Fallback to simple number match ONLY if the column doesn't mention another category
-          const mentionsOtherCategory = CATEGORIES.some(otherCat => {
-            if (otherCat.type === cat.type) return false;
-            return nhClean.includes(otherCat.label.toLowerCase());
-          });
-
-          if (!mentionsOtherCategory) {
-            if (nhClean === numStr || nhClean === `nota ${numStr}` || nhClean === `nota_${numStr}` || nhClean.endsWith(` - ${numStr}`) || nhClean.endsWith(`-${numStr}`) || nhClean.endsWith(` ${numStr}`)) {
-              return true;
-            }
-          }
-
-          if (normTitle.length > 2) {
-            if (nh.includes(normTitle)) return true;
-          }
-          return nh.includes(normLabel);
-        });
-
-        if (matchedIdx !== -1) usedColIndicesH.add(matchedIdx); // mark column as taken
-        mappings[t.id] = matchedIdx; // -1 if no match
-      });
-    });
+    // Use smart sequential-positional category mapping instead of complex text parsing
+    const mappings = buildExcelMappings(excelHeaders, studentColIdx);
 
     setCustomExcelData({ 
       rows, 
