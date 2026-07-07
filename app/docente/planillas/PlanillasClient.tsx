@@ -1007,10 +1007,58 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           });
         });
 
-        // Open mapping wizard
-        setCustomExcelData({ rows, headers: excelHeaders, headerIndex, workbook: wb, fileName: file.name });
-        setExcelStudentCol(studentColIdx);
-        setExcelTaskMappings(mappings);
+        // If student column was detected, skip the wizard and go straight to preview
+        if (studentColIdx !== -1) {
+          // Store state first, then trigger preview immediately
+          setCustomExcelData({ rows, headers: excelHeaders, headerIndex, workbook: wb, fileName: file.name });
+          setExcelStudentCol(studentColIdx);
+          setExcelTaskMappings(mappings);
+          // computeSyncPreview reads from state, so we compute inline here
+          const activeMappings: Record<string, number> = {};
+          Object.entries(mappings).forEach(([taskId, colIdx]) => {
+            if (colIdx !== undefined && colIdx !== -1) activeMappings[taskId] = colIdx;
+          });
+          let toAdd = 0, toSkip = 0, unmatched = 0;
+          for (let i = headerIndex + 1; i < rows.length; i++) {
+            const row = rows[i];
+            if (!row || row.length === 0) continue;
+            const excelName = row[studentColIdx];
+            if (!excelName || String(excelName).trim() === "") continue;
+            const normExcel = _normalizeName(String(excelName));
+            let studentMatch = students.find(s => _normalizeName(s.name) === normExcel) ?? null;
+            if (!studentMatch) {
+              const excelTokens = normExcel.split(" ").filter(t => t.length > 2);
+              if (excelTokens.length > 0) {
+                let bestStudent: typeof students[number] | null = null;
+                let maxShared = 0;
+                students.forEach(s => {
+                  const st = _normalizeName(s.name).split(" ").filter(t => t.length > 2);
+                  const shared = st.filter(t => excelTokens.includes(t)).length;
+                  if (shared > maxShared) { maxShared = shared; bestStudent = s; }
+                });
+                if (maxShared >= 2 || (maxShared >= 1 && excelTokens.length === 1)) studentMatch = bestStudent;
+              }
+            }
+            if (!studentMatch) { unmatched++; continue; }
+            Object.entries(activeMappings).forEach(([taskId, excelColIdx]) => {
+              if (excelColIdx >= excelHeaders.length) return;
+              const gradeVal = row[excelColIdx];
+              if (gradeVal === undefined || gradeVal === null || String(gradeVal).trim() === "") return;
+              const num = parseFloat(String(gradeVal).replace(",", ".").trim());
+              if (isNaN(num) || num < 1.0 || num > 5.0) return;
+              const existingGrade = gradesGrid[studentMatch!.id]?.[taskId];
+              const alreadyHasGrade = existingGrade !== undefined && existingGrade !== null && String(existingGrade).trim() !== "";
+              if (alreadyHasGrade) toSkip++; else toAdd++;
+            });
+          }
+          setSyncPreview({ toAdd, toSkip, unmatched });
+          setSyncConfirmOpen(true);
+        } else {
+          // Auto-detection failed: open minimal fallback wizard
+          setCustomExcelData({ rows, headers: excelHeaders, headerIndex, workbook: wb, fileName: file.name });
+          setExcelStudentCol(studentColIdx);
+          setExcelTaskMappings(mappings);
+        }
 
       } catch (err: any) {
         console.error(err);
@@ -2661,159 +2709,97 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       )}
 
       {/* Custom Excel Synchronization Mapping Modal */}
+      {/* ── Fallback wizard: only shown when auto-detection couldn't find student column ── */}
       {customExcelData && (
         <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50 animate-fade-in px-4">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-2xl shadow-2xl animate-scale-in max-h-[85vh] flex flex-col" style={{ color: "var(--text-primary)" }}>
-            
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-lg shadow-2xl animate-scale-in" style={{ color: "var(--text-primary)" }}>
+
             {/* Header */}
-            <div className="flex justify-between items-center mb-4 pb-2 border-b" style={{ borderColor: "var(--border-color)" }}>
+            <div className="flex justify-between items-center mb-4 pb-3 border-b" style={{ borderColor: "var(--border-color)" }}>
               <div>
                 <h3 className="font-extrabold text-lg text-gray-800 dark:text-gray-100 flex items-center gap-2">
-                  <FileSpreadsheet className="text-green-600 animate-bounce" size={22} /> Sincronizar Excel Personalizado
+                  <FileSpreadsheet className="text-orange-500" size={22} /> Necesito un poco de ayuda
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Asocia las columnas de tu archivo local con las evaluaciones de la plataforma.
+                  No pude detectar automáticamente la columna de nombres en <strong>{customExcelData.fileName}</strong>.
                 </p>
               </div>
-              <button 
-                onClick={() => setCustomExcelData(null)} 
+              <button
+                onClick={() => setCustomExcelData(null)}
                 className="text-gray-400 hover:text-red-500 rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               >
                 <X size={20} />
               </button>
             </div>
 
-            {/* Scrollable Form */}
-            <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-4 text-xs">
-              
+            <div className="flex flex-col gap-4 text-xs">
+
               {/* Header Row Selector */}
               <div className="p-4 rounded-xl border bg-slate-50 dark:bg-slate-800/30 flex flex-col gap-2" style={{ borderColor: "var(--border-color)" }}>
-                <label className="font-extrabold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-                  📌 ¿En qué fila están los encabezados (nombres de las columnas)?
+                <label className="font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                  <span className="text-base">📋</span> ¿En qué fila están los títulos de las columnas?
                 </label>
-                <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                  Si tu Excel tiene filas de título o vacías al inicio, selecciona la fila que tiene los nombres de las columnas (ej: Nombres, Notas, Tareas).
-                </p>
                 <select
                   value={customExcelData.headerIndex}
                   onChange={(e) => handleHeaderRowChange(parseInt(e.target.value))}
-                  className="w-full p-2.5 rounded-lg border bg-white dark:bg-gray-800 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 mt-1"
+                  className="w-full p-2.5 rounded-lg border bg-white dark:bg-gray-800 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-orange-400 mt-1"
                   style={{ borderColor: "var(--border-color)", color: "var(--text-primary)" }}
                 >
                   {customExcelData.rows.slice(0, 15).map((row, idx) => {
                     const rowPreview = row
                       .filter(cell => cell !== undefined && cell !== null && String(cell).trim() !== "")
-                      .slice(0, 4)
+                      .slice(0, 5)
                       .join(" | ");
                     return (
                       <option key={idx} value={idx}>
-                        Fila {idx + 1}: {rowPreview ? (rowPreview.length > 80 ? rowPreview.substring(0, 80) + "..." : rowPreview) : "(Vacía)"}
+                        Fila {idx + 1}: {rowPreview ? (rowPreview.length > 70 ? rowPreview.substring(0, 70) + "..." : rowPreview) : "(Vacía)"}
                       </option>
                     );
                   })}
                 </select>
               </div>
 
-              {/* Student Name Column Selector */}
-              <div className="p-4 rounded-xl border bg-slate-50 dark:bg-slate-800/30 flex flex-col gap-2" style={{ borderColor: "var(--border-color)" }}>
-                <label className="font-extrabold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-                  1. Columna de Nombres de Estudiantes
+              {/* Student Column Selector */}
+              <div className="p-4 rounded-xl border bg-orange-50 dark:bg-orange-900/20 flex flex-col gap-2" style={{ borderColor: "rgba(251,146,60,0.4)" }}>
+                <label className="font-bold text-orange-700 dark:text-orange-300 flex items-center gap-2">
+                  <span className="text-base">👤</span> ¿Cuál columna tiene los nombres de los estudiantes?
                 </label>
-                <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                  Selecciona la columna del Excel que contiene los nombres completos de tus alumnos.
-                </p>
                 <select
                   value={excelStudentCol}
                   onChange={(e) => setExcelStudentCol(Number(e.target.value))}
-                  className="w-full p-2.5 rounded-lg border bg-white dark:bg-gray-800 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 mt-1"
-                  style={{ borderColor: "var(--border-color)", color: "var(--text-primary)" }}
+                  className="w-full p-2.5 rounded-lg border bg-white dark:bg-gray-800 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-orange-400 mt-1"
+                  style={{ borderColor: "rgba(251,146,60,0.5)", color: "var(--text-primary)" }}
                 >
-                  <option value={-1}>-- Selecciona una columna --</option>
+                  <option value={-1}>-- Selecciona la columna de nombres --</option>
                   {customExcelData.headers.map((h, idx) => (
                     <option key={idx} value={idx}>{colLetter(idx)}{customExcelData.headerIndex + 1}: {h}</option>
                   ))}
                 </select>
-              </div>
-
-              {/* Platform Task Mapping Grid */}
-              <div className="flex flex-col gap-3">
-                <label className="font-extrabold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-                  2. Asociar Evaluaciones
-                </label>
-                <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">
-                  Asocia cada columna de tu Excel local con la respectiva actividad en la plataforma:
+                <p className="text-[11px] text-orange-600 dark:text-orange-400">
+                  Las evaluaciones se detectan automáticamente por el nombre de las columnas.
                 </p>
-                
-                <div className="border rounded-xl overflow-hidden" style={{ borderColor: "var(--border-color)" }}>
-                  <table className="w-full border-collapse text-left text-xs">
-                    <thead>
-                      <tr className="bg-slate-100 dark:bg-slate-800 border-b font-bold text-gray-600 dark:text-gray-300" style={{ borderColor: "var(--border-color)" }}>
-                        <th className="p-3">Evaluación en Plataforma</th>
-                        <th className="p-3">Columna en tu Excel</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                      {CATEGORIES.map(cat => {
-                        if (cat.type === "FINAL" && !showFinal) return null;
-                        if (cat.type === "ATTEND" && !showAttend) return null;
-                        const catTasks = byType(cat.type);
-                        
-                        return catTasks.map(t => {
-                          const platformLabel = `${cat.label} ${taskNumbers[t.id]}`;
-                          return (
-                            <tr key={t.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/10">
-                              <td className="p-3 font-semibold text-gray-700 dark:text-gray-300">
-                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-black mr-2 uppercase ${cat.color.badge}`}>
-                                  {platformLabel}
-                                </span>
-                                {t.title}
-                              </td>
-                              <td className="p-2 w-72">
-                                <select
-                                  value={excelTaskMappings[t.id] ?? -1}
-                                  onChange={(e) => {
-                                    const val = Number(e.target.value);
-                                    setExcelTaskMappings(prev => ({ ...prev, [t.id]: val }));
-                                  }}
-                                  className="w-full p-2 rounded-lg border bg-white dark:bg-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold"
-                                  style={{ borderColor: "var(--border-color)", color: "var(--text-primary)" }}
-                                >
-                                  <option value={-1}>-- No importar esta columna --</option>
-                                  {customExcelData.headers.map((h, idx) => (
-                                    <option key={idx} value={idx}>{colLetter(idx)}{customExcelData.headerIndex + 1}: {h}</option>
-                                  ))}
-                                </select>
-                              </td>
-                            </tr>
-                          );
-                        });
-                      })}
-                    </tbody>
-                  </table>
-                </div>
               </div>
 
             </div>
 
             {/* Actions */}
             <div className="flex justify-end gap-2 pt-4 border-t mt-4" style={{ borderColor: "var(--border-color)" }}>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setCustomExcelData(null)}
                 className="btn btn-secondary text-xs py-2 px-4"
               >
                 Cancelar
               </button>
-
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={computeSyncPreview}
                 disabled={excelStudentCol === -1}
                 className="btn btn-primary text-xs py-2 px-6 font-bold flex items-center gap-2 transition-all hover:brightness-110"
                 style={{ background: "linear-gradient(135deg, #f97316, #ea580c)", borderColor: "#ea580c", opacity: excelStudentCol === -1 ? 0.5 : 1 }}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                Sincronizar Calificaciones
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Ver preview
               </button>
             </div>
 
