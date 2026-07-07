@@ -3,7 +3,6 @@ const prisma = new PrismaClient();
 
 async function main() {
   const courses = await prisma.course.findMany({
-    where: { name: 'fisica' },
     select: {
       id: true,
       name: true,

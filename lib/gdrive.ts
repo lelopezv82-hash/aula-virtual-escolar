@@ -103,6 +103,40 @@ export async function getGoogleAccessToken(teacherId: string): Promise<string | 
 }
 
 /**
+ * Gets a valid Google access token for a specific account.
+ */
+export async function getGoogleAccessTokenForAccount(accountId: string): Promise<string | null> {
+  const account = await prisma.googleDriveAccount.findUnique({
+    where: { id: accountId },
+    select: {
+      id: true,
+      googleAccessToken: true,
+      googleRefreshToken: true,
+      googleTokenExpiry: true,
+    },
+  });
+
+  if (!account) return null;
+
+  if (account.googleAccessToken && account.googleTokenExpiry) {
+    const isExpired = new Date(account.googleTokenExpiry).getTime() - 5 * 60 * 1000 < Date.now();
+    if (!isExpired) {
+      return account.googleAccessToken;
+    }
+  }
+
+  if (account.googleRefreshToken) {
+    try {
+      return await refreshGoogleToken(account.id, account.googleRefreshToken);
+    } catch (error) {
+      console.error(`Error refreshing token for account ${account.id}:`, error);
+    }
+  }
+
+  return null;
+}
+
+/**
  * Fetches all Google Drive accounts for a teacher with their current storage spaces.
  */
 export async function getAccountsWithSpace(teacherId: string): Promise<AccountSpace[]> {

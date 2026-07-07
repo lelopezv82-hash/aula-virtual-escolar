@@ -5,11 +5,14 @@ import prisma from '@/lib/prisma';
 import * as XLSX from 'xlsx';
 import { 
   getGoogleAccessToken, 
+  getGoogleAccessTokenForAccount,
   resolveDriveFolderPath, 
   findFileInFolder, 
   downloadDriveFile, 
   updateDriveFile,
-  uploadToGoogleDrive
+  uploadToGoogleDrive,
+  getAccountsWithSpace,
+  AccountSpace
 } from '@/lib/gdrive';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
@@ -32,14 +35,14 @@ export async function GET(request: Request) {
     if (payload.role !== "TEACHER") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const teacherId = payload.id as string;
-    const gAccessToken = await getGoogleAccessToken(teacherId);
+    const defaultAccessToken = await getGoogleAccessToken(teacherId);
 
     // If no valid token → Drive is not linked
-    if (!gAccessToken) {
+    if (!defaultAccessToken) {
       return NextResponse.json({ isConnected: false });
     }
 
-    // Drive IS connected — check if we have a stored file ID for this course+period
+    // Drive IS connected — check if we have a stored file details for this course+period
     try {
       const course = await prisma.course.findUnique({
         where: { id: courseId },
@@ -50,19 +53,35 @@ export async function GET(request: Request) {
         return NextResponse.json({ isConnected: true, fileExists: false });
       }
 
-      // Look up stored Drive file ID
-      const syncFiles = (course.gDriveSyncFiles as Record<string, string> | null) || {};
-      const storedFileId = syncFiles[period];
+      // Look up stored Drive file details
+      const syncFiles = (course.gDriveSyncFiles as Record<string, any> | null) || {};
+      const fileEntry = syncFiles[period];
 
-      if (!storedFileId) {
-        // No stored ID → file has never been created for this period
+      if (!fileEntry) {
+        // No stored entry → file has never been created for this period
         return NextResponse.json({ isConnected: true, fileExists: false });
+      }
+
+      let storedFileId: string;
+      let targetAccessToken = defaultAccessToken;
+
+      if (typeof fileEntry === 'object' && fileEntry !== null) {
+        storedFileId = fileEntry.fileId;
+        if (fileEntry.accountId) {
+          const accToken = await getGoogleAccessTokenForAccount(fileEntry.accountId);
+          if (accToken) {
+            targetAccessToken = accToken;
+          }
+        }
+      } else {
+        // Old string format fallback
+        storedFileId = fileEntry;
       }
 
       // Verify the file still exists in Drive by fetching its metadata
       const fileRes = await fetch(
         `https://www.googleapis.com/drive/v3/files/${storedFileId}?fields=id,name,webViewLink`,
-        { headers: { Authorization: `Bearer ${gAccessToken}` } }
+        { headers: { Authorization: `Bearer ${targetAccessToken}` } }
       );
 
       if (fileRes.ok) {
@@ -74,13 +93,16 @@ export async function GET(request: Request) {
           filename: fileData.name
         });
       } else {
-        // File was deleted from Drive — clear the stored ID
-        const updatedSyncFiles = { ...syncFiles };
-        delete updatedSyncFiles[period];
-        await prisma.course.update({
-          where: { id: courseId },
-          data: { gDriveSyncFiles: updatedSyncFiles }
-        });
+        // If it returns 404, we are sure the file does not exist.
+        // Otherwise (e.g. 401, 500, 403), it might be a temporary permission error, so do NOT delete the DB record.
+        if (fileRes.status === 404) {
+          const updatedSyncFiles = { ...syncFiles };
+          delete updatedSyncFiles[period];
+          await prisma.course.update({
+            where: { id: courseId },
+            data: { gDriveSyncFiles: updatedSyncFiles }
+          });
+        }
         return NextResponse.json({ isConnected: true, fileExists: false });
       }
     } catch (driveErr) {
@@ -104,10 +126,10 @@ export async function POST(request: Request) {
     if (payload.role !== "TEACHER") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const teacherId = payload.id as string;
-    const gAccessToken = await getGoogleAccessToken(teacherId);
+    const accounts = await getAccountsWithSpace(teacherId);
 
-    if (!gAccessToken) {
-      return NextResponse.json({ error: 'Google Drive no vinculado' }, { status: 400 });
+    if (accounts.length === 0) {
+      return NextResponse.json({ error: 'Google Drive no vinculado o sin cuentas activas' }, { status: 400 });
     }
 
     const body = await request.json();
@@ -137,6 +159,27 @@ export async function POST(request: Request) {
     if (!course || course.teacherId !== teacherId) {
       return NextResponse.json({ error: 'Curso no encontrado' }, { status: 404 });
     }
+
+    // Get the account associated with the file or select the one with most space
+    const existingSyncFiles = (course.gDriveSyncFiles as Record<string, any> | null) || {};
+    const fileEntry = existingSyncFiles[period];
+
+    let selectedAccount = accounts[0];
+    if (fileEntry && typeof fileEntry === 'object' && fileEntry.accountId) {
+      const match = accounts.find((a: AccountSpace) => a.id === fileEntry.accountId);
+      if (match) {
+        selectedAccount = match;
+      } else {
+        // Fallback to sorting by free space if the associated account is no longer linked
+        accounts.sort((a: AccountSpace, b: AccountSpace) => b.freeSpace - a.freeSpace);
+        selectedAccount = accounts[0];
+      }
+    } else {
+      accounts.sort((a: AccountSpace, b: AccountSpace) => b.freeSpace - a.freeSpace);
+      selectedAccount = accounts[0];
+    }
+
+    const accountToken = selectedAccount.accessToken;
 
     // Deduplicate students
     const studentMap = new Map<string, { id: string; name: string; groupName: string }>();
@@ -177,13 +220,13 @@ export async function POST(request: Request) {
     const folderPath = `${gradeName}/${course.name}/${period}`;
     const filename = `Sincro_Planilla_${course.name}_${period}.xlsx`;
 
-    const folderId = await resolveDriveFolderPath(gAccessToken, teacherId, folderPath);
-    const file = await findFileInFolder(gAccessToken, folderId, filename);
+    const folderId = await resolveDriveFolderPath(accountToken, teacherId, folderPath);
+    const file = await findFileInFolder(accountToken, folderId, filename);
 
     // 3. Process existing file (if any) to read grades
     if (file) {
       try {
-        const fileBuffer = await downloadDriveFile(gAccessToken, file.id);
+        const fileBuffer = await downloadDriveFile(accountToken, file.id);
         const workbook = XLSX.read(fileBuffer, { type: "buffer" });
         const sheetName = workbook.SheetNames[0];
         const ws = workbook.Sheets[sheetName];
@@ -332,8 +375,15 @@ export async function POST(request: Request) {
       where: { id: courseId },
       select: { gDriveSyncFiles: true }
     });
-    const existingSyncFiles = (courseForSync?.gDriveSyncFiles as Record<string, string> | null) || {};
-    const storedFileId = existingSyncFiles[period];
+    const freshSyncFiles = (courseForSync?.gDriveSyncFiles as Record<string, any> | null) || {};
+    const freshFileEntry = freshSyncFiles[period];
+
+    let storedFileId: string | undefined;
+    if (freshFileEntry && typeof freshFileEntry === 'object') {
+      storedFileId = freshFileEntry.fileId;
+    } else if (typeof freshFileEntry === 'string') {
+      storedFileId = freshFileEntry;
+    }
 
     let finalFileId: string | undefined;
     let finalWebViewLink: string = '';
@@ -341,10 +391,10 @@ export async function POST(request: Request) {
     if (storedFileId) {
       // Try to update the existing file by its stored ID
       try {
-        await updateDriveFile(gAccessToken, storedFileId, newBuffer, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        await updateDriveFile(accountToken, storedFileId, newBuffer, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         const metaRes = await fetch(
           `https://www.googleapis.com/drive/v3/files/${storedFileId}?fields=id,webViewLink`,
-          { headers: { Authorization: `Bearer ${gAccessToken}` } }
+          { headers: { Authorization: `Bearer ${accountToken}` } }
         );
         const metaData = metaRes.ok ? await metaRes.json() : {};
         finalFileId = storedFileId;
@@ -363,7 +413,7 @@ export async function POST(request: Request) {
       }
     } else if (file) {
       // Found via folder search (old sync files before this fix)
-      await updateDriveFile(gAccessToken, file.id, newBuffer, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      await updateDriveFile(accountToken, file.id, newBuffer, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       finalFileId = file.id;
       finalWebViewLink = file.webViewLink || '';
     } else {
@@ -386,11 +436,17 @@ export async function POST(request: Request) {
 
     const isNew = !storedFileId;
 
-    // Save the file ID to DB so GET can find it instantly next time
+    // Save the file details to DB so GET can find it instantly next time
     await prisma.course.update({
       where: { id: courseId },
       data: {
-        gDriveSyncFiles: { ...existingSyncFiles, [period]: finalFileId }
+        gDriveSyncFiles: {
+          ...freshSyncFiles,
+          [period]: {
+            fileId: finalFileId,
+            accountId: selectedAccount.id
+          }
+        }
       }
     });
 

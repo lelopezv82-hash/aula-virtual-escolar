@@ -116,7 +116,13 @@ export async function POST(request: Request) {
     await prisma.course.update({
       where: { id: courseId },
       data: {
-        gDriveSyncFiles: { ...existingSyncFiles, [period]: finalFileId }
+        gDriveSyncFiles: {
+          ...existingSyncFiles,
+          [period]: {
+            fileId: finalFileId,
+            accountId: selectedAccount.id
+          }
+        }
       }
     });
 
