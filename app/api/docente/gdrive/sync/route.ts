@@ -253,7 +253,9 @@ export async function POST(request: Request) {
           if (metadataRow && metadataRow[0] === "STUDENT_ID" && metadataRow[1] === "STUDENT_NAME") {
             const taskIds = metadataRow.slice(3);
             const submissionsToUpsert: Array<{ studentId: string; taskId: string; grade: number }> = [];
-            const submissionsToDelete: Array<{ studentId: string; taskId: string }> = [];
+            // NOTE: We never delete grades from DB via Drive sync.
+            // Empty cells in Drive are ignored — they do NOT erase platform grades.
+            // To clear a grade, the teacher must do so directly in the platform.
 
             for (let i = 2; i < rows.length; i++) {
               const row = rows[i];
@@ -270,9 +272,8 @@ export async function POST(request: Request) {
                 const colIndex = index + 3;
                 const gradeVal = row[colIndex];
 
-                if (gradeVal === undefined || gradeVal === null || String(gradeVal).trim() === "") {
-                  submissionsToDelete.push({ studentId, taskId });
-                } else {
+                // Only upsert non-empty grade values — never delete
+                if (gradeVal !== undefined && gradeVal !== null && String(gradeVal).trim() !== "") {
                   const num = parseFloat(gradeVal);
                   if (!isNaN(num) && num >= 1.0 && num <= 5.0) {
                     submissionsToUpsert.push({ studentId, taskId, grade: parseFloat(num.toFixed(1)) });
@@ -281,32 +282,30 @@ export async function POST(request: Request) {
               });
             }
 
-            // Database Sync Transaction
-            await prisma.$transaction(async (tx) => {
-              for (const sub of submissionsToDelete) {
-                await tx.submission.deleteMany({
-                  where: { studentId: sub.studentId, taskId: sub.taskId }
-                });
-              }
-              for (const sub of submissionsToUpsert) {
-                await tx.submission.upsert({
-                  where: { taskId_studentId: { taskId: sub.taskId, studentId: sub.studentId } },
-                  update: {
-                    grade: sub.grade,
-                    status: 'GRADED',
-                    updatedAt: new Date()
-                  },
-                  create: {
-                    taskId: sub.taskId,
-                    studentId: sub.studentId,
-                    grade: sub.grade,
-                    status: 'GRADED',
-                    createdAt: new Date(),
-                    updatedAt: new Date()
-                  }
-                });
-              }
-            });
+            // Database Sync Transaction — only upserts, no deletes
+            if (submissionsToUpsert.length > 0) {
+              await prisma.$transaction(async (tx) => {
+                for (const sub of submissionsToUpsert) {
+                  await tx.submission.upsert({
+                    where: { taskId_studentId: { taskId: sub.taskId, studentId: sub.studentId } },
+                    update: {
+                      grade: sub.grade,
+                      status: 'GRADED',
+                      updatedAt: new Date()
+                    },
+                    create: {
+                      taskId: sub.taskId,
+                      studentId: sub.studentId,
+                      grade: sub.grade,
+                      status: 'GRADED',
+                      createdAt: new Date(),
+                      updatedAt: new Date()
+                    }
+                  });
+                }
+              });
+            }
+            console.log(`Simple format sync: ${submissionsToUpsert.length} grades upserted from Drive.`);
           } else if (
             rows.length >= 9 &&
             rows[6] &&
@@ -322,7 +321,8 @@ export async function POST(request: Request) {
             const SER_START  = 16;  const SER_SLOTS   = 3;
 
             const submissionsToUpsert: Array<{ studentId: string; taskId: string; grade: number }> = [];
-            const submissionsToDelete: Array<{ studentId: string; taskId: string }> = [];
+            // NOTE: We never delete grades from DB via Drive sync.
+            // Empty cells are ignored. To clear a grade, teacher must do so in the platform.
 
             // Students start at index 8 of the rows array
             for (let i = 8; i < rows.length; i++) {
@@ -333,18 +333,13 @@ export async function POST(request: Request) {
               const studentNameInExcel = row[1];
               if (!studentNameInExcel || typeof studentNameInExcel !== "string") continue;
 
-              // Match student in students array
-              // Since the official spreadsheet was exported using the exact same alphabetized student list,
-              // we can map index `i - 8` to `students[i - 8]`. To be safe, we also verify the name contains or matches.
               const studentIndex = i - 8;
               let student = students[studentIndex];
 
-              // Double check name match (case insensitive, ignoring spacing changes)
               const cleanExcelName = studentNameInExcel.toLowerCase().replace(/\s+/g, '');
               let cleanDbName = student ? student.name.toLowerCase().replace(/\s+/g, '') : '';
               
               if (!student || (!cleanExcelName.includes(cleanDbName) && !cleanDbName.includes(cleanExcelName))) {
-                // Fall back to finding by name in the entire list if index mismatch occurred
                 const foundStudent = students.find(s => {
                   const sName = s.name.toLowerCase().replace(/\s+/g, '');
                   return sName === cleanExcelName || sName.includes(cleanExcelName) || cleanExcelName.includes(sName);
@@ -355,15 +350,13 @@ export async function POST(request: Request) {
 
               const studentId = student.id;
 
-              // 1. Process SABER tasks
+              // 1. Process SABER tasks — only upsert non-empty values
               for (let j = 0; j < SABER_SLOTS; j++) {
                 const t = saberTasksFilter[j];
                 if (!t) continue;
                 const colIndex = SABER_START + j;
                 const gradeVal = row[colIndex];
-                if (gradeVal === undefined || gradeVal === null || String(gradeVal).trim() === "") {
-                  submissionsToDelete.push({ studentId, taskId: t.id });
-                } else {
+                if (gradeVal !== undefined && gradeVal !== null && String(gradeVal).trim() !== "") {
                   const num = parseFloat(gradeVal);
                   if (!isNaN(num) && num >= 1.0 && num <= 5.0) {
                     submissionsToUpsert.push({ studentId, taskId: t.id, grade: parseFloat(num.toFixed(1)) });
@@ -371,15 +364,13 @@ export async function POST(request: Request) {
                 }
               }
 
-              // 2. Process HACER tasks
+              // 2. Process HACER tasks — only upsert non-empty values
               for (let j = 0; j < HACER_SLOTS; j++) {
                 const t = hacerTasksFilter[j];
                 if (!t) continue;
                 const colIndex = HACER_START + j;
                 const gradeVal = row[colIndex];
-                if (gradeVal === undefined || gradeVal === null || String(gradeVal).trim() === "") {
-                  submissionsToDelete.push({ studentId, taskId: t.id });
-                } else {
+                if (gradeVal !== undefined && gradeVal !== null && String(gradeVal).trim() !== "") {
                   const num = parseFloat(gradeVal);
                   if (!isNaN(num) && num >= 1.0 && num <= 5.0) {
                     submissionsToUpsert.push({ studentId, taskId: t.id, grade: parseFloat(num.toFixed(1)) });
@@ -387,15 +378,13 @@ export async function POST(request: Request) {
                 }
               }
 
-              // 3. Process SER tasks
+              // 3. Process SER tasks — only upsert non-empty values
               for (let j = 0; j < SER_SLOTS; j++) {
                 const t = serTasksFilter[j];
                 if (!t) continue;
                 const colIndex = SER_START + j;
                 const gradeVal = row[colIndex];
-                if (gradeVal === undefined || gradeVal === null || String(gradeVal).trim() === "") {
-                  submissionsToDelete.push({ studentId, taskId: t.id });
-                } else {
+                if (gradeVal !== undefined && gradeVal !== null && String(gradeVal).trim() !== "") {
                   const num = parseFloat(gradeVal);
                   if (!isNaN(num) && num >= 1.0 && num <= 5.0) {
                     submissionsToUpsert.push({ studentId, taskId: t.id, grade: parseFloat(num.toFixed(1)) });
@@ -404,32 +393,30 @@ export async function POST(request: Request) {
               }
             }
 
-            // Database Sync Transaction for Official Template
-            await prisma.$transaction(async (tx) => {
-              for (const sub of submissionsToDelete) {
-                await tx.submission.deleteMany({
-                  where: { studentId: sub.studentId, taskId: sub.taskId }
-                });
-              }
-              for (const sub of submissionsToUpsert) {
-                await tx.submission.upsert({
-                  where: { taskId_studentId: { taskId: sub.taskId, studentId: sub.studentId } },
-                  update: {
-                    grade: sub.grade,
-                    status: 'GRADED',
-                    updatedAt: new Date()
-                  },
-                  create: {
-                    taskId: sub.taskId,
-                    studentId: sub.studentId,
-                    grade: sub.grade,
-                    status: 'GRADED',
-                    createdAt: new Date(),
-                    updatedAt: new Date()
-                  }
-                });
-              }
-            });
+            // Database Sync Transaction for Official Template — only upserts, no deletes
+            if (submissionsToUpsert.length > 0) {
+              await prisma.$transaction(async (tx) => {
+                for (const sub of submissionsToUpsert) {
+                  await tx.submission.upsert({
+                    where: { taskId_studentId: { taskId: sub.taskId, studentId: sub.studentId } },
+                    update: {
+                      grade: sub.grade,
+                      status: 'GRADED',
+                      updatedAt: new Date()
+                    },
+                    create: {
+                      taskId: sub.taskId,
+                      studentId: sub.studentId,
+                      grade: sub.grade,
+                      status: 'GRADED',
+                      createdAt: new Date(),
+                      updatedAt: new Date()
+                    }
+                  });
+                }
+              });
+            }
+            console.log(`Official format sync: ${submissionsToUpsert.length} grades upserted from Drive.`);
             isOfficialFormat = true;
             loadedWorkbook = workbook;
             targetSheetName = sheetName;
