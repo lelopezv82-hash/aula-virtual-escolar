@@ -39,47 +39,51 @@ export async function GET(request: Request) {
       return NextResponse.json({ isConnected: false });
     }
 
-    // Drive IS connected — now try to find the sync file
-    // We wrap this in its own try-catch so folder errors don't
-    // make the UI think Drive is not linked.
+    // Drive IS connected — check if we have a stored file ID for this course+period
     try {
       const course = await prisma.course.findUnique({
         where: { id: courseId },
-        include: {
-          groups: {
-            include: { grade: true }
-          }
-        }
+        select: { id: true, teacherId: true, gDriveSyncFiles: true }
       });
 
       if (!course || course.teacherId !== teacherId) {
-        // Course not found but Drive is still connected
         return NextResponse.json({ isConnected: true, fileExists: false });
       }
 
-      const gradeName = course.groups[0]?.grade?.name || "Sin Grado";
-      const folderPath = `${gradeName}/${course.name}/${period}`;
-      const filename = `Sincro_Planilla_${course.name}_${period}.xlsx`;
+      // Look up stored Drive file ID
+      const syncFiles = (course.gDriveSyncFiles as Record<string, string> | null) || {};
+      const storedFileId = syncFiles[period];
 
-      const folderId = await resolveDriveFolderPath(gAccessToken, teacherId, folderPath);
-      const file = await findFileInFolder(gAccessToken, folderId, filename);
+      if (!storedFileId) {
+        // No stored ID → file has never been created for this period
+        return NextResponse.json({ isConnected: true, fileExists: false });
+      }
 
-      if (file) {
+      // Verify the file still exists in Drive by fetching its metadata
+      const fileRes = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${storedFileId}?fields=id,name,webViewLink`,
+        { headers: { Authorization: `Bearer ${gAccessToken}` } }
+      );
+
+      if (fileRes.ok) {
+        const fileData = await fileRes.json();
         return NextResponse.json({
           isConnected: true,
           fileExists: true,
-          webViewLink: file.webViewLink,
-          filename
+          webViewLink: fileData.webViewLink,
+          filename: fileData.name
         });
+      } else {
+        // File was deleted from Drive — clear the stored ID
+        const updatedSyncFiles = { ...syncFiles };
+        delete updatedSyncFiles[period];
+        await prisma.course.update({
+          where: { id: courseId },
+          data: { gDriveSyncFiles: updatedSyncFiles }
+        });
+        return NextResponse.json({ isConnected: true, fileExists: false });
       }
-
-      return NextResponse.json({
-        isConnected: true,
-        fileExists: false,
-        filename
-      });
     } catch (driveErr) {
-      // Drive is connected but we couldn't check the file — still show Sync button
       console.error('Error checking Drive file status:', driveErr);
       return NextResponse.json({ isConnected: true, fileExists: false });
     }
@@ -324,29 +328,71 @@ export async function POST(request: Request) {
     const newBuffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
 
     // 5. Save back to Drive
-    if (file) {
-      // Update in place
+    const courseForSync = await prisma.course.findUnique({
+      where: { id: courseId },
+      select: { gDriveSyncFiles: true }
+    });
+    const existingSyncFiles = (courseForSync?.gDriveSyncFiles as Record<string, string> | null) || {};
+    const storedFileId = existingSyncFiles[period];
+
+    let finalFileId: string;
+    let finalWebViewLink: string;
+
+    if (storedFileId) {
+      // Try to update the existing file by its stored ID
+      try {
+        await updateDriveFile(gAccessToken, storedFileId, newBuffer, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        const metaRes = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${storedFileId}?fields=id,webViewLink`,
+          { headers: { Authorization: `Bearer ${gAccessToken}` } }
+        );
+        const metaData = metaRes.ok ? await metaRes.json() : {};
+        finalFileId = storedFileId;
+        finalWebViewLink = metaData.webViewLink || '';
+      } catch {
+        // File might have been deleted — fall through to create
+        const uploadRes = await uploadToGoogleDrive(
+          newBuffer,
+          filename,
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          teacherId,
+          folderPath
+        );
+        finalFileId = uploadRes.id;
+        finalWebViewLink = uploadRes.url;
+      }
+    } else if (file) {
+      // Found via folder search (old sync files before this fix)
       await updateDriveFile(gAccessToken, file.id, newBuffer, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      return NextResponse.json({ 
-        success: true, 
-        message: 'Planilla sincronizada correctamente.', 
-        webViewLink: file.webViewLink 
-      });
+      finalFileId = file.id;
+      finalWebViewLink = file.webViewLink || '';
     } else {
       // Create new file
       const uploadRes = await uploadToGoogleDrive(
-        newBuffer, 
-        filename, 
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
-        teacherId, 
+        newBuffer,
+        filename,
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        teacherId,
         folderPath
       );
-      return NextResponse.json({ 
-        success: true, 
-        message: 'Planilla creada y sincronizada correctamente.', 
-        webViewLink: uploadRes.url 
-      });
+      finalFileId = uploadRes.id;
+      finalWebViewLink = uploadRes.url;
     }
+
+    // Save the file ID to DB so GET can find it instantly next time
+    await prisma.course.update({
+      where: { id: courseId },
+      data: {
+        gDriveSyncFiles: { ...existingSyncFiles, [period]: finalFileId }
+      }
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: storedFileId ? 'Planilla sincronizada correctamente.' : 'Planilla creada y sincronizada correctamente.',
+      webViewLink: finalWebViewLink
+    });
+
 
   } catch (error: any) {
     console.error('Error synchronizing grades:', error);

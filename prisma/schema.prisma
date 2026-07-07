@@ -51,6 +51,7 @@ model Course {
   saberPercent     Int               @default(30)
   serPercent       Int               @default(20)
   finalPercent     Int               @default(0)
+  gDriveSyncFiles  Json?
   additionalGrades AdditionalGrade[]
   teacher          User              @relation("TeacherCourses", fields: [teacherId], references: [id], onDelete: Cascade)
   resources        Resource[]
@@ -60,6 +61,7 @@ model Course {
 
   @@index([teacherId])
 }
+
 
 model Resource {
   id          String       @id @default(uuid())
