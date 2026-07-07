@@ -1203,7 +1203,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       Object.entries(activeMappings).forEach(([taskId, excelColIdx]) => {
         if (excelColIdx >= headers.length) return;
         const gradeVal = row[excelColIdx];
-        if (gradeVal !== undefined && gradeVal !== null && String(gradeVal).trim() !== "") {
+        // Only write if the grade from Excel is valid AND there is no existing grade on the platform
+        const existingGrade = updatedGradesGrid[studentMatch.id]?.[taskId];
+        const alreadyHasGrade = existingGrade !== undefined && existingGrade !== null && String(existingGrade).trim() !== "";
+        if (!alreadyHasGrade && gradeVal !== undefined && gradeVal !== null && String(gradeVal).trim() !== "") {
           const cleanGrade = String(gradeVal).replace(",", ".").trim();
           const num = parseFloat(cleanGrade);
           if (!isNaN(num) && num >= 1.0 && num <= 5.0) {
