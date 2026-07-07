@@ -303,6 +303,9 @@ export async function POST(request: Request) {
                     }
                   });
                 }
+              }, {
+                maxWait: 20000,
+                timeout: 60000
               });
             }
             console.log(`Simple format sync: ${submissionsToUpsert.length} grades upserted from Drive.`);
@@ -414,6 +417,9 @@ export async function POST(request: Request) {
                     }
                   });
                 }
+              }, {
+                maxWait: 20000,
+                timeout: 60000
               });
             }
             console.log(`Official format sync: ${submissionsToUpsert.length} grades upserted from Drive.`);
