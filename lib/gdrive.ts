@@ -376,7 +376,21 @@ export async function resolveDriveFolderPath(
 
   let mainFolderId = '';
   if (selectedAccount.googleDriveFolderId) {
-    mainFolderId = selectedAccount.googleDriveFolderId;
+    // Verify the stored folder still exists in Drive before trusting it
+    const checkRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${selectedAccount.googleDriveFolderId}?fields=id`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    if (checkRes.ok) {
+      mainFolderId = selectedAccount.googleDriveFolderId;
+    } else {
+      // Stored folder is gone — create a new root folder
+      mainFolderId = await createDriveFolder(accessToken, 'Aula Virtual Escolar');
+      await prisma.googleDriveAccount.update({
+        where: { id: selectedAccount.id },
+        data: { googleDriveFolderId: mainFolderId },
+      });
+    }
   } else {
     mainFolderId = await createDriveFolder(accessToken, 'Aula Virtual Escolar');
     await prisma.googleDriveAccount.update({
@@ -384,6 +398,7 @@ export async function resolveDriveFolderPath(
       data: { googleDriveFolderId: mainFolderId },
     });
   }
+
 
   let currentParentId = mainFolderId;
   if (subfolderPath) {
