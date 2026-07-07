@@ -313,7 +313,36 @@ export async function uploadToGoogleDrive(
     uploadFolderId = currentParentId;
   }
 
-  // Upload file via multipart/related
+  // Check if a file with the same name already exists in this folder (and is not trashed)
+  let existingFileId: string | null = null;
+  let existingWebViewLink: string | null = null;
+  
+  try {
+    const escapedFilename = filename.replace(/'/g, "\\'");
+    const searchRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=name='${escapedFilename}' and '${uploadFolderId}' in parents and trashed=false&fields=files(id,webViewLink)`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    );
+    if (searchRes.ok) {
+      const searchData = await searchRes.json();
+      if (searchData.files && searchData.files.length > 0) {
+        existingFileId = searchData.files[0].id;
+        existingWebViewLink = searchData.files[0].webViewLink;
+      }
+    }
+  } catch (err) {
+    console.error('Error checking duplicate in uploadToGoogleDrive:', err);
+  }
+
+  if (existingFileId) {
+    // File exists — update it in-place
+    await updateDriveFile(accessToken, existingFileId, buffer, mimeType);
+    return { id: existingFileId, url: existingWebViewLink || '', email: selectedAccount.email };
+  }
+
+  // Upload new file via multipart/related
   const boundary = '-------314159265358979323846';
   const delimiter = `\r\n--${boundary}\r\n`;
   const closeDelimiter = `\r\n--${boundary}--`;

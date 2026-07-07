@@ -150,6 +150,49 @@ async function uploadFileToDrive(
   filename: string,
   folderId: string
 ): Promise<{ id: string; webViewLink: string }> {
+  // Check if a file with the same name already exists in this folder (and is not trashed)
+  let existingFileId: string | null = null;
+  let existingWebViewLink: string | null = null;
+  
+  try {
+    const escapedName = filename.replace(/'/g, "\\'");
+    const searchRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=name='${escapedName}' and '${folderId}' in parents and trashed=false&fields=files(id,webViewLink)`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    );
+    if (searchRes.ok) {
+      const searchData = await searchRes.json();
+      if (searchData.files && searchData.files.length > 0) {
+        existingFileId = searchData.files[0].id;
+        existingWebViewLink = searchData.files[0].webViewLink;
+      }
+    }
+  } catch (err) {
+    console.error('Error checking duplicate in uploadFileToDrive:', err);
+  }
+
+  if (existingFileId) {
+    // File exists — update it in-place
+    const updateRes = await fetch(
+      `https://www.googleapis.com/upload/drive/v3/files/${existingFileId}?uploadType=media`,
+      {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        },
+        body: buffer as any,
+      }
+    );
+    if (!updateRes.ok) {
+      const errText = await updateRes.text();
+      throw new Error(`Failed to update existing file in Drive: ${errText}`);
+    }
+    return { id: existingFileId, webViewLink: existingWebViewLink || '' };
+  }
+
   const metadata = {
     name: filename,
     parents: [folderId],
