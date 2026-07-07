@@ -223,6 +223,10 @@ export async function POST(request: Request) {
     const folderId = await resolveDriveFolderPath(accountToken, teacherId, folderPath);
     const file = await findFileInFolder(accountToken, folderId, filename);
 
+    let isOfficialFormat = false;
+    let loadedWorkbook: any = null;
+    let targetSheetName = "";
+
     // 3. Process existing file (if any) to read grades
     if (file) {
       try {
@@ -291,6 +295,132 @@ export async function POST(request: Request) {
                 });
               }
             });
+          } else if (
+            rows.length >= 9 &&
+            rows[6] &&
+            String(rows[6][1]).toLowerCase().includes("nombre completo")
+          ) {
+            // Planilla Oficial Format (e.g. Row 6 is headers, Row 7 is subnumbers, Row 8 onwards are students)
+            const saberTasksFilter = tasks.filter(t => t.type === "EXAM");
+            const hacerTasksFilter = tasks.filter(t => t.type === "TASK");
+            const serTasksFilter   = tasks.filter(t => t.type === "SER");
+
+            const SABER_START = 2;  const SABER_SLOTS = 4;
+            const HACER_START = 6;  const HACER_SLOTS = 10;
+            const SER_START  = 16;  const SER_SLOTS   = 3;
+
+            const submissionsToUpsert: Array<{ studentId: string; taskId: string; grade: number }> = [];
+            const submissionsToDelete: Array<{ studentId: string; taskId: string }> = [];
+
+            // Students start at index 8 of the rows array
+            for (let i = 8; i < rows.length; i++) {
+              const row = rows[i];
+              if (!row || row.length === 0) continue;
+
+              // Find student by name
+              const studentNameInExcel = row[1];
+              if (!studentNameInExcel || typeof studentNameInExcel !== "string") continue;
+
+              // Match student in students array
+              // Since the official spreadsheet was exported using the exact same alphabetized student list,
+              // we can map index `i - 8` to `students[i - 8]`. To be safe, we also verify the name contains or matches.
+              const studentIndex = i - 8;
+              let student = students[studentIndex];
+
+              // Double check name match (case insensitive, ignoring spacing changes)
+              const cleanExcelName = studentNameInExcel.toLowerCase().replace(/\s+/g, '');
+              let cleanDbName = student ? student.name.toLowerCase().replace(/\s+/g, '') : '';
+              
+              if (!student || (!cleanExcelName.includes(cleanDbName) && !cleanDbName.includes(cleanExcelName))) {
+                // Fall back to finding by name in the entire list if index mismatch occurred
+                const foundStudent = students.find(s => {
+                  const sName = s.name.toLowerCase().replace(/\s+/g, '');
+                  return sName === cleanExcelName || sName.includes(cleanExcelName) || cleanExcelName.includes(sName);
+                });
+                if (!foundStudent) continue;
+                student = foundStudent;
+              }
+
+              const studentId = student.id;
+
+              // 1. Process SABER tasks
+              for (let j = 0; j < SABER_SLOTS; j++) {
+                const t = saberTasksFilter[j];
+                if (!t) continue;
+                const colIndex = SABER_START + j;
+                const gradeVal = row[colIndex];
+                if (gradeVal === undefined || gradeVal === null || String(gradeVal).trim() === "") {
+                  submissionsToDelete.push({ studentId, taskId: t.id });
+                } else {
+                  const num = parseFloat(gradeVal);
+                  if (!isNaN(num) && num >= 1.0 && num <= 5.0) {
+                    submissionsToUpsert.push({ studentId, taskId: t.id, grade: parseFloat(num.toFixed(1)) });
+                  }
+                }
+              }
+
+              // 2. Process HACER tasks
+              for (let j = 0; j < HACER_SLOTS; j++) {
+                const t = hacerTasksFilter[j];
+                if (!t) continue;
+                const colIndex = HACER_START + j;
+                const gradeVal = row[colIndex];
+                if (gradeVal === undefined || gradeVal === null || String(gradeVal).trim() === "") {
+                  submissionsToDelete.push({ studentId, taskId: t.id });
+                } else {
+                  const num = parseFloat(gradeVal);
+                  if (!isNaN(num) && num >= 1.0 && num <= 5.0) {
+                    submissionsToUpsert.push({ studentId, taskId: t.id, grade: parseFloat(num.toFixed(1)) });
+                  }
+                }
+              }
+
+              // 3. Process SER tasks
+              for (let j = 0; j < SER_SLOTS; j++) {
+                const t = serTasksFilter[j];
+                if (!t) continue;
+                const colIndex = SER_START + j;
+                const gradeVal = row[colIndex];
+                if (gradeVal === undefined || gradeVal === null || String(gradeVal).trim() === "") {
+                  submissionsToDelete.push({ studentId, taskId: t.id });
+                } else {
+                  const num = parseFloat(gradeVal);
+                  if (!isNaN(num) && num >= 1.0 && num <= 5.0) {
+                    submissionsToUpsert.push({ studentId, taskId: t.id, grade: parseFloat(num.toFixed(1)) });
+                  }
+                }
+              }
+            }
+
+            // Database Sync Transaction for Official Template
+            await prisma.$transaction(async (tx) => {
+              for (const sub of submissionsToDelete) {
+                await tx.submission.deleteMany({
+                  where: { studentId: sub.studentId, taskId: sub.taskId }
+                });
+              }
+              for (const sub of submissionsToUpsert) {
+                await tx.submission.upsert({
+                  where: { taskId_studentId: { taskId: sub.taskId, studentId: sub.studentId } },
+                  update: {
+                    grade: sub.grade,
+                    status: 'GRADED',
+                    updatedAt: new Date()
+                  },
+                  create: {
+                    taskId: sub.taskId,
+                    studentId: sub.studentId,
+                    grade: sub.grade,
+                    status: 'GRADED',
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                  }
+                });
+              }
+            });
+            isOfficialFormat = true;
+            loadedWorkbook = workbook;
+            targetSheetName = sheetName;
           }
         }
       } catch (err) {
@@ -348,27 +478,84 @@ export async function POST(request: Request) {
       row2.push(`${category} ${taskNumbers[t.id]} - ${t.title}`);
     });
 
-    const dataRows = [row1, row2];
+    let newBuffer: Buffer;
 
-    students.forEach(student => {
-      const row = [student.id, student.name, student.groupName];
-      activeTasks.forEach(t => {
-        const sub = t.submissions.find(s => s.studentId === student.id);
-        row.push(sub && sub.grade !== null && sub.grade !== undefined ? sub.grade.toFixed(1) : "");
+    if (isOfficialFormat && loadedWorkbook) {
+      const ws = loadedWorkbook.Sheets[targetSheetName];
+      const saberTasksFilter = freshTasks.filter(t => t.type === "EXAM");
+      const hacerTasksFilter = freshTasks.filter(t => t.type === "TASK");
+      const serTasksFilter   = freshTasks.filter(t => t.type === "SER");
+
+      const SABER_START = 2;  const SABER_SLOTS = 4;
+      const HACER_START = 6;  const HACER_SLOTS = 10;
+      const SER_START  = 16;  const SER_SLOTS   = 3;
+
+      students.forEach((student, i) => {
+        const rowIndex = 8 + i;
+        
+        // SABER slots
+        for (let j = 0; j < SABER_SLOTS; j++) {
+          const t = saberTasksFilter[j];
+          const sub = t ? t.submissions.find(s => s.studentId === student.id) : null;
+          const val = sub && sub.grade !== null && sub.grade !== undefined ? sub.grade : "";
+          const cellRef = XLSX.utils.encode_cell({ r: rowIndex, c: SABER_START + j });
+          if (val === "") {
+            delete ws[cellRef];
+          } else {
+            ws[cellRef] = { t: 'n', v: val };
+          }
+        }
+
+        // HACER slots
+        for (let j = 0; j < HACER_SLOTS; j++) {
+          const t = hacerTasksFilter[j];
+          const sub = t ? t.submissions.find(s => s.studentId === student.id) : null;
+          const val = sub && sub.grade !== null && sub.grade !== undefined ? sub.grade : "";
+          const cellRef = XLSX.utils.encode_cell({ r: rowIndex, c: HACER_START + j });
+          if (val === "") {
+            delete ws[cellRef];
+          } else {
+            ws[cellRef] = { t: 'n', v: val };
+          }
+        }
+
+        // SER slots
+        for (let j = 0; j < SER_SLOTS; j++) {
+          const t = serTasksFilter[j];
+          const sub = t ? t.submissions.find(s => s.studentId === student.id) : null;
+          const val = sub && sub.grade !== null && sub.grade !== undefined ? sub.grade : "";
+          const cellRef = XLSX.utils.encode_cell({ r: rowIndex, c: SER_START + j });
+          if (val === "") {
+            delete ws[cellRef];
+          } else {
+            ws[cellRef] = { t: 'n', v: val };
+          }
+        }
       });
-      dataRows.push(row);
-    });
+      newBuffer = XLSX.write(loadedWorkbook, { type: "buffer", bookType: "xlsx" });
+    } else {
+      const dataRows = [row1, row2];
 
-    const ws = XLSX.utils.aoa_to_sheet(dataRows);
-    ws["!rows"] = [{ hidden: true }];
-    ws["!cols"] = Array.from({ length: row2.length }, () => ({ wch: 15 }));
-    ws["!cols"][0] = { wch: 25 }; // student ID
-    ws["!cols"][1] = { wch: 30 }; // student name
-    ws["!cols"][2] = { wch: 15 }; // group
+      students.forEach(student => {
+        const row = [student.id, student.name, student.groupName];
+        activeTasks.forEach(t => {
+          const sub = t.submissions.find(s => s.studentId === student.id);
+          row.push(sub && sub.grade !== null && sub.grade !== undefined ? sub.grade.toFixed(1) : "");
+        });
+        dataRows.push(row);
+      });
 
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Calificaciones");
-    const newBuffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+      const ws = XLSX.utils.aoa_to_sheet(dataRows);
+      ws["!rows"] = [{ hidden: true }];
+      ws["!cols"] = Array.from({ length: row2.length }, () => ({ wch: 15 }));
+      ws["!cols"][0] = { wch: 25 }; // student ID
+      ws["!cols"][1] = { wch: 30 }; // student name
+      ws["!cols"][2] = { wch: 15 }; // group
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Calificaciones");
+      newBuffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+    }
 
     // 5. Save back to Drive
     const courseForSync = await prisma.course.findUnique({
