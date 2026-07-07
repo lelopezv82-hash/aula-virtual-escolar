@@ -201,7 +201,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [excelStudentCol, setExcelStudentCol] = useState<number>(-1);
   const [excelTaskMappings, setExcelTaskMappings] = useState<Record<string, number>>({});
   const [syncConfirmOpen, setSyncConfirmOpen] = useState(false);
-  const [syncResultMsg, setSyncResultMsg] = useState<{ matched: number; total: number; created: number; createdNames: string } | null>(null);
+  const [syncResultMsg, setSyncResultMsg] = useState<{ matched: number; total: number; added: number; skipped: number } | null>(null);
+  const [syncPreview, setSyncPreview] = useState<{ toAdd: number; toSkip: number; unmatched: number } | null>(null);
 
   // ── Derived ──
   const selectedCourse = courses.find(c => c.id === selectedCourseId);
@@ -1144,6 +1145,76 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     setExcelTaskMappings(mappings);
   };
 
+  // ── Shared helpers for Excel sync ──
+  const _normalizeName = (name: string) =>
+    name.toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, " ")
+      .trim()
+      .replace(/\s+/g, " ");
+
+  const _findBestStudentMatch = (excelName: string) => {
+    if (!excelName) return null;
+    const normExcel = _normalizeName(excelName);
+    let match = students.find(s => _normalizeName(s.name) === normExcel);
+    if (match) return match;
+    const excelTokens = normExcel.split(" ").filter(t => t.length > 2);
+    if (excelTokens.length === 0) return null;
+    let bestStudent: typeof students[number] | null = null;
+    let maxSharedTokens = 0;
+    students.forEach(student => {
+      const normStudent = _normalizeName(student.name);
+      const studentTokens = normStudent.split(" ").filter(t => t.length > 2);
+      const shared = studentTokens.filter(t => excelTokens.includes(t)).length;
+      if (shared > maxSharedTokens) { maxSharedTokens = shared; bestStudent = student; }
+    });
+    if (maxSharedTokens >= 2 || (maxSharedTokens >= 1 && excelTokens.length === 1)) return bestStudent;
+    return null;
+  };
+
+  const _getActiveMappings = () => {
+    const m: Record<string, number> = {};
+    Object.entries(excelTaskMappings).forEach(([taskId, colIdx]) => {
+      if (colIdx !== undefined && colIdx !== -1) m[taskId] = colIdx;
+    });
+    return m;
+  };
+
+  /** Calculates a preview of what would happen without touching any state */
+  const computeSyncPreview = () => {
+    if (!customExcelData || excelStudentCol === -1) return;
+    const { rows, headers, headerIndex } = customExcelData;
+    const studentColIdx = excelStudentCol;
+    const activeMappings = _getActiveMappings();
+
+    let toAdd = 0, toSkip = 0, unmatched = 0;
+
+    for (let i = headerIndex + 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || row.length === 0) continue;
+      const excelName = row[studentColIdx];
+      if (!excelName || String(excelName).trim() === "") continue;
+      const studentMatch = _findBestStudentMatch(String(excelName));
+      if (!studentMatch) { unmatched++; continue; }
+
+      Object.entries(activeMappings).forEach(([taskId, excelColIdx]) => {
+        if (excelColIdx >= headers.length) return;
+        const gradeVal = row[excelColIdx];
+        if (gradeVal === undefined || gradeVal === null || String(gradeVal).trim() === "") return;
+        const cleanGrade = String(gradeVal).replace(",", ".").trim();
+        const num = parseFloat(cleanGrade);
+        if (isNaN(num) || num < 1.0 || num > 5.0) return;
+        const existingGrade = gradesGrid[studentMatch.id]?.[taskId];
+        const alreadyHasGrade = existingGrade !== undefined && existingGrade !== null && String(existingGrade).trim() !== "";
+        if (alreadyHasGrade) toSkip++; else toAdd++;
+      });
+    }
+
+    setSyncPreview({ toAdd, toSkip, unmatched });
+    setSyncConfirmOpen(true);
+  };
+
   const confirmCustomExcelSync = () => {
     if (!customExcelData || excelStudentCol === -1) return;
 
@@ -1151,76 +1222,54 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     const studentColIdx = excelStudentCol;
     if (studentColIdx === -1 || studentColIdx >= headers.length) return;
 
-    // ── Only use task mappings the user explicitly configured ──
-    // Filter out any entries mapped to -1 (not imported)
-    const activeMappings: Record<string, number> = {};
-    Object.entries(excelTaskMappings).forEach(([taskId, colIdx]) => {
-      if (colIdx !== undefined && colIdx !== -1) {
-        activeMappings[taskId] = colIdx;
-      }
-    });
+    const activeMappings = _getActiveMappings();
 
-    // ── Apply grades only for existing platform tasks ──
-    const updatedGradesGrid = { ...gradesGrid };
+    // ── Deep copy to avoid mutating original grid entries ──
+    // A shallow copy ({ ...gradesGrid }) shares inner objects, so writing to
+    // updatedGradesGrid[id][taskId] would also mutate gradesGrid[id][taskId],
+    // breaking the "already has grade" check below.
+    const updatedGradesGrid: Record<string, Record<string, string>> = {};
+    for (const sid of Object.keys(gradesGrid)) {
+      updatedGradesGrid[sid] = { ...gradesGrid[sid] };
+    }
 
-    const normalizeName = (name: string) =>
-      name.toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, " ")
-        .trim()
-        .replace(/\s+/g, " ");
+    let matchedCount = 0, addedCount = 0, skippedCount = 0;
 
-    const findBestStudentMatch = (excelName: string) => {
-      if (!excelName) return null;
-      const normExcel = normalizeName(excelName);
-      let match = students.find(s => normalizeName(s.name) === normExcel);
-      if (match) return match;
-      const excelTokens = normExcel.split(" ").filter(t => t.length > 2);
-      if (excelTokens.length === 0) return null;
-      let bestStudent: typeof students[number] | null = null;
-      let maxSharedTokens = 0;
-      students.forEach(student => {
-        const normStudent = normalizeName(student.name);
-        const studentTokens = normStudent.split(" ").filter(t => t.length > 2);
-        const shared = studentTokens.filter(t => excelTokens.includes(t)).length;
-        if (shared > maxSharedTokens) { maxSharedTokens = shared; bestStudent = student; }
-      });
-      if (maxSharedTokens >= 2 || (maxSharedTokens >= 1 && excelTokens.length === 1)) return bestStudent;
-      return null;
-    };
-
-    let matchedCount = 0;
     for (let i = headerIndex + 1; i < rows.length; i++) {
       const row = rows[i];
       if (!row || row.length === 0) continue;
       const excelName = row[studentColIdx];
       if (!excelName || String(excelName).trim() === "") continue;
-      const studentMatch = findBestStudentMatch(String(excelName));
+      const studentMatch = _findBestStudentMatch(String(excelName));
       if (!studentMatch) continue;
       matchedCount++;
       if (!updatedGradesGrid[studentMatch.id]) updatedGradesGrid[studentMatch.id] = {};
+
       Object.entries(activeMappings).forEach(([taskId, excelColIdx]) => {
         if (excelColIdx >= headers.length) return;
         const gradeVal = row[excelColIdx];
-        // Only write if the grade from Excel is valid AND there is no existing grade on the platform
-        const existingGrade = updatedGradesGrid[studentMatch.id]?.[taskId];
+        // Read existing grade from the ORIGINAL grid, not the mutating copy
+        const existingGrade = gradesGrid[studentMatch.id]?.[taskId];
         const alreadyHasGrade = existingGrade !== undefined && existingGrade !== null && String(existingGrade).trim() !== "";
-        if (!alreadyHasGrade && gradeVal !== undefined && gradeVal !== null && String(gradeVal).trim() !== "") {
+        if (alreadyHasGrade) {
+          // There is already a grade on the platform — skip, never overwrite
+          skippedCount++;
+        } else if (gradeVal !== undefined && gradeVal !== null && String(gradeVal).trim() !== "") {
           const cleanGrade = String(gradeVal).replace(",", ".").trim();
           const num = parseFloat(cleanGrade);
           if (!isNaN(num) && num >= 1.0 && num <= 5.0) {
             updatedGradesGrid[studentMatch.id][taskId] = num.toFixed(1);
+            addedCount++;
           }
         }
       });
     }
 
-    // Apply grades and close modals — no fetchData() call to avoid overwriting
     setGradesGrid(updatedGradesGrid);
     setCustomExcelData(null);
     setSyncConfirmOpen(false);
-    setSyncResultMsg({ matched: matchedCount, total: students.length, created: 0, createdNames: "" });
+    setSyncPreview(null);
+    setSyncResultMsg({ matched: matchedCount, total: students.length, added: addedCount, skipped: skippedCount });
   };
 
 
@@ -2758,7 +2807,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
               <button 
                 type="button" 
-                onClick={() => setSyncConfirmOpen(true)}
+                onClick={computeSyncPreview}
                 disabled={excelStudentCol === -1}
                 className="btn btn-primary text-xs py-2 px-6 font-bold flex items-center gap-2 transition-all hover:brightness-110"
                 style={{ background: "linear-gradient(135deg, #f97316, #ea580c)", borderColor: "#ea580c", opacity: excelStudentCol === -1 ? 0.5 : 1 }}
@@ -2778,23 +2827,51 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in">
             <div className="h-1.5 w-full bg-gradient-to-r from-orange-500 to-amber-500" />
             <div className="p-5">
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-3 mb-4">
                 <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-orange-100 dark:bg-orange-950/50">
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-base font-extrabold text-gray-800 dark:text-gray-100">¿Confirmar sincronización?</h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-                    Importará las calificaciones del Excel a la planilla. Las notas quedarán resaltadas para revisión antes de guardar.
-                  </p>
-                  <p className="text-[11px] text-orange-600 dark:text-orange-400 mt-2 font-semibold flex items-center gap-1">
-                    <span>⚠️</span> Recuerda hacer clic en &quot;Guardar&quot; al finalizar.
+                    Revisa el resumen antes de confirmar:
                   </p>
                 </div>
               </div>
-              <div className="flex gap-2 mt-5 justify-end">
+
+              {/* Preview stats */}
+              {syncPreview && (
+                <div className="flex flex-col gap-2 mb-4">
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
+                    <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                      <span>✅</span> Notas nuevas a agregar
+                    </span>
+                    <span className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400">{syncPreview.toAdd}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700">
+                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                      <span>🔒</span> Notas ya existentes (no se tocan)
+                    </span>
+                    <span className="text-sm font-extrabold text-slate-500">{syncPreview.toSkip}</span>
+                  </div>
+                  {syncPreview.unmatched > 0 && (
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
+                      <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                        <span>⚠️</span> Estudiantes sin coincidencia
+                      </span>
+                      <span className="text-sm font-extrabold text-amber-600">{syncPreview.unmatched}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <p className="text-[11px] text-orange-600 dark:text-orange-400 font-semibold flex items-center gap-1">
+                <span>💾</span> Recuerda hacer clic en &quot;Guardar&quot; al finalizar.
+              </p>
+
+              <div className="flex gap-2 mt-4 justify-end">
                 <button
-                  onClick={() => setSyncConfirmOpen(false)}
+                  onClick={() => { setSyncConfirmOpen(false); setSyncPreview(null); }}
                   className="px-4 py-2 rounded-lg text-xs font-semibold border transition-all hover:bg-gray-50 dark:hover:bg-gray-800"
                   style={{ borderColor: "var(--border-color)", color: "var(--text-primary)" }}
                 >
@@ -2802,11 +2879,12 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 </button>
                 <button
                   onClick={confirmCustomExcelSync}
-                  className="px-4 py-2 rounded-lg text-xs font-bold text-white flex items-center gap-1.5 transition-all hover:brightness-110 shadow-md"
+                  disabled={syncPreview?.toAdd === 0}
+                  className="px-4 py-2 rounded-lg text-xs font-bold text-white flex items-center gap-1.5 transition-all hover:brightness-110 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ background: "linear-gradient(135deg,#f97316,#ea580c)" }}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                  Sí, sincronizar
+                  {syncPreview?.toAdd === 0 ? "Sin notas nuevas" : `Agregar ${syncPreview?.toAdd} nota${(syncPreview?.toAdd ?? 0) !== 1 ? "s" : ""}`}
                 </button>
               </div>
             </div>
@@ -2821,31 +2899,33 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in">
             <div className="h-1.5 w-full bg-gradient-to-r from-emerald-500 to-green-600" />
             <div className="p-5">
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-3 mb-4">
                 <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-emerald-100 dark:bg-emerald-950/50">
                   <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-base font-extrabold text-gray-800 dark:text-gray-100">¡Sincronización exitosa!</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Las calificaciones fueron importadas a la planilla.</p>
+                  <h3 className="text-base font-extrabold text-gray-800 dark:text-gray-100">¡Sincronización completada!</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Resumen de lo que se hizo:</p>
                 </div>
               </div>
-              <div className="mt-4 flex flex-col gap-2">
+              <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between p-3 rounded-lg border bg-slate-50 dark:bg-slate-800/20" style={{ borderColor: "var(--border-color)" }}>
-                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Estudiantes coincidentes</span>
-                  <span className="text-sm font-extrabold text-emerald-600">{syncResultMsg.matched} / {syncResultMsg.total}</span>
+                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">👥 Estudiantes encontrados</span>
+                  <span className="text-sm font-extrabold text-gray-700 dark:text-gray-200">{syncResultMsg.matched} / {syncResultMsg.total}</span>
                 </div>
-                {syncResultMsg.created > 0 && (
-                  <div className="p-3 rounded-lg border bg-blue-50/50 dark:bg-blue-950/20 text-xs" style={{ borderColor: "rgba(59,130,246,0.2)", color: "#1e3a8a" }}>
-                    <span className="font-bold">🆕 {syncResultMsg.created} evaluación(es) creada(s):</span>
-                    <p className="mt-1 opacity-90 truncate">{syncResultMsg.createdNames}</p>
-                  </div>
-                )}
+                <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
+                  <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">✅ Notas nuevas agregadas</span>
+                  <span className="text-sm font-extrabold text-emerald-600">{syncResultMsg.added}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700">
+                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">🔒 Notas existentes protegidas</span>
+                  <span className="text-sm font-extrabold text-slate-500">{syncResultMsg.skipped}</span>
+                </div>
                 <div className="p-3 rounded-lg border bg-amber-50/50 dark:bg-amber-950/20 text-xs" style={{ borderColor: "rgba(245,158,11,0.2)", color: "#78350f" }}>
-                  📝 Revisa las notas en <strong>amarillo</strong> y haz clic en <strong>&quot;Guardar&quot;</strong> para confirmarlas.
+                  💾 Haz clic en <strong>&quot;Guardar&quot;</strong> para confirmar los cambios.
                 </div>
               </div>
-              <div className="flex justify-end mt-5">
+              <div className="flex justify-end mt-4">
                 <button
                   onClick={() => setSyncResultMsg(null)}
                   className="px-5 py-2 rounded-lg text-xs font-bold text-white transition-all hover:brightness-110 shadow-md"
