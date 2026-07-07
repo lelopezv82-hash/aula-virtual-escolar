@@ -84,6 +84,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
   const [gDriveWebViewLink, setGDriveWebViewLink] = useState("");
   const [gDriveSyncing, setGDriveSyncing] = useState(false);
   const [gDriveStatusLoading, setGDriveStatusLoading] = useState(true);
+  const [gDriveUploading, setGDriveUploading] = useState(false);
 
   const loadGDriveStatus = useCallback(async () => {
     setGDriveStatusLoading(true);
@@ -127,6 +128,37 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
       setGDriveSyncing(false);
     }
   };
+
+  const handleGDriveUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setGDriveUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('courseId', courseId);
+    formData.append('period', activePeriod);
+
+    try {
+      const res = await fetch('/api/docente/gdrive/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        alert(json.message);
+        loadGDriveStatus(); // Refresh status (file now exists)
+      } else {
+        alert(json.error || 'Error al subir el archivo a Google Drive');
+      }
+    } catch (err) {
+      alert('Error de conexión al subir el archivo');
+    } finally {
+      setGDriveUploading(false);
+      e.target.value = '';
+    }
+  };
+
 
   // Fetch spreadsheet data
   useEffect(() => {
@@ -1154,6 +1186,27 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
                   )}
                   {gDriveFileExists ? "Sincronizar Sheets" : "Crear en Sheets"}
                 </button>
+
+                {/* Upload Local Excel to Drive */}
+                <label 
+                  className="text-xs font-bold text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 px-2.5 py-1.5 rounded-md flex items-center gap-1.5 cursor-pointer"
+                  title="Subir archivo Excel local directamente a tu Google Drive para sincronizar"
+                >
+                  {gDriveUploading ? (
+                    <Loader2 className="animate-spin text-emerald-600" size={13} />
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-emerald-600"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  )}
+                  Subir a Drive
+                  <input 
+                    type="file" 
+                    accept=".xlsx,.xls" 
+                    onChange={handleGDriveUpload} 
+                    className="hidden" 
+                    disabled={gDriveUploading}
+                  />
+                </label>
+
                 {gDriveFileExists && gDriveWebViewLink && (
                   <a 
                     href={gDriveWebViewLink}
