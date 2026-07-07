@@ -238,6 +238,7 @@ export async function POST(request: Request) {
     let isOfficialFormat = false;
     let loadedWorkbook: any = null;
     let targetSheetName = "";
+    let detectedHeaderRowIndex = -1;
 
     // 3. Process existing file (if any) to read grades
     if (file) {
@@ -309,49 +310,54 @@ export async function POST(request: Request) {
               });
             }
             console.log(`Simple format sync: ${submissionsToUpsert.length} grades upserted from Drive.`);
-          } else if (
-            rows.length >= 9 &&
-            rows[6] &&
-            String(rows[6][1]).toLowerCase().includes("nombre completo")
-          ) {
-            // Planilla Oficial Format (e.g. Row 6 is headers, Row 7 is subnumbers, Row 8 onwards are students)
-            const saberTasksFilter = tasks.filter(t => t.type === "EXAM");
-            const hacerTasksFilter = tasks.filter(t => t.type === "TASK");
-            const serTasksFilter   = tasks.filter(t => t.type === "SER");
-
-            const SABER_START = 2;  const SABER_SLOTS = 4;
-            const HACER_START = 6;  const HACER_SLOTS = 10;
-            const SER_START  = 16;  const SER_SLOTS   = 3;
-
-            const submissionsToUpsert: Array<{ studentId: string; taskId: string; grade: number }> = [];
-            // NOTE: We never delete grades from DB via Drive sync.
-            // Empty cells are ignored. To clear a grade, teacher must do so in the platform.
-
-            // Students start at index 8 of the rows array
-            for (let i = 8; i < rows.length; i++) {
-              const row = rows[i];
-              if (!row || row.length === 0) continue;
-
-              // Find student by name
-              const studentNameInExcel = row[1];
-              if (!studentNameInExcel || typeof studentNameInExcel !== "string") continue;
-
-              const studentIndex = i - 8;
-              let student = students[studentIndex];
-
-              const cleanExcelName = studentNameInExcel.toLowerCase().replace(/\s+/g, '');
-              let cleanDbName = student ? student.name.toLowerCase().replace(/\s+/g, '') : '';
-              
-              if (!student || (!cleanExcelName.includes(cleanDbName) && !cleanDbName.includes(cleanExcelName))) {
-                const foundStudent = students.find(s => {
-                  const sName = s.name.toLowerCase().replace(/\s+/g, '');
-                  return sName === cleanExcelName || sName.includes(cleanExcelName) || cleanExcelName.includes(sName);
-                });
-                if (!foundStudent) continue;
-                student = foundStudent;
+          } else {
+            // Dynamic detection of Official Sheet Format: scan first 15 rows for "nombre completo" in column B
+            let headerRowIndex = -1;
+            for (let r = 0; r < Math.min(rows.length, 15); r++) {
+              if (rows[r] && rows[r][1] && String(rows[r][1]).toLowerCase().includes("nombre completo")) {
+                headerRowIndex = r;
+                break;
               }
+            }
 
-              const studentId = student.id;
+            if (headerRowIndex !== -1 && rows.length >= headerRowIndex + 2) {
+              const saberTasksFilter = tasks.filter(t => t.type === "EXAM");
+              const hacerTasksFilter = tasks.filter(t => t.type === "TASK");
+              const serTasksFilter   = tasks.filter(t => t.type === "SER");
+
+              const SABER_START = 2;  const SABER_SLOTS = 4;
+              const HACER_START = 6;  const HACER_SLOTS = 10;
+              const SER_START  = 16;  const SER_SLOTS   = 3;
+
+              const submissionsToUpsert: Array<{ studentId: string; taskId: string; grade: number }> = [];
+              // NOTE: We never delete grades from DB via Drive sync.
+              // Empty cells are ignored. To clear a grade, teacher must do so in the platform.
+
+              // Students start at the row immediately after the header
+              for (let i = headerRowIndex + 1; i < rows.length; i++) {
+                const row = rows[i];
+                if (!row || row.length === 0) continue;
+
+                // Find student by name
+                const studentNameInExcel = row[1];
+                if (!studentNameInExcel || typeof studentNameInExcel !== "string") continue;
+
+                const studentIndex = i - (headerRowIndex + 1);
+                let student = students[studentIndex];
+
+                const cleanExcelName = studentNameInExcel.toLowerCase().replace(/\s+/g, '');
+                let cleanDbName = student ? student.name.toLowerCase().replace(/\s+/g, '') : '';
+                
+                if (!student || (!cleanExcelName.includes(cleanDbName) && !cleanDbName.includes(cleanExcelName))) {
+                  const foundStudent = students.find(s => {
+                    const sName = s.name.toLowerCase().replace(/\s+/g, '');
+                    return sName === cleanExcelName || sName.includes(cleanExcelName) || cleanExcelName.includes(sName);
+                  });
+                  if (!foundStudent) continue;
+                  student = foundStudent;
+                }
+
+                const studentId = student.id;
 
               // 1. Process SABER tasks — only upsert non-empty values
               for (let j = 0; j < SABER_SLOTS; j++) {
@@ -426,8 +432,10 @@ export async function POST(request: Request) {
             isOfficialFormat = true;
             loadedWorkbook = workbook;
             targetSheetName = sheetName;
+            detectedHeaderRowIndex = headerRowIndex;
           }
         }
+      }
       } catch (err) {
         console.error("Error reading current spreadsheet from Drive, overwriting with clean DB state:", err);
       }
@@ -495,8 +503,10 @@ export async function POST(request: Request) {
       const HACER_START = 6;  const HACER_SLOTS = 10;
       const SER_START  = 16;  const SER_SLOTS   = 3;
 
+      const startStudentRow = detectedHeaderRowIndex !== -1 ? detectedHeaderRowIndex + 1 : 8;
+
       students.forEach((student, i) => {
-        const rowIndex = 8 + i;
+        const rowIndex = startStudentRow + i;
         
         // SABER slots
         for (let j = 0; j < SABER_SLOTS; j++) {
