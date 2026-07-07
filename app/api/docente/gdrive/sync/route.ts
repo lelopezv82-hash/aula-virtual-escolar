@@ -34,44 +34,55 @@ export async function GET(request: Request) {
     const teacherId = payload.id as string;
     const gAccessToken = await getGoogleAccessToken(teacherId);
 
+    // If no valid token → Drive is not linked
     if (!gAccessToken) {
       return NextResponse.json({ isConnected: false });
     }
 
-    const course = await prisma.course.findUnique({
-      where: { id: courseId },
-      include: {
-        groups: {
-          include: { grade: true }
+    // Drive IS connected — now try to find the sync file
+    // We wrap this in its own try-catch so folder errors don't
+    // make the UI think Drive is not linked.
+    try {
+      const course = await prisma.course.findUnique({
+        where: { id: courseId },
+        include: {
+          groups: {
+            include: { grade: true }
+          }
         }
+      });
+
+      if (!course || course.teacherId !== teacherId) {
+        // Course not found but Drive is still connected
+        return NextResponse.json({ isConnected: true, fileExists: false });
       }
-    });
 
-    if (!course || course.teacherId !== teacherId) {
-      return NextResponse.json({ error: 'Curso no encontrado' }, { status: 404 });
-    }
+      const gradeName = course.groups[0]?.grade?.name || "Sin Grado";
+      const folderPath = `${gradeName}/${course.name}/${period}`;
+      const filename = `Sincro_Planilla_${course.name}_${period}.xlsx`;
 
-    const gradeName = course.groups[0]?.grade?.name || "Sin Grado";
-    const folderPath = `${gradeName}/${course.name}/${period}`;
-    const filename = `Sincro_Planilla_${course.name}_${period}.xlsx`;
+      const folderId = await resolveDriveFolderPath(gAccessToken, teacherId, folderPath);
+      const file = await findFileInFolder(gAccessToken, folderId, filename);
 
-    const folderId = await resolveDriveFolderPath(gAccessToken, teacherId, folderPath);
-    const file = await findFileInFolder(gAccessToken, folderId, filename);
+      if (file) {
+        return NextResponse.json({
+          isConnected: true,
+          fileExists: true,
+          webViewLink: file.webViewLink,
+          filename
+        });
+      }
 
-    if (file) {
       return NextResponse.json({
         isConnected: true,
-        fileExists: true,
-        webViewLink: file.webViewLink,
+        fileExists: false,
         filename
       });
+    } catch (driveErr) {
+      // Drive is connected but we couldn't check the file — still show Sync button
+      console.error('Error checking Drive file status:', driveErr);
+      return NextResponse.json({ isConnected: true, fileExists: false });
     }
-
-    return NextResponse.json({
-      isConnected: true,
-      fileExists: false,
-      filename
-    });
 
   } catch (error: any) {
     console.error('Error checking sync status:', error);
