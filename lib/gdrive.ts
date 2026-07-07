@@ -373,32 +373,33 @@ export async function resolveDriveFolderPath(
   
   accounts.sort((a, b) => b.freeSpace - a.freeSpace);
   const selectedAccount = accounts[0];
+  // Always use the token that belongs to the selected account
+  const token = selectedAccount.accessToken || accessToken;
 
   let mainFolderId = '';
   if (selectedAccount.googleDriveFolderId) {
     // Verify the stored folder still exists in Drive before trusting it
     const checkRes = await fetch(
       `https://www.googleapis.com/drive/v3/files/${selectedAccount.googleDriveFolderId}?fields=id`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
+      { headers: { Authorization: `Bearer ${token}` } }
     );
     if (checkRes.ok) {
       mainFolderId = selectedAccount.googleDriveFolderId;
     } else {
       // Stored folder is gone — create a new root folder
-      mainFolderId = await createDriveFolder(accessToken, 'Aula Virtual Escolar');
+      mainFolderId = await createDriveFolder(token, 'Aula Virtual Escolar');
       await prisma.googleDriveAccount.update({
         where: { id: selectedAccount.id },
         data: { googleDriveFolderId: mainFolderId },
       });
     }
   } else {
-    mainFolderId = await createDriveFolder(accessToken, 'Aula Virtual Escolar');
+    mainFolderId = await createDriveFolder(token, 'Aula Virtual Escolar');
     await prisma.googleDriveAccount.update({
       where: { id: selectedAccount.id },
       data: { googleDriveFolderId: mainFolderId },
     });
   }
-
 
   let currentParentId = mainFolderId;
   if (subfolderPath) {
@@ -408,7 +409,7 @@ export async function resolveDriveFolderPath(
       const searchRes = await fetch(
         `https://www.googleapis.com/drive/v3/files?q=name='${escapedPart}' and '${currentParentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
         {
-          headers: { Authorization: `Bearer ${accessToken}` },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
 
@@ -417,16 +418,17 @@ export async function resolveDriveFolderPath(
         if (searchData.files && searchData.files.length > 0) {
           currentParentId = searchData.files[0].id;
         } else {
-          currentParentId = await createDriveFolder(accessToken, part, currentParentId);
+          currentParentId = await createDriveFolder(token, part, currentParentId);
         }
       } else {
-        currentParentId = await createDriveFolder(accessToken, part, currentParentId);
+        currentParentId = await createDriveFolder(token, part, currentParentId);
       }
     }
   }
 
   return currentParentId;
 }
+
 
 /**
  * Searches for a file by name inside a specific folder.
