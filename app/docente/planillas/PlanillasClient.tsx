@@ -811,21 +811,6 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       return null;
     };
 
-    const cleanForNumber = (header: string): string => {
-      return header.toLowerCase()
-        .replace(/\d+%/g, "")
-        .replace(/[^0-9]/g, " ")
-        .trim();
-    };
-
-    const getColumnNumber = (header: string): number | null => {
-      const nums = cleanForNumber(header).split(/\s+/).filter(x => x.length > 0);
-      if (nums.length > 0) {
-        return parseInt(nums[nums.length - 1], 10);
-      }
-      return null;
-    };
-
     const excelColsByCat: Record<string, number[]> = {
       EXAM: [],
       TASK: [],
@@ -845,72 +830,17 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       if (cat.type === "ATTEND" && !showAttend) return;
 
       const platformTasks = byType(cat.type);
-      const excelCols = excelColsByCat[cat.type];
+      const excelCols = excelColsByCat[cat.type].sort((a, b) => a - b);
 
-      platformTasks.forEach(task => {
-        mappings[task.id] = -1;
-      });
-
-      const freeExcelCols = new Set<number>(excelCols);
-      const unmappedTasks: TaskItem[] = [];
-
-      // Step 1: Match by exact task visual number
-      platformTasks.forEach(task => {
-        const taskNum = taskNumbers[task.id];
-        let matchedColIdx: number | null = null;
-
-        for (const colIdx of freeExcelCols) {
-          const colHeader = excelHeaders[colIdx];
-          const colNum = getColumnNumber(colHeader);
-          if (colNum === taskNum) {
-            matchedColIdx = colIdx;
-            break;
-          }
-        }
-
-        if (matchedColIdx !== null) {
-          mappings[task.id] = matchedColIdx;
-          freeExcelCols.delete(matchedColIdx);
-          usedColIndices.add(matchedColIdx);
-        } else {
-          unmappedTasks.push(task);
-        }
-      });
-
-      // Step 2: Match by task title (fuzzy string matching)
-      const tasksStillUnmapped: TaskItem[] = [];
-      unmappedTasks.forEach(task => {
-        const normTitle = (task.title || "").toLowerCase().trim();
-        if (normTitle.length < 3) {
-          tasksStillUnmapped.push(task);
-          return;
-        }
-
-        let matchedColIdx: number | null = null;
-        for (const colIdx of freeExcelCols) {
-          const colHeader = excelHeaders[colIdx].toLowerCase().trim();
-          if (colHeader.includes(normTitle) || normTitle.includes(colHeader)) {
-            matchedColIdx = colIdx;
-            break;
-          }
-        }
-
-        if (matchedColIdx !== null) {
-          mappings[task.id] = matchedColIdx;
-          freeExcelCols.delete(matchedColIdx);
-          usedColIndices.add(matchedColIdx);
-        } else {
-          tasksStillUnmapped.push(task);
-        }
-      });
-
-      // Step 3: Fallback to sequential position for remaining unmapped columns
-      const sortedFreeCols = Array.from(freeExcelCols).sort((a, b) => a - b);
-      tasksStillUnmapped.forEach((task, index) => {
-        if (index < sortedFreeCols.length) {
-          const colIdx = sortedFreeCols[index];
+      // Positional category mapping:
+      // Map the i-th task of the category in the platform strictly to the i-th column of the same category in Excel.
+      platformTasks.forEach((task, index) => {
+        if (index < excelCols.length) {
+          const colIdx = excelCols[index];
           mappings[task.id] = colIdx;
           usedColIndices.add(colIdx);
+        } else {
+          mappings[task.id] = -1;
         }
       });
     });
