@@ -78,6 +78,56 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
   const [excelStudentCol, setExcelStudentCol] = useState<number>(-1);
   const [excelTaskMappings, setExcelTaskMappings] = useState<Record<string, number>>({});
 
+  // Google Drive Sync states
+  const [gDriveConnected, setGDriveConnected] = useState(false);
+  const [gDriveFileExists, setGDriveFileExists] = useState(false);
+  const [gDriveWebViewLink, setGDriveWebViewLink] = useState("");
+  const [gDriveSyncing, setGDriveSyncing] = useState(false);
+  const [gDriveStatusLoading, setGDriveStatusLoading] = useState(true);
+
+  const loadGDriveStatus = useCallback(async () => {
+    setGDriveStatusLoading(true);
+    try {
+      const res = await fetch(`/api/docente/gdrive/sync?courseId=${courseId}&period=${encodeURIComponent(activePeriod)}`);
+      const json = await res.json();
+      if (res.ok) {
+        setGDriveConnected(!!json.isConnected);
+        setGDriveFileExists(!!json.fileExists);
+        setGDriveWebViewLink(json.webViewLink || "");
+      }
+    } catch (e) {
+      console.error("Error loading GDrive sync status:", e);
+    } finally {
+      setGDriveStatusLoading(false);
+    }
+  }, [courseId, activePeriod]);
+
+  useEffect(() => {
+    loadGDriveStatus();
+  }, [loadGDriveStatus, reloadTrigger]);
+
+  const handleGDriveSync = async () => {
+    setGDriveSyncing(true);
+    try {
+      const res = await fetch(`/api/docente/gdrive/sync`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId, period: activePeriod })
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        alert(json.message);
+        setReloadTrigger(prev => prev + 1); // reload data
+      } else {
+        alert(json.error || "Error al sincronizar con Google Drive");
+      }
+    } catch (e) {
+      alert("Error de conexión al sincronizar");
+    } finally {
+      setGDriveSyncing(false);
+    }
+  };
+
   // Fetch spreadsheet data
   useEffect(() => {
     async function loadData() {
@@ -1072,8 +1122,56 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
             </button>
           )}
 
+          {/* Google Drive / Sheets Cloud Sync */}
+          <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-1 ml-auto">
+            {gDriveStatusLoading ? (
+              <span className="text-xs text-muted-foreground px-2 py-1 flex items-center gap-1.5 font-medium">
+                <Loader2 className="animate-spin text-emerald-600" size={13} />
+                Drive...
+              </span>
+            ) : !gDriveConnected ? (
+              <a 
+                href="/docente/configuracion"
+                className="text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100/50 dark:hover:bg-emerald-900/30 px-2.5 py-1.5 rounded-md flex items-center gap-1.5"
+                title="Vincula tu cuenta de Google Drive para sincronizar"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-emerald-600"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                Vincular Drive
+              </a>
+            ) : (
+              <>
+                <button 
+                  onClick={handleGDriveSync}
+                  disabled={gDriveSyncing}
+                  type="button"
+                  className="text-xs font-bold text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 px-2.5 py-1.5 rounded-md flex items-center gap-1.5"
+                  title="Sincronizar planilla con Google Sheets (Lectura y Escritura)"
+                >
+                  {gDriveSyncing ? (
+                    <Loader2 className="animate-spin text-emerald-600" size={13} />
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-emerald-600"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                  )}
+                  {gDriveFileExists ? "Sincronizar Sheets" : "Crear en Sheets"}
+                </button>
+                {gDriveFileExists && gDriveWebViewLink && (
+                  <a 
+                    href={gDriveWebViewLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-bold text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/50 px-2.5 py-1.5 rounded-md flex items-center gap-1"
+                    title="Abrir planilla en Google Sheets online"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-teal-600"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                    Abrir Sheets
+                  </a>
+                )}
+              </>
+            )}
+          </div>
+
           {/* Excel Sync Controls */}
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg p-1 ml-auto">
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg p-1 ml-2">
             <button 
               onClick={exportToExcelSync} 
               type="button"

@@ -222,7 +222,7 @@ export async function uploadToGoogleDrive(
   mimeType: string,
   teacherId: string,
   subfolderName?: string
-): Promise<{ url: string; email: string }> {
+): Promise<{ id: string; url: string; email: string }> {
   const accounts = await getAccountsWithSpace(teacherId);
   if (accounts.length === 0) {
     throw new Error('El docente no tiene cuentas de Google Drive vinculadas o no se pudo renovar la credencial.');
@@ -354,5 +354,127 @@ export async function uploadToGoogleDrive(
   }
 
   const metaData = await metaRes.json();
-  return { url: metaData.webViewLink, email: selectedAccount.email };
+  return { id: fileId, url: metaData.webViewLink, email: selectedAccount.email };
+}
+
+/**
+ * Resolves a Google Drive subfolder path recursively.
+ * Returns the final folder ID.
+ */
+export async function resolveDriveFolderPath(
+  accessToken: string,
+  teacherId: string,
+  subfolderPath: string
+): Promise<string> {
+  const accounts = await getAccountsWithSpace(teacherId);
+  if (accounts.length === 0) {
+    throw new Error('El docente no tiene cuentas de Google Drive vinculadas.');
+  }
+  
+  accounts.sort((a, b) => b.freeSpace - a.freeSpace);
+  const selectedAccount = accounts[0];
+
+  let mainFolderId = '';
+  if (selectedAccount.googleDriveFolderId) {
+    mainFolderId = selectedAccount.googleDriveFolderId;
+  } else {
+    mainFolderId = await createDriveFolder(accessToken, 'Aula Virtual Escolar');
+    await prisma.googleDriveAccount.update({
+      where: { id: selectedAccount.id },
+      data: { googleDriveFolderId: mainFolderId },
+    });
+  }
+
+  let currentParentId = mainFolderId;
+  if (subfolderPath) {
+    const parts = subfolderPath.split('/').filter(Boolean);
+    for (const part of parts) {
+      const escapedPart = part.replace(/'/g, "\\'");
+      const searchRes = await fetch(
+        `https://www.googleapis.com/drive/v3/files?q=name='${escapedPart}' and '${currentParentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+
+      if (searchRes.ok) {
+        const searchData = await searchRes.json();
+        if (searchData.files && searchData.files.length > 0) {
+          currentParentId = searchData.files[0].id;
+        } else {
+          currentParentId = await createDriveFolder(accessToken, part, currentParentId);
+        }
+      } else {
+        currentParentId = await createDriveFolder(accessToken, part, currentParentId);
+      }
+    }
+  }
+
+  return currentParentId;
+}
+
+/**
+ * Searches for a file by name inside a specific folder.
+ */
+export async function findFileInFolder(
+  accessToken: string,
+  folderId: string,
+  filename: string
+): Promise<{ id: string; name: string; webViewLink?: string } | null> {
+  const query = `name='${filename.replace(/'/g, "\\'")}' and '${folderId}' in parents and trashed=false`;
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,webViewLink)`,
+    {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }
+  );
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error(`findFileInFolder failed: ${errText}`);
+    return null;
+  }
+  const data = await res.json();
+  if (data.files && data.files.length > 0) {
+    return data.files[0];
+  }
+  return null;
+}
+
+/**
+ * Downloads a file's content as a Buffer.
+ */
+export async function downloadDriveFile(accessToken: string, fileId: string): Promise<Buffer> {
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Failed to download file from Google Drive (ID: ${fileId}): ${errText}`);
+  }
+  const arrayBuffer = await res.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+}
+
+/**
+ * Updates an existing file's binary content in-place.
+ */
+export async function updateDriveFile(
+  accessToken: string,
+  fileId: string,
+  buffer: Buffer,
+  mimeType: string
+): Promise<void> {
+  const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': mimeType,
+      'Content-Length': buffer.length.toString()
+    },
+    body: buffer as any
+  });
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Failed to update file in Google Drive (ID: ${fileId}): ${errText}`);
+  }
 }
