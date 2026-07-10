@@ -37,12 +37,10 @@ export async function GET(request: Request) {
     const teacherId = payload.id as string;
     const defaultAccessToken = await getGoogleAccessToken(teacherId);
 
-    // If no valid token → Drive is not linked
     if (!defaultAccessToken) {
       return NextResponse.json({ isConnected: false });
     }
 
-    // Drive IS connected — check if we have a stored file details for this course+period
     try {
       const course = await prisma.course.findUnique({
         where: { id: courseId },
@@ -53,12 +51,10 @@ export async function GET(request: Request) {
         return NextResponse.json({ isConnected: true, fileExists: false });
       }
 
-      // Look up stored Drive file details
       const syncFiles = (course.gDriveSyncFiles as Record<string, any> | null) || {};
       const fileEntry = syncFiles[period];
 
       if (!fileEntry) {
-        // No stored entry → file has never been created for this period
         return NextResponse.json({ isConnected: true, fileExists: false });
       }
 
@@ -69,16 +65,12 @@ export async function GET(request: Request) {
         storedFileId = fileEntry.fileId;
         if (fileEntry.accountId) {
           const accToken = await getGoogleAccessTokenForAccount(fileEntry.accountId);
-          if (accToken) {
-            targetAccessToken = accToken;
-          }
+          if (accToken) targetAccessToken = accToken;
         }
       } else {
-        // Old string format fallback
         storedFileId = fileEntry;
       }
 
-      // Verify the file still exists in Drive by fetching its metadata
       const fileRes = await fetch(
         `https://www.googleapis.com/drive/v3/files/${storedFileId}?fields=id,name,webViewLink`,
         { headers: { Authorization: `Bearer ${targetAccessToken}` } }
@@ -93,8 +85,6 @@ export async function GET(request: Request) {
           filename: fileData.name
         });
       } else {
-        // If it returns 404, we are sure the file does not exist.
-        // Otherwise (e.g. 401, 500, 403), it might be a temporary permission error, so do NOT delete the DB record.
         if (fileRes.status === 404) {
           const updatedSyncFiles = { ...syncFiles };
           delete updatedSyncFiles[period];
@@ -116,7 +106,13 @@ export async function GET(request: Request) {
   }
 }
 
-// POST: Execute synchronization (bidirectional sync and merge)
+// POST: Execute bidirectional synchronization
+// Flow:
+//  1. Download Excel from Drive
+//  2. Parse grades from Excel → upsert into DB (individual upserts, NO transaction to avoid timeout)
+//  3. Re-fetch fresh grades from DB
+//  4. Write DB grades back into Excel (using name-based row matching)
+//  5. Upload updated Excel back to Drive
 export async function POST(request: Request) {
   try {
     const cookieStore = await cookies();
@@ -126,12 +122,6 @@ export async function POST(request: Request) {
     if (payload.role !== "TEACHER") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const teacherId = payload.id as string;
-    const accounts = await getAccountsWithSpace(teacherId);
-
-    if (accounts.length === 0) {
-      return NextResponse.json({ error: 'Google Drive no vinculado o sin cuentas activas' }, { status: 400 });
-    }
-
     const body = await request.json();
     const { courseId, period } = body;
 
@@ -139,7 +129,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 });
     }
 
-    // 1. Fetch course details
+    // ── 1. Fetch course + students ─────────────────────────────────────────
     const course = await prisma.course.findUnique({
       where: { id: courseId },
       include: {
@@ -160,28 +150,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Curso no encontrado' }, { status: 404 });
     }
 
-    // Get the account associated with the file or select the one with most space
-    const existingSyncFiles = (course.gDriveSyncFiles as Record<string, any> | null) || {};
-    const fileEntry = existingSyncFiles[period];
-
-    let selectedAccount = accounts[0];
-    if (fileEntry && typeof fileEntry === 'object' && fileEntry.accountId) {
-      const match = accounts.find((a: AccountSpace) => a.id === fileEntry.accountId);
-      if (match) {
-        selectedAccount = match;
-      } else {
-        // Fallback to sorting by free space if the associated account is no longer linked
-        accounts.sort((a: AccountSpace, b: AccountSpace) => b.freeSpace - a.freeSpace);
-        selectedAccount = accounts[0];
-      }
-    } else {
-      accounts.sort((a: AccountSpace, b: AccountSpace) => b.freeSpace - a.freeSpace);
-      selectedAccount = accounts[0];
+    const accounts = await getAccountsWithSpace(teacherId);
+    if (accounts.length === 0) {
+      return NextResponse.json({ error: 'Google Drive no vinculado o sin cuentas activas' }, { status: 400 });
     }
 
-    const accountToken = selectedAccount.accessToken;
-
-    // Deduplicate students
+    // Deduplicate students across groups
     const studentMap = new Map<string, { id: string; name: string; groupName: string }>();
     for (const group of course.groups) {
       for (const student of group.students) {
@@ -194,19 +168,48 @@ export async function POST(request: Request) {
     const students = Array.from(studentMap.values()).sort((a, b) => a.name.localeCompare(b.name));
     const studentIds = students.map(s => s.id);
 
-    // Fetch tasks for the period
+    // ── 2. Select Google Drive account ─────────────────────────────────────
+    const existingSyncFiles = (course.gDriveSyncFiles as Record<string, any> | null) || {};
+    const fileEntry = existingSyncFiles[period];
+
+    let selectedAccount: AccountSpace;
+    if (fileEntry && typeof fileEntry === 'object' && fileEntry.accountId) {
+      const match = accounts.find((a: AccountSpace) => a.id === fileEntry.accountId);
+      selectedAccount = match || accounts.sort((a: AccountSpace, b: AccountSpace) => b.freeSpace - a.freeSpace)[0];
+    } else {
+      accounts.sort((a: AccountSpace, b: AccountSpace) => b.freeSpace - a.freeSpace);
+      selectedAccount = accounts[0];
+    }
+
+    if (!selectedAccount) {
+      return NextResponse.json({ error: 'No hay cuentas de Drive disponibles' }, { status: 400 });
+    }
+    const accountToken = selectedAccount.accessToken;
+
+    // ── 3. Resolve Drive file ID ───────────────────────────────────────────
+    const gradeName = course.groups[0]?.grade?.name || "Sin Grado";
+    const folderPath = `${gradeName}/${course.name}/${period}`;
+    const filename = `Sincro_Planilla_${course.name}_${period}.xlsx`;
+
+    let driveFileId: string | undefined =
+      typeof fileEntry === 'object' ? fileEntry?.fileId :
+      typeof fileEntry === 'string' ? fileEntry : undefined;
+
+    if (!driveFileId) {
+      try {
+        const folderId = await resolveDriveFolderPath(accountToken, teacherId, folderPath);
+        const found = await findFileInFolder(accountToken, folderId, filename);
+        if (found) driveFileId = found.id;
+      } catch {
+        // folder lookup failed — will create new file later
+      }
+    }
+
+    // ── 4. Fetch tasks from DB ─────────────────────────────────────────────
     const tasks = await prisma.task.findMany({
-      where: {
-        courseId,
-        active: true,
-        period,
-      },
+      where: { courseId, active: true, period },
       select: {
-        id: true,
-        title: true,
-        type: true,
-        dueDate: true,
-        duration: true,
+        id: true, title: true, type: true, dueDate: true, duration: true,
         submissions: {
           where: { studentId: { in: studentIds } },
           select: { studentId: true, status: true, grade: true, id: true }
@@ -215,104 +218,73 @@ export async function POST(request: Request) {
       orderBy: { createdAt: 'asc' }
     });
 
-    // 2. Drive Folder & File Resolution
-    const gradeName = course.groups[0]?.grade?.name || "Sin Grado";
-    const folderPath = `${gradeName}/${course.name}/${period}`;
-    const filename = `Sincro_Planilla_${course.name}_${period}.xlsx`;
+    const saberTasks = tasks.filter(t => t.type === "EXAM");
+    const hacerTasks = tasks.filter(t => t.type === "TASK");
+    const serTasks   = tasks.filter(t => t.type === "SER");
 
-    // Check if we already have a stored file ID to use directly
-    const preSyncFiles = (existingSyncFiles) as Record<string, any>;
-    const preSyncEntry = preSyncFiles[period];
-    const preSyncFileId: string | undefined = typeof preSyncEntry === 'object' ? preSyncEntry?.fileId : (typeof preSyncEntry === 'string' ? preSyncEntry : undefined);
+    // Official template column layout
+    const SABER_START = 2;  const SABER_SLOTS = 4;
+    const HACER_START = 6;  const HACER_SLOTS = 10;
+    const SER_START  = 16;  const SER_SLOTS   = 3;
 
-    let file: { id: string; webViewLink?: string } | null = null;
-    if (preSyncFileId) {
-      // Use stored ID directly — no folder search needed
-      file = { id: preSyncFileId };
-    } else {
-      // Fall back to folder search by filename
-      const folderId = await resolveDriveFolderPath(accountToken, teacherId, folderPath);
-      file = await findFileInFolder(accountToken, folderId, filename);
-    }
-
-    let isOfficialFormat = false;
+    // ── 5. Download Drive file and parse grades into DB ────────────────────
     let loadedWorkbook: any = null;
     let targetSheetName = "";
-    let detectedHeaderRowIndex = -1;
+    let isOfficialFormat = false;
+    let headerRowIndex = -1;
 
-    // 3. Process existing file (if any) to read grades
-    if (file) {
+    if (driveFileId) {
       try {
-        const fileBuffer = await downloadDriveFile(accountToken, file.id);
+        const fileBuffer = await downloadDriveFile(accountToken, driveFileId);
         const workbook = XLSX.read(fileBuffer, { type: "buffer" });
         const sheetName = workbook.SheetNames[0];
         const ws = workbook.Sheets[sheetName];
         const rows = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1 });
 
         if (rows.length >= 2) {
-          const metadataRow = rows[0];
-          if (metadataRow && metadataRow[0] === "STUDENT_ID" && metadataRow[1] === "STUDENT_NAME") {
-            const taskIds = metadataRow.slice(3);
-            const submissionsToUpsert: Array<{ studentId: string; taskId: string; grade: number }> = [];
-            // NOTE: We never delete grades from DB via Drive sync.
-            // Empty cells in Drive are ignored — they do NOT erase platform grades.
-            // To clear a grade, the teacher must do so directly in the platform.
+          const firstRow = rows[0];
+
+          if (firstRow && firstRow[0] === "STUDENT_ID" && firstRow[1] === "STUDENT_NAME") {
+            // ── Platform-generated simple format ───────────────────────────
+            const taskIds = firstRow.slice(3);
+            const toUpsert: Array<{ studentId: string; taskId: string; grade: number }> = [];
 
             for (let i = 2; i < rows.length; i++) {
               const row = rows[i];
               if (!row || row.length === 0) continue;
-
               const studentId = row[0];
-              if (!studentId || typeof studentId !== "string" || studentId === "STUDENT_ID") continue;
-
-              // Verify student belongs to this course
+              if (!studentId || typeof studentId !== "string") continue;
               if (!studentMap.has(studentId)) continue;
 
-              taskIds.forEach((taskId, index) => {
+              taskIds.forEach((taskId: string, index: number) => {
                 if (!taskId) return;
-                const colIndex = index + 3;
-                const gradeVal = row[colIndex];
-
-                // Only upsert non-empty grade values — never delete
+                const gradeVal = row[index + 3];
                 if (gradeVal !== undefined && gradeVal !== null && String(gradeVal).trim() !== "") {
-                  const num = parseFloat(gradeVal);
+                  const num = parseFloat(String(gradeVal).replace(',', '.'));
                   if (!isNaN(num) && num >= 1.0 && num <= 5.0) {
-                    submissionsToUpsert.push({ studentId, taskId, grade: parseFloat(num.toFixed(1)) });
+                    toUpsert.push({ studentId, taskId, grade: parseFloat(num.toFixed(1)) });
                   }
                 }
               });
             }
 
-            // Database Sync Transaction — only upserts, no deletes
-            if (submissionsToUpsert.length > 0) {
-              await prisma.$transaction(async (tx) => {
-                for (const sub of submissionsToUpsert) {
-                  await tx.submission.upsert({
-                    where: { taskId_studentId: { taskId: sub.taskId, studentId: sub.studentId } },
-                    update: {
-                      grade: sub.grade,
-                      status: 'GRADED',
-                      updatedAt: new Date()
-                    },
-                    create: {
-                      taskId: sub.taskId,
-                      studentId: sub.studentId,
-                      grade: sub.grade,
-                      status: 'GRADED',
-                      createdAt: new Date(),
-                      updatedAt: new Date()
-                    }
-                  });
-                }
-              }, {
-                maxWait: 20000,
-                timeout: 60000
+            // Individual upserts — no wrapping transaction to avoid timeout
+            for (const sub of toUpsert) {
+              await prisma.submission.upsert({
+                where: { taskId_studentId: { taskId: sub.taskId, studentId: sub.studentId } },
+                update: { grade: sub.grade, status: 'GRADED', updatedAt: new Date() },
+                create: { taskId: sub.taskId, studentId: sub.studentId, grade: sub.grade, status: 'GRADED', createdAt: new Date(), updatedAt: new Date() }
               });
             }
-            console.log(`Simple format sync: ${submissionsToUpsert.length} grades upserted from Drive.`);
+            console.log(`Simple format: ${toUpsert.length} grades Drive→DB`);
+
+            loadedWorkbook = workbook;
+            targetSheetName = sheetName;
+            isOfficialFormat = false;
+
           } else {
-            // Dynamic detection of Official Sheet Format: scan first 15 rows for "nombre completo" in column B
-            let headerRowIndex = -1;
+            // ── Official template format ───────────────────────────────────
+            // Detect header row: scan first 15 rows for "nombre completo" in col B
             for (let r = 0; r < Math.min(rows.length, 15); r++) {
               if (rows[r] && rows[r][1] && String(rows[r][1]).toLowerCase().includes("nombre completo")) {
                 headerRowIndex = r;
@@ -320,138 +292,96 @@ export async function POST(request: Request) {
               }
             }
 
-            if (headerRowIndex !== -1 && rows.length >= headerRowIndex + 2) {
-              const saberTasksFilter = tasks.filter(t => t.type === "EXAM");
-              const hacerTasksFilter = tasks.filter(t => t.type === "TASK");
-              const serTasksFilter   = tasks.filter(t => t.type === "SER");
+            if (headerRowIndex !== -1) {
+              const toUpsert: Array<{ studentId: string; taskId: string; grade: number }> = [];
 
-              const SABER_START = 2;  const SABER_SLOTS = 4;
-              const HACER_START = 6;  const HACER_SLOTS = 10;
-              const SER_START  = 16;  const SER_SLOTS   = 3;
-
-              const submissionsToUpsert: Array<{ studentId: string; taskId: string; grade: number }> = [];
-              // NOTE: We never delete grades from DB via Drive sync.
-              // Empty cells are ignored. To clear a grade, teacher must do so in the platform.
-
-              // Students start at the row immediately after the header
               for (let i = headerRowIndex + 1; i < rows.length; i++) {
                 const row = rows[i];
                 if (!row || row.length === 0) continue;
 
-                // Find student by name
                 const studentNameInExcel = row[1];
                 if (!studentNameInExcel || typeof studentNameInExcel !== "string") continue;
 
+                // Match student by name — first try positional, then fuzzy
+                const cleanExcelName = studentNameInExcel.toLowerCase().replace(/\s+/g, '');
                 const studentIndex = i - (headerRowIndex + 1);
                 let student = students[studentIndex];
+                const cleanDbNamePos = student ? student.name.toLowerCase().replace(/\s+/g, '') : '';
 
-                const cleanExcelName = studentNameInExcel.toLowerCase().replace(/\s+/g, '');
-                let cleanDbName = student ? student.name.toLowerCase().replace(/\s+/g, '') : '';
-                
-                if (!student || (!cleanExcelName.includes(cleanDbName) && !cleanDbName.includes(cleanExcelName))) {
-                  const foundStudent = students.find(s => {
-                    const sName = s.name.toLowerCase().replace(/\s+/g, '');
-                    return sName === cleanExcelName || sName.includes(cleanExcelName) || cleanExcelName.includes(sName);
+                if (!student || (!cleanExcelName.includes(cleanDbNamePos) && !cleanDbNamePos.includes(cleanExcelName))) {
+                  const found = students.find(s => {
+                    const sn = s.name.toLowerCase().replace(/\s+/g, '');
+                    return sn === cleanExcelName || sn.includes(cleanExcelName) || cleanExcelName.includes(sn);
                   });
-                  if (!foundStudent) continue;
-                  student = foundStudent;
+                  if (!found) continue;
+                  student = found;
                 }
 
                 const studentId = student.id;
 
-              // 1. Process SABER tasks — only upsert non-empty values
-              for (let j = 0; j < SABER_SLOTS; j++) {
-                const t = saberTasksFilter[j];
-                if (!t) continue;
-                const colIndex = SABER_START + j;
-                const gradeVal = row[colIndex];
-                if (gradeVal !== undefined && gradeVal !== null && String(gradeVal).trim() !== "") {
-                  const num = parseFloat(gradeVal);
-                  if (!isNaN(num) && num >= 1.0 && num <= 5.0) {
-                    submissionsToUpsert.push({ studentId, taskId: t.id, grade: parseFloat(num.toFixed(1)) });
+                // SABER
+                for (let j = 0; j < SABER_SLOTS; j++) {
+                  const t = saberTasks[j];
+                  if (!t) continue;
+                  const gradeVal = row[SABER_START + j];
+                  if (gradeVal !== undefined && gradeVal !== null && String(gradeVal).trim() !== "") {
+                    const num = parseFloat(String(gradeVal).replace(',', '.'));
+                    if (!isNaN(num) && num >= 1.0 && num <= 5.0)
+                      toUpsert.push({ studentId, taskId: t.id, grade: parseFloat(num.toFixed(1)) });
+                  }
+                }
+
+                // HACER
+                for (let j = 0; j < HACER_SLOTS; j++) {
+                  const t = hacerTasks[j];
+                  if (!t) continue;
+                  const gradeVal = row[HACER_START + j];
+                  if (gradeVal !== undefined && gradeVal !== null && String(gradeVal).trim() !== "") {
+                    const num = parseFloat(String(gradeVal).replace(',', '.'));
+                    if (!isNaN(num) && num >= 1.0 && num <= 5.0)
+                      toUpsert.push({ studentId, taskId: t.id, grade: parseFloat(num.toFixed(1)) });
+                  }
+                }
+
+                // SER
+                for (let j = 0; j < SER_SLOTS; j++) {
+                  const t = serTasks[j];
+                  if (!t) continue;
+                  const gradeVal = row[SER_START + j];
+                  if (gradeVal !== undefined && gradeVal !== null && String(gradeVal).trim() !== "") {
+                    const num = parseFloat(String(gradeVal).replace(',', '.'));
+                    if (!isNaN(num) && num >= 1.0 && num <= 5.0)
+                      toUpsert.push({ studentId, taskId: t.id, grade: parseFloat(num.toFixed(1)) });
                   }
                 }
               }
 
-              // 2. Process HACER tasks — only upsert non-empty values
-              for (let j = 0; j < HACER_SLOTS; j++) {
-                const t = hacerTasksFilter[j];
-                if (!t) continue;
-                const colIndex = HACER_START + j;
-                const gradeVal = row[colIndex];
-                if (gradeVal !== undefined && gradeVal !== null && String(gradeVal).trim() !== "") {
-                  const num = parseFloat(gradeVal);
-                  if (!isNaN(num) && num >= 1.0 && num <= 5.0) {
-                    submissionsToUpsert.push({ studentId, taskId: t.id, grade: parseFloat(num.toFixed(1)) });
-                  }
-                }
+              // Individual upserts — no wrapping transaction to avoid timeout
+              for (const sub of toUpsert) {
+                await prisma.submission.upsert({
+                  where: { taskId_studentId: { taskId: sub.taskId, studentId: sub.studentId } },
+                  update: { grade: sub.grade, status: 'GRADED', updatedAt: new Date() },
+                  create: { taskId: sub.taskId, studentId: sub.studentId, grade: sub.grade, status: 'GRADED', createdAt: new Date(), updatedAt: new Date() }
+                });
               }
+              console.log(`Official format: ${toUpsert.length} grades Drive→DB`);
 
-              // 3. Process SER tasks — only upsert non-empty values
-              for (let j = 0; j < SER_SLOTS; j++) {
-                const t = serTasksFilter[j];
-                if (!t) continue;
-                const colIndex = SER_START + j;
-                const gradeVal = row[colIndex];
-                if (gradeVal !== undefined && gradeVal !== null && String(gradeVal).trim() !== "") {
-                  const num = parseFloat(gradeVal);
-                  if (!isNaN(num) && num >= 1.0 && num <= 5.0) {
-                    submissionsToUpsert.push({ studentId, taskId: t.id, grade: parseFloat(num.toFixed(1)) });
-                  }
-                }
-              }
+              loadedWorkbook = workbook;
+              targetSheetName = sheetName;
+              isOfficialFormat = true;
             }
-
-            // Database Sync Transaction for Official Template — only upserts, no deletes
-            if (submissionsToUpsert.length > 0) {
-              await prisma.$transaction(async (tx) => {
-                for (const sub of submissionsToUpsert) {
-                  await tx.submission.upsert({
-                    where: { taskId_studentId: { taskId: sub.taskId, studentId: sub.studentId } },
-                    update: {
-                      grade: sub.grade,
-                      status: 'GRADED',
-                      updatedAt: new Date()
-                    },
-                    create: {
-                      taskId: sub.taskId,
-                      studentId: sub.studentId,
-                      grade: sub.grade,
-                      status: 'GRADED',
-                      createdAt: new Date(),
-                      updatedAt: new Date()
-                    }
-                  });
-                }
-              }, {
-                maxWait: 20000,
-                timeout: 60000
-              });
-            }
-            console.log(`Official format sync: ${submissionsToUpsert.length} grades upserted from Drive.`);
-            isOfficialFormat = true;
-            loadedWorkbook = workbook;
-            targetSheetName = sheetName;
-            detectedHeaderRowIndex = headerRowIndex;
           }
         }
-      }
       } catch (err) {
-        console.error("Error reading current spreadsheet from Drive, overwriting with clean DB state:", err);
+        console.error("Error reading Drive file — will write DB state to Drive:", err);
       }
     }
 
-    // 4. Regenerate Excel buffer from updated DB
+    // ── 6. Re-fetch fresh grades from DB ──────────────────────────────────
     const freshTasks = await prisma.task.findMany({
-      where: {
-        courseId,
-        active: true,
-        period,
-      },
+      where: { courseId, active: true, period },
       select: {
-        id: true,
-        title: true,
-        type: true,
+        id: true, title: true, type: true,
         submissions: {
           where: { studentId: { in: studentIds } },
           select: { studentId: true, grade: true }
@@ -460,124 +390,90 @@ export async function POST(request: Request) {
       orderBy: { createdAt: 'asc' }
     });
 
-    const row1 = ["STUDENT_ID", "STUDENT_NAME", "GROUP"];
-    const row2 = ["ID Estudiante", "Nombre Completo", "Grupo"];
+    const freshSaber  = freshTasks.filter(t => t.type === "EXAM");
+    const freshHacer  = freshTasks.filter(t => t.type === "TASK");
+    const freshSer    = freshTasks.filter(t => t.type === "SER");
+    const freshFinal  = freshTasks.filter(t => t.type === "FINAL");
+    const freshAttend = freshTasks.filter(t => t.type === "ATTEND");
 
-    const saberTasks = freshTasks.filter(t => t.type === "EXAM");
-    const hacerTasks = freshTasks.filter(t => t.type === "TASK");
-    const serTasks = freshTasks.filter(t => t.type === "SER");
-    const finalTasks = freshTasks.filter(t => t.type === "FINAL");
-    const attendTasks = freshTasks.filter(t => t.type === "ATTEND");
-
-    let counter = 1;
-    const taskNumbers: Record<string, number> = {};
-    saberTasks.forEach(t => taskNumbers[t.id] = counter++);
-    hacerTasks.forEach(t => taskNumbers[t.id] = counter++);
-    serTasks.forEach(t => taskNumbers[t.id] = counter++);
-    finalTasks.forEach(t => taskNumbers[t.id] = counter++);
-    attendTasks.forEach(t => taskNumbers[t.id] = counter++);
-
-    const activeTasks = [
-      ...saberTasks,
-      ...hacerTasks,
-      ...serTasks,
-      ...finalTasks,
-      ...attendTasks
-    ];
-
-    activeTasks.forEach(t => {
-      row1.push(t.id);
-      const category = t.type === "EXAM" ? "SABER" : t.type === "TASK" ? "HACER" : t.type === "SER" ? "SER" : t.type === "FINAL" ? "EXAMEN FINAL" : "ASISTENCIA";
-      row2.push(`${category} ${taskNumbers[t.id]} - ${t.title}`);
-    });
-
+    // ── 7. Build output Excel buffer ──────────────────────────────────────
     let newBuffer: Buffer;
 
     if (isOfficialFormat && loadedWorkbook) {
+      // Write DB grades back into the original official template
       const ws = loadedWorkbook.Sheets[targetSheetName];
-      const saberTasksFilter = freshTasks.filter(t => t.type === "EXAM");
-      const hacerTasksFilter = freshTasks.filter(t => t.type === "TASK");
-      const serTasksFilter   = freshTasks.filter(t => t.type === "SER");
-
-      const SABER_START = 2;  const SABER_SLOTS = 4;
-      const HACER_START = 6;  const HACER_SLOTS = 10;
-      const SER_START  = 16;  const SER_SLOTS   = 3;
-
-      // Map student ID to its actual row index in the spreadsheet by name matching
       const wsRows = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1 });
-      const studentRowMap = new Map<string, number>();
 
+      // Build studentId → rowIndex map by name matching
+      const studentRowMap = new Map<string, number>();
       for (let r = 0; r < wsRows.length; r++) {
         const row = wsRows[r];
         if (!row) continue;
         const excelName = row[1];
         if (excelName && typeof excelName === 'string') {
-          const cleanExcelName = excelName.toLowerCase().replace(/\s+/g, '');
-          if (cleanExcelName.includes("nombrecompleto") || cleanExcelName.includes("nombrecom")) continue;
-
-          const matchedStudent = students.find(s => {
-            const cleanDbName = s.name.toLowerCase().replace(/\s+/g, '');
-            return cleanDbName === cleanExcelName || cleanDbName.includes(cleanExcelName) || cleanExcelName.includes(cleanDbName);
+          const cleanName = excelName.toLowerCase().replace(/\s+/g, '');
+          if (cleanName.includes("nombrecompleto") || cleanName.includes("nombrecom")) continue;
+          const matched = students.find(s => {
+            const dn = s.name.toLowerCase().replace(/\s+/g, '');
+            return dn === cleanName || dn.includes(cleanName) || cleanName.includes(dn);
           });
-
-          if (matchedStudent) {
-            studentRowMap.set(matchedStudent.id, r);
-          }
+          if (matched) studentRowMap.set(matched.id, r);
         }
       }
 
-      students.forEach((student) => {
+      students.forEach(student => {
         const rowIndex = studentRowMap.get(student.id);
-        if (rowIndex === undefined) return; // Skip if student not in spreadsheet
+        if (rowIndex === undefined) return;
 
-        // SABER slots
+        // SABER
         for (let j = 0; j < SABER_SLOTS; j++) {
-          const t = saberTasksFilter[j];
+          const t = freshSaber[j];
           const sub = t ? t.submissions.find(s => s.studentId === student.id) : null;
-          const val = sub && sub.grade !== null && sub.grade !== undefined ? sub.grade : "";
-          const cellRef = XLSX.utils.encode_cell({ r: rowIndex, c: SABER_START + j });
-          if (val === "") {
-            delete ws[cellRef];
-          } else {
-            ws[cellRef] = { t: 'n', v: val };
-          }
+          const val = (sub && sub.grade !== null && sub.grade !== undefined) ? sub.grade : "";
+          const ref = XLSX.utils.encode_cell({ r: rowIndex, c: SABER_START + j });
+          if (val === "") { delete ws[ref]; } else { ws[ref] = { t: 'n', v: val }; }
         }
 
-        // HACER slots
+        // HACER
         for (let j = 0; j < HACER_SLOTS; j++) {
-          const t = hacerTasksFilter[j];
+          const t = freshHacer[j];
           const sub = t ? t.submissions.find(s => s.studentId === student.id) : null;
-          const val = sub && sub.grade !== null && sub.grade !== undefined ? sub.grade : "";
-          const cellRef = XLSX.utils.encode_cell({ r: rowIndex, c: HACER_START + j });
-          if (val === "") {
-            delete ws[cellRef];
-          } else {
-            ws[cellRef] = { t: 'n', v: val };
-          }
+          const val = (sub && sub.grade !== null && sub.grade !== undefined) ? sub.grade : "";
+          const ref = XLSX.utils.encode_cell({ r: rowIndex, c: HACER_START + j });
+          if (val === "") { delete ws[ref]; } else { ws[ref] = { t: 'n', v: val }; }
         }
 
-        // SER slots
+        // SER
         for (let j = 0; j < SER_SLOTS; j++) {
-          const t = serTasksFilter[j];
+          const t = freshSer[j];
           const sub = t ? t.submissions.find(s => s.studentId === student.id) : null;
-          const val = sub && sub.grade !== null && sub.grade !== undefined ? sub.grade : "";
-          const cellRef = XLSX.utils.encode_cell({ r: rowIndex, c: SER_START + j });
-          if (val === "") {
-            delete ws[cellRef];
-          } else {
-            ws[cellRef] = { t: 'n', v: val };
-          }
+          const val = (sub && sub.grade !== null && sub.grade !== undefined) ? sub.grade : "";
+          const ref = XLSX.utils.encode_cell({ r: rowIndex, c: SER_START + j });
+          if (val === "") { delete ws[ref]; } else { ws[ref] = { t: 'n', v: val }; }
         }
       });
-      newBuffer = XLSX.write(loadedWorkbook, { type: "buffer", bookType: "xlsx" });
-    } else {
-      const dataRows = [row1, row2];
 
+      newBuffer = XLSX.write(loadedWorkbook, { type: "buffer", bookType: "xlsx" });
+
+    } else {
+      // Generate platform-format spreadsheet
+      const activeTasks = [...freshSaber, ...freshHacer, ...freshSer, ...freshFinal, ...freshAttend];
+      let counter = 1;
+      const taskNumbers: Record<string, number> = {};
+      activeTasks.forEach(t => { taskNumbers[t.id] = counter++; });
+
+      const row1 = ["STUDENT_ID", "STUDENT_NAME", "GROUP", ...activeTasks.map(t => t.id)];
+      const row2 = ["ID Estudiante", "Nombre Completo", "Grupo", ...activeTasks.map(t => {
+        const cat = t.type === "EXAM" ? "SABER" : t.type === "TASK" ? "HACER" : t.type === "SER" ? "SER" : t.type === "FINAL" ? "EXAMEN FINAL" : "ASISTENCIA";
+        return `${cat} ${taskNumbers[t.id]} - ${t.title}`;
+      })];
+
+      const dataRows: any[][] = [row1, row2];
       students.forEach(student => {
-        const row = [student.id, student.name, student.groupName];
+        const row: any[] = [student.id, student.name, student.groupName];
         activeTasks.forEach(t => {
           const sub = t.submissions.find(s => s.studentId === student.id);
-          row.push(sub && sub.grade !== null && sub.grade !== undefined ? sub.grade.toFixed(1) : "");
+          row.push((sub && sub.grade !== null && sub.grade !== undefined) ? sub.grade.toFixed(1) : "");
         });
         dataRows.push(row);
       });
@@ -585,91 +481,55 @@ export async function POST(request: Request) {
       const ws = XLSX.utils.aoa_to_sheet(dataRows);
       ws["!rows"] = [{ hidden: true }];
       ws["!cols"] = Array.from({ length: row2.length }, () => ({ wch: 15 }));
-      ws["!cols"][0] = { wch: 25 }; // student ID
-      ws["!cols"][1] = { wch: 30 }; // student name
-      ws["!cols"][2] = { wch: 15 }; // group
+      ws["!cols"][0] = { wch: 25 };
+      ws["!cols"][1] = { wch: 30 };
+      ws["!cols"][2] = { wch: 15 };
 
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Calificaciones");
       newBuffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
     }
 
-    // 5. Save back to Drive
-    const courseForSync = await prisma.course.findUnique({
-      where: { id: courseId },
-      select: { gDriveSyncFiles: true }
-    });
-    const freshSyncFiles = (courseForSync?.gDriveSyncFiles as Record<string, any> | null) || {};
-    const freshFileEntry = freshSyncFiles[period];
-
-    let storedFileId: string | undefined;
-    if (freshFileEntry && typeof freshFileEntry === 'object') {
-      storedFileId = freshFileEntry.fileId;
-    } else if (typeof freshFileEntry === 'string') {
-      storedFileId = freshFileEntry;
-    }
-
+    // ── 8. Upload updated Excel to Drive ──────────────────────────────────
     let finalFileId: string | undefined;
-    let finalWebViewLink: string = '';
+    let finalWebViewLink = '';
+    const isNew = !driveFileId;
 
-    if (storedFileId) {
-      // Try to update the existing file by its stored ID
+    if (driveFileId) {
       try {
-        await updateDriveFile(accountToken, storedFileId, newBuffer, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        await updateDriveFile(accountToken, driveFileId, newBuffer, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         const metaRes = await fetch(
-          `https://www.googleapis.com/drive/v3/files/${storedFileId}?fields=id,webViewLink`,
+          `https://www.googleapis.com/drive/v3/files/${driveFileId}?fields=id,webViewLink`,
           { headers: { Authorization: `Bearer ${accountToken}` } }
         );
         const metaData = metaRes.ok ? await metaRes.json() : {};
-        finalFileId = storedFileId;
+        finalFileId = driveFileId;
         finalWebViewLink = metaData.webViewLink || '';
       } catch {
-        // File might have been deleted — fall through to create
-        const uploadRes = await uploadToGoogleDrive(
-          newBuffer,
-          filename,
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          teacherId,
-          folderPath
-        );
+        // File was deleted — create new
+        const uploadRes = await uploadToGoogleDrive(newBuffer, filename, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', teacherId, folderPath);
         finalFileId = uploadRes?.id;
         finalWebViewLink = uploadRes?.url || '';
       }
-    } else if (file) {
-      // Found via folder search (old sync files before this fix)
-      await updateDriveFile(accountToken, file.id, newBuffer, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      finalFileId = file.id;
-      finalWebViewLink = file.webViewLink || '';
     } else {
-      // Create new file
-      const uploadRes = await uploadToGoogleDrive(
-        newBuffer,
-        filename,
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        teacherId,
-        folderPath
-      );
+      const uploadRes = await uploadToGoogleDrive(newBuffer, filename, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', teacherId, folderPath);
       finalFileId = uploadRes?.id;
       finalWebViewLink = uploadRes?.url || '';
     }
 
-    // Validate that we got a real file ID before touching the DB
     if (!finalFileId) {
       throw new Error('El archivo fue procesado en Drive pero no se pudo obtener su ID. Intente nuevamente.');
     }
 
-    const isNew = !storedFileId;
-
-    // Save the file details to DB so GET can find it instantly next time
+    // ── 9. Persist Drive file ID to DB ────────────────────────────────────
+    const latestCourse = await prisma.course.findUnique({ where: { id: courseId }, select: { gDriveSyncFiles: true } });
+    const latestSyncFiles = (latestCourse?.gDriveSyncFiles as Record<string, any> | null) || {};
     await prisma.course.update({
       where: { id: courseId },
       data: {
         gDriveSyncFiles: {
-          ...freshSyncFiles,
-          [period]: {
-            fileId: finalFileId,
-            accountId: selectedAccount.id
-          }
+          ...latestSyncFiles,
+          [period]: { fileId: finalFileId, accountId: selectedAccount.id }
         }
       }
     });
@@ -683,7 +543,6 @@ export async function POST(request: Request) {
       fileId: finalFileId,
       drivePath
     });
-
 
   } catch (error: any) {
     console.error('Error synchronizing grades:', error);
