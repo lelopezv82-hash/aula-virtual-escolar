@@ -503,11 +503,33 @@ export async function POST(request: Request) {
       const HACER_START = 6;  const HACER_SLOTS = 10;
       const SER_START  = 16;  const SER_SLOTS   = 3;
 
-      const startStudentRow = detectedHeaderRowIndex !== -1 ? detectedHeaderRowIndex + 1 : 8;
+      // Map student ID to its actual row index in the spreadsheet by name matching
+      const wsRows = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1 });
+      const studentRowMap = new Map<string, number>();
 
-      students.forEach((student, i) => {
-        const rowIndex = startStudentRow + i;
-        
+      for (let r = 0; r < wsRows.length; r++) {
+        const row = wsRows[r];
+        if (!row) continue;
+        const excelName = row[1];
+        if (excelName && typeof excelName === 'string') {
+          const cleanExcelName = excelName.toLowerCase().replace(/\s+/g, '');
+          if (cleanExcelName.includes("nombrecompleto") || cleanExcelName.includes("nombrecom")) continue;
+
+          const matchedStudent = students.find(s => {
+            const cleanDbName = s.name.toLowerCase().replace(/\s+/g, '');
+            return cleanDbName === cleanExcelName || cleanDbName.includes(cleanExcelName) || cleanExcelName.includes(cleanDbName);
+          });
+
+          if (matchedStudent) {
+            studentRowMap.set(matchedStudent.id, r);
+          }
+        }
+      }
+
+      students.forEach((student) => {
+        const rowIndex = studentRowMap.get(student.id);
+        if (rowIndex === undefined) return; // Skip if student not in spreadsheet
+
         // SABER slots
         for (let j = 0; j < SABER_SLOTS; j++) {
           const t = saberTasksFilter[j];
