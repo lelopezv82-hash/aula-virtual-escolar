@@ -1766,9 +1766,6 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           <button onClick={exportToOfficialTemplate} className="btn btn-secondary flex items-center gap-1.5 text-sm" style={{ background: "#1d4ed8", borderColor: "#1e40af", color: "#fff" }} title="Genera la planilla oficial en formato Monseñor Díaz Plata con todas las notas">
             <FileSpreadsheet size={15} /> Planilla Oficial
           </button>
-          <button onClick={exportToExcel} className="btn btn-secondary flex items-center gap-1.5 text-sm">
-            <FileSpreadsheet size={15} /> Excel (Vista)
-          </button>
           <button onClick={exportToPDF} className="btn btn-primary flex items-center gap-1.5 text-sm" style={{ background: "#f97316", borderColor: "#ea580c" }}>
             <FileText size={15} /> PDF
           </button>
