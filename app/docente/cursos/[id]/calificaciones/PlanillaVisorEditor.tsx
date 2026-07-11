@@ -364,6 +364,36 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
     return result;
   };
 
+  const addColumn = (type: "EXAM" | "TASK" | "SER") => {
+    setRows(prev => {
+      if (prev.length < 2) return prev;
+      const next = prev.map(r => [...r]);
+      
+      const tempId = `NEW_${type}_${Date.now()}`;
+      next[0].push(tempId);
+
+      const typeLabel = type === "EXAM" ? "SABER" : type === "TASK" ? "HACER" : "SER";
+      
+      let existingCount = 0;
+      next[0].forEach((id, idx) => {
+        if (idx >= 3) {
+          const currentTask = tasks.find(t => t.id === id);
+          if (id.startsWith(`NEW_${type}_`) || (currentTask && currentTask.type === type)) {
+            existingCount++;
+          }
+        }
+      });
+
+      next[1].push(`${typeLabel} ${existingCount + 1} - Nueva Actividad`);
+
+      for (let ri = 2; ri < next.length; ri++) {
+        next[ri].push("");
+      }
+      return next;
+    });
+    setSaveStatus("idle");
+  };
+
   // ── Save planilla + sync grades ─────────────────────────────────────────
   const handleSave = async () => {
     if (rows.length === 0) return;
@@ -387,12 +417,17 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
       if (res.ok && json.success) {
         setSaveStatus("success");
         setSaveMsg(`✓ Planilla guardada. ${json.saved} notas actualizadas, ${json.cleared} eliminadas.`);
+        if (json.updatedRows) {
+          setRows(json.updatedRows);
+          autoColWidths(json.updatedRows);
+        }
         setTimeout(() => setSaveStatus("idle"), 5000);
       } else {
         setSaveStatus("error");
         setSaveMsg(json.error || "Error al guardar");
       }
-    } catch {
+    } catch (e) {
+      console.error(e);
       setSaveStatus("error");
       setSaveMsg("Error de conexión");
     } finally {
@@ -442,6 +477,28 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
 
         {rows.length > 0 && (
           <>
+            {/* Add Column Buttons */}
+            <div className="flex items-center gap-1.5 border-l border-gray-200 pl-3">
+              <button
+                onClick={() => addColumn("EXAM")}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-100 hover:bg-purple-200 text-purple-700 transition-colors border border-purple-200"
+              >
+                + Saber (Cognitivo)
+              </button>
+              <button
+                onClick={() => addColumn("TASK")}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-orange-100 hover:bg-orange-200 text-orange-700 transition-colors border border-orange-200"
+              >
+                + Hacer (Procedimental)
+              </button>
+              <button
+                onClick={() => addColumn("SER")}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-yellow-100 hover:bg-yellow-200 text-yellow-700 transition-colors border border-yellow-200"
+              >
+                + Ser (Actitudinal)
+              </button>
+            </div>
+
             {/* Download */}
             <button
               onClick={handleDownload}
