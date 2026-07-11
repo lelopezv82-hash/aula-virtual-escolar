@@ -15,7 +15,11 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 // @ts-ignore
 import autoTable from "jspdf-autotable";
-import PlanillaVisorEditor from "../cursos/[id]/calificaciones/PlanillaVisorEditor";
+import dynamic from "next/dynamic";
+const PlanillaVisorEditor = dynamic(
+  () => import("../cursos/[id]/calificaciones/PlanillaVisorEditor"),
+  { ssr: false }
+);
 
 // ── Interfaces ────────────────────────────────────────────────────────────────
 
@@ -1766,7 +1770,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           </label>
 
           <button
-            onClick={() => setShowPlanillaVisor(v => !v)}
+            onClick={() => {
+              console.log("Toggling showPlanillaVisor. Current:", showPlanillaVisor, "Course:", selectedCourseId, "Period:", selectedPeriod);
+              setShowPlanillaVisor(v => !v);
+            }}
             className="btn btn-secondary flex items-center gap-1.5 text-sm"
             style={showPlanillaVisor ? { background: "#f98012", borderColor: "#e06d09", color: "#fff" } : {}}
             title="Sube tu planilla Excel, edítala aquí y sincroniza las notas automáticamente"

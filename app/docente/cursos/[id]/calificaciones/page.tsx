@@ -10,7 +10,8 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import PlanillaExcelEditor from "./PlanillaExcelEditor";
-import PlanillaVisorEditor from "./PlanillaVisorEditor";
+import dynamic from "next/dynamic";
+const PlanillaVisorEditor = dynamic(() => import("./PlanillaVisorEditor"), { ssr: false });
 
 interface PeriodGrades {
   saber: number | null;
