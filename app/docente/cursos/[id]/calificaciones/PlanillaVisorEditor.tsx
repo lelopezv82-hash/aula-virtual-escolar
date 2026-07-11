@@ -60,9 +60,81 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
         setStudents(rawStudents);
 
         if (planJson.data?.rows && planJson.data.rows.length > 0) {
-          setRows(planJson.data.rows);
+          let reconciledRows = planJson.data.rows.map((r: any) => [...r]);
+
+          // Reconciliar si es el formato de la plataforma
+          if (reconciledRows[0] && reconciledRows[0][0] === "STUDENT_ID") {
+            const savedTaskIds = reconciledRows[0].slice(3);
+            const activeTasks = [...rawTasks];
+
+            // 1. Eliminar columnas de tareas que fueron borradas en el Directorio
+            const taskIdsToRemove: string[] = [];
+            for (let i = savedTaskIds.length - 1; i >= 0; i--) {
+              const tid = savedTaskIds[i];
+              if (tid && !activeTasks.some(t => t.id === tid)) {
+                const colIdx = i + 3;
+                reconciledRows = reconciledRows.map((row: any[]) => {
+                  const copy = [...row];
+                  copy.splice(colIdx, 1);
+                  return copy;
+                });
+                savedTaskIds.splice(i, 1);
+              }
+            }
+
+            // 2. Agregar columnas de nuevas tareas creadas en el Directorio
+            activeTasks.forEach((t: any, index) => {
+              if (!savedTaskIds.includes(t.id)) {
+                reconciledRows[0].push(t.id);
+                const cat = t.type === "EXAM" ? "SABER" : t.type === "TASK" ? "HACER" : t.type === "SER" ? "SER" : t.type === "FINAL" ? "EXAMEN FINAL" : "ASISTENCIA";
+                reconciledRows[1].push(`${cat} ${index + 1} - ${t.title}`);
+
+                for (let ri = 2; ri < reconciledRows.length; ri++) {
+                  const studentId = reconciledRows[ri][0];
+                  const sub = t.submissions?.find((s: any) => s.studentId === studentId);
+                  reconciledRows[ri].push((sub && sub.grade !== null && sub.grade !== undefined) ? sub.grade.toFixed(1) : "");
+                }
+                savedTaskIds.push(t.id);
+              } else {
+                // Tarea existente: actualizar título por si cambió en el Directorio
+                const colIdx = savedTaskIds.indexOf(t.id) + 3;
+                const cat = t.type === "EXAM" ? "SABER" : t.type === "TASK" ? "HACER" : t.type === "SER" ? "SER" : t.type === "FINAL" ? "EXAMEN FINAL" : "ASISTENCIA";
+                if (reconciledRows[1][colIdx]) {
+                  reconciledRows[1][colIdx] = `${cat} ${index + 1} - ${t.title}`;
+                }
+              }
+            });
+
+            // 3. Sincronizar alumnos (agregar nuevos o quitar retirados)
+            for (let ri = reconciledRows.length - 1; ri >= 2; ri--) {
+              const sid = reconciledRows[ri][0];
+              if (sid && !rawStudents.some((s: any) => s.id === sid)) {
+                reconciledRows.splice(ri, 1);
+              }
+            }
+
+            rawStudents.forEach((student: any) => {
+              const sid = student.id;
+              const idx = reconciledRows.slice(2).findIndex((r: any[]) => r[0] === sid);
+              if (idx === -1) {
+                const newRow: any[] = [student.id, student.name, student.groupName || ""];
+                savedTaskIds.forEach((tid: string) => {
+                  const t = activeTasks.find(at => at.id === tid);
+                  const sub = t?.submissions?.find((s: any) => s.studentId === sid);
+                  newRow.push((sub && sub.grade !== null && sub.grade !== undefined) ? sub.grade.toFixed(1) : "");
+                });
+                reconciledRows.push(newRow);
+              } else {
+                const rowIdx = idx + 2;
+                reconciledRows[rowIdx][1] = student.name;
+                reconciledRows[rowIdx][2] = student.groupName || "";
+              }
+            });
+          }
+
+          setRows(reconciledRows);
           setFileName(planJson.data.fileName || "planilla guardada");
-          autoColWidths(planJson.data.rows);
+          autoColWidths(reconciledRows);
         } else if (rawStudents.length > 0) {
           // Genera la planilla automáticamente a partir de los datos existentes
           const activeTasks = [...rawTasks];
