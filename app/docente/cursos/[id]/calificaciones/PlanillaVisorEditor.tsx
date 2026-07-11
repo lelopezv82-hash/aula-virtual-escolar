@@ -53,13 +53,43 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
         const planJson = await planRes.json();
         const spreadJson = spreadRes.ok ? await spreadRes.json() : {};
 
-        if (planJson.data?.rows) {
+        const rawTasks = spreadJson.tasks || [];
+        const rawStudents = spreadJson.students || [];
+
+        setTasks(rawTasks);
+        setStudents(rawStudents);
+
+        if (planJson.data?.rows && planJson.data.rows.length > 0) {
           setRows(planJson.data.rows);
           setFileName(planJson.data.fileName || "planilla guardada");
           autoColWidths(planJson.data.rows);
+        } else if (rawStudents.length > 0) {
+          // Genera la planilla automáticamente a partir de los datos existentes
+          const activeTasks = [...rawTasks];
+          let counter = 1;
+          const taskNumbers: Record<string, number> = {};
+          activeTasks.forEach((t: any) => { taskNumbers[t.id] = counter++; });
+
+          const row1 = ["STUDENT_ID", "STUDENT_NAME", "GROUP", ...activeTasks.map((t: any) => t.id)];
+          const row2 = ["ID Estudiante", "Nombre Completo", "Grupo", ...activeTasks.map((t: any) => {
+            const cat = t.type === "EXAM" ? "SABER" : t.type === "TASK" ? "HACER" : t.type === "SER" ? "SER" : t.type === "FINAL" ? "EXAMEN FINAL" : "ASISTENCIA";
+            return `${cat} ${taskNumbers[t.id]} - ${t.title}`;
+          })];
+
+          const generatedRows: any[][] = [row1, row2];
+          rawStudents.forEach((student: any) => {
+            const row: any[] = [student.id, student.name, student.groupName || ""];
+            activeTasks.forEach((t: any) => {
+              const sub = t.submissions?.find((s: any) => s.studentId === student.id);
+              row.push((sub && sub.grade !== null && sub.grade !== undefined) ? sub.grade.toFixed(1) : "");
+            });
+            generatedRows.push(row);
+          });
+
+          setRows(generatedRows);
+          setFileName(`Planilla_${activePeriod}.xlsx`);
+          autoColWidths(generatedRows);
         }
-        setTasks(spreadJson.tasks || []);
-        setStudents(spreadJson.students || []);
       } catch (e) {
         console.error("Error loading planilla:", e);
       } finally {
@@ -93,9 +123,8 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
         const wb = XLSX.read(data, { type: "binary" });
         const ws = wb.Sheets[wb.SheetNames[0]];
         const parsed: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-        // Filter trailing empty rows
         const trimmed = parsed.filter((row, i) => {
-          if (i < 3) return true; // always keep first 3
+          if (i < 3) return true;
           return (row as any[]).some(c => c !== "" && c !== null && c !== undefined);
         });
         setRows(trimmed);
@@ -141,11 +170,42 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
   const extractGrades = (): Array<{ studentId: string; taskId: string; grade: number | null }> => {
     if (rows.length === 0 || tasks.length === 0 || students.length === 0) return [];
 
+    const result: Array<{ studentId: string; taskId: string; grade: number | null }> = [];
+
+    // Formato de plataforma (ID directo)
+    if (rows[0] && rows[0][0] === "STUDENT_ID") {
+      const taskIds = rows[0].slice(3);
+      const studentIdCol = 0;
+
+      for (let ri = 2; ri < rows.length; ri++) {
+        const row = rows[ri] || [];
+        const studentId = row[studentIdCol];
+        if (!studentId || !students.some(s => s.id === studentId)) continue;
+
+        taskIds.forEach((taskId, index) => {
+          if (!taskId) return;
+          const colIndex = index + 3;
+          const gradeVal = row[colIndex];
+
+          let grade: number | null = null;
+          if (gradeVal !== undefined && gradeVal !== null && String(gradeVal).trim() !== "") {
+            const n = parseFloat(String(gradeVal).replace(",", "."));
+            if (!isNaN(n) && n >= 1.0 && n <= 5.0) {
+              grade = parseFloat(n.toFixed(1));
+            }
+          }
+          result.push({ studentId, taskId, grade });
+        });
+      }
+      setMappingInfo("Formato de la plataforma detectado (mapeo directo por IDs)");
+      return result;
+    }
+
+    // Formato de plantilla institucional (coincidencia de nombres)
     const saberTasks = tasks.filter(t => t.type === "EXAM");
     const hacerTasks = tasks.filter(t => t.type === "TASK");
     const serTasks = tasks.filter(t => t.type === "SER");
 
-    // Detect header row (has "nombre" or "saber"/"hacer"/"ser")
     let headerRowIdx = -1;
     for (let r = 0; r < Math.min(rows.length, 15); r++) {
       const row = rows[r] || [];
@@ -157,7 +217,6 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
     }
     if (headerRowIdx === -1) return [];
 
-    // Detect column positions for SABER/HACER/SER/student name
     const headerRow = rows[headerRowIdx] || [];
     let nameCol = -1;
     let saberStart = -1, hacerStart = -1, serStart = -1;
@@ -172,7 +231,6 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
 
     if (nameCol === -1) return [];
 
-    // Also scan prev row for merged headers
     if (headerRowIdx > 0) {
       const prevRow = rows[headerRowIdx - 1] || [];
       for (let ci = 0; ci < prevRow.length; ci++) {
@@ -189,14 +247,11 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
     if (serStart !== -1) info.push(`Ser: col ${serStart + 1}`);
     setMappingInfo(info.join(" | ") || "No se detectaron columnas de notas");
 
-    const result: Array<{ studentId: string; taskId: string; grade: number | null }> = [];
-
     for (let ri = headerRowIdx + 1; ri < rows.length; ri++) {
       const row = rows[ri] || [];
       const cellName = norm(String(row[nameCol] || ""));
       if (!cellName) continue;
 
-      // Match student by name
       const student = students.find(s => {
         const sn = norm(s.name);
         return sn === cellName || sn.includes(cellName) || cellName.includes(sn);
@@ -210,19 +265,16 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
         return !isNaN(n) && n >= 1.0 && n <= 5.0 ? parseFloat(n.toFixed(1)) : null;
       };
 
-      // SABER columns
       if (saberStart !== -1) {
         saberTasks.forEach((t, j) => {
           result.push({ studentId: student.id, taskId: t.id, grade: readGrade(saberStart + j) });
         });
       }
-      // HACER columns
       if (hacerStart !== -1) {
         hacerTasks.forEach((t, j) => {
           result.push({ studentId: student.id, taskId: t.id, grade: readGrade(hacerStart + j) });
         });
       }
-      // SER columns
       if (serStart !== -1) {
         serTasks.forEach((t, j) => {
           result.push({ studentId: student.id, taskId: t.id, grade: readGrade(serStart + j) });

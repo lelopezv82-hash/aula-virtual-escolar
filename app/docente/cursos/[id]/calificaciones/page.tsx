@@ -399,16 +399,6 @@ export default function CalificacionesConsolidadoPage() {
                 📄 Mi Planilla Excel
               </button>
               <button
-                onClick={() => setActiveTab("planilla")}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  activeTab === "planilla"
-                    ? "bg-white dark:bg-gray-750 text-gray-800 dark:text-white shadow-sm"
-                    : "text-gray-500 hover:text-gray-800 dark:hover:text-white"
-                }`}
-              >
-                📊 Planilla de Notas
-              </button>
-              <button
                 onClick={() => setActiveTab("consolidado")}
                 className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   activeTab === "consolidado"
@@ -423,8 +413,6 @@ export default function CalificacionesConsolidadoPage() {
 
           {activeTab === "mi-planilla" ? (
             <PlanillaVisorEditor courseId={courseId} activePeriod={activePeriod} />
-          ) : activeTab === "planilla" ? (
-            <PlanillaExcelEditor courseId={courseId} activePeriod={activePeriod} />
           ) : (
             <>
               {/* Stats row */}
