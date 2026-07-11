@@ -522,15 +522,38 @@ export async function findFileInFolder(
 
 /**
  * Downloads a file's content as a Buffer.
+ * Handles both regular binary files (.xlsx) and native Google Sheets
+ * (application/vnd.google-apps.spreadsheet) by using the export endpoint.
  */
 export async function downloadDriveFile(accessToken: string, fileId: string): Promise<Buffer> {
-  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+  // First fetch the file metadata to check its MIME type
+  const metaRes = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,mimeType,name`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+
+  if (!metaRes.ok) {
+    const errText = await metaRes.text();
+    throw new Error(`Failed to fetch metadata for Drive file (ID: ${fileId}): ${errText}`);
+  }
+
+  const meta = await metaRes.json();
+  const isNativeSheet = meta.mimeType === 'application/vnd.google-apps.spreadsheet';
+
+  // Native Google Sheets must be exported as xlsx
+  const downloadUrl = isNativeSheet
+    ? `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=application%2Fvnd.openxmlformats-officedocument.spreadsheetml.sheet`
+    : `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+
+  const res = await fetch(downloadUrl, {
     headers: { Authorization: `Bearer ${accessToken}` }
   });
+
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error(`Failed to download file from Google Drive (ID: ${fileId}): ${errText}`);
+    throw new Error(`Failed to download file from Google Drive (ID: ${fileId}, native=${isNativeSheet}): ${errText}`);
   }
+
   const arrayBuffer = await res.arrayBuffer();
   return Buffer.from(arrayBuffer);
 }

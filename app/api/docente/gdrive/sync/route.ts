@@ -222,10 +222,16 @@ export async function POST(request: Request) {
     const hacerTasks = tasks.filter(t => t.type === "TASK");
     const serTasks   = tasks.filter(t => t.type === "SER");
 
-    // Official template column layout
+    // Official template column layout — dynamic detection via header row
     const SABER_START = 2;  const SABER_SLOTS = 4;
     const HACER_START = 6;  const HACER_SLOTS = 10;
     const SER_START  = 16;  const SER_SLOTS   = 3;
+
+    // Normalize name for fuzzy comparison: lowercase, strip accents, collapse spaces
+    const normalizeName = (s: string) =>
+      s.toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, ' ').trim();
 
     // ── 5. Download Drive file and parse grades into DB ────────────────────
     let loadedWorkbook: any = null;
@@ -299,19 +305,19 @@ export async function POST(request: Request) {
                 const row = rows[i];
                 if (!row || row.length === 0) continue;
 
-                const studentNameInExcel = row[1];
-                if (!studentNameInExcel || typeof studentNameInExcel !== "string") continue;
+                const studentNameInExcel = String(row[1] || '').trim();
+                if (!studentNameInExcel) continue;
 
-                // Match student by name — first try positional, then fuzzy
-                const cleanExcelName = studentNameInExcel.toLowerCase().replace(/\s+/g, '');
+                // Match student by name — normalize accents + fuzzy
+                const excelNorm = normalizeName(studentNameInExcel);
                 const studentIndex = i - (headerRowIndex + 1);
                 let student = students[studentIndex];
-                const cleanDbNamePos = student ? student.name.toLowerCase().replace(/\s+/g, '') : '';
+                const posNorm = student ? normalizeName(student.name) : '';
 
-                if (!student || (!cleanExcelName.includes(cleanDbNamePos) && !cleanDbNamePos.includes(cleanExcelName))) {
+                if (!student || (excelNorm !== posNorm && !excelNorm.includes(posNorm) && !posNorm.includes(excelNorm))) {
                   const found = students.find(s => {
-                    const sn = s.name.toLowerCase().replace(/\s+/g, '');
-                    return sn === cleanExcelName || sn.includes(cleanExcelName) || cleanExcelName.includes(sn);
+                    const sn = normalizeName(s.name);
+                    return sn === excelNorm || sn.includes(excelNorm) || excelNorm.includes(sn);
                   });
                   if (!found) continue;
                   student = found;
@@ -411,10 +417,10 @@ export async function POST(request: Request) {
         if (!row) continue;
         const excelName = row[1];
         if (excelName && typeof excelName === 'string') {
-          const cleanName = excelName.toLowerCase().replace(/\s+/g, '');
-          if (cleanName.includes("nombrecompleto") || cleanName.includes("nombrecom")) continue;
+          const cleanName = normalizeName(excelName);
+          if (cleanName.includes("nombrecompleto") || cleanName.includes("nombrecom") || cleanName.includes("nombre com")) continue;
           const matched = students.find(s => {
-            const dn = s.name.toLowerCase().replace(/\s+/g, '');
+            const dn = normalizeName(s.name);
             return dn === cleanName || dn.includes(cleanName) || cleanName.includes(dn);
           });
           if (matched) studentRowMap.set(matched.id, r);
