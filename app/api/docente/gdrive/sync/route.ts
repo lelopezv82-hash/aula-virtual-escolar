@@ -303,7 +303,7 @@ export async function POST(request: Request) {
           if (firstRow && firstRow[0] === "STUDENT_ID" && firstRow[1] === "STUDENT_NAME") {
             // ── Platform-generated simple format ───────────────────────────
             const taskIds = firstRow.slice(3);
-            const toUpsert: Array<{ studentId: string; taskId: string; grade: number }> = [];
+            const toUpsert: Array<{ studentId: string; taskId: string; grade: number | null }> = [];
 
             for (let i = 2; i < rows.length; i++) {
               const row = rows[i];
@@ -319,20 +319,30 @@ export async function POST(request: Request) {
                   const num = parseFloat(String(gradeVal).replace(',', '.'));
                   if (!isNaN(num) && num >= 1.0 && num <= 5.0) {
                     toUpsert.push({ studentId, taskId, grade: parseFloat(num.toFixed(1)) });
+                  } else {
+                    toUpsert.push({ studentId, taskId, grade: null });
                   }
+                } else {
+                  toUpsert.push({ studentId, taskId, grade: null });
                 }
               });
             }
 
-            // Individual upserts — no wrapping transaction to avoid timeout
+            // Individual upserts/deletes
             for (const sub of toUpsert) {
-              await prisma.submission.upsert({
-                where: { taskId_studentId: { taskId: sub.taskId, studentId: sub.studentId } },
-                update: { grade: sub.grade, status: 'GRADED', updatedAt: new Date() },
-                create: { taskId: sub.taskId, studentId: sub.studentId, grade: sub.grade, status: 'GRADED', createdAt: new Date(), updatedAt: new Date() }
-              });
+              if (sub.grade === null) {
+                await prisma.submission.deleteMany({
+                  where: { taskId: sub.taskId, studentId: sub.studentId }
+                });
+              } else {
+                await prisma.submission.upsert({
+                  where: { taskId_studentId: { taskId: sub.taskId, studentId: sub.studentId } },
+                  update: { grade: sub.grade, status: 'GRADED', updatedAt: new Date() },
+                  create: { taskId: sub.taskId, studentId: sub.studentId, grade: sub.grade, status: 'GRADED', createdAt: new Date(), updatedAt: new Date() }
+                });
+              }
             }
-            console.log(`Simple format: ${toUpsert.length} grades Drive→DB`);
+            console.log(`Simple format: ${toUpsert.length} grades processed Drive→DB`);
 
             loadedWorkbook = workbook;
             targetSheetName = sheetName;
@@ -352,7 +362,7 @@ export async function POST(request: Request) {
               // Dynamically detect SABER / HACER / SER column positions and cache
               detectedCols = detectGroupColumns(rows);
               const { saberStart, saberSlots, hacerStart, hacerSlots, serStart, serSlots } = detectedCols;
-              const toUpsert: Array<{ studentId: string; taskId: string; grade: number }> = [];
+              const toUpsert: Array<{ studentId: string; taskId: string; grade: number | null }> = [];
 
               for (let i = headerRowIndex + 1; i < rows.length; i++) {
                 const row = rows[i];
@@ -390,7 +400,7 @@ export async function POST(request: Request) {
                   const t = saberTasks[j];
                   if (!t) continue;
                   const g = readGrade(saberStart, j);
-                  if (g !== null) toUpsert.push({ studentId, taskId: t.id, grade: g });
+                  toUpsert.push({ studentId, taskId: t.id, grade: g });
                 }
 
                 // HACER
@@ -398,7 +408,7 @@ export async function POST(request: Request) {
                   const t = hacerTasks[j];
                   if (!t) continue;
                   const g = readGrade(hacerStart, j);
-                  if (g !== null) toUpsert.push({ studentId, taskId: t.id, grade: g });
+                  toUpsert.push({ studentId, taskId: t.id, grade: g });
                 }
 
                 // SER
@@ -406,19 +416,25 @@ export async function POST(request: Request) {
                   const t = serTasks[j];
                   if (!t) continue;
                   const g = readGrade(serStart, j);
-                  if (g !== null) toUpsert.push({ studentId, taskId: t.id, grade: g });
+                  toUpsert.push({ studentId, taskId: t.id, grade: g });
                 }
               }
 
-              // Individual upserts — no wrapping transaction to avoid timeout
+              // Individual upserts/deletes
               for (const sub of toUpsert) {
-                await prisma.submission.upsert({
-                  where: { taskId_studentId: { taskId: sub.taskId, studentId: sub.studentId } },
-                  update: { grade: sub.grade, status: 'GRADED', updatedAt: new Date() },
-                  create: { taskId: sub.taskId, studentId: sub.studentId, grade: sub.grade, status: 'GRADED', createdAt: new Date(), updatedAt: new Date() }
-                });
+                if (sub.grade === null) {
+                  await prisma.submission.deleteMany({
+                    where: { taskId: sub.taskId, studentId: sub.studentId }
+                  });
+                } else {
+                  await prisma.submission.upsert({
+                    where: { taskId_studentId: { taskId: sub.taskId, studentId: sub.studentId } },
+                    update: { grade: sub.grade, status: 'GRADED', updatedAt: new Date() },
+                    create: { taskId: sub.taskId, studentId: sub.studentId, grade: sub.grade, status: 'GRADED', createdAt: new Date(), updatedAt: new Date() }
+                  });
+                }
               }
-              console.log(`Official format: ${toUpsert.length} grades Drive→DB`);
+              console.log(`Official format: ${toUpsert.length} grades processed Drive→DB`);
 
               loadedWorkbook = workbook;
               targetSheetName = sheetName;
