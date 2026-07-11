@@ -50,7 +50,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     const teacherId = payload.id as string;
     const body = await request.json();
-    const { period, rows, base64File, fileName, gradeSubmissions } = body;
+    const { period, rows, fileName, gradeSubmissions } = body;
     // rows: any[][] — the full 2D spreadsheet to store
     // gradeSubmissions: Array<{ studentId, taskId, grade: number|null }> — extracted grades
 
@@ -72,7 +72,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       data: {
         planillaData: {
           ...existing,
-          [period]: { rows, base64File: base64File || "", fileName: fileName || "", savedAt: new Date().toISOString() }
+          [period]: { rows, fileName: fileName || "", savedAt: new Date().toISOString() }
         }
       }
     });

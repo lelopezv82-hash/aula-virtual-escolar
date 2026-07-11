@@ -27,9 +27,86 @@ interface PlanillaVisorEditorProps {
 const norm = (s: string) =>
   s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
 
+const syncSpreadsheetRows = (
+  savedRows: any[][],
+  currentStudents: any[],
+  currentTasks: any[]
+): any[][] => {
+  if (!savedRows || savedRows.length < 2) return [];
+
+  // Formato simple de plataforma
+  if (savedRows[0][0] !== "STUDENT_ID") {
+    return savedRows;
+  }
+
+  const activeTasks = [...currentTasks];
+  let counter = 1;
+  const taskNumbers: Record<string, number> = {};
+  activeTasks.forEach((t: any) => { taskNumbers[t.id] = counter++; });
+
+  const savedTaskIds = savedRows[0].slice(3);
+  const taskColumnsToKeep: number[] = [];
+  const newTaskIdsToAdd = activeTasks.filter(t => !savedTaskIds.includes(t.id));
+
+  const header1 = ["STUDENT_ID", "STUDENT_NAME", "GROUP"];
+  const header2 = ["ID Estudiante", "Nombre Completo", "Grupo"];
+
+  savedTaskIds.forEach((id, idx) => {
+    const colIdx = idx + 3;
+    const currentTask = activeTasks.find(t => t.id === id);
+    if (currentTask) {
+      taskColumnsToKeep.push(colIdx);
+      header1.push(id);
+      const cat = currentTask.type === "EXAM" ? "SABER" : currentTask.type === "TASK" ? "HACER" : currentTask.type === "SER" ? "SER" : currentTask.type === "FINAL" ? "EXAMEN FINAL" : "ASISTENCIA";
+      header2.push(`${cat} ${taskNumbers[currentTask.id]} - ${currentTask.title}`);
+    }
+  });
+
+  newTaskIdsToAdd.forEach(t => {
+    header1.push(t.id);
+    const cat = t.type === "EXAM" ? "SABER" : t.type === "TASK" ? "HACER" : t.type === "SER" ? "SER" : t.type === "FINAL" ? "EXAMEN FINAL" : "ASISTENCIA";
+    header2.push(`${cat} ${taskNumbers[t.id]} - ${t.title}`);
+  });
+
+  const newRows: any[][] = [header1, header2];
+  const savedStudentRowMap = new Map<string, any[]>();
+  for (let ri = 2; ri < savedRows.length; ri++) {
+    const row = savedRows[ri];
+    if (row && row[0]) {
+      savedStudentRowMap.set(row[0], row);
+    }
+  }
+
+  currentStudents.forEach(student => {
+    const row: any[] = [student.id, student.name, student.groupName || ""];
+    const savedRow = savedStudentRowMap.get(student.id);
+
+    savedTaskIds.forEach((id, idx) => {
+      const colIdx = idx + 3;
+      const currentTask = activeTasks.find(t => t.id === id);
+      if (currentTask) {
+        if (savedRow && savedRow[colIdx] !== undefined) {
+          row.push(savedRow[colIdx]);
+        } else {
+          const sub = currentTask.submissions?.find((s: any) => s.studentId === student.id);
+          row.push((sub && sub.grade !== null && sub.grade !== undefined) ? sub.grade.toFixed(1) : "");
+        }
+      }
+    });
+
+    newTaskIdsToAdd.forEach(t => {
+      const sub = t.submissions?.find((s: any) => s.studentId === student.id);
+      row.push((sub && sub.grade !== null && sub.grade !== undefined) ? sub.grade.toFixed(1) : "");
+    });
+
+    newRows.push(row);
+  });
+
+  return newRows;
+};
+
 export default function PlanillaVisorEditor({ courseId, activePeriod }: PlanillaVisorEditorProps) {
   const [rows, setRows] = useState<any[][]>([]);
-  const [base64File, setBase64File] = useState<string>("");
   const [colWidths, setColWidths] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -61,82 +138,10 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
         setStudents(rawStudents);
 
         if (planJson.data?.rows && planJson.data.rows.length > 0) {
-          let reconciledRows = planJson.data.rows.map((r: any) => [...r]);
-
-          // Reconciliar si es el formato de la plataforma
-          if (reconciledRows[0] && reconciledRows[0][0] === "STUDENT_ID") {
-            const savedTaskIds = reconciledRows[0].slice(3);
-            const activeTasks = [...rawTasks];
-
-            // 1. Eliminar columnas de tareas que fueron borradas en el Directorio
-            const taskIdsToRemove: string[] = [];
-            for (let i = savedTaskIds.length - 1; i >= 0; i--) {
-              const tid = savedTaskIds[i];
-              if (tid && !activeTasks.some(t => t.id === tid)) {
-                const colIdx = i + 3;
-                reconciledRows = reconciledRows.map((row: any[]) => {
-                  const copy = [...row];
-                  copy.splice(colIdx, 1);
-                  return copy;
-                });
-                savedTaskIds.splice(i, 1);
-              }
-            }
-
-            // 2. Agregar columnas de nuevas tareas creadas en el Directorio
-            activeTasks.forEach((t: any, index) => {
-              if (!savedTaskIds.includes(t.id)) {
-                reconciledRows[0].push(t.id);
-                const cat = t.type === "EXAM" ? "SABER" : t.type === "TASK" ? "HACER" : t.type === "SER" ? "SER" : t.type === "FINAL" ? "EXAMEN FINAL" : "ASISTENCIA";
-                reconciledRows[1].push(`${cat} ${index + 1} - ${t.title}`);
-
-                for (let ri = 2; ri < reconciledRows.length; ri++) {
-                  const studentId = reconciledRows[ri][0];
-                  const sub = t.submissions?.find((s: any) => s.studentId === studentId);
-                  reconciledRows[ri].push((sub && sub.grade !== null && sub.grade !== undefined) ? sub.grade.toFixed(1) : "");
-                }
-                savedTaskIds.push(t.id);
-              } else {
-                // Tarea existente: actualizar título por si cambió en el Directorio
-                const colIdx = savedTaskIds.indexOf(t.id) + 3;
-                const cat = t.type === "EXAM" ? "SABER" : t.type === "TASK" ? "HACER" : t.type === "SER" ? "SER" : t.type === "FINAL" ? "EXAMEN FINAL" : "ASISTENCIA";
-                if (reconciledRows[1][colIdx]) {
-                  reconciledRows[1][colIdx] = `${cat} ${index + 1} - ${t.title}`;
-                }
-              }
-            });
-
-            // 3. Sincronizar alumnos (agregar nuevos o quitar retirados)
-            for (let ri = reconciledRows.length - 1; ri >= 2; ri--) {
-              const sid = reconciledRows[ri][0];
-              if (sid && !rawStudents.some((s: any) => s.id === sid)) {
-                reconciledRows.splice(ri, 1);
-              }
-            }
-
-            rawStudents.forEach((student: any) => {
-              const sid = student.id;
-              const idx = reconciledRows.slice(2).findIndex((r: any[]) => r[0] === sid);
-              if (idx === -1) {
-                const newRow: any[] = [student.id, student.name, student.groupName || ""];
-                savedTaskIds.forEach((tid: string) => {
-                  const t = activeTasks.find(at => at.id === tid);
-                  const sub = t?.submissions?.find((s: any) => s.studentId === sid);
-                  newRow.push((sub && sub.grade !== null && sub.grade !== undefined) ? sub.grade.toFixed(1) : "");
-                });
-                reconciledRows.push(newRow);
-              } else {
-                const rowIdx = idx + 2;
-                reconciledRows[rowIdx][1] = student.name;
-                reconciledRows[rowIdx][2] = student.groupName || "";
-              }
-            });
-          }
-
-          setRows(reconciledRows);
-          setBase64File(planJson.data.base64File || "");
+          const synced = syncSpreadsheetRows(planJson.data.rows, rawStudents, rawTasks);
+          setRows(synced);
           setFileName(planJson.data.fileName || "planilla guardada");
-          autoColWidths(reconciledRows);
+          autoColWidths(synced);
         } else if (rawStudents.length > 0) {
           // Genera la planilla automáticamente a partir de los datos existentes
           const activeTasks = [...rawTasks];
@@ -193,15 +198,10 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const binary = e.target?.result as string;
-        const wb = XLSX.read(binary, { type: "binary" });
+        const data = e.target?.result;
+        const wb = XLSX.read(data, { type: "binary" });
         const ws = wb.Sheets[wb.SheetNames[0]];
         const parsed: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-
-        // Convert raw binary string to base64
-        const base64 = btoa(binary);
-        setBase64File(base64);
-
         const trimmed = parsed.filter((row, i) => {
           if (i < 3) return true;
           return (row as any[]).some(c => c !== "" && c !== null && c !== undefined);
@@ -379,7 +379,6 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
         body: JSON.stringify({
           period: activePeriod,
           rows,
-          base64File,
           fileName,
           gradeSubmissions
         })
@@ -393,7 +392,7 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
         setSaveStatus("error");
         setSaveMsg(json.error || "Error al guardar");
       }
-    } catch (e: any) {
+    } catch {
       setSaveStatus("error");
       setSaveMsg("Error de conexión");
     } finally {
@@ -404,48 +403,12 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
   // ── Download current rows as .xlsx ──────────────────────────────────────
   const handleDownload = () => {
     if (rows.length === 0) return;
-
-    let wb: XLSX.WorkBook | null = null;
-    if (base64File) {
-      try {
-        // Cargar el archivo original con sus estilos
-        wb = XLSX.read(base64File, { type: "base64" });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-
-        // Escribir los valores actualizados en las celdas directamente
-        rows.forEach((row, ri) => {
-          row.forEach((val, ci) => {
-            const cellRef = XLSX.utils.encode_cell({ r: ri, c: ci });
-            if (!ws[cellRef]) {
-              if (val !== "" && val !== null && val !== undefined) {
-                ws[cellRef] = { t: typeof val === "number" ? "n" : "s", v: val };
-              }
-            } else {
-              ws[cellRef].v = val;
-              if (typeof val === "number") {
-                ws[cellRef].t = "n";
-              } else {
-                ws[cellRef].t = "s";
-              }
-            }
-          });
-        });
-      } catch (err) {
-        console.error("Error al escribir celdas en plantilla base64:", err);
-      }
-    }
-
-    if (!wb) {
-      // Fallback si no hay base64
-      const ws = XLSX.utils.aoa_to_sheet(rows);
-      wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Planilla");
-    }
-
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Planilla");
     const outName = fileName
-      ? fileName.replace(/\.(xlsx|xls)$/i, "") + "_editado.xlsx"
+      ? fileName.replace(/\.(xlsx|xls)$/i, "") + "_editada.xlsx"
       : `Planilla_${activePeriod}.xlsx`;
-
     XLSX.writeFile(wb, outName);
   };
 
