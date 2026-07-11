@@ -29,6 +29,7 @@ const norm = (s: string) =>
 
 export default function PlanillaVisorEditor({ courseId, activePeriod }: PlanillaVisorEditorProps) {
   const [rows, setRows] = useState<any[][]>([]);
+  const [base64File, setBase64File] = useState<string>("");
   const [colWidths, setColWidths] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -133,6 +134,7 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
           }
 
           setRows(reconciledRows);
+          setBase64File(planJson.data.base64File || "");
           setFileName(planJson.data.fileName || "planilla guardada");
           autoColWidths(reconciledRows);
         } else if (rawStudents.length > 0) {
@@ -191,10 +193,15 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const data = e.target?.result;
-        const wb = XLSX.read(data, { type: "binary" });
+        const binary = e.target?.result as string;
+        const wb = XLSX.read(binary, { type: "binary" });
         const ws = wb.Sheets[wb.SheetNames[0]];
         const parsed: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+
+        // Convert raw binary string to base64
+        const base64 = btoa(binary);
+        setBase64File(base64);
+
         const trimmed = parsed.filter((row, i) => {
           if (i < 3) return true;
           return (row as any[]).some(c => c !== "" && c !== null && c !== undefined);
@@ -372,6 +379,7 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
         body: JSON.stringify({
           period: activePeriod,
           rows,
+          base64File,
           fileName,
           gradeSubmissions
         })
@@ -385,7 +393,7 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
         setSaveStatus("error");
         setSaveMsg(json.error || "Error al guardar");
       }
-    } catch {
+    } catch (e: any) {
       setSaveStatus("error");
       setSaveMsg("Error de conexión");
     } finally {
@@ -396,12 +404,48 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
   // ── Download current rows as .xlsx ──────────────────────────────────────
   const handleDownload = () => {
     if (rows.length === 0) return;
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Planilla");
+
+    let wb: XLSX.WorkBook | null = null;
+    if (base64File) {
+      try {
+        // Cargar el archivo original con sus estilos
+        wb = XLSX.read(base64File, { type: "base64" });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+
+        // Escribir los valores actualizados en las celdas directamente
+        rows.forEach((row, ri) => {
+          row.forEach((val, ci) => {
+            const cellRef = XLSX.utils.encode_cell({ r: ri, c: ci });
+            if (!ws[cellRef]) {
+              if (val !== "" && val !== null && val !== undefined) {
+                ws[cellRef] = { t: typeof val === "number" ? "n" : "s", v: val };
+              }
+            } else {
+              ws[cellRef].v = val;
+              if (typeof val === "number") {
+                ws[cellRef].t = "n";
+              } else {
+                ws[cellRef].t = "s";
+              }
+            }
+          });
+        });
+      } catch (err) {
+        console.error("Error al escribir celdas en plantilla base64:", err);
+      }
+    }
+
+    if (!wb) {
+      // Fallback si no hay base64
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Planilla");
+    }
+
     const outName = fileName
-      ? fileName.replace(/\.(xlsx|xls)$/i, "") + "_editada.xlsx"
+      ? fileName.replace(/\.(xlsx|xls)$/i, "") + "_editado.xlsx"
       : `Planilla_${activePeriod}.xlsx`;
+
     XLSX.writeFile(wb, outName);
   };
 
