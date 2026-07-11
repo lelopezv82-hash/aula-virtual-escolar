@@ -1365,29 +1365,6 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
             )}
           </div>
 
-          {/* Excel Sync Controls */}
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg p-1 ml-2">
-            <button 
-              onClick={exportToExcelSync} 
-              type="button"
-              className="text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-gray-900 px-2.5 py-1.5 rounded-md flex items-center gap-1"
-              title="Descargar planilla limpia con códigos ocultos para calificar en Excel"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-green-600 animate-pulse"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> Descargar Sincro
-            </button>
-            <label 
-              className="text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-gray-900 px-2.5 py-1.5 rounded-md flex items-center gap-1 cursor-pointer"
-              title="Cargar archivo Excel para sincronizar las notas con la plataforma"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Cargar Sincro
-              <input 
-                type="file" 
-                accept=".xlsx,.xls" 
-                onChange={importFromExcelSync} 
-                className="hidden" 
-              />
-            </label>
-          </div>
 
           {/* Import from any local Excel */}
           <label

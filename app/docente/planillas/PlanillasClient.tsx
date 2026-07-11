@@ -1746,28 +1746,6 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             )}
           </div>
 
-          {/* Excel Sync Toolbar */}
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-1">
-            <button 
-              onClick={exportToExcelSync} 
-              className="text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-gray-900 px-2.5 py-1.5 rounded-md flex items-center gap-1"
-              title="Descargar planilla limpia con códigos ocultos para calificar en Excel"
-            >
-              <FileSpreadsheet size={13} className="text-green-600 animate-pulse" /> Descargar Sincro
-            </button>
-            <label 
-              className="text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-gray-900 px-2.5 py-1.5 rounded-md flex items-center gap-1 cursor-pointer"
-              title="Cargar archivo Excel para sincronizar las notas con la plataforma"
-            >
-              <Plus size={13} className="text-blue-600" /> Cargar Sincro
-              <input 
-                type="file" 
-                accept=".xlsx,.xls" 
-                onChange={importFromExcelSync} 
-                className="hidden" 
-              />
-            </label>
-          </div>
 
           {/* Import from any local Excel */}
           <label
