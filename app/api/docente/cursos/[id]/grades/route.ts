@@ -76,16 +76,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       },
     });
 
-    // Fetch additional grades for all students in this course
-    const additionalGrades = await prisma.additionalGrade.findMany({
-      where: { courseId, studentId: { in: studentIds } },
-    });
-    // Map: studentId -> period -> grade
-    const addlGradeMap = new Map<string, Map<string, number>>();
-    for (const ag of additionalGrades) {
-      if (!addlGradeMap.has(ag.studentId)) addlGradeMap.set(ag.studentId, new Map());
-      addlGradeMap.get(ag.studentId)!.set(ag.period, ag.grade);
-    }
+    // Note: SER/FINAL grades come from Task submissions — no additionalGrade needed.
 
     // Compute grades per student per period
     const result = students.map(student => {
@@ -106,8 +97,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
         const examTasks = periodTasks.filter(t => t.type === 'EXAM');
         const taskTasks = periodTasks.filter(t => t.type === 'TASK');
+        const serTasks = periodTasks.filter(t => t.type === 'SER');
+        const finalTasks = periodTasks.filter(t => t.type === 'FINAL');
 
+        // For EXAM/TASK: auto-assign 1.0 when closed without submission.
+        // For SER/FINAL/ATTEND: only return grade if explicitly entered (no auto-1.0).
         const getGrade = (task: typeof tasks[0]) => {
+          const isManual = ['SER', 'FINAL', 'ATTEND'].includes(task.type);
           const sub = task.submissions.find(s => s.studentId === student.id);
           const isClosed = task.dueDate ? new Date(task.dueDate) < now : false;
           const isTimerExpired = sub?.startedAt && task.duration
@@ -115,29 +111,36 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
             : false;
           if (sub) {
             if (sub.status === 'GRADED') return Math.max(1.0, sub.grade ?? 0);
-            if (sub.status === 'PENDING' && (isClosed || isTimerExpired)) return 1.0;
-            return null; // submitted but not graded
+            if (!isManual && sub.status === 'PENDING' && (isClosed || isTimerExpired)) return 1.0;
+            return null;
           }
-          if (isClosed) return 1.0; // no submission, auto 1.0
-          return null; // not yet due
+          if (!isManual && isClosed) return 1.0;
+          return null;
         };
 
         const examGrades = examTasks.map(getGrade).filter((g): g is number => g !== null);
         const taskGrades = taskTasks.map(getGrade).filter((g): g is number => g !== null);
+        const serGrades = serTasks.map(getGrade).filter((g): g is number => g !== null);
+        const finalGrades = finalTasks.map(getGrade).filter((g): g is number => g !== null);
 
         const saber = examGrades.length > 0 ? examGrades.reduce((a, b) => a + b, 0) / examGrades.length : null;
         const hacer = taskGrades.length > 0 ? taskGrades.reduce((a, b) => a + b, 0) / taskGrades.length : null;
-        const ser = addlGradeMap.get(student.id)?.get(periodName) ?? null;
+        const ser = serGrades.length > 0 ? serGrades.reduce((a, b) => a + b, 0) / serGrades.length : null;
+        const finalVal = finalGrades.length > 0 ? finalGrades.reduce((a, b) => a + b, 0) / finalGrades.length : null;
 
-        // Weighted final using course-specific percentages
         const sp = course.saberPercent / 100;
         const hp = course.hacerPercent / 100;
-        const ep = course.serPercent   / 100;
-        const components = [saber, hacer, ser].filter((v): v is number => v !== null);
-        const final = components.length > 0
-          ? (saber !== null ? saber * sp : 0)
-            + (hacer !== null ? hacer * hp : 0)
-            + (ser   !== null ? ser   * ep : 0)
+        const ep = course.serPercent / 100;
+        const fp = course.finalPercent / 100;
+
+        // Weighted final = saber*sp + hacer*hp + ser*ep + finalExam*fp
+        // (same formula as PlanillaExcelEditor)
+        const hasAny = saber !== null || hacer !== null || ser !== null || finalVal !== null;
+        const final = hasAny
+          ? (saber    !== null ? saber    * sp : 0)
+          + (hacer    !== null ? hacer    * hp : 0)
+          + (ser      !== null ? ser      * ep : 0)
+          + (finalVal !== null ? finalVal * fp : 0)
           : null;
 
         periodsData[periodName] = { saber, hacer, ser, final };
@@ -158,6 +161,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       saberPercent: course.saberPercent,
       hacerPercent: course.hacerPercent,
       serPercent: course.serPercent,
+      finalPercent: course.finalPercent,
     });
   } catch (error) {
     console.error('Error fetching grades:', error);
