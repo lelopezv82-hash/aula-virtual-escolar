@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Loader2, Save, Undo2, Info, AlertTriangle, Check, Plus, Trash2, X, Percent } from "lucide-react";
+import { Loader2, Save, Undo2, Info, AlertTriangle, Check, Plus, Trash2, X, Percent, RefreshCw, CloudUpload } from "lucide-react";
 import * as XLSX from "xlsx";
 
 interface Student {
@@ -40,6 +40,7 @@ const colLetter = (idx: number): string => {
 export default function PlanillaExcelEditor({ courseId, activePeriod }: PlanillaExcelEditorProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [driveSyncing, setDriveSyncing] = useState(false); // background drive sync after save
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [reloadTrigger, setReloadTrigger] = useState(0);
@@ -389,6 +390,21 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
       if (res.ok && json.success) {
         setSuccess(true);
         setInitialGradesGrid(JSON.parse(JSON.stringify(gradesGrid)));
+        // ── Auto-sync to Drive if a file is already linked ───────────────
+        if (gDriveFileExists) {
+          setDriveSyncing(true);
+          fetch(`/api/docente/gdrive/sync`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ courseId, period: activePeriod })
+          })
+            .then(r => r.json())
+            .then(d => {
+              if (d.success && d.webViewLink) setGDriveWebViewLink(d.webViewLink);
+            })
+            .catch(() => {/* silent — sync will be available manually */})
+            .finally(() => setDriveSyncing(false));
+        }
       } else {
         setError(json.error || "Error al guardar calificaciones");
       }
@@ -976,22 +992,85 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
               className="btn btn-primary py-1.5 px-4 text-xs flex items-center gap-1.5"
             >
               {saving ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
-              Guardar Calificaciones
+              {gDriveFileExists ? "Guardar y Sincronizar Drive" : "Guardar Calificaciones"}
             </button>
           </div>
         </div>
       )}
 
       {success && (
-        <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 rounded-xl p-4 text-sm font-bold animate-scale-in">
-          <Check size={18} />
-          Calificaciones guardadas correctamente.
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-green-50 border border-green-200 text-green-800 rounded-xl p-4 text-sm font-bold animate-scale-in">
+          <div className="flex items-center gap-2">
+            <Check size={18} />
+            Calificaciones guardadas correctamente.
+          </div>
+          {gDriveConnected && (
+            <div className="flex items-center gap-2 text-xs font-semibold">
+              {driveSyncing ? (
+                <span className="flex items-center gap-1.5 bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full">
+                  <Loader2 size={13} className="animate-spin" />
+                  Sincronizando con Drive…
+                </span>
+              ) : gDriveFileExists ? (
+                <>
+                  <span className="flex items-center gap-1 text-green-700 bg-green-100 px-2 py-1 rounded-full">
+                    <Check size={12} /> Drive actualizado
+                  </span>
+                  {gDriveWebViewLink && (
+                    <a href={gDriveWebViewLink} target="_blank" rel="noopener noreferrer"
+                      className="text-blue-600 underline hover:text-blue-800 font-semibold">
+                      Abrir en Drive ↗
+                    </a>
+                  )}
+                </>
+              ) : (
+                <button
+                  onClick={handleGDriveSync}
+                  disabled={gDriveSyncing}
+                  className="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-full hover:bg-blue-700 transition-colors text-xs font-semibold"
+                >
+                  <CloudUpload size={13} />
+                  Subir a Drive
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
 
       {error && (
         <div className="alert alert-danger">
           {error}
+        </div>
+      )}
+
+      {/* Drive sync panel — visible when Drive is connected and no pending changes */}
+      {!hasChanges && gDriveConnected && !success && (
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm animate-scale-in">
+          <div className="flex items-center gap-2 text-blue-800 font-semibold">
+            <CloudUpload size={16} />
+            {gDriveFileExists
+              ? "Planilla vinculada a Google Drive — sincronización bidireccional activa"
+              : "Conecta esta planilla con Google Drive para sync bidireccional"}
+          </div>
+          <div className="flex items-center gap-2">
+            {gDriveFileExists && gDriveWebViewLink && (
+              <a href={gDriveWebViewLink} target="_blank" rel="noopener noreferrer"
+                className="text-xs text-blue-700 underline font-semibold hover:text-blue-900">
+                Abrir Excel en Drive ↗
+              </a>
+            )}
+            <button
+              onClick={handleGDriveSync}
+              disabled={gDriveSyncing}
+              className="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-full hover:bg-blue-700 transition-colors text-xs font-semibold disabled:opacity-60"
+            >
+              {gDriveSyncing
+                ? <><Loader2 size={13} className="animate-spin" /> Sincronizando…</>
+                : <><RefreshCw size={13} /> {gDriveFileExists ? "Sincronizar Drive ↔ Plataforma" : "Crear archivo en Drive"}</>
+              }
+            </button>
+          </div>
         </div>
       )}
 
