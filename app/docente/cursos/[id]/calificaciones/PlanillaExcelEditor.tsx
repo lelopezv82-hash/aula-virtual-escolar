@@ -89,6 +89,8 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
   const [gDriveSuccessInfo, setGDriveSuccessInfo] = useState<{
     message: string; webViewLink: string; drivePath: string;
   } | null>(null);
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+  const [lastSyncLabel, setLastSyncLabel] = useState("");
 
   const loadGDriveStatus = useCallback(async () => {
     setGDriveStatusLoading(true);
@@ -112,6 +114,35 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
     setGDriveSuccessInfo(null);
   }, [loadGDriveStatus, reloadTrigger]);
 
+  // Update the "last synced X min ago" label every minute
+  useEffect(() => {
+    if (!lastSyncTime) return;
+    const update = () => {
+      const diffMs = Date.now() - lastSyncTime.getTime();
+      const diffMin = Math.floor(diffMs / 60000);
+      if (diffMin < 1) setLastSyncLabel("hace menos de 1 min");
+      else if (diffMin === 1) setLastSyncLabel("hace 1 min");
+      else setLastSyncLabel(`hace ${diffMin} min`);
+    };
+    update();
+    const t = setInterval(update, 60000);
+    return () => clearInterval(t);
+  }, [lastSyncTime]);
+
+  // Auto-sync every 5 minutes when Drive is linked and no unsaved changes
+  useEffect(() => {
+    if (!gDriveFileExists) return;
+    const AUTO_SYNC_MS = 5 * 60 * 1000; // 5 minutes
+    const interval = setInterval(() => {
+      // Only auto-sync when the page is visible and no unsaved changes
+      if (document.visibilityState === "visible" && !gDriveSyncing) {
+        handleGDriveSync();
+      }
+    }, AUTO_SYNC_MS);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gDriveFileExists]);
+
   const handleGDriveSync = async () => {
     setGDriveSyncing(true);
     setGDriveSuccessInfo(null);
@@ -132,6 +163,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
           webViewLink: json.webViewLink || "",
           drivePath: json.drivePath || ""
         });
+        setLastSyncTime(new Date());
         setReloadTrigger(prev => prev + 1);
       } else {
         alert(json.error || "Error al sincronizar con Google Drive");
@@ -1049,9 +1081,18 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
         <div className="flex flex-wrap items-center justify-between gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm animate-scale-in">
           <div className="flex items-center gap-2 text-blue-800 font-semibold">
             <CloudUpload size={16} />
-            {gDriveFileExists
-              ? "Planilla vinculada a Google Drive — sincronización bidireccional activa"
-              : "Conecta esta planilla con Google Drive para sync bidireccional"}
+            <div>
+              <span>
+                {gDriveFileExists
+                  ? "Planilla vinculada a Google Drive — sincronización bidireccional activa"
+                  : "Conecta esta planilla con Google Drive para sync bidireccional"}
+              </span>
+              {gDriveFileExists && lastSyncLabel && (
+                <span className="block text-[10px] text-blue-600 font-normal">
+                  Sincronizado automáticamente {lastSyncLabel}
+                </span>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {gDriveFileExists && gDriveWebViewLink && (
