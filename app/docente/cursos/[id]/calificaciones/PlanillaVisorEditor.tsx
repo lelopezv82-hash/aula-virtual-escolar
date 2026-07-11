@@ -355,6 +355,21 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
         </div>
       )}
 
+      {/* ── Offline workflow tip (always visible) ── */}
+      <div className="flex gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs">
+        <span className="text-2xl leading-none">💡</span>
+        <div className="flex flex-col gap-1 text-amber-800">
+          <p className="font-bold text-sm">¿Sin internet? No hay problema</p>
+          <p>
+            <strong>1.</strong> Descarga tu planilla con el botón <strong>"Descargar .xlsx"</strong> y edítala normalmente en Excel en tu computador — sin necesidad de internet.
+          </p>
+          <p>
+            <strong>2.</strong> Cuando vuelvas a tener internet, regresa aquí, haz clic en <strong>"Reemplazar planilla"</strong>, sube el archivo que editaste y presiona <strong>"Guardar y sincronizar notas"</strong>.
+          </p>
+          <p className="text-amber-600 font-semibold">✓ Los cambios que hiciste sin internet quedarán registrados en la plataforma.</p>
+        </div>
+      </div>
+
       {/* ── Drop zone (when no file) ── */}
       {rows.length === 0 ? (
         <div
@@ -469,12 +484,13 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
 
       {/* ── Instructions ── */}
       {rows.length > 0 && (
-        <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-xs text-blue-700 flex flex-col gap-1">
+        <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-xs text-blue-700 flex flex-col gap-1.5">
           <p className="font-bold flex items-center gap-1"><Info size={12} /> ¿Cómo funciona?</p>
-          <p>1. <strong>Edita</strong> cualquier celda directamente haciendo clic en ella.</p>
-          <p>2. Presiona <strong>"Guardar y sincronizar notas"</strong> — la plataforma detecta automáticamente las columnas SABER / HACER / SER y actualiza las calificaciones.</p>
-          <p>3. Usa <strong>"Descargar .xlsx"</strong> para bajar la versión editada a tu computador.</p>
-          <p>4. La próxima vez que entres, la planilla estará guardada tal como la dejaste.</p>
+          <p>1. <strong>Edita</strong> cualquier celda directamente haciendo clic en ella dentro de la plataforma.</p>
+          <p>2. Presiona <strong>"Guardar y sincronizar notas"</strong> — la plataforma detecta automáticamente las columnas SABER / HACER / SER y actualiza las calificaciones en el sistema.</p>
+          <p>3. Usa <strong>"Descargar .xlsx"</strong> para bajar la versión actualizada a tu computador y seguir editando sin internet.</p>
+          <p>4. Cuando vuelvas con internet, usa <strong>"Reemplazar planilla"</strong> para subir los cambios que hiciste localmente.</p>
+          <p>5. La próxima vez que entres, la planilla estará guardada tal como la dejaste — no necesitas volver a subirla.</p>
         </div>
       )}
     </div>
