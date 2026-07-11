@@ -10,6 +10,7 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import PlanillaExcelEditor from "./PlanillaExcelEditor";
+import PlanillaVisorEditor from "./PlanillaVisorEditor";
 
 interface PeriodGrades {
   saber: number | null;
@@ -109,7 +110,7 @@ export default function CalificacionesConsolidadoPage() {
   const [activePeriod, setActivePeriod] = useState<string>("");
   const [sortField, setSortField] = useState<"name" | "saber" | "hacer" | "ser" | "final">("name");
   const [sortAsc, setSortAsc] = useState(true);
-  const [activeTab, setActiveTab] = useState<"consolidado" | "planilla">("planilla");
+  const [activeTab, setActiveTab] = useState<"consolidado" | "planilla" | "mi-planilla">("mi-planilla");
 
   const exportToExcel = () => {
     if (!data || !activePeriod) return;
@@ -387,6 +388,16 @@ export default function CalificacionesConsolidadoPage() {
             {/* View Switcher Tabs */}
             <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl border border-gray-200 dark:border-gray-700">
               <button
+                onClick={() => setActiveTab("mi-planilla")}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  activeTab === "mi-planilla"
+                    ? "bg-white dark:bg-gray-750 text-gray-800 dark:text-white shadow-sm"
+                    : "text-gray-500 hover:text-gray-800 dark:hover:text-white"
+                }`}
+              >
+                📄 Mi Planilla Excel
+              </button>
+              <button
                 onClick={() => setActiveTab("planilla")}
                 className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   activeTab === "planilla"
@@ -394,7 +405,7 @@ export default function CalificacionesConsolidadoPage() {
                     : "text-gray-500 hover:text-gray-800 dark:hover:text-white"
                 }`}
               >
-                Planilla de Notas (Excel)
+                📊 Planilla de Notas
               </button>
               <button
                 onClick={() => setActiveTab("consolidado")}
@@ -404,12 +415,14 @@ export default function CalificacionesConsolidadoPage() {
                     : "text-gray-500 hover:text-gray-800 dark:hover:text-white"
                 }`}
               >
-                Resumen por Periodo (Tarjetas)
+                📋 Resumen por Periodo
               </button>
             </div>
           </div>
 
-          {activeTab === "planilla" ? (
+          {activeTab === "mi-planilla" ? (
+            <PlanillaVisorEditor courseId={courseId} activePeriod={activePeriod} />
+          ) : activeTab === "planilla" ? (
             <PlanillaExcelEditor courseId={courseId} activePeriod={activePeriod} />
           ) : (
             <>
