@@ -15,6 +15,7 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 // @ts-ignore
 import autoTable from "jspdf-autotable";
+import PlanillaVisorEditor from "../cursos/[id]/calificaciones/PlanillaVisorEditor";
 
 // ── Interfaces ────────────────────────────────────────────────────────────────
 
@@ -182,6 +183,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [examQuestions, setExamQuestions] = useState<any[]>([]);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [manageTab, setManageTab] = useState<"control" | "questions">("control");
+  const [showPlanillaVisor, setShowPlanillaVisor] = useState(false);
   const [taskStudents, setTaskStudents] = useState<any[]>([]);
   const [globalAllowLate, setGlobalAllowLate] = useState(false);
   const [globalLateUntil, setGlobalLateUntil] = useState("");
@@ -1763,6 +1765,14 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             />
           </label>
 
+          <button
+            onClick={() => setShowPlanillaVisor(v => !v)}
+            className="btn btn-secondary flex items-center gap-1.5 text-sm"
+            style={showPlanillaVisor ? { background: "#f98012", borderColor: "#e06d09", color: "#fff" } : {}}
+            title="Sube tu planilla Excel, edítala aquí y sincroniza las notas automáticamente"
+          >
+            <FileSpreadsheet size={15} /> Mi Planilla Excel
+          </button>
           <button onClick={exportToOfficialTemplate} className="btn btn-secondary flex items-center gap-1.5 text-sm" style={{ background: "#1d4ed8", borderColor: "#1e40af", color: "#fff" }} title="Genera la planilla oficial en formato Monseñor Díaz Plata con todas las notas">
             <FileSpreadsheet size={15} /> Planilla Oficial
           </button>
@@ -1771,6 +1781,25 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           </button>
         </div>
       </div>
+
+      {/* ── Mi Planilla Excel visor ── */}
+      {showPlanillaVisor && selectedCourseId && selectedPeriod && (
+        <div className="border border-orange-200 rounded-2xl bg-orange-50/30 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-bold text-base flex items-center gap-2">
+              <FileSpreadsheet size={18} className="text-[#f98012]" />
+              Mi Planilla Excel
+            </h3>
+            <button
+              onClick={() => setShowPlanillaVisor(false)}
+              className="text-gray-400 hover:text-gray-700 p-1 rounded-lg hover:bg-gray-100"
+            >
+              <X size={16} />
+            </button>
+          </div>
+          <PlanillaVisorEditor courseId={selectedCourseId} activePeriod={selectedPeriod} />
+        </div>
+      )}
 
       {/* Google Drive success banner */}
       {gDriveSuccessInfo && (
