@@ -222,22 +222,72 @@ export async function POST(request: Request) {
     const hacerTasks = tasks.filter(t => t.type === "TASK");
     const serTasks   = tasks.filter(t => t.type === "SER");
 
-    // Official template column layout — dynamic detection via header row
-    const SABER_START = 2;  const SABER_SLOTS = 4;
-    const HACER_START = 6;  const HACER_SLOTS = 10;
-    const SER_START  = 16;  const SER_SLOTS   = 3;
-
     // Normalize name for fuzzy comparison: lowercase, strip accents, collapse spaces
     const normalizeName = (s: string) =>
       s.toLowerCase()
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
         .replace(/\s+/g, ' ').trim();
 
+    /**
+     * Dynamically detect where SABER / HACER / SER grade columns start in an
+     * Excel row by scanning the first 20 rows for group labels.
+     *
+     * The official institutional template has merged header rows like:
+     *   "SABER 30%"  →  followed by N grade columns (numbers 1..N)
+     *   then a formula/average column ("S" or similar)
+     *   "HACER 50%"  →  followed by M grade columns
+     *   then a formula/average column ("H")
+     *   "SER 20%"    →  followed by P grade columns
+     *
+     * We scan all cells in the first ~12 rows looking for those keywords and
+     * record the column index of the FIRST occurrence of each group.
+     * If no label is found we fall back to the known fixed positions.
+     */
+    const detectGroupColumns = (rows: any[][]): {
+      saberStart: number; saberSlots: number;
+      hacerStart: number; hacerSlots: number;
+      serStart:   number; serSlots:   number;
+    } => {
+      // defaults matching the original hardcoded positions
+      let saberStart = 2, hacerStart = 7, serStart = 18;
+      let saberSlots = 4, hacerSlots = 10, serSlots = 3;
+
+      const scanRows = Math.min(rows.length, 12);
+      const keywords = { saber: -1, hacer: -1, ser: -1 };
+
+      for (let r = 0; r < scanRows; r++) {
+        const row = rows[r];
+        if (!row) continue;
+        for (let c = 0; c < row.length; c++) {
+          const cell = String(row[c] || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          if (keywords.saber === -1 && cell.includes('saber')) keywords.saber = c;
+          if (keywords.hacer === -1 && cell.includes('hacer')) keywords.hacer = c;
+          if (keywords.ser   === -1 && (cell === 'ser' || cell.startsWith('ser '))) keywords.ser = c;
+        }
+        if (keywords.saber !== -1 && keywords.hacer !== -1 && keywords.ser !== -1) break;
+      }
+
+      if (keywords.saber !== -1) saberStart = keywords.saber;
+      if (keywords.hacer !== -1) hacerStart = keywords.hacer;
+      if (keywords.ser   !== -1) serStart   = keywords.ser;
+
+      // Compute slots as the gap between group starts (minus 1 for the average col between groups)
+      if (keywords.saber !== -1 && keywords.hacer !== -1)
+        saberSlots = Math.max(1, hacerStart - saberStart - 1); // -1 for the "S" average col
+      if (keywords.hacer !== -1 && keywords.ser !== -1)
+        hacerSlots = Math.max(1, serStart - hacerStart - 1);   // -1 for the "H" average col
+
+      console.log(`Column detection → SABER[${saberStart}..+${saberSlots}] HACER[${hacerStart}..+${hacerSlots}] SER[${serStart}..+${serSlots}]`);
+      return { saberStart, saberSlots, hacerStart, hacerSlots, serStart, serSlots };
+    };
+
     // ── 5. Download Drive file and parse grades into DB ────────────────────
     let loadedWorkbook: any = null;
     let targetSheetName = "";
     let isOfficialFormat = false;
     let headerRowIndex = -1;
+    // Shared column positions (set during parse, reused during write-back)
+    let detectedCols = { saberStart: 2, saberSlots: 4, hacerStart: 7, hacerSlots: 10, serStart: 18, serSlots: 3 };
 
     if (driveFileId) {
       try {
@@ -299,6 +349,9 @@ export async function POST(request: Request) {
             }
 
             if (headerRowIndex !== -1) {
+              // Dynamically detect SABER / HACER / SER column positions and cache
+              detectedCols = detectGroupColumns(rows);
+              const { saberStart, saberSlots, hacerStart, hacerSlots, serStart, serSlots } = detectedCols;
               const toUpsert: Array<{ studentId: string; taskId: string; grade: number }> = [];
 
               for (let i = headerRowIndex + 1; i < rows.length; i++) {
@@ -325,40 +378,35 @@ export async function POST(request: Request) {
 
                 const studentId = student.id;
 
+                const readGrade = (colStart: number, slotIndex: number) => {
+                  const gradeVal = row[colStart + slotIndex];
+                  if (gradeVal === undefined || gradeVal === null || String(gradeVal).trim() === "") return null;
+                  const num = parseFloat(String(gradeVal).replace(',', '.'));
+                  return (!isNaN(num) && num >= 1.0 && num <= 5.0) ? parseFloat(num.toFixed(1)) : null;
+                };
+
                 // SABER
-                for (let j = 0; j < SABER_SLOTS; j++) {
+                for (let j = 0; j < saberSlots; j++) {
                   const t = saberTasks[j];
                   if (!t) continue;
-                  const gradeVal = row[SABER_START + j];
-                  if (gradeVal !== undefined && gradeVal !== null && String(gradeVal).trim() !== "") {
-                    const num = parseFloat(String(gradeVal).replace(',', '.'));
-                    if (!isNaN(num) && num >= 1.0 && num <= 5.0)
-                      toUpsert.push({ studentId, taskId: t.id, grade: parseFloat(num.toFixed(1)) });
-                  }
+                  const g = readGrade(saberStart, j);
+                  if (g !== null) toUpsert.push({ studentId, taskId: t.id, grade: g });
                 }
 
                 // HACER
-                for (let j = 0; j < HACER_SLOTS; j++) {
+                for (let j = 0; j < hacerSlots; j++) {
                   const t = hacerTasks[j];
                   if (!t) continue;
-                  const gradeVal = row[HACER_START + j];
-                  if (gradeVal !== undefined && gradeVal !== null && String(gradeVal).trim() !== "") {
-                    const num = parseFloat(String(gradeVal).replace(',', '.'));
-                    if (!isNaN(num) && num >= 1.0 && num <= 5.0)
-                      toUpsert.push({ studentId, taskId: t.id, grade: parseFloat(num.toFixed(1)) });
-                  }
+                  const g = readGrade(hacerStart, j);
+                  if (g !== null) toUpsert.push({ studentId, taskId: t.id, grade: g });
                 }
 
                 // SER
-                for (let j = 0; j < SER_SLOTS; j++) {
+                for (let j = 0; j < serSlots; j++) {
                   const t = serTasks[j];
                   if (!t) continue;
-                  const gradeVal = row[SER_START + j];
-                  if (gradeVal !== undefined && gradeVal !== null && String(gradeVal).trim() !== "") {
-                    const num = parseFloat(String(gradeVal).replace(',', '.'));
-                    if (!isNaN(num) && num >= 1.0 && num <= 5.0)
-                      toUpsert.push({ studentId, taskId: t.id, grade: parseFloat(num.toFixed(1)) });
-                  }
+                  const g = readGrade(serStart, j);
+                  if (g !== null) toUpsert.push({ studentId, taskId: t.id, grade: g });
                 }
               }
 
@@ -427,34 +475,36 @@ export async function POST(request: Request) {
         }
       }
 
+      const { saberStart, saberSlots, hacerStart, hacerSlots, serStart, serSlots } = detectedCols;
+
       students.forEach(student => {
         const rowIndex = studentRowMap.get(student.id);
         if (rowIndex === undefined) return;
 
         // SABER
-        for (let j = 0; j < SABER_SLOTS; j++) {
+        for (let j = 0; j < saberSlots; j++) {
           const t = freshSaber[j];
           const sub = t ? t.submissions.find(s => s.studentId === student.id) : null;
           const val = (sub && sub.grade !== null && sub.grade !== undefined) ? sub.grade : "";
-          const ref = XLSX.utils.encode_cell({ r: rowIndex, c: SABER_START + j });
+          const ref = XLSX.utils.encode_cell({ r: rowIndex, c: saberStart + j });
           if (val === "") { delete ws[ref]; } else { ws[ref] = { t: 'n', v: val }; }
         }
 
         // HACER
-        for (let j = 0; j < HACER_SLOTS; j++) {
+        for (let j = 0; j < hacerSlots; j++) {
           const t = freshHacer[j];
           const sub = t ? t.submissions.find(s => s.studentId === student.id) : null;
           const val = (sub && sub.grade !== null && sub.grade !== undefined) ? sub.grade : "";
-          const ref = XLSX.utils.encode_cell({ r: rowIndex, c: HACER_START + j });
+          const ref = XLSX.utils.encode_cell({ r: rowIndex, c: hacerStart + j });
           if (val === "") { delete ws[ref]; } else { ws[ref] = { t: 'n', v: val }; }
         }
 
         // SER
-        for (let j = 0; j < SER_SLOTS; j++) {
+        for (let j = 0; j < serSlots; j++) {
           const t = freshSer[j];
           const sub = t ? t.submissions.find(s => s.studentId === student.id) : null;
           const val = (sub && sub.grade !== null && sub.grade !== undefined) ? sub.grade : "";
-          const ref = XLSX.utils.encode_cell({ r: rowIndex, c: SER_START + j });
+          const ref = XLSX.utils.encode_cell({ r: rowIndex, c: serStart + j });
           if (val === "") { delete ws[ref]; } else { ws[ref] = { t: 'n', v: val }; }
         }
       });
