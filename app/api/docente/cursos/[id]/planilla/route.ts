@@ -6,8 +6,9 @@ import prisma from '@/lib/prisma';
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
 // GET: Return saved planilla data for a course+period
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id: courseId } = await params;
     const cookieStore = await cookies();
     const token = cookieStore.get('auth_token')?.value;
     if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
@@ -20,7 +21,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     if (!period) return NextResponse.json({ error: 'Falta el periodo' }, { status: 400 });
 
     const course = await prisma.course.findUnique({
-      where: { id: params.id },
+      where: { id: courseId },
       select: { teacherId: true, planillaData: true }
     });
 
@@ -38,8 +39,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
 }
 
 // POST: Save planilla rows + extract grades into DB
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id: courseId } = await params;
     const cookieStore = await cookies();
     const token = cookieStore.get('auth_token')?.value;
     if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
@@ -55,7 +57,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     if (!period) return NextResponse.json({ error: 'Falta el periodo' }, { status: 400 });
 
     const course = await prisma.course.findUnique({
-      where: { id: params.id },
+      where: { id: courseId },
       select: { teacherId: true, planillaData: true }
     });
 
@@ -66,7 +68,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     // ── 1. Persist the spreadsheet rows ───────────────────────────────────
     const existing = (course.planillaData as Record<string, any> | null) || {};
     await prisma.course.update({
-      where: { id: params.id },
+      where: { id: courseId },
       data: {
         planillaData: {
           ...existing,
