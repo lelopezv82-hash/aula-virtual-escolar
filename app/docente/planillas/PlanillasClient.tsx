@@ -1769,6 +1769,15 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             />
           </label>
 
+          <button
+            onClick={() => setShowPlanillaVisor(v => !v)}
+            className="btn btn-secondary flex items-center gap-1.5 text-sm"
+            style={showPlanillaVisor ? { background: "#f98012", borderColor: "#e06d09", color: "#fff" } : {}}
+            title="Sube tu planilla Excel, edítala aquí y sincroniza las notas automáticamente"
+          >
+            <FileSpreadsheet size={15} /> Mi Planilla Excel
+          </button>
+
           <button onClick={exportToOfficialTemplate} className="btn btn-secondary flex items-center gap-1.5 text-sm" style={{ background: "#1d4ed8", borderColor: "#1e40af", color: "#fff" }} title="Genera la planilla oficial en formato Monseñor Díaz Plata con todas las notas">
             <FileSpreadsheet size={15} /> Planilla Oficial
           </button>
@@ -1950,11 +1959,121 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           <div className="flex justify-center py-20">
             <Loader2 className="animate-spin text-orange-500" size={40} />
           </div>
-        ) : (
+        ) : showPlanillaVisor ? (
           <div className="p-4 bg-slate-50 dark:bg-gray-900">
             {selectedCourseId && selectedPeriod && (
               <PlanillaVisorEditor courseId={selectedCourseId} activePeriod={selectedPeriod} />
             )}
+          </div>
+        ) : (
+          <div className="overflow-x-auto w-full">
+            <table id="planillas-table" className="border-collapse text-xs text-center" style={{ tableLayout: "fixed", width: "max-content", minWidth: "100%" }}>
+              <colgroup>
+                <col style={{ width: "36px" }} />{/* No. */}
+                <col style={{ width: "200px" }} />{/* Nombre */}
+                {CATEGORIES.map(cat => {
+                  if (cat.type === "FINAL"  && !showFinal)  return null;
+                  if (cat.type === "ATTEND" && !showAttend) return null;
+                  const count = Math.max(1, byType(cat.type).length);
+                  return Array.from({ length: count }, (_, i) => (
+                    <col key={`col-${cat.type}-${i}`} style={{ width: "56px" }} />
+                  ));
+                })}
+                <col style={{ width: "56px" }} />{/* DEF Saber */}
+                <col style={{ width: "56px" }} />{/* DEF Hacer */}
+                <col style={{ width: "56px" }} />{/* DEF Ser */}
+                {showFinal && <col style={{ width: "56px" }} />}{/* DEF Final */}
+                <col style={{ width: "80px" }} />{/* Def Final */}
+                <col style={{ width: "90px" }} />{/* Desempeño */}
+              </colgroup>
+              <thead>
+                {/* Row 1: Category headers */}
+                <tr className="bg-gray-100 dark:bg-gray-800">
+                  <th rowSpan={2} className="border border-gray-200 dark:border-gray-700 p-2" style={{ width: "36px", minWidth: "36px" }}>No.</th>
+                  <th rowSpan={2} className="border border-gray-200 dark:border-gray-700 p-2 text-left" style={{ width: "200px", minWidth: "200px" }}>Nombre Completo</th>
+                  {CATEGORIES.map(cat => {
+                    if (cat.type === "FINAL"  && !showFinal)  return null;
+                    if (cat.type === "ATTEND" && !showAttend) return null;
+                    return renderCatHeader(cat);
+                  })}
+                  <th colSpan={showFinal ? 4 : 3} className="border border-gray-200 dark:border-gray-700 p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 uppercase tracking-wide font-bold text-xs">
+                    DEF (Ponderada)
+                  </th>
+                  <th rowSpan={2} className="border border-gray-200 dark:border-gray-700 p-2 bg-gray-100 dark:bg-gray-800 font-bold">Def Final</th>
+                  <th rowSpan={2} className="border border-gray-200 dark:border-gray-700 p-2 font-bold">Desempeño</th>
+                </tr>
+
+                {/* Row 2: Task numbers */}
+                <tr className="bg-gray-50 dark:bg-gray-800/60 font-semibold text-gray-500 dark:text-gray-400">
+                  {CATEGORIES.map(cat => {
+                    if (cat.type === "FINAL"  && !showFinal)  return null;
+                    if (cat.type === "ATTEND" && !showAttend) return null;
+                    return <React.Fragment key={cat.type}>{renderTaskNumHeader(cat)}</React.Fragment>;
+                  })}
+                  <th className="border border-gray-200 dark:border-gray-700 p-1 bg-blue-50/50 dark:bg-blue-900/10" style={{ width: "56px", minWidth: "56px" }}>Saber</th>
+                  <th className="border border-gray-200 dark:border-gray-700 p-1 bg-blue-50/50 dark:bg-blue-900/10" style={{ width: "56px", minWidth: "56px" }}>Hacer</th>
+                  <th className="border border-gray-200 dark:border-gray-700 p-1 bg-blue-50/50 dark:bg-blue-900/10" style={{ width: "56px", minWidth: "56px" }}>Ser</th>
+                  {showFinal && <th className="border border-gray-200 dark:border-gray-700 p-1 bg-blue-50/50 dark:bg-blue-900/10" style={{ width: "56px", minWidth: "56px" }}>Final</th>}
+                </tr>
+              </thead>
+
+              <tbody>
+                {students.length === 0 ? (
+                  <tr>
+                    <td colSpan={30} className="py-14 text-muted font-medium italic">
+                      No hay estudiantes en este grupo o aún no hay actividades para este periodo.
+                    </td>
+                  </tr>
+                ) : (
+                  students.map((student, idx) => {
+                    const stats = calcStats(student.id);
+                    const desemp = stats.total !== null ? getDesempeno(stats.total) : null;
+
+                    return (
+                      <tr key={student.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                        <td className="p-2 border border-gray-200 dark:border-gray-700 text-gray-400 font-medium text-center">{idx + 1}</td>
+                        <td className="p-2 border border-gray-200 dark:border-gray-700 text-left">
+                          <div className="font-bold text-gray-800 dark:text-gray-200 leading-tight">{student.name}</div>
+                          <div className="text-[10px] text-gray-400 mt-0.5">{student.group.grade?.name} — {student.group.name}</div>
+                        </td>
+
+                        {/* Category cells */}
+                        {CATEGORIES.map(cat => {
+                          if (cat.type === "FINAL"  && !showFinal)  return null;
+                          if (cat.type === "ATTEND" && !showAttend) return null;
+                          return <React.Fragment key={cat.type}>{renderStudentCatCells(student.id, cat)}</React.Fragment>;
+                        })}
+
+                        {/* Ponderated */}
+                        {pondCell(stats.pondSaber, "#a855f7")}
+                        {pondCell(stats.pondHacer, "#d97706")}
+                        {pondCell(stats.pondSer,   "#b45309")}
+                        {showFinal && pondCell(stats.pondFinal, "#0ea5e9")}
+
+                        {/* Final — same color scale as Desempeño */}
+                        <td className="p-2 border border-gray-200 dark:border-gray-700 text-center">
+                          {stats.total !== null ? (() => {
+                            const d = getDesempeno(stats.total);
+                            return (
+                              <span className={`inline-block px-2 py-0.5 rounded font-extrabold text-sm ${d.cls}`}>
+                                {stats.total.toFixed(2)}
+                              </span>
+                            );
+                          })() : <span className="text-gray-400 font-bold">—</span>}
+                        </td>
+
+                        {/* Desempeño */}
+                        <td className="p-2 border border-gray-200 dark:border-gray-700 text-center">
+                          {desemp
+                            ? <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${desemp.cls}`}>{desemp.label}</span>
+                            : "—"}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
