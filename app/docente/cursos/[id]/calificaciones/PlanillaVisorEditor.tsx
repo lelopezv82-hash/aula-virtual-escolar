@@ -1,19 +1,32 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import {
+  useState, useEffect, useRef, useCallback, memo, useMemo,
+} from "react";
 import * as XLSX from "xlsx";
 import {
   Upload, Download, Save, Loader2, Check, AlertTriangle,
-  FileSpreadsheet, RefreshCw, X, Info
+  FileSpreadsheet, Info, Users,
 } from "lucide-react";
 
+/* ─────────────────────────────────────────────────────────────────
+   Types
+───────────────────────────────────────────────────────────────── */
 interface Task {
   id: string;
   title: string;
   type: string;
+  submissions?: { studentId: string; grade: number | null }[];
 }
 
 interface Student {
+  id: string;
+  name: string;
+  groupName?: string;
+  groupId?: string;
+}
+
+interface Group {
   id: string;
   name: string;
 }
@@ -23,195 +36,269 @@ interface PlanillaVisorEditorProps {
   activePeriod: string;
 }
 
-// Normalize string: lowercase, no accents, collapsed spaces
-const norm = (s: string) =>
-  s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
+/* ─────────────────────────────────────────────────────────────────
+   CellInput — local state prevents parent re-renders while typing.
+   Only commits value to parent on blur or Enter key.
+───────────────────────────────────────────────────────────────── */
+interface CellInputProps {
+  initialValue: string;
+  rowIndex: number;
+  colIndex: number;
+  isHeader: boolean;
+  isNum: boolean;
+  isLow: boolean;
+  width: number;
+  onCommit: (ri: number, ci: number, value: string) => void;
+}
 
-const syncSpreadsheetRows = (
-  savedRows: any[][],
-  currentStudents: any[],
-  currentTasks: any[]
-): any[][] => {
-  if (!savedRows || savedRows.length < 2) return [];
+const CellInput = memo(function CellInput({
+  initialValue, rowIndex, colIndex, isHeader, isNum, isLow, width, onCommit,
+}: CellInputProps) {
+  const [val, setVal] = useState(initialValue);
 
-  // Formato simple de plataforma
-  if (savedRows[0][0] !== "STUDENT_ID") {
-    return savedRows;
-  }
+  // Sync when parent rebuilds rows (e.g. after save response)
+  useEffect(() => { setVal(initialValue); }, [initialValue]);
 
-  const activeTasks = [...currentTasks];
-  let counter = 1;
-  const taskNumbers: Record<string, number> = {};
-  activeTasks.forEach((t: any) => { taskNumbers[t.id] = counter++; });
+  const commit = useCallback(() => {
+    if (val !== initialValue) onCommit(rowIndex, colIndex, val);
+  }, [val, initialValue, rowIndex, colIndex, onCommit]);
 
-  const savedTaskIds = savedRows[0].slice(3);
-  const taskColumnsToKeep: number[] = [];
-  const newTaskIdsToAdd = activeTasks.filter(t => !savedTaskIds.includes(t.id));
+  return (
+    <input
+      type="text"
+      value={val}
+      onChange={e => setVal(e.target.value)}
+      onBlur={commit}
+      onKeyDown={e => {
+        if (e.key === "Enter") { commit(); (e.target as HTMLInputElement).blur(); }
+      }}
+      className={[
+        "w-full h-full px-2 py-1 bg-transparent outline-none",
+        "focus:bg-blue-50 focus:ring-1 focus:ring-blue-400 focus:ring-inset transition-colors",
+        isHeader ? "font-bold text-gray-700" : "text-gray-800",
+        isNum    ? "text-right font-mono"    : "",
+        isLow    ? "text-red-600 font-bold"  : "",
+      ].join(" ")}
+      style={{ minWidth: `${width}px` }}
+    />
+  );
+});
 
-  const header1 = ["STUDENT_ID", "STUDENT_NAME", "GROUP"];
-  const header2 = ["ID Estudiante", "Nombre Completo", "Grupo"];
+/* ─────────────────────────────────────────────────────────────────
+   Helpers
+───────────────────────────────────────────────────────────────── */
+const CAT_LABEL: Record<string, string> = {
+  EXAM: "SABER", TASK: "HACER", SER: "SER", FINAL: "EXAMEN FINAL",
+};
 
-  savedTaskIds.forEach((id, idx) => {
-    const colIdx = idx + 3;
-    const currentTask = activeTasks.find(t => t.id === id);
-    if (currentTask) {
-      taskColumnsToKeep.push(colIdx);
-      header1.push(id);
-      const cat = currentTask.type === "EXAM" ? "SABER" : currentTask.type === "TASK" ? "HACER" : currentTask.type === "SER" ? "SER" : currentTask.type === "FINAL" ? "EXAMEN FINAL" : "ASISTENCIA";
-      header2.push(`${cat} ${taskNumbers[currentTask.id]} - ${currentTask.title}`);
-    }
+function typeLabel(type: string) { return CAT_LABEL[type] ?? type; }
+
+function buildRows(students: Student[], tasks: Task[]): any[][] {
+  let n = 1;
+  const nums: Record<string, number> = {};
+  tasks.forEach(t => { nums[t.id] = n++; });
+
+  const row0 = ["STUDENT_ID", "STUDENT_NAME", "GROUP", ...tasks.map(t => t.id)];
+  const row1 = ["ID", "Nombre Completo", "Grupo", ...tasks.map(t => `${typeLabel(t.type)} ${nums[t.id]} - ${t.title}`)];
+
+  const dataRows = students.map(s => {
+    const cells: any[] = [s.id, s.name, s.groupName ?? ""];
+    tasks.forEach(t => {
+      const sub = t.submissions?.find(x => x.studentId === s.id);
+      cells.push(sub?.grade != null ? sub.grade.toFixed(1) : "");
+    });
+    return cells;
   });
 
-  newTaskIdsToAdd.forEach(t => {
-    header1.push(t.id);
-    const cat = t.type === "EXAM" ? "SABER" : t.type === "TASK" ? "HACER" : t.type === "SER" ? "SER" : t.type === "FINAL" ? "EXAMEN FINAL" : "ASISTENCIA";
-    header2.push(`${cat} ${taskNumbers[t.id]} - ${t.title}`);
-  });
+  return [row0, row1, ...dataRows];
+}
 
-  const newRows: any[][] = [header1, header2];
-  const savedStudentRowMap = new Map<string, any[]>();
-  for (let ri = 2; ri < savedRows.length; ri++) {
-    const row = savedRows[ri];
-    if (row && row[0]) {
-      savedStudentRowMap.set(row[0], row);
-    }
+/** Merge saved rows with current students/tasks — adds new students/tasks,
+ *  removes deleted ones, preserves existing grades. */
+function syncRows(saved: any[][], students: Student[], tasks: Task[]): any[][] {
+  if (!saved?.length || saved[0][0] !== "STUDENT_ID") return saved;
+
+  let n = 1;
+  const nums: Record<string, number> = {};
+  tasks.forEach(t => { nums[t.id] = n++; });
+
+  const savedIds  = (saved[0] as string[]).slice(3);
+  const keptIds   = savedIds.filter(id => tasks.some(t => t.id === id));
+  const addedTasks = tasks.filter(t => !savedIds.includes(t.id));
+
+  const row0 = ["STUDENT_ID", "STUDENT_NAME", "GROUP", ...keptIds, ...addedTasks.map(t => t.id)];
+  const row1 = [
+    "ID", "Nombre Completo", "Grupo",
+    ...keptIds.map(id => { const t = tasks.find(t => t.id === id)!; return `${typeLabel(t.type)} ${nums[t.id]} - ${t.title}`; }),
+    ...addedTasks.map(t => `${typeLabel(t.type)} ${nums[t.id]} - ${t.title}`),
+  ];
+
+  const savedMap = new Map<string, any[]>();
+  for (let r = 2; r < saved.length; r++) {
+    if (saved[r]?.[0]) savedMap.set(String(saved[r][0]), saved[r]);
   }
 
-  currentStudents.forEach(student => {
-    const row: any[] = [student.id, student.name, student.groupName || ""];
-    const savedRow = savedStudentRowMap.get(student.id);
+  const dataRows = students.map(s => {
+    const cells: any[] = [s.id, s.name, s.groupName ?? ""];
+    const savedRow = savedMap.get(s.id);
 
-    savedTaskIds.forEach((id, idx) => {
-      const colIdx = idx + 3;
-      const currentTask = activeTasks.find(t => t.id === id);
-      if (currentTask) {
-        if (savedRow && savedRow[colIdx] !== undefined) {
-          row.push(savedRow[colIdx]);
-        } else {
-          const sub = currentTask.submissions?.find((s: any) => s.studentId === student.id);
-          row.push((sub && sub.grade !== null && sub.grade !== undefined) ? sub.grade.toFixed(1) : "");
-        }
+    keptIds.forEach(id => {
+      const ci = savedIds.indexOf(id) + 3;
+      if (savedRow?.[ci] !== undefined) cells.push(savedRow[ci]);
+      else {
+        const t = tasks.find(t => t.id === id)!;
+        const sub = t.submissions?.find(x => x.studentId === s.id);
+        cells.push(sub?.grade != null ? sub.grade.toFixed(1) : "");
       }
     });
 
-    newTaskIdsToAdd.forEach(t => {
-      const sub = t.submissions?.find((s: any) => s.studentId === student.id);
-      row.push((sub && sub.grade !== null && sub.grade !== undefined) ? sub.grade.toFixed(1) : "");
+    addedTasks.forEach(t => {
+      const sub = t.submissions?.find(x => x.studentId === s.id);
+      cells.push(sub?.grade != null ? sub.grade.toFixed(1) : "");
     });
 
-    newRows.push(row);
+    return cells;
   });
 
-  return newRows;
-};
+  return [row0, row1, ...dataRows];
+}
 
+function calcColWidths(rows: any[][]): number[] {
+  if (!rows.length) return [];
+  const maxCols = Math.max(...rows.map(r => (r ?? []).length));
+  return Array.from({ length: maxCols }, (_, ci) => {
+    let max = 6;
+    for (const row of rows) {
+      const len = row?.[ci] != null ? String(row[ci]).length : 0;
+      if (len > max) max = len;
+    }
+    return Math.min(Math.max(max * 8 + 16, 48), 220);
+  });
+}
+
+function isHeaderRow(cells: any[]): boolean {
+  return cells.some(c => {
+    const v = String(c ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return v.includes("saber") || v.includes("hacer") || v === "ser" || v.includes("nombre");
+  });
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Main component
+───────────────────────────────────────────────────────────────── */
 export default function PlanillaVisorEditor({ courseId, activePeriod }: PlanillaVisorEditorProps) {
-  const [rows, setRows] = useState<any[][]>([]);
-  const [colWidths, setColWidths] = useState<number[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
-  const [saveMsg, setSaveMsg] = useState("");
-  const [dragging, setDragging] = useState(false);
-  const [fileName, setFileName] = useState("");
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
-  const [mappingInfo, setMappingInfo] = useState<string>("");
+  const [groups,       setGroups]       = useState<Group[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState<string>("all");
+  const [rows,         setRows]         = useState<any[][]>([]);
+  const [colWidths,    setColWidths]    = useState<number[]>([]);
+  const [tasks,        setTasks]        = useState<Task[]>([]);
+  const [students,     setStudents]     = useState<Student[]>([]);
+  const [fileName,     setFileName]     = useState("");
+  const [loading,      setLoading]      = useState(true);
+  const [saving,       setSaving]       = useState(false);
+  const [saveStatus,   setSaveStatus]   = useState<"idle"|"success"|"error">("idle");
+  const [saveMsg,      setSaveMsg]      = useState("");
+  const [dragging,     setDragging]     = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ── Load saved planilla from server ────────────────────────────────────
+  /* ── Load data (period OR group changes) ──────────────────────── */
   useEffect(() => {
+    let cancelled = false;
     async function load() {
       setLoading(true);
+      setRows([]);
+      setSaveStatus("idle");
       try {
+        const qp = new URLSearchParams({ period: activePeriod, groupId: selectedGroup });
         const [planRes, spreadRes] = await Promise.all([
-          fetch(`/api/docente/cursos/${courseId}/planilla?period=${encodeURIComponent(activePeriod)}`),
-          fetch(`/api/docente/cursos/${courseId}/grades/spreadsheet?period=${encodeURIComponent(activePeriod)}`)
+          fetch(`/api/docente/cursos/${courseId}/planilla?${qp}`),
+          fetch(`/api/docente/cursos/${courseId}/grades/spreadsheet?${qp}`),
         ]);
-        const planJson = await planRes.json();
+        if (cancelled) return;
+
+        const planJson   = await planRes.json();
         const spreadJson = spreadRes.ok ? await spreadRes.json() : {};
 
-        const rawTasks = spreadJson.tasks || [];
-        const rawStudents = spreadJson.students || [];
+        const rawTasks: Task[]     = spreadJson.tasks    ?? [];
+        const rawStudents: Student[] = spreadJson.students ?? [];
+        const rawGroups: Group[]   = spreadJson.groups   ?? [];
 
-        setTasks(rawTasks);
-        setStudents(rawStudents);
+        if (!cancelled) {
+          setTasks(rawTasks);
+          setStudents(rawStudents);
+          if (rawGroups.length > 0) setGroups(rawGroups);
 
-        if (planJson.data?.rows && planJson.data.rows.length > 0) {
-          const synced = syncSpreadsheetRows(planJson.data.rows, rawStudents, rawTasks);
-          setRows(synced);
-          setFileName(planJson.data.fileName || "planilla guardada");
-          autoColWidths(synced);
-        } else if (rawStudents.length > 0) {
-          // Genera la planilla automáticamente a partir de los datos existentes
-          const activeTasks = [...rawTasks];
-          let counter = 1;
-          const taskNumbers: Record<string, number> = {};
-          activeTasks.forEach((t: any) => { taskNumbers[t.id] = counter++; });
-
-          const row1 = ["STUDENT_ID", "STUDENT_NAME", "GROUP", ...activeTasks.map((t: any) => t.id)];
-          const row2 = ["ID Estudiante", "Nombre Completo", "Grupo", ...activeTasks.map((t: any) => {
-            const cat = t.type === "EXAM" ? "SABER" : t.type === "TASK" ? "HACER" : t.type === "SER" ? "SER" : t.type === "FINAL" ? "EXAMEN FINAL" : "ASISTENCIA";
-            return `${cat} ${taskNumbers[t.id]} - ${t.title}`;
-          })];
-
-          const generatedRows: any[][] = [row1, row2];
-          rawStudents.forEach((student: any) => {
-            const row: any[] = [student.id, student.name, student.groupName || ""];
-            activeTasks.forEach((t: any) => {
-              const sub = t.submissions?.find((s: any) => s.studentId === student.id);
-              row.push((sub && sub.grade !== null && sub.grade !== undefined) ? sub.grade.toFixed(1) : "");
-            });
-            generatedRows.push(row);
-          });
-
-          setRows(generatedRows);
-          setFileName(`Planilla_${activePeriod}.xlsx`);
-          autoColWidths(generatedRows);
+          let finalRows: any[][];
+          if (planJson.data?.rows?.length > 1) {
+            finalRows = syncRows(planJson.data.rows, rawStudents, rawTasks);
+            setFileName(planJson.data.fileName || "planilla guardada");
+          } else if (rawStudents.length > 0) {
+            finalRows = buildRows(rawStudents, rawTasks);
+            setFileName(`Planilla_${activePeriod}.xlsx`);
+          } else {
+            finalRows = [];
+          }
+          setRows(finalRows);
+          setColWidths(calcColWidths(finalRows));
         }
       } catch (e) {
         console.error("Error loading planilla:", e);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
     load();
-  }, [courseId, activePeriod]);
+    return () => { cancelled = true; };
+  }, [courseId, activePeriod, selectedGroup]);
 
-  const autoColWidths = (r: any[][]) => {
-    if (!r || r.length === 0) return;
-    const maxCols = Math.max(...r.map(row => (row || []).length));
-    const widths = Array.from({ length: maxCols }, (_, ci) => {
-      let max = 6;
-      for (const row of r) {
-        const cell = row?.[ci];
-        const len = cell !== null && cell !== undefined ? String(cell).length : 0;
-        if (len > max) max = len;
-      }
-      return Math.min(Math.max(max * 8 + 16, 48), 220);
+  /* ── Cell commit ──────────────────────────────────────────────── */
+  const handleCellCommit = useCallback((ri: number, ci: number, value: string) => {
+    setRows(prev => {
+      const next = prev.map(r => [...r]);
+      if (!next[ri]) next[ri] = [];
+      next[ri][ci] = value;
+      return next;
     });
-    setColWidths(widths);
-  };
+    setSaveStatus("idle");
+  }, []);
 
-  // ── Parse uploaded Excel file ───────────────────────────────────────────
+  /* ── Add column ───────────────────────────────────────────────── */
+  const addColumn = useCallback((type: "EXAM" | "TASK" | "SER") => {
+    setRows(prev => {
+      if (prev.length < 2) return prev;
+      const next = prev.map(r => [...r]);
+      const tempId = `NEW_${type}_${Date.now()}`;
+
+      const existingCount = (next[0] as string[]).slice(3).filter(id => {
+        if (id.startsWith(`NEW_${type}_`)) return true;
+        return tasks.find(t => t.id === id)?.type === type;
+      }).length;
+
+      next[0] = [...next[0], tempId];
+      next[1] = [...next[1], `${typeLabel(type)} ${existingCount + 1} - Nueva Actividad`];
+      for (let ri = 2; ri < next.length; ri++) next[ri] = [...next[ri], ""];
+      return next;
+    });
+    setSaveStatus("idle");
+  }, [tasks]);
+
+  /* ── Parse Excel upload ───────────────────────────────────────── */
   const parseExcel = useCallback((file: File) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = e => {
       try {
-        const data = e.target?.result;
-        const wb = XLSX.read(data, { type: "binary" });
+        const wb = XLSX.read(e.target?.result, { type: "binary" });
         const ws = wb.Sheets[wb.SheetNames[0]];
         const parsed: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-        const trimmed = parsed.filter((row, i) => {
-          if (i < 3) return true;
-          return (row as any[]).some(c => c !== "" && c !== null && c !== undefined);
-        });
+        const trimmed = parsed.filter((row, i) =>
+          i < 3 || (row as any[]).some(c => c !== "" && c != null)
+        );
         setRows(trimmed);
         setFileName(file.name);
-        autoColWidths(trimmed);
+        setColWidths(calcColWidths(trimmed));
         setSaveStatus("idle");
-      } catch (err) {
-        alert("Error al leer el archivo Excel. Asegúrate de que sea un archivo .xlsx o .xls válido.");
+      } catch {
+        alert("Error al leer el archivo. Asegúrate de que sea .xlsx o .xls válido.");
       }
     };
     reader.readAsBinaryString(file);
@@ -227,207 +314,35 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
     e.preventDefault();
     setDragging(false);
     const file = e.dataTransfer.files?.[0];
-    if (file && (file.name.endsWith(".xlsx") || file.name.endsWith(".xls"))) {
-      parseExcel(file);
-    } else {
-      alert("Por favor sube un archivo Excel (.xlsx o .xls)");
-    }
+    if (file && /\.(xlsx|xls)$/i.test(file.name)) parseExcel(file);
+    else alert("Por favor sube un archivo Excel (.xlsx o .xls)");
   };
 
-  // ── Edit a cell ─────────────────────────────────────────────────────────
-  const handleCellChange = (ri: number, ci: number, value: string) => {
-    setRows(prev => {
-      const next = prev.map(r => [...r]);
-      if (!next[ri]) next[ri] = [];
-      next[ri][ci] = value;
-      return next;
-    });
-    setSaveStatus("idle");
-  };
-
-  // ── Extract grades from planilla rows ───────────────────────────────────
-  const extractGrades = (): Array<{ studentId: string; taskId: string; grade: number | null }> => {
-    if (rows.length === 0 || tasks.length === 0 || students.length === 0) return [];
-
-    const result: Array<{ studentId: string; taskId: string; grade: number | null }> = [];
-
-    // Formato de plataforma (ID directo)
-    if (rows[0] && rows[0][0] === "STUDENT_ID") {
-      const taskIds = rows[0].slice(3);
-      const studentIdCol = 0;
-
-      for (let ri = 2; ri < rows.length; ri++) {
-        const row = rows[ri] || [];
-        const studentId = row[studentIdCol];
-        if (!studentId || !students.some(s => s.id === studentId)) continue;
-
-        taskIds.forEach((taskId, index) => {
-          if (!taskId) return;
-          const colIndex = index + 3;
-          const gradeVal = row[colIndex];
-
-          let grade: number | null = null;
-          if (gradeVal !== undefined && gradeVal !== null && String(gradeVal).trim() !== "") {
-            const n = parseFloat(String(gradeVal).replace(",", "."));
-            if (!isNaN(n) && n >= 1.0 && n <= 5.0) {
-              grade = parseFloat(n.toFixed(1));
-            }
-          }
-          result.push({ studentId, taskId, grade });
-        });
-      }
-      setMappingInfo("Formato de la plataforma detectado (mapeo directo por IDs)");
-      return result;
-    }
-
-    // Formato de plantilla institucional (coincidencia de nombres)
-    const saberTasks = tasks.filter(t => t.type === "EXAM");
-    const hacerTasks = tasks.filter(t => t.type === "TASK");
-    const serTasks = tasks.filter(t => t.type === "SER");
-
-    let headerRowIdx = -1;
-    for (let r = 0; r < Math.min(rows.length, 15); r++) {
-      const row = rows[r] || [];
-      const rowStr = row.map(c => norm(String(c || ""))).join(" ");
-      if (rowStr.includes("nombre") || rowStr.includes("saber") || rowStr.includes("hacer")) {
-        headerRowIdx = r;
-        break;
-      }
-    }
-    if (headerRowIdx === -1) return [];
-
-    const headerRow = rows[headerRowIdx] || [];
-    let nameCol = -1;
-    let saberStart = -1, hacerStart = -1, serStart = -1;
-
-    for (let ci = 0; ci < headerRow.length; ci++) {
-      const h = norm(String(headerRow[ci] || ""));
-      if (nameCol === -1 && (h.includes("nombre") || h.includes("estudiante"))) nameCol = ci;
-      if (saberStart === -1 && h.includes("saber")) saberStart = ci;
-      if (hacerStart === -1 && h.includes("hacer")) hacerStart = ci;
-      if (serStart === -1 && (h === "ser" || h.startsWith("ser "))) serStart = ci;
-    }
-
-    if (nameCol === -1) return [];
-
-    if (headerRowIdx > 0) {
-      const prevRow = rows[headerRowIdx - 1] || [];
-      for (let ci = 0; ci < prevRow.length; ci++) {
-        const h = norm(String(prevRow[ci] || ""));
-        if (saberStart === -1 && h.includes("saber")) saberStart = ci;
-        if (hacerStart === -1 && h.includes("hacer")) hacerStart = ci;
-        if (serStart === -1 && (h === "ser" || h.startsWith("ser "))) serStart = ci;
-      }
-    }
-
-    const info: string[] = [];
-    if (saberStart !== -1) info.push(`Saber: col ${saberStart + 1}`);
-    if (hacerStart !== -1) info.push(`Hacer: col ${hacerStart + 1}`);
-    if (serStart !== -1) info.push(`Ser: col ${serStart + 1}`);
-    setMappingInfo(info.join(" | ") || "No se detectaron columnas de notas");
-
-    for (let ri = headerRowIdx + 1; ri < rows.length; ri++) {
-      const row = rows[ri] || [];
-      const cellName = norm(String(row[nameCol] || ""));
-      if (!cellName) continue;
-
-      const student = students.find(s => {
-        const sn = norm(s.name);
-        return sn === cellName || sn.includes(cellName) || cellName.includes(sn);
-      });
-      if (!student) continue;
-
-      const readGrade = (col: number): number | null => {
-        const v = row[col];
-        if (v === "" || v === null || v === undefined) return null;
-        const n = parseFloat(String(v).replace(",", "."));
-        return !isNaN(n) && n >= 1.0 && n <= 5.0 ? parseFloat(n.toFixed(1)) : null;
-      };
-
-      if (saberStart !== -1) {
-        saberTasks.forEach((t, j) => {
-          result.push({ studentId: student.id, taskId: t.id, grade: readGrade(saberStart + j) });
-        });
-      }
-      if (hacerStart !== -1) {
-        hacerTasks.forEach((t, j) => {
-          result.push({ studentId: student.id, taskId: t.id, grade: readGrade(hacerStart + j) });
-        });
-      }
-      if (serStart !== -1) {
-        serTasks.forEach((t, j) => {
-          result.push({ studentId: student.id, taskId: t.id, grade: readGrade(serStart + j) });
-        });
-      }
-    }
-
-    return result;
-  };
-
-  const addColumn = (type: "EXAM" | "TASK" | "SER") => {
-    setRows(prev => {
-      if (prev.length < 2) return prev;
-      const next = prev.map(r => [...r]);
-      
-      const tempId = `NEW_${type}_${Date.now()}`;
-      next[0].push(tempId);
-
-      const typeLabel = type === "EXAM" ? "SABER" : type === "TASK" ? "HACER" : "SER";
-      
-      let existingCount = 0;
-      next[0].forEach((id, idx) => {
-        if (idx >= 3) {
-          const currentTask = tasks.find(t => t.id === id);
-          if (id.startsWith(`NEW_${type}_`) || (currentTask && currentTask.type === type)) {
-            existingCount++;
-          }
-        }
-      });
-
-      next[1].push(`${typeLabel} ${existingCount + 1} - Nueva Actividad`);
-
-      for (let ri = 2; ri < next.length; ri++) {
-        next[ri].push("");
-      }
-      return next;
-    });
-    setSaveStatus("idle");
-  };
-
-  // ── Save planilla + sync grades ─────────────────────────────────────────
+  /* ── Save ─────────────────────────────────────────────────────── */
   const handleSave = async () => {
-    if (rows.length === 0) return;
+    if (!rows.length) return;
     setSaving(true);
     setSaveStatus("idle");
-
-    const gradeSubmissions = extractGrades();
-
     try {
       const res = await fetch(`/api/docente/cursos/${courseId}/planilla`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          period: activePeriod,
-          rows,
-          fileName,
-          gradeSubmissions
-        })
+        body: JSON.stringify({ period: activePeriod, groupId: selectedGroup, rows, fileName }),
       });
       const json = await res.json();
       if (res.ok && json.success) {
         setSaveStatus("success");
-        setSaveMsg(`✓ Planilla guardada. ${json.saved} notas actualizadas, ${json.cleared} eliminadas.`);
+        setSaveMsg(`✓ Guardado. ${json.saved} nota(s) actualizadas, ${json.cleared} eliminadas.`);
         if (json.updatedRows) {
           setRows(json.updatedRows);
-          autoColWidths(json.updatedRows);
+          setColWidths(calcColWidths(json.updatedRows));
         }
-        setTimeout(() => setSaveStatus("idle"), 5000);
+        setTimeout(() => setSaveStatus("idle"), 6000);
       } else {
         setSaveStatus("error");
         setSaveMsg(json.error || "Error al guardar");
       }
-    } catch (e) {
-      console.error(e);
+    } catch {
       setSaveStatus("error");
       setSaveMsg("Error de conexión");
     } finally {
@@ -435,130 +350,135 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
     }
   };
 
-  // ── Download current rows as .xlsx ──────────────────────────────────────
+  /* ── Download ─────────────────────────────────────────────────── */
   const handleDownload = () => {
-    if (rows.length === 0) return;
-    const ws = XLSX.utils.aoa_to_sheet(rows);
+    if (!rows.length) return;
+    // Skip hidden ID row for export; show human-readable titles only
+    const exportRows = rows[0]?.[0] === "STUDENT_ID" ? rows.slice(1) : rows;
+    const ws = XLSX.utils.aoa_to_sheet(exportRows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Planilla");
-    const outName = fileName
-      ? fileName.replace(/\.(xlsx|xls)$/i, "") + "_editada.xlsx"
-      : `Planilla_${activePeriod}.xlsx`;
-    XLSX.writeFile(wb, outName);
+    const groupLabel = selectedGroup === "all" ? "todos" : (groups.find(g => g.id === selectedGroup)?.name ?? selectedGroup);
+    XLSX.writeFile(wb, `Planilla_${activePeriod}_${groupLabel}.xlsx`);
   };
 
-  // ── Render ──────────────────────────────────────────────────────────────
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-20">
-        <Loader2 className="animate-spin text-[#f98012]" size={36} />
-      </div>
-    );
-  }
+  /* ── Derived values ───────────────────────────────────────────── */
+  const maxCols = useMemo(
+    () => (rows.length ? Math.max(...rows.map(r => (r ?? []).length)) : 0),
+    [rows]
+  );
+  const isPlatformFormat = rows.length > 0 && rows[0]?.[0] === "STUDENT_ID";
+  const hasMultipleGroups = groups.length > 1;
+
+  /* ── Render ───────────────────────────────────────────────────── */
+  if (loading) return (
+    <div className="flex justify-center items-center py-24">
+      <Loader2 className="animate-spin text-[#f98012]" size={36} />
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-4">
 
-      {/* ── Toolbar ── */}
+      {/* ── Group selector ──────────────────────────────────────── */}
+      {hasMultipleGroups && (
+        <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm">
+          <Users size={16} className="text-[#f98012] shrink-0" />
+          <span className="text-sm font-bold text-gray-700 shrink-0">Grupo:</span>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => setSelectedGroup("all")}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                selectedGroup === "all"
+                  ? "bg-[#f98012] text-white shadow-sm"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              Todos los grupos
+            </button>
+            {groups.map(g => (
+              <button
+                key={g.id}
+                onClick={() => setSelectedGroup(g.id)}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                  selectedGroup === g.id
+                    ? "bg-[#f98012] text-white shadow-sm"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {g.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Toolbar ─────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm">
 
-        {/* Upload button */}
         <label className="flex items-center gap-2 cursor-pointer bg-[#f98012] hover:bg-[#e06d09] text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm">
           <Upload size={15} />
           {rows.length > 0 ? "Reemplazar planilla" : "Subir planilla (.xlsx)"}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".xlsx,.xls"
-            onChange={handleFileInput}
-            className="hidden"
-          />
+          <input ref={fileInputRef} type="file" accept=".xlsx,.xls" onChange={handleFileInput} className="hidden" />
         </label>
 
         {rows.length > 0 && (
           <>
-            {/* Add Column Buttons */}
-            <div className="flex items-center gap-1.5 border-l border-gray-200 pl-3">
-              <button
-                onClick={() => addColumn("EXAM")}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-100 hover:bg-purple-200 text-purple-700 transition-colors border border-purple-200"
-              >
-                + Saber (Cognitivo)
-              </button>
-              <button
-                onClick={() => addColumn("TASK")}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-orange-100 hover:bg-orange-200 text-orange-700 transition-colors border border-orange-200"
-              >
-                + Hacer (Procedimental)
-              </button>
-              <button
-                onClick={() => addColumn("SER")}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-yellow-100 hover:bg-yellow-200 text-yellow-700 transition-colors border border-yellow-200"
-              >
-                + Ser (Actitudinal)
-              </button>
-            </div>
+            {isPlatformFormat && (
+              <div className="flex items-center gap-1.5 border-l border-gray-200 pl-3">
+                <button onClick={() => addColumn("EXAM")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-100 hover:bg-purple-200 text-purple-700 border border-purple-200 transition-colors">
+                  + Cognitivo (Saber)
+                </button>
+                <button onClick={() => addColumn("TASK")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-orange-100 hover:bg-orange-200 text-orange-700 border border-orange-200 transition-colors">
+                  + Procedimental (Hacer)
+                </button>
+                <button onClick={() => addColumn("SER")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-yellow-100 hover:bg-yellow-200 text-yellow-700 border border-yellow-200 transition-colors">
+                  + Actitudinal (Ser)
+                </button>
+              </div>
+            )}
 
-            {/* Download */}
-            <button
-              onClick={handleDownload}
-              className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-bold transition-colors border border-gray-200"
-            >
+            <button onClick={handleDownload}
+              className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-bold border border-gray-200 transition-colors">
               <Download size={15} />
               Descargar .xlsx
             </button>
 
-            {/* Save & sync grades */}
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm ml-auto"
-            >
+            <button onClick={handleSave} disabled={saving}
+              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm ml-auto">
               {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-              {saving ? "Guardando..." : "Guardar y sincronizar notas"}
+              {saving ? "Guardando…" : "Guardar y sincronizar notas"}
             </button>
           </>
         )}
       </div>
 
-      {/* ── Status messages ── */}
+      {/* ── Status ──────────────────────────────────────────────── */}
       {saveStatus === "success" && (
-        <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 rounded-xl px-4 py-3 text-sm font-semibold animate-scale-in">
-          <Check size={16} />
-          {saveMsg}
+        <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 rounded-xl px-4 py-3 text-sm font-semibold">
+          <Check size={16} />{saveMsg}
         </div>
       )}
       {saveStatus === "error" && (
-        <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-800 rounded-xl px-4 py-3 text-sm font-semibold animate-scale-in">
-          <AlertTriangle size={16} />
-          {saveMsg}
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-800 rounded-xl px-4 py-3 text-sm font-semibold">
+          <AlertTriangle size={16} />{saveMsg}
         </div>
       )}
 
-      {/* ── Mapping info ── */}
-      {mappingInfo && rows.length > 0 && (
-        <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl px-4 py-2 text-xs font-semibold">
-          <Info size={13} />
-          Columnas detectadas: {mappingInfo}
-        </div>
-      )}
-
-      {/* ── Offline workflow tip (always visible) ── */}
+      {/* ── Tip ─────────────────────────────────────────────────── */}
       <div className="flex gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs">
         <span className="text-2xl leading-none">💡</span>
         <div className="flex flex-col gap-1 text-amber-800">
           <p className="font-bold text-sm">¿Sin internet? No hay problema</p>
-          <p>
-            <strong>1.</strong> Descarga tu planilla con el botón <strong>"Descargar .xlsx"</strong> y edítala normalmente en Excel en tu computador — sin necesidad de internet.
-          </p>
-          <p>
-            <strong>2.</strong> Cuando vuelvas a tener internet, regresa aquí, haz clic en <strong>"Reemplazar planilla"</strong>, sube el archivo que editaste y presiona <strong>"Guardar y sincronizar notas"</strong>.
-          </p>
-          <p className="text-amber-600 font-semibold">✓ Los cambios que hiciste sin internet quedarán registrados en la plataforma.</p>
+          <p><strong>1.</strong> Descarga la planilla con <strong>"Descargar .xlsx"</strong> y edítala en Excel sin conexión.</p>
+          <p><strong>2.</strong> Con internet, usa <strong>"Reemplazar planilla"</strong>, sube el archivo editado y presiona <strong>"Guardar y sincronizar"</strong>.</p>
         </div>
       </div>
 
-      {/* ── Drop zone (when no file) ── */}
+      {/* ── Drop zone (empty state) ──────────────────────────────── */}
       {rows.length === 0 ? (
         <div
           onDragOver={e => { e.preventDefault(); setDragging(true); }}
@@ -566,10 +486,7 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
           className={`flex flex-col items-center justify-center gap-4 border-2 border-dashed rounded-2xl py-24 cursor-pointer transition-all
-            ${dragging
-              ? "border-[#f98012] bg-orange-50 scale-[1.01]"
-              : "border-gray-300 hover:border-[#f98012] hover:bg-orange-50/40 bg-gray-50"
-            }`}
+            ${dragging ? "border-[#f98012] bg-orange-50 scale-[1.01]" : "border-gray-300 hover:border-[#f98012] hover:bg-orange-50/40 bg-gray-50"}`}
         >
           <div className="p-5 rounded-full bg-orange-100">
             <FileSpreadsheet size={40} className="text-[#f98012]" />
@@ -578,37 +495,36 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
             <p className="text-lg font-bold text-gray-700">
               {dragging ? "Suelta el archivo aquí" : "Arrastra tu planilla Excel aquí"}
             </p>
-            <p className="text-sm text-gray-400 mt-1">o haz clic para buscar el archivo</p>
-            <p className="text-xs text-gray-300 mt-2">Formatos soportados: .xlsx, .xls</p>
+            <p className="text-sm text-gray-400 mt-1">o haz clic para buscar</p>
+            <p className="text-xs text-gray-300 mt-2">Formatos: .xlsx, .xls</p>
           </div>
         </div>
       ) : (
-        /* ── Spreadsheet grid ── */
+        /* ── Spreadsheet grid ─────────────────────────────────── */
         <div className="relative border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
-          {/* File name bar */}
           <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 border-b border-gray-200 text-xs text-gray-500 font-semibold">
             <FileSpreadsheet size={13} className="text-green-600" />
             <span>{fileName}</span>
-            <span className="ml-auto text-gray-300">{rows.length} filas × {Math.max(...rows.map(r => r.length))} columnas</span>
+            {hasMultipleGroups && selectedGroup !== "all" && (
+              <span className="ml-1 px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 font-bold">
+                {groups.find(g => g.id === selectedGroup)?.name}
+              </span>
+            )}
+            <span className="ml-auto text-gray-300">{rows.length} filas × {maxCols} columnas</span>
           </div>
 
           <div className="overflow-auto max-h-[70vh]">
             <table className="border-collapse text-xs" style={{ minWidth: "100%" }}>
               <thead className="sticky top-0 z-10">
                 <tr>
-                  {/* Row number header */}
-                  <th className="border border-gray-200 bg-gray-100 px-2 py-1 text-gray-400 font-bold text-center w-8 min-w-[2rem]">
-                    #
-                  </th>
-                  {/* Column letter headers */}
-                  {Array.from({ length: Math.max(...rows.map(r => (r || []).length)) }, (_, ci) => (
-                    <th
-                      key={ci}
+                  <th className="border border-gray-200 bg-gray-100 px-2 py-1 text-gray-400 font-bold text-center w-8 min-w-[2rem]">#</th>
+                  {Array.from({ length: maxCols }, (_, ci) => (
+                    <th key={ci}
                       className="border border-gray-200 bg-gray-100 px-2 py-1 text-gray-500 font-bold text-center select-none"
-                      style={{ minWidth: `${colWidths[ci] || 80}px` }}
-                    >
-                      {String.fromCharCode(65 + (ci % 26))}
-                      {ci >= 26 ? String.fromCharCode(65 + Math.floor(ci / 26) - 1) : ""}
+                      style={{ minWidth: `${colWidths[ci] || 80}px` }}>
+                      {ci < 26
+                        ? String.fromCharCode(65 + ci)
+                        : String.fromCharCode(64 + Math.floor(ci / 26)) + String.fromCharCode(65 + (ci % 26))}
                     </th>
                   ))}
                 </tr>
@@ -616,47 +532,35 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
               <tbody>
                 {rows.map((row, ri) => {
                   const cells = Array.isArray(row) ? row : [];
-                  const maxCols = Math.max(...rows.map(r => (r || []).length));
-                  // Detect if this is a header-like row
-                  const isHeader = cells.some(c => {
-                    const v = norm(String(c || ""));
-                    return v.includes("saber") || v.includes("hacer") || v === "ser" || v.includes("nombre");
-                  });
+                  const isHeader = isHeaderRow(cells);
 
                   return (
-                    <tr
-                      key={ri}
-                      className={isHeader
+                    <tr key={ri} className={
+                      isHeader
                         ? "bg-orange-50 sticky top-[29px] z-[5]"
                         : ri % 2 === 0 ? "bg-white" : "bg-gray-50/60"
-                      }
-                    >
-                      {/* Row number */}
+                    }>
                       <td className="border border-gray-200 px-2 py-0.5 text-gray-300 font-semibold text-center select-none bg-gray-50">
                         {ri + 1}
                       </td>
                       {Array.from({ length: maxCols }, (_, ci) => {
-                        const val = cells[ci];
-                        const strVal = val !== null && val !== undefined ? String(val) : "";
-                        const isNum = strVal !== "" && !isNaN(parseFloat(strVal));
-                        const numVal = isNum ? parseFloat(strVal) : null;
-                        const isLowGrade = isNum && numVal !== null && numVal >= 1 && numVal <= 5 && numVal < 3.0;
+                        const val    = cells[ci];
+                        const strVal = val != null ? String(val) : "";
+                        const numVal = strVal !== "" ? parseFloat(strVal) : NaN;
+                        const isNum  = !isNaN(numVal);
+                        const isLow  = isNum && numVal >= 1 && numVal <= 5 && numVal < 3.0;
 
                         return (
-                          <td
-                            key={ci}
-                            className={`border border-gray-200 p-0 ${isLowGrade ? "bg-red-50/60" : ""}`}
-                          >
-                            <input
-                              type="text"
-                              value={strVal}
-                              onChange={e => handleCellChange(ri, ci, e.target.value)}
-                              className={`w-full h-full px-2 py-1 bg-transparent outline-none focus:bg-blue-50 focus:ring-1 focus:ring-blue-400 focus:ring-inset transition-colors
-                                ${isHeader ? "font-bold text-gray-700" : "text-gray-800"}
-                                ${isNum ? "text-right font-mono" : ""}
-                                ${isLowGrade ? "text-red-600 font-bold" : ""}
-                              `}
-                              style={{ minWidth: `${colWidths[ci] || 80}px` }}
+                          <td key={ci} className={`border border-gray-200 p-0 ${isLow ? "bg-red-50/60" : ""}`}>
+                            <CellInput
+                              initialValue={strVal}
+                              rowIndex={ri}
+                              colIndex={ci}
+                              isHeader={isHeader}
+                              isNum={isNum}
+                              isLow={isLow}
+                              width={colWidths[ci] || 80}
+                              onCommit={handleCellCommit}
                             />
                           </td>
                         );
@@ -670,15 +574,21 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
         </div>
       )}
 
-      {/* ── Instructions ── */}
+      {/* ── Instructions ────────────────────────────────────────── */}
       {rows.length > 0 && (
         <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-xs text-blue-700 flex flex-col gap-1.5">
           <p className="font-bold flex items-center gap-1"><Info size={12} /> ¿Cómo funciona?</p>
-          <p>1. <strong>Edita</strong> cualquier celda directamente haciendo clic en ella dentro de la plataforma.</p>
-          <p>2. Presiona <strong>"Guardar y sincronizar notas"</strong> — la plataforma detecta automáticamente las columnas SABER / HACER / SER y actualiza las calificaciones en el sistema.</p>
-          <p>3. Usa <strong>"Descargar .xlsx"</strong> para bajar la versión actualizada a tu computador y seguir editando sin internet.</p>
-          <p>4. Cuando vuelvas con internet, usa <strong>"Reemplazar planilla"</strong> para subir los cambios que hiciste localmente.</p>
-          <p>5. La próxima vez que entres, la planilla estará guardada tal como la dejaste — no necesitas volver a subirla.</p>
+          <p>1. <strong>Edita</strong> cualquier celda haciendo clic. Los cambios se aplican al salir de la celda o presionar Enter.</p>
+          <p>2. Presiona <strong>"Guardar y sincronizar notas"</strong> — las notas quedan registradas automáticamente en el sistema.</p>
+          {isPlatformFormat && (
+            <p>3. Usa <strong>"+ Cognitivo / + Procedimental / + Actitudinal"</strong> para crear nuevas evaluaciones directamente en la planilla.</p>
+          )}
+          <p>{isPlatformFormat ? "4." : "3."} <strong>"Descargar .xlsx"</strong> exporta la planilla actualizada a tu computador.</p>
+          {hasMultipleGroups && (
+            <p className="text-blue-600 font-semibold">
+              ✓ Cada grupo tiene su propia planilla independiente. Selecciona el grupo arriba para cambiar de planilla.
+            </p>
+          )}
         </div>
       )}
     </div>

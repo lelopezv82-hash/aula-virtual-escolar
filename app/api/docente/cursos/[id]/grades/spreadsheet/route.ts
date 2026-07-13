@@ -5,15 +5,22 @@ import prisma from '@/lib/prisma';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
-// GET spreadsheet data
+/**
+ * GET /api/docente/cursos/[id]/grades/spreadsheet?period=…&groupId=…
+ *
+ * Returns students + tasks for the given course/period.
+ * If groupId is provided, filters students to that group only.
+ * groupId="all" or omitted → all students across all groups.
+ */
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: courseId } = await params;
     const { searchParams } = new URL(request.url);
-    const period = searchParams.get("period");
+    const period  = searchParams.get("period");
+    const groupId = searchParams.get("groupId") || "all";
 
     if (!period) {
-      return NextResponse.json({ error: 'Falta especificar el período' }, { status: 400 });
+      return NextResponse.json({ error: 'Falta el período' }, { status: 400 });
     }
 
     const cookieStore = await cookies();
@@ -42,32 +49,31 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Curso no encontrado' }, { status: 404 });
     }
 
-    // Collect all students across groups (deduplicated)
-    const studentMap = new Map<string, { id: string; name: string; groupName: string }>();
+    // Build groups list for the selector UI
+    const groupsList = course.groups.map(g => ({
+      id: g.id,
+      name: g.grade?.name ? `${g.grade.name} - ${g.name}` : g.name,
+    }));
+
+    // Collect students, filtered by groupId
+    const studentMap = new Map<string, { id: string; name: string; groupName: string; groupId: string }>();
     for (const group of course.groups) {
+      if (groupId !== "all" && group.id !== groupId) continue;
       for (const student of group.students) {
         if (!studentMap.has(student.id)) {
           const gradeLabel = group.grade?.name ? `${group.grade.name} - ${group.name}` : group.name;
-          studentMap.set(student.id, { id: student.id, name: student.name, groupName: gradeLabel });
+          studentMap.set(student.id, { id: student.id, name: student.name, groupName: gradeLabel, groupId: group.id });
         }
       }
     }
     const students = Array.from(studentMap.values()).sort((a, b) => a.name.localeCompare(b.name));
     const studentIds = students.map(s => s.id);
 
-    // Fetch all tasks for this course in the specified period
+    // Fetch all tasks for this course+period
     let tasks = await prisma.task.findMany({
-      where: {
-        courseId,
-        active: true,
-        period,
-      },
+      where: { courseId, active: true, period },
       select: {
-        id: true,
-        title: true,
-        type: true,
-        dueDate: true,
-        duration: true,
+        id: true, title: true, type: true, dueDate: true, duration: true,
         submissions: {
           where: { studentId: { in: studentIds } },
           select: { studentId: true, status: true, grade: true, id: true },
@@ -77,65 +83,31 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     });
 
     // Auto-create default SER tasks if none exist for this period
-    const serTasks = tasks.filter(t => t.type === "SER");
-    if (serTasks.length === 0 && course.groups.length > 0) {
-      const dueDate = new Date();
-      dueDate.setHours(23, 59, 59, 999);
+    if (!tasks.some(t => t.type === "SER") && course.groups.length > 0) {
       const groupConnect = course.groups.map(g => ({ id: g.id }));
-      const defaultTitles = ["Autoevaluación", "Coevaluación", "Heteroevaluación"];
-      
-      for (const title of defaultTitles) {
+      for (const title of ["Autoevaluación", "Coevaluación", "Heteroevaluación"]) {
         const newTask = await prisma.task.create({
           data: {
-            title,
-            type: "SER",
-            period,
-            courseId,
-            dueDate,
-            isExternal: true,
-            active: true,
-            weight: 0,
+            title, type: "SER", period, courseId,
+            dueDate: new Date(), isExternal: true, active: true, weight: 0,
             groups: { connect: groupConnect }
           }
         });
-        tasks.push({
-          id: newTask.id,
-          title: newTask.title,
-          type: newTask.type,
-          dueDate: newTask.dueDate,
-          duration: newTask.duration,
-          submissions: []
-        });
+        tasks.push({ id: newTask.id, title: newTask.title, type: newTask.type, dueDate: newTask.dueDate, duration: newTask.duration, submissions: [] });
       }
     }
 
-    // Auto-create default FINAL task if course has finalPercent > 0 and none exist
+    // Auto-create FINAL task if needed
     const finalPercent = (course as any).finalPercent ?? 0;
-    const finalTasks = tasks.filter(t => t.type === "FINAL");
-    if (finalPercent > 0 && finalTasks.length === 0 && course.groups.length > 0) {
-      const dueDate = new Date();
-      dueDate.setHours(23, 59, 59, 999);
+    if (finalPercent > 0 && !tasks.some(t => t.type === "FINAL") && course.groups.length > 0) {
       const newTask = await prisma.task.create({
         data: {
-          title: "Examen Final",
-          type: "FINAL",
-          period,
-          courseId,
-          dueDate,
-          isExternal: true,
-          active: true,
-          weight: 0,
+          title: "Examen Final", type: "FINAL", period, courseId,
+          dueDate: new Date(), isExternal: true, active: true, weight: 0,
           groups: { connect: course.groups.map(g => ({ id: g.id })) }
         }
       });
-      tasks.push({
-        id: newTask.id,
-        title: newTask.title,
-        type: newTask.type,
-        dueDate: newTask.dueDate,
-        duration: newTask.duration,
-        submissions: []
-      });
+      tasks.push({ id: newTask.id, title: newTask.title, type: newTask.type, dueDate: newTask.dueDate, duration: newTask.duration, submissions: [] });
     }
 
     const teacher = await prisma.user.findUnique({
@@ -146,11 +118,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({
       course: { id: course.id, name: course.name },
       teacherName: teacher?.name || 'Docente',
+      groups: groupsList,
       students,
       tasks,
       saberPercent: course.saberPercent,
       hacerPercent: course.hacerPercent,
-      serPercent: course.serPercent,
+      serPercent:   course.serPercent,
       finalPercent,
     });
   } catch (error) {
@@ -159,7 +132,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   }
 }
 
-// POST bulk save grades from spreadsheet
+/**
+ * POST /api/docente/cursos/[id]/grades/spreadsheet
+ * Bulk-save grades for a period (used by old spreadsheet component).
+ */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: courseId } = await params;
@@ -172,49 +148,26 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const body = await request.json();
     const { period, submissions } = body;
 
-    if (!period) {
-      return NextResponse.json({ error: 'Periodo es obligatorio' }, { status: 400 });
-    }
+    if (!period) return NextResponse.json({ error: 'Periodo es obligatorio' }, { status: 400 });
 
-    // 1. Verify course ownership
-    const course = await prisma.course.findUnique({
-      where: { id: courseId },
-      select: { id: true, teacherId: true }
-    });
+    const course = await prisma.course.findUnique({ where: { id: courseId }, select: { id: true, teacherId: true } });
     if (!course || course.teacherId !== payload.id) {
       return NextResponse.json({ error: 'Curso no encontrado' }, { status: 404 });
     }
 
-    // Run database updates in transaction
     await prisma.$transaction(async (tx) => {
-      // Save submissions
-      if (submissions && Array.isArray(submissions)) {
+      if (Array.isArray(submissions)) {
         for (const sub of submissions) {
           const { studentId, taskId, grade } = sub;
-          
           if (grade === null || grade === undefined) {
-            await tx.submission.deleteMany({
-              where: { taskId, studentId }
-            });
+            await tx.submission.deleteMany({ where: { taskId, studentId } });
           } else {
             const parsedGrade = parseFloat(grade);
             if (isNaN(parsedGrade) || parsedGrade < 1.0 || parsedGrade > 5.0) continue;
-
             await tx.submission.upsert({
               where: { taskId_studentId: { taskId, studentId } },
-              update: {
-                grade: parsedGrade,
-                status: 'GRADED',
-                updatedAt: new Date(),
-              },
-              create: {
-                taskId,
-                studentId,
-                grade: parsedGrade,
-                status: 'GRADED',
-                createdAt: new Date(),
-                updatedAt: new Date(),
-              }
+              update: { grade: parsedGrade, status: 'GRADED', updatedAt: new Date() },
+              create: { taskId, studentId, grade: parsedGrade, status: 'GRADED', createdAt: new Date(), updatedAt: new Date() }
             });
           }
         }

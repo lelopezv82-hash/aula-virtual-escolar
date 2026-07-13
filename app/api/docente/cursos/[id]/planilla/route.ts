@@ -3,10 +3,22 @@ import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import prisma from '@/lib/prisma';
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || 'super-secret-educational-key-2026'
+);
 
-// GET: Return saved planilla data for a course+period
-export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+/**
+ * GET /api/docente/cursos/[id]/planilla?period=…&groupId=…
+ *
+ * Planilla data is stored as:
+ *   course.planillaData[period][groupId] = { rows, fileName, savedAt }
+ *
+ * groupId defaults to "all" when not provided.
+ */
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const { id: courseId } = await params;
     const cookieStore = await cookies();
@@ -15,22 +27,32 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const { payload } = await jwtVerify(token, JWT_SECRET);
     if (payload.role !== 'TEACHER') return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    const teacherId = payload.id as string;
     const { searchParams } = new URL(request.url);
-    const period = searchParams.get('period');
+    const period  = searchParams.get('period');
+    const groupId = searchParams.get('groupId') || 'all';
     if (!period) return NextResponse.json({ error: 'Falta el periodo' }, { status: 400 });
 
     const course = await prisma.course.findUnique({
       where: { id: courseId },
-      select: { teacherId: true, planillaData: true }
+      select: { teacherId: true, planillaData: true },
     });
 
-    if (!course || course.teacherId !== teacherId) {
+    if (!course || course.teacherId !== (payload.id as string)) {
       return NextResponse.json({ error: 'Curso no encontrado' }, { status: 404 });
     }
 
-    const planillaMap = (course.planillaData as Record<string, any> | null) || {};
-    const data = planillaMap[period] || null;
+    const root = (course.planillaData as Record<string, any> | null) ?? {};
+    // Support both old format (root[period] = {rows}) and new (root[period][groupId] = {rows})
+    const periodData = root[period];
+    let data: any = null;
+    if (periodData) {
+      if (periodData.rows) {
+        // Old format — migrate: treat as "all"
+        data = groupId === 'all' ? periodData : null;
+      } else {
+        data = periodData[groupId] ?? null;
+      }
+    }
 
     return NextResponse.json({ data });
   } catch (err: any) {
@@ -38,8 +60,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   }
 }
 
-// POST: Save planilla rows + extract grades into DB
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+/**
+ * POST /api/docente/cursos/[id]/planilla
+ * Body: { period, groupId?, rows, fileName }
+ *
+ * 1. Create DB tasks for any NEW_* placeholder column IDs
+ * 2. Update task title if changed in spreadsheet
+ * 3. Persist rows under planillaData[period][groupId]
+ * 4. Upsert / delete Submission records
+ */
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const { id: courseId } = await params;
     const cookieStore = await cookies();
@@ -49,151 +82,150 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (payload.role !== 'TEACHER') return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const teacherId = payload.id as string;
-    const body = await request.json();
+    const body = await request.json() as {
+      period: string;
+      groupId?: string;
+      rows: any[][];
+      fileName?: string;
+    };
     const { period, rows, fileName } = body;
-    // rows: any[][] — the full 2D spreadsheet to store
+    const groupId = body.groupId || 'all';
 
     if (!period) return NextResponse.json({ error: 'Falta el periodo' }, { status: 400 });
     if (!Array.isArray(rows) || rows.length < 2) {
-      return NextResponse.json({ error: 'Datos de planilla inválidos' }, { status: 400 });
+      return NextResponse.json({ error: 'Planilla vacía o inválida' }, { status: 400 });
     }
 
     const course = await prisma.course.findUnique({
       where: { id: courseId },
-      include: {
-        groups: { select: { id: true } }
-      }
+      include: { groups: { select: { id: true } } },
     });
 
     if (!course || course.teacherId !== teacherId) {
       return NextResponse.json({ error: 'Curso no encontrado' }, { status: 404 });
     }
 
-    const cleanTitle = (cellVal: string): { type: string; title: string } => {
-      const str = String(cellVal || "").trim();
-      const match = str.match(/^(SABER|HACER|SER|EXAMEN FINAL|ASISTENCIA)\s+\d+\s*-\s*(.*)$/i);
-      if (match) {
-        const typeLabel = match[1].toUpperCase();
-        const type = typeLabel === "SABER" ? "EXAM" : typeLabel === "HACER" ? "TASK" : typeLabel === "SER" ? "SER" : typeLabel === "EXAMEN FINAL" ? "FINAL" : "ATTEND";
-        return { type, title: match[2].trim() };
-      }
-      return { type: "", title: str };
-    };
+    // Groups to associate new tasks with
+    const groupConnect = groupId === 'all'
+      ? course.groups.map(g => ({ id: g.id }))
+      : course.groups.filter(g => g.id === groupId).map(g => ({ id: g.id }));
 
-    // ── 1. Sync tasks based on columns ────────────────────────────────────
-    const headerIds = rows[0] || [];
-    const headerTitles = rows[1] || [];
-    const updatedIds = [...headerIds];
-    const updatedTitles = [...headerTitles];
+    const isPlatform = Array.isArray(rows[0]) && rows[0][0] === 'STUDENT_ID';
 
-    if (headerIds[0] === "STUDENT_ID") {
-      const activeTasks = await prisma.task.findMany({
-        where: { courseId, period, active: true }
+    // ── 1. Process column headers (create / rename tasks) ─────────────
+    const headerIds: any[]    = isPlatform ? [...(rows[0] ?? [])] : [];
+    const headerTitles: any[] = isPlatform ? [...(rows[1] ?? [])] : [];
+
+    if (isPlatform) {
+      const existingTasks = await prisma.task.findMany({
+        where: { courseId, period, active: true },
+        select: { id: true, title: true, type: true },
       });
 
-      // Count existing tasks by type to generate N prefixes correctly
-      const getTaskCount = (type: string) => {
-        return activeTasks.filter(t => t.type === type).length;
-      };
       let addedExam = 0, addedTask = 0, addedSer = 0;
+      const countExisting = (type: string) => existingTasks.filter(t => t.type === type).length;
 
       for (let ci = 3; ci < headerIds.length; ci++) {
-        const id = String(headerIds[ci] || "");
-        const rawTitle = String(headerTitles[ci] || "Nueva Actividad");
-        const parsed = cleanTitle(rawTitle);
+        const id  = String(headerIds[ci] ?? '');
+        const raw = String(headerTitles[ci] ?? 'Nueva Actividad').trim();
 
-        if (id.startsWith("NEW_")) {
-          // Determine type from ID prefix
-          const taskType = id.startsWith("NEW_EXAM_") ? "EXAM" : id.startsWith("NEW_SER_") ? "SER" : "TASK";
-          const title = parsed.title || "Nueva Actividad";
+        if (id.startsWith('NEW_')) {
+          const taskType =
+            id.startsWith('NEW_EXAM_') ? 'EXAM' :
+            id.startsWith('NEW_SER_')  ? 'SER'  : 'TASK';
 
-          // Create the task in database
+          // Strip label prefix if present (e.g. "SABER 2 - Algebra" → "Algebra")
+          const titleMatch = raw.match(/^(?:SABER|HACER|SER|EXAMEN FINAL|ASISTENCIA)\s+\d+\s*-\s*(.+)$/i);
+          const title = (titleMatch ? titleMatch[1].trim() : raw) || 'Nueva Actividad';
+
           const newTask = await prisma.task.create({
             data: {
-              title,
-              type: taskType,
-              period,
-              courseId,
-              dueDate: new Date(),
-              isExternal: true,
-              active: true,
-              weight: 0,
-              groups: { connect: course.groups.map(g => ({ id: g.id })) }
-            }
+              title, type: taskType, period, courseId,
+              dueDate: new Date(), isExternal: true, active: true, weight: 0,
+              groups: { connect: groupConnect },
+            },
           });
 
-          // Update header cell values
-          updatedIds[ci] = newTask.id;
-          const catLabel = taskType === "EXAM" ? "SABER" : taskType === "TASK" ? "HACER" : "SER";
-          const currentCount = getTaskCount(taskType) + (taskType === "EXAM" ? ++addedExam : taskType === "SER" ? ++addedSer : ++addedTask);
-          updatedTitles[ci] = `${catLabel} ${currentCount} - ${title}`;
+          const cat = taskType === 'EXAM' ? 'SABER' : taskType === 'TASK' ? 'HACER' : 'SER';
+          const n = countExisting(taskType) + (taskType === 'EXAM' ? ++addedExam : taskType === 'SER' ? ++addedSer : ++addedTask);
+          headerIds[ci]    = newTask.id;
+          headerTitles[ci] = `${cat} ${n} - ${title}`;
         } else if (id && id.length > 10) {
-          // Existing task: Check if title was updated in spreadsheet
-          const existingTask = activeTasks.find(t => t.id === id);
-          if (existingTask && parsed.title && parsed.title !== existingTask.title) {
-            await prisma.task.update({
-              where: { id },
-              data: { title: parsed.title }
-            });
+          // Rename if teacher edited the header
+          const existing = existingTasks.find(t => t.id === id);
+          if (existing) {
+            const titleMatch = raw.match(/^(?:SABER|HACER|SER|EXAMEN FINAL|ASISTENCIA)\s+\d+\s*-\s*(.+)$/i);
+            const parsedTitle = (titleMatch ? titleMatch[1].trim() : raw) || '';
+            if (parsedTitle && parsedTitle !== existing.title) {
+              await prisma.task.update({ where: { id }, data: { title: parsedTitle } });
+            }
           }
         }
       }
 
-      // Update rows with new IDs and clean titles
-      rows[0] = updatedIds;
-      rows[1] = updatedTitles;
+      rows[0] = headerIds;
+      rows[1] = headerTitles;
     }
 
-    // ── 2. Persist the spreadsheet rows ───────────────────────────────────
-    const existing = (course.planillaData as Record<string, any> | null) || {};
+    // ── 2. Persist rows under planillaData[period][groupId] ───────────
+    const root = (course.planillaData as Record<string, any> | null) ?? {};
+    // Ensure period bucket is new-format (nested by groupId)
+    const periodBucket = (root[period] && !root[period].rows) ? { ...root[period] } : {};
+    periodBucket[groupId] = { rows, fileName: fileName ?? '', savedAt: new Date().toISOString() };
+
     await prisma.course.update({
       where: { id: courseId },
-      data: {
-        planillaData: {
-          ...existing,
-          [period]: { rows, fileName: fileName || "", savedAt: new Date().toISOString() }
-        }
-      }
+      data: { planillaData: { ...root, [period]: periodBucket } },
     });
 
-    // ── 3. Extract and save student grades ────────────────────────────────
+    // ── 3. Sync grades from cells ──────────────────────────────────────
     let saved = 0;
     let cleared = 0;
 
-    if (rows[0] && rows[0][0] === "STUDENT_ID") {
-      const taskIds = rows[0].slice(3);
-      const dbTasks = await prisma.task.findMany({
-        where: { id: { in: taskIds.filter(id => id && !id.startsWith("NEW_")) } }
-      });
-      const dbStudents = await prisma.user.findMany({
-        where: { role: 'STUDENT' }
-      });
+    if (isPlatform) {
+      const taskIds: string[] = headerIds.slice(3).filter(
+        (id: string) => id && id.length > 10 && !id.startsWith('NEW_')
+      );
 
-      for (let ri = 2; ri < rows.length; ri++) {
-        const row = rows[ri] || [];
-        const studentId = row[0];
-        if (!studentId || !dbStudents.some(s => s.id === studentId)) continue;
+      if (taskIds.length > 0) {
+        const dbTasks = await prisma.task.findMany({
+          where: { id: { in: taskIds } },
+          select: { id: true },
+        });
+        const validTaskIds = new Set(dbTasks.map(t => t.id));
 
-        for (let ci = 3; ci < row.length; ci++) {
-          const taskId = rows[0][ci];
-          if (!taskId || !dbTasks.some(t => t.id === taskId)) continue;
+        const rowStudentIds: string[] = rows.slice(2).map((r: any[]) => String(r[0] ?? '')).filter(Boolean);
+        const dbStudents = await prisma.user.findMany({
+          where: { id: { in: rowStudentIds }, role: 'STUDENT' },
+          select: { id: true },
+        });
+        const validStudentIds = new Set(dbStudents.map(s => s.id));
 
-          const cellVal = row[ci];
-          if (cellVal === "" || cellVal === null || cellVal === undefined) {
-            await prisma.submission.deleteMany({
-              where: { taskId, studentId }
-            });
-            cleared++;
-          } else {
-            const g = parseFloat(String(cellVal).replace(",", "."));
-            if (!isNaN(g) && g >= 1.0 && g <= 5.0) {
-              const roundedGrade = parseFloat(g.toFixed(1));
-              await prisma.submission.upsert({
-                where: { taskId_studentId: { taskId, studentId } },
-                update: { grade: roundedGrade, status: 'GRADED', updatedAt: new Date() },
-                create: { taskId, studentId, grade: roundedGrade, status: 'GRADED', createdAt: new Date(), updatedAt: new Date() }
-              });
-              saved++;
+        for (let ri = 2; ri < rows.length; ri++) {
+          const row = rows[ri] ?? [];
+          const studentId = String(row[0] ?? '');
+          if (!validStudentIds.has(studentId)) continue;
+
+          for (let ci = 3; ci < row.length; ci++) {
+            const taskId = String(headerIds[ci] ?? '');
+            if (!validTaskIds.has(taskId)) continue;
+
+            const cellVal = row[ci];
+            const isEmpty = cellVal === '' || cellVal == null;
+
+            if (isEmpty) {
+              const del = await prisma.submission.deleteMany({ where: { taskId, studentId } });
+              if (del.count > 0) cleared++;
+            } else {
+              const g = parseFloat(String(cellVal).replace(',', '.'));
+              if (!isNaN(g) && g >= 1.0 && g <= 5.0) {
+                await prisma.submission.upsert({
+                  where: { taskId_studentId: { taskId, studentId } },
+                  update: { grade: parseFloat(g.toFixed(1)), status: 'GRADED', updatedAt: new Date() },
+                  create: { taskId, studentId, grade: parseFloat(g.toFixed(1)), status: 'GRADED', createdAt: new Date(), updatedAt: new Date() },
+                });
+                saved++;
+              }
             }
           }
         }
