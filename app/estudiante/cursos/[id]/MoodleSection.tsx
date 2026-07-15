@@ -208,24 +208,23 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                           >
                             {item.title}
                           </Link>
-                          {item.isGraded && item.grade !== null && (
+                          {item.isGraded && (
                             <span style={{
                               fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
                               borderRadius: 3,
-                              background: Number(item.grade) >= 3 ? "#d4edda" : "#f8d7da",
-                              color: Number(item.grade) >= 3 ? "#155724" : "#721c24",
-                              border: `1px solid ${Number(item.grade) >= 3 ? "#b8ddbf" : "#f5c6cb"}`,
+                              background: "#d4edda", color: "#155724",
+                              border: "1px solid #b8ddbf",
                             }}>
-                              {Number(item.grade).toFixed(1)}
+                              ✓ Calificado
                             </span>
                           )}
                           {item.isSubmitted && !item.isGraded && (
                             <span style={{
                               fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
-                              borderRadius: 3, background: "#cce5ff", color: "#004085",
-                              border: "1px solid #b3d4f0",
+                              borderRadius: 3, background: "#fff3cd", color: "#856404",
+                              border: "1px solid #ffc107",
                             }}>
-                              Entregado
+                              Pendiente por calificar
                             </span>
                           )}
                         </div>
