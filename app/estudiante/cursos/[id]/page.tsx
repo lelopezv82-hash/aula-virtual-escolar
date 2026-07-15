@@ -185,13 +185,13 @@ export default async function CursoDescripcionPage({
   return (
     <div>
       {/* ALWAYS render the high-fidelity mock Moodle examples first */}
-      {exampleSections.map((s, idx) => (
+      {exampleSections.map((s) => (
         <MoodleSection
           key={s.title}
           title={s.title}
           resources={s.resources}
           tasks={s.tasks}
-          defaultOpen={idx === 0}
+          defaultOpen={false}
         />
       ))}
 
