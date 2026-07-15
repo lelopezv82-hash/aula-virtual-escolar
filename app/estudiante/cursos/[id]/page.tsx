@@ -144,14 +144,12 @@ export default async function CursoDescripcionPage({
   });
   const studentGroupId = studentRecord?.groupId || null;
 
-  // Get active periods sorted naturally
   const periodsDb = await prisma.period.findMany({ where: { active: true } });
-  periodsDb.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
   const activePeriodNames = periodsDb.map(p => p.name);
 
   const now = new Date();
 
-  // Fetch all resources for this course (active + published)
+  // Fetch all resources
   const resources = await prisma.resource.findMany({
     where: {
       courseId: id,
@@ -162,7 +160,7 @@ export default async function CursoDescripcionPage({
     orderBy: { createdAt: "asc" },
   });
 
-  // Fetch all tasks and exams for this course (active periods + published + linked resources)
+  // Fetch all tasks and exams (active periods only)
   const tasks = await prisma.task.findMany({
     where: {
       courseId: id,
@@ -173,19 +171,21 @@ export default async function CursoDescripcionPage({
     },
     include: {
       submissions: { where: { studentId } },
-      resources: true // Linked resources
+      resources: true
     },
     orderBy: { dueDate: "asc" },
   });
 
-  // Collect all resource IDs that are linked to any task in this course
+  // Collect linked resource IDs to avoid duplicates on the main sections
   const linkedResourceIds = new Set<string>();
   tasks.forEach(t => {
     t.resources.forEach(r => linkedResourceIds.add(r.id));
   });
 
-  // Convert resources (ONLY those that are standalone, not linked to a task) to MoodleItem shape
+  // Standalone resources (not connected directly to tasks)
   const standaloneResources = resources.filter(r => !linkedResourceIds.has(r.id));
+
+  // Build MoodleItem representation
   const resourceItems: MoodleItem[] = standaloneResources.map(r => ({
     isResource: true as const,
     id: r.id,
@@ -195,7 +195,6 @@ export default async function CursoDescripcionPage({
     createdAt: r.createdAt.toISOString()
   }));
 
-  // Convert tasks to MoodleItem shape, carrying their linked resources
   const taskItems: MoodleItem[] = tasks.map(t => {
     const submission = t.submissions[0];
     const isSubmitted = !!(submission && submission.status !== "PENDING");
@@ -222,36 +221,49 @@ export default async function CursoDescripcionPage({
     };
   });
 
-  // Combine both arrays
   const allItems = [...resourceItems, ...taskItems];
 
-  // Helper to filter resources and tasks by period
-  const getPeriodItems = (periodName: string) => {
-    // A standalone resource belongs to a period if its period field matches
-    const resIds = standaloneResources.filter(r => r.period === periodName).map(r => r.id);
-    const taskIds = tasks.filter(t => t.period === periodName).map(t => t.id);
-    return allItems.filter(item => {
-      if (item.isResource) return resIds.includes(item.id);
-      return taskIds.includes(item.id);
-    });
-  };
+  // Group all items by their theme field
+  const themeMap = new Map<string, MoodleItem[]>();
 
-  // Build one section per active period
-  const sections = activePeriodNames.map((periodName) => {
-    const sectionItems = getPeriodItems(periodName);
-    return { periodName, sectionItems };
+  allItems.forEach(item => {
+    let themeValue = "";
+    if (item.isResource) {
+      const originalResource = standaloneResources.find(r => r.id === item.id);
+      themeValue = originalResource?.theme?.trim() || "";
+    } else {
+      const originalTask = tasks.find(t => t.id === item.id);
+      themeValue = originalTask?.theme?.trim() || "";
+    }
+
+    if (themeValue) {
+      if (!themeMap.has(themeValue)) {
+        themeMap.set(themeValue, []);
+      }
+      themeMap.get(themeValue)!.push(item);
+    }
   });
 
-  // Items without a period → General section
-  const generalResIds = standaloneResources.filter(r => !r.period || !activePeriodNames.includes(r.period)).map(r => r.id);
-  const generalTaskIds = tasks.filter(t => !t.period || !activePeriodNames.includes(t.period)).map(t => t.id);
+  // Natural sort for themes (Tema 1, Tema 2, etc.)
+  const sortedThemeNames = Array.from(themeMap.keys()).sort((a, b) =>
+    a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+  );
+
+  // General items (without theme assigned)
   const generalItems = allItems.filter(item => {
-    if (item.isResource) return generalResIds.includes(item.id);
-    return generalTaskIds.includes(item.id);
+    let themeValue = "";
+    if (item.isResource) {
+      const originalResource = standaloneResources.find(r => r.id === item.id);
+      themeValue = originalResource?.theme?.trim() || "";
+    } else {
+      const originalTask = tasks.find(t => t.id === item.id);
+      themeValue = originalTask?.theme?.trim() || "";
+    }
+    return !themeValue;
   });
 
   const hasGeneral = generalItems.length > 0;
-  const hasRealContent = sections.some(s => s.sectionItems.length > 0) || hasGeneral;
+  const hasRealContent = sortedThemeNames.length > 0 || hasGeneral;
 
   return (
     <div>
@@ -265,25 +277,28 @@ export default async function CursoDescripcionPage({
         />
       ))}
 
-      {/* If there is real database content, render it below under a clear header */}
+      {/* If there is real database content, render it below grouped by Theme */}
       {hasRealContent && (
         <div style={{ marginTop: "2.5rem", borderTop: "2px dashed #dee2e6", paddingTop: "1.5rem" }}>
           <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "#495057", marginBottom: "1rem" }}>
-            Contenido de la Plataforma ({activePeriodNames.join(" / ")})
+            Contenido de la Asignatura (Plataforma)
           </h3>
-          {/* Period sections */}
-          {sections.map((s) => (
-            s.sectionItems.length > 0 && (
-              <MoodleSection
-                key={s.periodName}
-                title={s.periodName}
-                items={s.sectionItems}
-                defaultOpen={false}
-              />
-            )
-          ))}
+          {/* Theme sections */}
+          {sortedThemeNames.map((themeName) => {
+            const themeItems = themeMap.get(themeName) || [];
+            return (
+              themeItems.length > 0 && (
+                <MoodleSection
+                  key={themeName}
+                  title={themeName}
+                  items={themeItems}
+                  defaultOpen={false}
+                />
+              )
+            );
+          })}
 
-          {/* General section */}
+          {/* General section for items without a theme */}
           {hasGeneral && (
             <MoodleSection
               title="General"
