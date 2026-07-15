@@ -158,7 +158,7 @@ export default async function CursoDescripcionPage({
   }
 
   // Build one section per active period
-  const sections = activePeriodNames.map((periodName, idx) => {
+  const sections = activePeriodNames.map((periodName) => {
     const sectionResources = resources
       .filter(r => r.period === periodName)
       .map(r => ({ id: r.id, title: r.title, type: r.type, url: r.url }));
@@ -167,7 +167,7 @@ export default async function CursoDescripcionPage({
       .filter(t => t.period === periodName)
       .map(mapTask);
 
-    return { periodName, sectionResources, sectionTasks, defaultOpen: idx === 0 };
+    return { periodName, sectionResources, sectionTasks };
   });
 
   // Items without a period → General section
@@ -184,18 +184,32 @@ export default async function CursoDescripcionPage({
 
   return (
     <div>
-      {/* If there is real database content, render it */}
-      {hasRealContent ? (
-        <>
+      {/* ALWAYS render the high-fidelity mock Moodle examples first */}
+      {exampleSections.map((s, idx) => (
+        <MoodleSection
+          key={s.title}
+          title={s.title}
+          resources={s.resources}
+          tasks={s.tasks}
+          defaultOpen={idx === 0}
+        />
+      ))}
+
+      {/* If there is real database content, render it below under a clear header */}
+      {hasRealContent && (
+        <div style={{ marginTop: "2.5rem", borderTop: "2px dashed #dee2e6", paddingTop: "1.5rem" }}>
+          <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "#495057", marginBottom: "1rem" }}>
+            Contenido de la Plataforma ({activePeriodNames.join(" / ")})
+          </h3>
           {/* Period sections */}
-          {sections.map((s, idx) => (
+          {sections.map((s) => (
             (s.sectionResources.length > 0 || s.sectionTasks.length > 0) && (
               <MoodleSection
                 key={s.periodName}
                 title={s.periodName}
                 resources={s.sectionResources}
                 tasks={s.sectionTasks}
-                defaultOpen={idx === 0}
+                defaultOpen={false}
               />
             )
           ))}
@@ -206,23 +220,10 @@ export default async function CursoDescripcionPage({
               title="General"
               resources={generalResources}
               tasks={generalTasks}
-              defaultOpen={!sections.some(s => s.sectionResources.length > 0 || s.sectionTasks.length > 0)}
+              defaultOpen={false}
             />
           )}
-        </>
-      ) : (
-        /* If there's no real content in the DB yet, render the high-fidelity mock examples */
-        <>
-          {exampleSections.map((s, idx) => (
-            <MoodleSection
-              key={s.title}
-              title={s.title}
-              resources={s.resources}
-              tasks={s.tasks}
-              defaultOpen={idx === 0}
-            />
-          ))}
-        </>
+        </div>
       )}
     </div>
   );
