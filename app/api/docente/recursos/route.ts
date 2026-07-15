@@ -46,6 +46,19 @@ export async function POST(request: Request) {
     const link = formData.get('link') as string | null;
     const file = formData.get('file') as File | null;
     const theme = formData.get('theme') as string | null;
+    let themeTitles: string[] = [];
+    if (theme) {
+      try {
+        themeTitles = JSON.parse(theme);
+        if (!Array.isArray(themeTitles)) {
+          themeTitles = [String(theme)];
+        }
+      } catch {
+        themeTitles = [theme];
+      }
+    }
+    const legacyThemeString = themeTitles.join(', ');
+
     const period = formData.get('period') as string | null;
     const groupIdsJson = formData.get('groupIds') as string | null;
     const publishAtRaw = formData.get('publishAt') as string | null;
@@ -135,11 +148,19 @@ export async function POST(request: Request) {
         url, 
         gdriveEmail,
         courseId, 
-        theme, 
+        theme: legacyThemeString, 
         period,
         publishAt,
         groups: {
           connect: groupIds.map(id => ({ id }))
+        },
+        themes: {
+          connect: (await prisma.theme.findMany({
+            where: {
+              courseId,
+              title: { in: themeTitles }
+            }
+          })).map(t => ({ id: t.id }))
         }
       }
     });
@@ -204,6 +225,19 @@ export async function PATCH(request: Request) {
     const link = formData.get('link') as string | null;
     const file = formData.get('file') as File | null;
     const theme = formData.get('theme') as string | null;
+    let themeTitles: string[] = [];
+    if (theme) {
+      try {
+        themeTitles = JSON.parse(theme);
+        if (!Array.isArray(themeTitles)) {
+          themeTitles = [String(theme)];
+        }
+      } catch {
+        themeTitles = [theme];
+      }
+    }
+    const legacyThemeString = themeTitles.join(', ');
+
     const period = formData.get('period') as string | null;
     const groupIdsJson = formData.get('groupIds') as string | null;
     const publishAtRaw = formData.get('publishAt') as string | null;
@@ -311,11 +345,19 @@ export async function PATCH(request: Request) {
         type, 
         url, 
         gdriveEmail,
-        theme, 
+        theme: legacyThemeString, 
         period,
         publishAt,
         groups: {
           set: groupIds.map(id => ({ id }))
+        },
+        themes: {
+          set: (await prisma.theme.findMany({
+            where: {
+              courseId: existingResource.courseId,
+              title: { in: themeTitles }
+            }
+          })).map(t => ({ id: t.id }))
         }
       }
     });

@@ -80,6 +80,7 @@ model Resource {
   course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
   groups      GradeGroup[] @relation("GroupResources")
   tasks       Task[]       @relation("TaskResources")
+  themes      Theme[]      @relation("ThemeResources")
 
   @@index([courseId])
   @@index([active])
@@ -110,6 +111,7 @@ model Task {
   course              Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
   groups              GradeGroup[] @relation("GroupTasks")
   resources           Resource[]   @relation("TaskResources")
+  themes              Theme[]      @relation("ThemeTasks")
 
   @@index([courseId])
   @@index([active])
@@ -186,12 +188,14 @@ model PeriodCourse {
 }
 
 model Theme {
-  id        String   @id @default(uuid())
+  id        String     @id @default(uuid())
   title     String
   courseId  String
-  order     Int      @default(0)
-  createdAt DateTime @default(now())
-  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  order     Int        @default(0)
+  createdAt DateTime   @default(now())
+  course    Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  resources Resource[] @relation("ThemeResources")
+  tasks     Task[]     @relation("ThemeTasks")
 
   @@index([courseId])
 }

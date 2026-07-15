@@ -41,6 +41,9 @@ export default async function CursoDescripcionPage({
       OR: [{ publishAt: null }, { publishAt: { lte: now } }],
       groups: studentGroupId ? { some: { id: studentGroupId } } : undefined,
     },
+    include: {
+      themes: true
+    },
     orderBy: { createdAt: "asc" },
   });
 
@@ -55,7 +58,8 @@ export default async function CursoDescripcionPage({
     },
     include: {
       submissions: { where: { studentId } },
-      resources: true
+      resources: true,
+      themes: true
     },
     orderBy: { dueDate: "asc" },
   });
@@ -113,24 +117,41 @@ export default async function CursoDescripcionPage({
 
   const allItems = [...resourceItems, ...taskItems];
 
-  // Group all items by their theme field
+  // Group all items by their themes (many-to-many)
   const themeMap = new Map<string, MoodleItem[]>();
+  const generalItems: MoodleItem[] = [];
 
   allItems.forEach(item => {
-    let themeValue = "";
+    let itemThemes: string[] = [];
     if (item.isResource) {
       const originalResource = standaloneResources.find(r => r.id === item.id);
-      themeValue = originalResource?.theme?.trim() || "";
+      itemThemes = originalResource?.themes.map(t => t.title) || [];
+      if (itemThemes.length === 0 && originalResource?.theme?.trim()) {
+        itemThemes = [originalResource.theme.trim()];
+      }
     } else {
       const originalTask = tasks.find(t => t.id === item.id);
-      themeValue = originalTask?.theme?.trim() || "";
+      itemThemes = originalTask?.themes.map(t => t.title) || [];
+      if (itemThemes.length === 0 && originalTask?.theme?.trim()) {
+        itemThemes = [originalTask.theme.trim()];
+      }
     }
 
-    if (themeValue) {
-      if (!themeMap.has(themeValue)) {
-        themeMap.set(themeValue, []);
-      }
-      themeMap.get(themeValue)!.push(item);
+    if (itemThemes.length > 0) {
+      itemThemes.forEach(themeValue => {
+        const cleaned = themeValue.trim();
+        if (cleaned) {
+          if (!themeMap.has(cleaned)) {
+            themeMap.set(cleaned, []);
+          }
+          const exists = themeMap.get(cleaned)!.some(x => x.id === item.id);
+          if (!exists) {
+            themeMap.get(cleaned)!.push(item);
+          }
+        }
+      });
+    } else {
+      generalItems.push(item);
     }
   });
 
@@ -144,19 +165,6 @@ export default async function CursoDescripcionPage({
     .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
 
   const allThemeTitles = [...themeTitles, ...extraThemeTitles];
-
-  // General items (without theme assigned)
-  const generalItems = allItems.filter(item => {
-    let themeValue = "";
-    if (item.isResource) {
-      const originalResource = standaloneResources.find(r => r.id === item.id);
-      themeValue = originalResource?.theme?.trim() || "";
-    } else {
-      const originalTask = tasks.find(t => t.id === item.id);
-      themeValue = originalTask?.theme?.trim() || "";
-    }
-    return !themeValue;
-  });
 
   const hasGeneral = generalItems.length > 0;
   const hasRealContent = allThemeTitles.length > 0 || hasGeneral;

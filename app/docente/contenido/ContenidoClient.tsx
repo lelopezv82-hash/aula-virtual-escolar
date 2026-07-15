@@ -23,6 +23,7 @@ interface Resource {
   type: string;
   url: string;
   theme?: string | null;
+  themes?: string[];
   period?: string | null;
   active?: boolean;
   publishAt?: string | null;
@@ -36,6 +37,7 @@ interface Task {
   description?: string | null;
   dueDate: string;
   theme?: string | null;
+  themes?: string[];
   period?: string | null;
   type?: string;
   active?: boolean;
@@ -176,6 +178,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     type: "PDF",
     link: "",
     theme: "",
+    themes: [] as string[],
     period: initialPeriods[0]?.name || "Periodo 1",
     groupIds: [] as string[],
     publishAt: ""
@@ -206,6 +209,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       type: defaultType || "PDF",
       link: "",
       theme: "",
+      themes: [],
       period: periodName || periods[0]?.name || "Periodo 1",
       groupIds: [],
       publishAt: ""
@@ -225,6 +229,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       type: resource.type,
       link: resource.type === "LINK" ? resource.url : "",
       theme: resource.theme || "",
+      themes: resource.themes || (resource.theme ? [resource.theme] : []),
       period: resource.period || "Periodo 1",
       groupIds: resource.groups.map(g => g.id),
       publishAt: formattedPublishAt
@@ -246,7 +251,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     fd.append("title", resourceForm.title);
     fd.append("type", resourceForm.type);
     fd.append("period", resourceForm.period);
-    fd.append("theme", resourceForm.theme);
+    fd.append("theme", JSON.stringify(resourceForm.themes));
     if (resourceForm.type === "LINK") { fd.append("link", resourceForm.link); }
     else if (resourceFile) { fd.append("file", resourceFile); }
     fd.append("groupIds", JSON.stringify(resourceForm.groupIds));
@@ -543,7 +548,9 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                                       <td className="py-3 px-4 text-xs" style={{ color: "var(--text-muted)" }}>
                                         {res.groups.map(g => g.name).join(", ") || "Sin Grupo"}
                                       </td>
-                                      <td className="py-3 px-4 text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>{res.theme || "-"}</td>
+                                      <td className="py-3 px-4 text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
+                                        {res.themes && res.themes.length > 0 ? res.themes.join(", ") : res.theme || "-"}
+                                      </td>
                                       <td className="py-3 px-4 text-center">
                                         <div className="flex flex-col items-center gap-1">
                                           <button
@@ -661,23 +668,36 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                   value={resourceForm.title} onChange={e => setResourceForm({ ...resourceForm, title: e.target.value })} required />
               </div>
               <div className="input-group flex-1">
-                <label className="text-xs font-bold mb-1">Tema</label>
+                <label className="text-xs font-bold mb-1">Temas Asociados</label>
                 {(() => {
                   const courseThemes = [...(courses
                     .find(c => c.id === resourceForm.courseId)
                     ?.themes || [])]
                     .sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }));
                   return (
-                    <select
-                      className="input-field py-1.5 px-3 text-xs"
-                      value={resourceForm.theme}
-                      onChange={e => setResourceForm({ ...resourceForm, theme: e.target.value })}
-                    >
-                      <option value="">Sin tema</option>
-                      {courseThemes.map(t => (
-                        <option key={t.id} value={t.title}>{t.title}</option>
-                      ))}
-                    </select>
+                    <div className="border rounded-lg p-2 max-h-[80px] overflow-y-auto flex flex-col gap-1.5 bg-slate-50" style={{ borderColor: "var(--border-color)" }}>
+                      {courseThemes.map(t => {
+                        const isChecked = resourceForm.themes?.includes(t.title);
+                        return (
+                          <label key={t.id} className="flex items-center gap-2 text-[11px] font-bold cursor-pointer hover:text-primary">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                const newThemes = isChecked
+                                  ? (resourceForm.themes || []).filter(title => title !== t.title)
+                                  : [...(resourceForm.themes || []), t.title];
+                                setResourceForm({ ...resourceForm, themes: newThemes });
+                              }}
+                              className="rounded w-3.5 h-3.5"
+                              style={{ accentColor: "#f98012" }}
+                            />
+                            <span>{t.title}</span>
+                          </label>
+                        );
+                      })}
+                      {courseThemes.length === 0 && <span className="text-[10px] text-muted italic">No hay temas.</span>}
+                    </div>
                   );
                 })()}
               </div>

@@ -16,6 +16,7 @@ export default async function ContenidoPage() {
   const teacherId = payload.id as string;
 
   // Fetch all courses including all resources, tasks, and themes with their groups
+  // Fetch all courses including all resources, tasks, and themes with their groups
   const courses = await prisma.course.findMany({
     where: { teacherId },
     include: {
@@ -29,6 +30,7 @@ export default async function ContenidoPage() {
       },
       resources: {
         include: {
+          themes: true,
           groups: {
             include: {
               grade: true
@@ -39,6 +41,7 @@ export default async function ContenidoPage() {
       },
       tasks: {
         include: {
+          themes: true,
           groups: {
             include: {
               grade: true
@@ -79,6 +82,7 @@ export default async function ContenidoPage() {
       type: r.type,
       url: r.url,
       theme: r.theme,
+      themes: r.themes.map(t => t.title),
       period: r.period,
       active: r.active,
       gdriveEmail: r.gdriveEmail,
@@ -97,6 +101,7 @@ export default async function ContenidoPage() {
       dueDate: t.dueDate.toISOString(),
       attachmentUrl: t.attachmentUrl,
       theme: t.theme,
+      themes: t.themes.map(th => th.title),
       weight: t.weight,
       period: t.period,
       active: t.active,

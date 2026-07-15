@@ -33,6 +33,19 @@ export async function POST(request: Request) {
     const courseId = formData.get('courseId') as string;
     const file = formData.get('file') as File | null;
     const theme = formData.get('theme') as string | null;
+    let themeTitles: string[] = [];
+    if (theme) {
+      try {
+        themeTitles = JSON.parse(theme);
+        if (!Array.isArray(themeTitles)) {
+          themeTitles = [String(theme)];
+        }
+      } catch {
+        themeTitles = [theme];
+      }
+    }
+    const legacyThemeString = themeTitles.join(', ');
+
     const period = formData.get('period') as string | null;
     const weightRaw = formData.get('weight') as string | null;
     const weight = weightRaw ? parseInt(weightRaw, 10) : 0;
@@ -142,7 +155,7 @@ export async function POST(request: Request) {
         attachmentUrl,
         gdriveEmail,
         courseId,
-        theme,
+        theme: legacyThemeString,
         period,
         publishAt,
         groups: {
@@ -150,6 +163,14 @@ export async function POST(request: Request) {
         },
         resources: {
           connect: resourceIds.map(id => ({ id }))
+        },
+        themes: {
+          connect: (await prisma.theme.findMany({
+            where: {
+              courseId,
+              title: { in: themeTitles }
+            }
+          })).map(t => ({ id: t.id }))
         },
         weight: isNaN(weight) ? 0 : weight,
         duration: duration && !isNaN(duration) ? duration : null,

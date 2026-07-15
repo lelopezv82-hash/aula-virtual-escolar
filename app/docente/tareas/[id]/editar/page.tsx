@@ -14,7 +14,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
-  const [theme, setTheme] = useState("");
+  const [selectedThemes, setSelectedThemes] = useState<string[]>([]);
   const [period, setPeriod] = useState("");
   const [weight, setWeight] = useState("0");
   const [duration, setDuration] = useState("");
@@ -80,7 +80,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
         if (data.task) {
           setTitle(data.task.title);
           setDescription(data.task.description || "");
-          setTheme(data.task.theme || "");
+          setSelectedThemes(data.task.themes ? data.task.themes.map((th: any) => th.title) : (data.task.theme ? [data.task.theme] : []));
           setPeriod(data.task.period || "");
           setWeight(data.task.weight !== undefined ? String(data.task.weight) : "0");
           setDuration(data.task.duration !== null && data.task.duration !== undefined ? String(data.task.duration) : "");
@@ -121,7 +121,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
     formData.append("title", title);
     formData.append("description", description);
     formData.append("dueDate", dueDate);
-    if (theme) formData.append("theme", theme);
+    formData.append("theme", JSON.stringify(selectedThemes));
     if (period) formData.append("period", period);
     formData.append("weight", weight);
     if (duration) formData.append("duration", duration);
@@ -254,18 +254,29 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
 
         <div className="flex gap-4">
           <div className="input-group flex-1">
-            <label htmlFor="theme">Tema</label>
-            <select
-              id="theme"
-              className="input-field"
-              value={theme}
-              onChange={(e) => setTheme(e.target.value)}
-            >
-              <option value="">Sin tema</option>
-              {[...courseThemes].sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' })).map(t => (
-                <option key={t.id} value={t.title}>{t.title}</option>
-              ))}
-            </select>
+            <label className="font-semibold text-xs mb-1.5 block">Temas Asociados</label>
+            <div className="border rounded-lg p-2.5 max-h-[120px] overflow-y-auto flex flex-col gap-1.5 bg-slate-50 dark:bg-slate-900" style={{ borderColor: 'var(--border-color)' }}>
+              {[...courseThemes].sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' })).map(t => {
+                const isChecked = selectedThemes.includes(t.title);
+                return (
+                  <label key={t.id} className="flex items-center gap-2 text-sm font-medium cursor-pointer hover:text-primary">
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => {
+                        const newThemes = isChecked
+                          ? selectedThemes.filter(title => title !== t.title)
+                          : [...selectedThemes, t.title];
+                        setSelectedThemes(newThemes);
+                      }}
+                      className="rounded text-[#f98012] focus:ring-[#f98012]"
+                    />
+                    <span>{t.title}</span>
+                  </label>
+                );
+              })}
+              {courseThemes.length === 0 && <span className="text-xs text-muted italic">No hay temas creados en esta asignatura.</span>}
+            </div>
           </div>
           <div className="input-group flex-1">
             <label htmlFor="period">Periodo *</label>

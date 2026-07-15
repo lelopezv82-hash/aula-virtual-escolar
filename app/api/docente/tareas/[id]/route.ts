@@ -29,7 +29,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       include: { 
         course: true,
         groups: true,
-        resources: true
+        resources: true,
+        themes: true
       }
     });
 
@@ -97,6 +98,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const dueDate = formData.get('dueDate') as string;
     const file = formData.get('file') as File | null;
     const theme = formData.get('theme') as string | null;
+    let themeTitles: string[] = [];
+    if (theme) {
+      try {
+        themeTitles = JSON.parse(theme);
+        if (!Array.isArray(themeTitles)) {
+          themeTitles = [String(theme)];
+        }
+      } catch {
+        themeTitles = [theme];
+      }
+    }
+    const legacyThemeString = themeTitles.join(', ');
+
     const period = formData.get('period') as string | null;
     const weightRaw = formData.get('weight') as string | null;
     const weight = weightRaw ? parseInt(weightRaw, 10) : 0;
@@ -199,7 +213,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         dueDate: parsedDueDate,
         attachmentUrl,
         gdriveEmail,
-        theme,
+        theme: legacyThemeString,
         period,
         publishAt,
         groups: {
@@ -207,6 +221,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         },
         resources: {
           set: resourceIds.map(id => ({ id }))
+        },
+        themes: {
+          set: (await prisma.theme.findMany({
+            where: {
+              courseId: task.courseId,
+              title: { in: themeTitles }
+            }
+          })).map(t => ({ id: t.id }))
         },
         weight: isNaN(weight) ? 0 : weight,
         duration: duration && !isNaN(duration) ? duration : null,
