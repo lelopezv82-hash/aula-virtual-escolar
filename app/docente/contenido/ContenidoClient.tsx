@@ -43,6 +43,12 @@ interface Task {
   groups: Group[];
 }
 
+interface Theme {
+  id: string;
+  title: string;
+  order: number;
+}
+
 interface Course {
   id: string;
   name: string;
@@ -50,6 +56,7 @@ interface Course {
   groups: Group[];
   resources: Resource[];
   tasks: Task[];
+  themes: Theme[];
 }
 
 interface Period {
@@ -287,12 +294,12 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
   const handleCreateTheme = async (courseId: string) => {
     if (!themeInputValue.trim()) return;
     setCreatingTheme(true);
-    const fd = new FormData();
-    fd.append('courseId', courseId);
-    fd.append('title', themeInputValue.trim());
-    fd.append('type', 'THEME');
     try {
-      const res = await fetch('/api/docente/recursos', { method: 'POST', body: fd });
+      const res = await fetch('/api/docente/temas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ courseId, title: themeInputValue.trim() })
+      });
       if (res.ok) {
         setThemeInputCourseId(null);
         setThemeInputValue('');
@@ -314,7 +321,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     });
     if (!ok) return;
     try {
-      const res = await fetch('/api/docente/recursos', {
+      const res = await fetch('/api/docente/temas', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id })
@@ -409,8 +416,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
 
                     {/* ── Temas de la asignatura ── */}
                     {(() => {
-                      const courseThemes = course.resources
-                        .filter(r => r.type === 'THEME')
+                      const courseThemes = [...(course.themes || [])]
                         .sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }));
                       return (
                         <div className="mb-4 pb-4 flex flex-col gap-2" style={{ borderBottom: '1px solid var(--border-color)' }}>
@@ -657,11 +663,10 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
               <div className="input-group flex-1">
                 <label className="text-xs font-bold mb-1">Tema</label>
                 {(() => {
-                  const courseThemes = courses
-                    .find(c => c.id === (editingResource ? resourceForm.courseId : resourceForm.courseId))
-                    ?.resources
-                    .filter(r => r.type === 'THEME')
-                    .sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' })) || [];
+                  const courseThemes = [...(courses
+                    .find(c => c.id === resourceForm.courseId)
+                    ?.themes || [])]
+                    .sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }));
                   return (
                     <select
                       className="input-field py-1.5 px-3 text-xs"

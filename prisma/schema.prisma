@@ -57,6 +57,7 @@ model Course {
   teacher          User              @relation("TeacherCourses", fields: [teacherId], references: [id], onDelete: Cascade)
   resources        Resource[]
   tasks            Task[]
+  themes           Theme[]
   groups           GradeGroup[]      @relation("GroupCourses")
   periodCourses    PeriodCourse[]
 
@@ -181,6 +182,17 @@ model PeriodCourse {
 
   @@unique([periodId, courseId])
   @@index([periodId])
+  @@index([courseId])
+}
+
+model Theme {
+  id        String   @id @default(uuid())
+  title     String
+  courseId  String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
   @@index([courseId])
 }
 

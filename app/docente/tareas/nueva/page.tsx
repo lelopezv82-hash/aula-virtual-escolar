@@ -27,11 +27,25 @@ export default function NuevaTareaPage() {
   const [periods, setPeriods] = useState<{id: string, name: string, active: boolean}[]>([]);
   const [allResources, setAllResources] = useState<{id: string, title: string, type: string}[]>([]);
   const [selectedResourceIds, setSelectedResourceIds] = useState<string[]>([]);
+  const [courseThemes, setCourseThemes] = useState<{id: string, title: string}[]>([]);
 
   const [isPeriodLocked, setIsPeriodLocked] = useState(false);
   const [isCourseLocked, setIsCourseLocked] = useState(false);
   
   const router = useRouter();
+
+  useEffect(() => {
+    if (!courseId) {
+      setCourseThemes([]);
+      return;
+    }
+    fetch(`/api/docente/temas?courseId=${courseId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.themes) setCourseThemes(data.themes);
+      })
+      .catch(() => console.error("Failed to load themes for course"));
+  }, [courseId]);
 
   useEffect(() => {
     // Fetch teacher's courses
@@ -287,24 +301,17 @@ export default function NuevaTareaPage() {
         <div className="flex gap-4">
           <div className="input-group flex-1">
             <label htmlFor="theme">Tema</label>
-            {(() => {
-              const courseThemes = allResources
-                .filter(r => r.type === 'THEME')
-                .sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }));
-              return (
-                <select
-                  id="theme"
-                  className="input-field"
-                  value={theme}
-                  onChange={(e) => setTheme(e.target.value)}
-                >
-                  <option value="">Sin tema</option>
-                  {courseThemes.map(t => (
-                    <option key={t.id} value={t.title}>{t.title}</option>
-                  ))}
-                </select>
-              );
-            })()}
+            <select
+              id="theme"
+              className="input-field"
+              value={theme}
+              onChange={(e) => setTheme(e.target.value)}
+            >
+              <option value="">Sin tema</option>
+              {[...courseThemes].sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' })).map(t => (
+                <option key={t.id} value={t.title}>{t.title}</option>
+              ))}
+            </select>
           </div>
           <div className="input-group flex-1">
             <label htmlFor="period">Periodo *</label>

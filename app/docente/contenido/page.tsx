@@ -15,7 +15,7 @@ export default async function ContenidoPage() {
   const { payload } = await jwtVerify(token, JWT_SECRET);
   const teacherId = payload.id as string;
 
-  // Fetch all courses including all resources and tasks with their groups
+  // Fetch all courses including all resources, tasks, and themes with their groups
   const courses = await prisma.course.findMany({
     where: { teacherId },
     include: {
@@ -23,6 +23,9 @@ export default async function ContenidoPage() {
         include: {
           grade: true
         }
+      },
+      themes: {
+        orderBy: { order: 'asc' }
       },
       resources: {
         include: {
@@ -64,6 +67,11 @@ export default async function ContenidoPage() {
       grade: {
         name: g.grade.name
       }
+    })),
+    themes: course.themes.map(t => ({
+      id: t.id,
+      title: t.title,
+      order: t.order
     })),
     resources: course.resources.map(r => ({
       id: r.id,

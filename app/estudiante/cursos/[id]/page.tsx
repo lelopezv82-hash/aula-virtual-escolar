@@ -60,6 +60,12 @@ export default async function CursoDescripcionPage({
     orderBy: { dueDate: "asc" },
   });
 
+  // Fetch all themes
+  const themes = await prisma.theme.findMany({
+    where: { courseId: id },
+    orderBy: { order: "asc" }
+  });
+
   // Collect linked resource IDs to avoid duplicates on the main sections
   const linkedResourceIds = new Set<string>();
   tasks.forEach(t => {
@@ -128,10 +134,16 @@ export default async function CursoDescripcionPage({
     }
   });
 
-  // Natural sort for themes (Tema 1, Tema 2, etc.)
-  const sortedThemeNames = Array.from(themeMap.keys()).sort((a, b) =>
-    a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
-  );
+  // Get theme names from DB themes list
+  const themeTitles = themes.map(t => t.title);
+
+  // In case there are items with theme names not explicitly in themes DB list
+  const dbThemeTitlesSet = new Set(themeTitles);
+  const extraThemeTitles = Array.from(themeMap.keys())
+    .filter(title => !dbThemeTitlesSet.has(title))
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+  const allThemeTitles = [...themeTitles, ...extraThemeTitles];
 
   // General items (without theme assigned)
   const generalItems = allItems.filter(item => {
@@ -147,22 +159,20 @@ export default async function CursoDescripcionPage({
   });
 
   const hasGeneral = generalItems.length > 0;
-  const hasRealContent = sortedThemeNames.length > 0 || hasGeneral;
+  const hasRealContent = allThemeTitles.length > 0 || hasGeneral;
 
   return (
     <div>
       {/* Render theme sections */}
-      {sortedThemeNames.map((themeName) => {
+      {allThemeTitles.map((themeName) => {
         const themeItems = themeMap.get(themeName) || [];
         return (
-          themeItems.length > 0 && (
-            <MoodleSection
-              key={themeName}
-              title={themeName}
-              items={themeItems}
-              defaultOpen={false}
-            />
-          )
+          <MoodleSection
+            key={themeName}
+            title={themeName}
+            items={themeItems}
+            defaultOpen={false}
+          />
         );
       })}
 
