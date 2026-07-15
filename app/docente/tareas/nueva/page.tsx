@@ -259,7 +259,7 @@ export default function NuevaTareaPage() {
             </div>
           ) : (
             <div className="border border-orange-200 dark:border-orange-800 rounded-lg max-h-[150px] overflow-y-auto flex flex-col divide-y divide-orange-100 dark:divide-orange-900/30 bg-white dark:bg-gray-900">
-              {allResources.map(r => {
+              {allResources.filter(r => r.type !== 'THEME').map(r => {
                 const isChecked = selectedResourceIds.includes(r.id);
                 const typeLabel = r.type === "GUIDE" ? "Guía" : r.type === "VIDEO" ? "Video" : r.type === "LINK" ? "Enlace" : r.type;
                 return (
@@ -287,15 +287,24 @@ export default function NuevaTareaPage() {
         <div className="flex gap-4">
           <div className="input-group flex-1">
             <label htmlFor="theme">Tema</label>
-            <input
-              id="theme"
-              type="text"
-              className="input-field"
-              placeholder="Ej. Cinemática, Álgebra"
-              value={theme}
-              onChange={(e) => setTheme(e.target.value)}
-              required
-            />
+            {(() => {
+              const courseThemes = allResources
+                .filter(r => r.type === 'THEME')
+                .sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }));
+              return (
+                <select
+                  id="theme"
+                  className="input-field"
+                  value={theme}
+                  onChange={(e) => setTheme(e.target.value)}
+                >
+                  <option value="">Sin tema</option>
+                  {courseThemes.map(t => (
+                    <option key={t.id} value={t.title}>{t.title}</option>
+                  ))}
+                </select>
+              );
+            })()}
           </div>
           <div className="input-group flex-1">
             <label htmlFor="period">Periodo *</label>

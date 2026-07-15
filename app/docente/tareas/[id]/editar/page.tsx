@@ -215,7 +215,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
             <p className="text-xs text-muted italic">No hay recursos de contenido creados en esta asignatura.</p>
           ) : (
             <div className="border rounded-lg p-3 max-h-[160px] overflow-y-auto flex flex-col gap-2 bg-slate-50 dark:bg-slate-900" style={{ borderColor: 'var(--border-color)' }}>
-              {allResources.map(r => {
+              {allResources.filter(r => r.type !== 'THEME').map(r => {
                 const isChecked = selectedResourceIds.includes(r.id);
                 return (
                   <label key={r.id} className="flex items-center gap-2 text-sm font-medium cursor-pointer hover:text-primary">
@@ -241,15 +241,24 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
         <div className="flex gap-4">
           <div className="input-group flex-1">
             <label htmlFor="theme">Tema</label>
-            <input
-              id="theme"
-              type="text"
-              className="input-field"
-              placeholder="Ej. Cinemática, Álgebra"
-              value={theme}
-              onChange={(e) => setTheme(e.target.value)}
-              required
-            />
+            {(() => {
+              const courseThemes = allResources
+                .filter(r => r.type === 'THEME')
+                .sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }));
+              return (
+                <select
+                  id="theme"
+                  className="input-field"
+                  value={theme}
+                  onChange={(e) => setTheme(e.target.value)}
+                >
+                  <option value="">Sin tema</option>
+                  {courseThemes.map(t => (
+                    <option key={t.id} value={t.title}>{t.title}</option>
+                  ))}
+                </select>
+              );
+            })()}
           </div>
           <div className="input-group flex-1">
             <label htmlFor="period">Periodo *</label>

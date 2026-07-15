@@ -175,6 +175,11 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
   });
   const [resourceFile, setResourceFile] = useState<File | null>(null);
 
+  /* ─── Theme state ─────────────────────────────────────── */
+  const [themeInputCourseId, setThemeInputCourseId] = useState<string | null>(null);
+  const [themeInputValue, setThemeInputValue] = useState("");
+  const [creatingTheme, setCreatingTheme] = useState(false);
+
   const [availableGroups, setAvailableGroups] = useState<Group[]>([]);
   useEffect(() => {
     if (resourceForm.courseId) {
@@ -278,6 +283,46 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     } catch { console.error("Failed to toggle resource status"); }
   };
 
+  /* ─── Theme CRUD ──────────────────────────────────────── */
+  const handleCreateTheme = async (courseId: string) => {
+    if (!themeInputValue.trim()) return;
+    setCreatingTheme(true);
+    const fd = new FormData();
+    fd.append('courseId', courseId);
+    fd.append('title', themeInputValue.trim());
+    fd.append('type', 'THEME');
+    try {
+      const res = await fetch('/api/docente/recursos', { method: 'POST', body: fd });
+      if (res.ok) {
+        setThemeInputCourseId(null);
+        setThemeInputValue('');
+        router.refresh();
+      } else {
+        const data = await res.json();
+        setError(data.error || 'Error al crear el tema');
+      }
+    } catch { setError('Error de conexión'); }
+    finally { setCreatingTheme(false); }
+  };
+
+  const handleDeleteTheme = async (id: string) => {
+    const ok = await confirm({
+      title: 'Eliminar Tema',
+      message: '¿Eliminar este tema? Los recursos y tareas asignados perderán su asignación de tema.',
+      confirmText: 'Eliminar',
+      type: 'danger'
+    });
+    if (!ok) return;
+    try {
+      const res = await fetch('/api/docente/recursos', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
+      if (res.ok) router.refresh();
+    } catch { console.error('Failed to delete theme'); }
+  };
+
   /* ─── Helpers ─────────────────────────────────────────── */
   const tabClass = (tab: string) =>
     `flex items-center gap-2 px-5 py-3 font-semibold transition-colors border-b-2 ${
@@ -361,10 +406,85 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                     <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                       <BookMarked className="text-[#f98012]" /> {course.name}
                     </h2>
+
+                    {/* ── Temas de la asignatura ── */}
+                    {(() => {
+                      const courseThemes = course.resources
+                        .filter(r => r.type === 'THEME')
+                        .sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }));
+                      return (
+                        <div className="mb-4 pb-4 flex flex-col gap-2" style={{ borderBottom: '1px solid var(--border-color)' }}>
+                          <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Temas de la asignatura</span>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {courseThemes.length === 0 && themeInputCourseId !== course.id && (
+                              <span className="text-xs italic" style={{ color: 'var(--text-muted)' }}>Sin temas creados.</span>
+                            )}
+                            {courseThemes.map(t => (
+                              <span key={t.id} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: '#e8f0fe', color: '#1a56db', border: '1px solid #c7d7fb' }}>
+                                {t.title}
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteTheme(t.id)}
+                                  className="ml-1 hover:text-red-600 transition-colors opacity-60 hover:opacity-100"
+                                  title="Eliminar tema"
+                                >
+                                  <X size={11} />
+                                </button>
+                              </span>
+                            ))}
+                            {themeInputCourseId === course.id ? (
+                              <div className="flex items-center gap-1">
+                                <input
+                                  autoFocus
+                                  type="text"
+                                  className="input-field py-0.5 px-2 text-xs"
+                                  style={{ width: 210, height: 28 }}
+                                  placeholder="Nombre del tema..."
+                                  value={themeInputValue}
+                                  onChange={e => setThemeInputValue(e.target.value)}
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter') { e.preventDefault(); handleCreateTheme(course.id); }
+                                    if (e.key === 'Escape') { setThemeInputCourseId(null); setThemeInputValue(''); }
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  disabled={creatingTheme || !themeInputValue.trim()}
+                                  onClick={() => handleCreateTheme(course.id)}
+                                  className="btn btn-primary flex items-center gap-1"
+                                  style={{ padding: '2px 10px', fontSize: '11px', height: 28 }}
+                                >
+                                  {creatingTheme ? <Loader2 size={11} className="animate-spin" /> : 'Añadir'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => { setThemeInputCourseId(null); setThemeInputValue(''); }}
+                                  className="btn btn-secondary flex items-center"
+                                  style={{ padding: '2px 8px', fontSize: '11px', height: 28 }}
+                                >
+                                  <X size={11} />
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => { setThemeInputCourseId(course.id); setThemeInputValue(''); }}
+                                className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-dashed transition-colors hover:border-[#f98012] hover:text-[#f98012]"
+                                style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}
+                              >
+                                <Plus size={11} /> Nuevo Tema
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     <div className="flex flex-col gap-5">
                       {[...periods.map(p => p.name), "Otros"].map(periodName => {
                         const periodRes = course.resources.filter(r => {
                           if (r.type === "PLAN") return false;
+                          if (r.type === "THEME") return false;
                           if (periodName === "Otros") return !r.period || !periods.map(p => p.name).includes(r.period);
                           return r.period === periodName;
                         });
@@ -536,8 +656,25 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
               </div>
               <div className="input-group flex-1">
                 <label className="text-xs font-bold mb-1">Tema</label>
-                <input type="text" className="input-field py-1.5 px-3 text-xs" placeholder="Ej. Cinemática, Ecuaciones"
-                  value={resourceForm.theme} onChange={e => setResourceForm({ ...resourceForm, theme: e.target.value })} />
+                {(() => {
+                  const courseThemes = courses
+                    .find(c => c.id === (editingResource ? resourceForm.courseId : resourceForm.courseId))
+                    ?.resources
+                    .filter(r => r.type === 'THEME')
+                    .sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' })) || [];
+                  return (
+                    <select
+                      className="input-field py-1.5 px-3 text-xs"
+                      value={resourceForm.theme}
+                      onChange={e => setResourceForm({ ...resourceForm, theme: e.target.value })}
+                    >
+                      <option value="">Sin tema</option>
+                      {courseThemes.map(t => (
+                        <option key={t.id} value={t.title}>{t.title}</option>
+                      ))}
+                    </select>
+                  );
+                })()}
               </div>
             </div>
 
