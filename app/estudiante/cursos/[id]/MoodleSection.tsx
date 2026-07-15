@@ -189,9 +189,11 @@ export default function MoodleSection({ title, resources, tasks, defaultOpen = t
 
               {/* Tasks / Exams */}
               {tasks.map((t) => {
-                const href = (t.type === "EXAM" || t.type === "FINAL")
-                  ? `/estudiante/examenes/${t.id}`
-                  : `/estudiante/tareas/${t.id}`;
+                const href = t.id.startsWith("ex-")
+                  ? "#"
+                  : (t.type === "EXAM" || t.type === "FINAL")
+                    ? `/estudiante/examenes/${t.id}`
+                    : `/estudiante/tareas/${t.id}`;
                 const apertura = formatDate(t.publishAt);
                 const cierre = formatDate(t.dueDate);
                 const cleanDesc = t.description

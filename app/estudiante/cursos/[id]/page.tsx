@@ -8,6 +8,86 @@ const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-sec
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+// High-fidelity Moodle example sections from screenshot
+const exampleSections = [
+  {
+    title: "Tema 1. Fundamentos básicos de la investigación educativa",
+    resources: [
+      { id: "ex-r1", title: "Diapositivas clase 1", type: "PPTX", url: "#" }
+    ],
+    tasks: [
+      {
+        id: "ex-t1",
+        title: "1. Evaluación",
+        type: "TASK",
+        publishAt: "2025-03-28T23:00:00.000Z",
+        dueDate: "2025-04-04T23:00:00.000Z",
+        description: null,
+        isSubmitted: false,
+        isGraded: false,
+        grade: null
+      }
+    ]
+  },
+  {
+    title: "Tema 2. Modelos y enfoques de investigación en educación",
+    resources: [
+      { id: "ex-r2", title: "Diapositivas segunda clase", type: "PPTX", url: "#" }
+    ],
+    tasks: [
+      {
+        id: "ex-t2",
+        title: "2. Evaluación",
+        type: "TASK",
+        publishAt: "2025-04-07T23:00:00.000Z",
+        dueDate: "2025-04-14T23:00:00.000Z",
+        description: null,
+        isSubmitted: false,
+        isGraded: false,
+        grade: null
+      }
+    ]
+  },
+  {
+    title: "Tema 3. Análisis de la realidad social",
+    resources: [
+      { id: "ex-r3", title: "Diapositivas", type: "PPTX", url: "#" }
+    ],
+    tasks: [
+      {
+        id: "ex-t3",
+        title: "3. Evaluación",
+        type: "TASK",
+        publishAt: "2025-04-16T23:00:00.000Z",
+        dueDate: "2025-04-23T23:00:00.000Z",
+        description: null,
+        isSubmitted: false,
+        isGraded: false,
+        grade: null
+      }
+    ]
+  },
+  {
+    title: "Tema 4. Definición de la metodología mixta en la investigación educativa",
+    resources: [
+      { id: "ex-r4", title: "Diapositivas", type: "PPT", url: "#" }
+    ],
+    tasks: [
+      {
+        id: "ex-t4",
+        title: "4. Evaluación",
+        type: "TASK",
+        publishAt: "2025-04-25T23:00:00.000Z",
+        dueDate: "2025-05-02T23:00:00.000Z",
+        description: null,
+        isSubmitted: false,
+        isGraded: false,
+        grade: null
+      }
+    ]
+  }
+];
+
 export default async function CursoDescripcionPage({
   params,
 }: {
@@ -100,45 +180,49 @@ export default async function CursoDescripcionPage({
     .map(mapTask);
 
   const hasGeneral = generalResources.length > 0 || generalTasks.length > 0;
-  const hasContent = sections.some(s => s.sectionResources.length > 0 || s.sectionTasks.length > 0) || hasGeneral;
+  const hasRealContent = sections.some(s => s.sectionResources.length > 0 || s.sectionTasks.length > 0) || hasGeneral;
 
   return (
     <div>
-      {/* Period sections */}
-      {sections.map((s, idx) => (
-        (s.sectionResources.length > 0 || s.sectionTasks.length > 0) && (
-          <MoodleSection
-            key={s.periodName}
-            title={s.periodName}
-            resources={s.sectionResources}
-            tasks={s.sectionTasks}
-            defaultOpen={idx === 0}
-          />
-        )
-      ))}
+      {/* If there is real database content, render it */}
+      {hasRealContent ? (
+        <>
+          {/* Period sections */}
+          {sections.map((s, idx) => (
+            (s.sectionResources.length > 0 || s.sectionTasks.length > 0) && (
+              <MoodleSection
+                key={s.periodName}
+                title={s.periodName}
+                resources={s.sectionResources}
+                tasks={s.sectionTasks}
+                defaultOpen={idx === 0}
+              />
+            )
+          ))}
 
-      {/* General section */}
-      {hasGeneral && (
-        <MoodleSection
-          title="General"
-          resources={generalResources}
-          tasks={generalTasks}
-          defaultOpen={!sections.some(s => s.sectionResources.length > 0 || s.sectionTasks.length > 0)}
-        />
-      )}
-
-      {!hasContent && (
-        <div style={{
-          background: "#fff",
-          border: "1px solid #dee2e6",
-          borderRadius: "6px",
-          padding: "3rem",
-          textAlign: "center",
-          color: "#6c757d",
-          fontSize: "0.95rem",
-        }}>
-          No hay contenido disponible en este curso todavía.
-        </div>
+          {/* General section */}
+          {hasGeneral && (
+            <MoodleSection
+              title="General"
+              resources={generalResources}
+              tasks={generalTasks}
+              defaultOpen={!sections.some(s => s.sectionResources.length > 0 || s.sectionTasks.length > 0)}
+            />
+          )}
+        </>
+      ) : (
+        /* If there's no real content in the DB yet, render the high-fidelity mock examples */
+        <>
+          {exampleSections.map((s, idx) => (
+            <MoodleSection
+              key={s.title}
+              title={s.title}
+              resources={s.resources}
+              tasks={s.tasks}
+              defaultOpen={idx === 0}
+            />
+          ))}
+        </>
       )}
     </div>
   );
