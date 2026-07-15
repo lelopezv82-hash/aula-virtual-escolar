@@ -5,13 +5,14 @@ import { ArrowLeft, UploadCloud, Loader2, CheckCircle, FileText, Clock, AlertTri
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatToColombiaString, getTaskDeadlineStatus } from "@/lib/dateUtils";
+import { useConfirm } from "@/components/ConfirmProvider";
 
 export default function TareaDetallePage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const taskId = resolvedParams.id;
   const router = useRouter();
+  const confirm = useConfirm();
 
-  
   const [task, setTask] = useState<any>(null);
   const [studentName, setStudentName] = useState("");
   const [submission, setSubmission] = useState<any>(null);
@@ -23,6 +24,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const [error, setError] = useState("");
   const [errorType, setErrorType] = useState<"danger" | "warning">("danger");
   const [initialLoad, setInitialLoad] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     // Fetch task and existing submission info
@@ -44,7 +46,6 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
       .catch(() => setError("No se pudo cargar la tarea"))
       .finally(() => setInitialLoad(false));
   }, [taskId, router]);
-
 
   const isGraded = submission?.status === "GRADED";
   const isSubmitted = submission?.status === "SUBMITTED" || isGraded;
@@ -167,6 +168,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
       if (res.ok) {
         setSubmission(data.submission);
         setFile(null);
+        setIsEditing(false);
       } else {
         setError(data.error || "Error al enviar la tarea.");
         setErrorType("danger");
@@ -179,28 +181,118 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
     }
   };
 
-  const handleMarkAsFinished = async () => {
+  const handleDelete = async () => {
+    const confirmDelete = await confirm({
+      title: "Borrar entrega",
+      message: "¿Estás seguro de que deseas borrar tu entrega? Esto eliminará el archivo enviado y restablecerá el estado a 'No entregado'.",
+      confirmText: "Borrar entrega",
+      cancelText: "Cancelar",
+      type: "warning"
+    });
+    if (!confirmDelete) return;
+
     setLoading(true);
     setError("");
     try {
-      const formData = new FormData();
-      formData.append("taskId", taskId);
-      const res = await fetch("/api/estudiante/submissions", {
-        method: "POST",
-        body: formData,
+      const res = await fetch(`/api/estudiante/submissions?taskId=${taskId}`, {
+        method: "DELETE"
       });
       const data = await res.json();
       if (res.ok) {
-        setSubmission(data.submission);
+        setSubmission(null);
+        setIsEditing(false);
+        setFile(null);
       } else {
-        setError(data.error || "Error al entregar el examen.");
+        setError(data.error || "Error al borrar la entrega.");
       }
     } catch {
-      setError("Error de conexión al guardar la entrega.");
+      setError("Error de conexión al eliminar la entrega.");
     } finally {
       setLoading(false);
     }
   };
+
+  // Moodle-style date formatter (e.g. "jueves, 14 de mayo de 2026, 18:30" or "6 de mayo de 2026, 05:40")
+  function formatMoodleDate(dateInput: Date | string | null | undefined, includeDayName: boolean = false): string {
+    if (!dateInput) return "-";
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return "-";
+    
+    const formatter = new Intl.DateTimeFormat('es-CO', {
+      timeZone: 'America/Bogota',
+      weekday: includeDayName ? 'long' : undefined,
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+    
+    const parts = formatter.formatToParts(d);
+    let weekday = '';
+    let day = '';
+    let month = '';
+    let year = '';
+    let hour = '';
+    let minute = '';
+    
+    for (const part of parts) {
+      if (part.type === 'weekday') weekday = part.value;
+      else if (part.type === 'day') day = part.value;
+      else if (part.type === 'month') month = part.value;
+      else if (part.type === 'year') year = part.value;
+      else if (part.type === 'hour') hour = part.value;
+      else if (part.type === 'minute') minute = part.value;
+    }
+    
+    weekday = weekday.toLowerCase().replace(/[\.,]/g, '');
+    month = month.toLowerCase();
+    
+    const dateStr = `${day} de ${month} de ${year}`;
+    const timeStr = `${hour}:${minute}`;
+    
+    if (includeDayName && weekday) {
+      return `${weekday}, ${dateStr}, ${timeStr}`;
+    }
+    return `${dateStr}, ${timeStr}`;
+  }
+
+  // Get clean filename from absolute URL
+  function getFileNameFromUrl(url: string): string {
+    if (!url) return "archivo";
+    try {
+      const decoded = decodeURIComponent(url);
+      const urlObj = new URL(decoded);
+      const pathname = urlObj.pathname;
+      const parts = pathname.split('/');
+      const lastPart = parts[parts.length - 1];
+      if (lastPart) {
+        const fileParts = lastPart.split('%2F');
+        return fileParts[fileParts.length - 1];
+      }
+    } catch {
+      const parts = url.split('/');
+      const lastPart = parts[parts.length - 1];
+      if (lastPart) {
+        return lastPart.split('?')[0];
+      }
+    }
+    return "archivo";
+  }
+
+  // Get standard Moodle icon based on file type
+  function getFileIcon(url: string) {
+    if (!url) return "📎";
+    const cleanUrl = url.toLowerCase().split('?')[0];
+    if (cleanUrl.endsWith('.pdf')) return "📄";
+    if (cleanUrl.endsWith('.doc') || cleanUrl.endsWith('.docx')) return "📝";
+    if (cleanUrl.endsWith('.xls') || cleanUrl.endsWith('.xlsx')) return "📊";
+    if (cleanUrl.endsWith('.ppt') || cleanUrl.endsWith('.pptx')) return "📉";
+    if (cleanUrl.endsWith('.png') || cleanUrl.endsWith('.jpg') || cleanUrl.endsWith('.jpeg') || cleanUrl.endsWith('.gif')) return "🖼️";
+    if (cleanUrl.endsWith('.zip') || cleanUrl.endsWith('.rar') || cleanUrl.endsWith('.tar') || cleanUrl.endsWith('.gz')) return "📦";
+    return "📎";
+  }
 
   if (initialLoad) {
     return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#f98012]" size={40} /></div>;
@@ -210,66 +302,38 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
     return <div className="alert alert-danger">No se encontró la tarea o no tienes acceso.</div>;
   }
   
-  const now = new Date();
-  const { activeDeadline, hasExtension, isClosed: isSubmissionBlocked, isLate: isOverdue, isUnlimitedExtension } = getTaskDeadlineStatus(task, submission);
-  const activeExtensionDate = hasExtension && !isUnlimitedExtension ? activeDeadline : null;
-
-  // Splash screen for timed tasks that haven't started yet
-  if (task.duration && !task.isExternal && (!submission || !submission.startedAt)) {
-    return (
-      <div className="animate-fade-in max-w-xl mx-auto card p-8 text-center flex flex-col gap-6 mt-10" style={{ borderColor: "var(--border-color)" }}>
-        <div className="p-4 rounded-full bg-orange-50 dark:bg-orange-950/30 text-[#f98012] dark:text-[#f98012] mx-auto w-16 h-16 flex items-center justify-center">
-          <Clock size={36} />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-primary mb-2">Evaluación con Tiempo Límite</h1>
-          <p className="text-muted text-sm">
-            Esta tarea es un examen que tiene un límite de tiempo de <strong>{task.duration} minutos</strong>.
-          </p>
-        </div>
-        
-        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 text-amber-900 dark:text-amber-200 rounded-lg p-4 text-left text-sm flex flex-col gap-2">
-          <p className="font-bold flex items-center gap-1">⚠️ IMPORTANTE:</p>
-          <ul className="list-disc pl-5 flex flex-col gap-1">
-            <li>Una vez que hagas clic en &quot;Iniciar Examen&quot;, el cronómetro comenzará a correr y no podrá pausarse.</li>
-            <li>Al terminarse el tiempo, tus respuestas se guardarán y enviarán automáticamente.</li>
-            <li>Asegúrate de tener buena conexión y terminar antes de que el reloj llegue a cero.</li>
-          </ul>
-        </div>
-
-        {error && <div className="alert alert-danger">{error}</div>}
-
-        <button 
-          onClick={handleStartExam} 
-          disabled={startingExam}
-          className="btn btn-primary w-full py-3 text-base flex justify-center items-center gap-2"
-        >
-          {startingExam ? <Loader2 className="animate-spin" size={20} /> : "Iniciar Examen"}
-        </button>
-      </div>
-    );
-  }
-
-  // Google Forms check and embed URL preparation
+  const { activeDeadline, isClosed: isSubmissionBlocked, isLate: isOverdue } = getTaskDeadlineStatus(task, submission);
   const isGoogleForm = task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle"));
-  let embedUrl = task.attachmentUrl || "";
-  if (isGoogleForm && embedUrl && studentName) {
-    embedUrl = embedUrl.replace("_ESTUDIANTE_", encodeURIComponent(studentName));
-    embedUrl = embedUrl.replace("__ESTUDIANTE__", encodeURIComponent(studentName));
-  }
+  
+  const teacherName = task.course?.teacher?.name || "Docente";
+  const initials = teacherName.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase();
+
+  const canEditOrDelete = !isGraded && !isSubmissionBlocked && !isTimerExpired && !task.isExternal && !isGoogleForm;
 
   return (
-    <div className="animate-fade-in max-w-3xl mx-auto">
-      <div className="flex items-center gap-4 mb-6">
+    <div className="animate-fade-in max-w-4xl mx-auto px-4 py-6">
+      {/* Title section with pink icon */}
+      <div className="flex items-start gap-4 mb-6">
         <Link
           href={task?.courseId ? `/estudiante/cursos/${task.courseId}/tareas?estado=${submission && submission.status !== "PENDING" ? "entregadas" : "pendientes"}` : "/estudiante"}
-          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+          className="p-2 rounded-full hover:bg-gray-100 transition-colors mt-1 animate-scale-in"
         >
           <ArrowLeft size={24} />
         </Link>
-        <div>
-          <h1 className="text-2xl font-bold">{task.title}</h1>
-          <p className="text-muted text-sm">Vence: {formatToColombiaString(task.dueDate)}</p>
+        <div className="flex items-start gap-4 flex-1">
+          <div className="flex items-center justify-center w-12 h-12 rounded-lg border-2 border-[#f012be] bg-white text-[#f012be] shrink-0 shadow-sm mt-1 animate-scale-in">
+            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+              <polyline points="10 9 9 9 8 9" />
+            </svg>
+          </div>
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 uppercase leading-none">{task.title}</h1>
+            <p className="text-muted text-sm mt-1">Vence: {formatToColombiaString(task.dueDate)}</p>
+          </div>
         </div>
       </div>
 
@@ -292,22 +356,23 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
         </div>
       )}
 
-      <div className="card mb-6">
-        <h2 className="text-lg font-bold mb-2">Instrucciones</h2>
-        <p className="whitespace-pre-wrap mb-4" style={{ color: "var(--text-secondary)" }}>
+      {/* Instructions Card & Teacher Uploaded Attachment */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+        <h2 className="text-lg font-bold mb-3 text-gray-900">Instrucciones</h2>
+        <p className="whitespace-pre-wrap text-gray-700 text-sm mb-4 leading-relaxed">
           {task.description
             ? task.description.replace(/Importado desde Excel\s*([—–-]\s*columna\s*[A-Z]+)?/gi, "").trim()
             : ""}
         </p>
 
         {task.resources && task.resources.length > 0 && (
-          <div className="mb-4 border-t pt-4" style={{ borderColor: "var(--border-color)" }}>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted mb-2">Materiales y Recursos Vinculados</h3>
+          <div className="mb-4 border-t pt-4 border-gray-100">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Materiales y Recursos Vinculados</h3>
             <div className="flex flex-col gap-2">
               {task.resources.map((r: any) => (
-                <div key={r.id} className="flex items-center gap-2 p-2.5 border rounded-lg bg-slate-50 dark:bg-slate-900/40 text-sm" style={{ borderColor: "var(--border-color)" }}>
-                  <span className="text-base">{r.type === "PDF" ? "📄" : r.type === "WORD" ? "📝" : r.type === "PPT" ? "📊" : r.type === "IMAGE" ? "🖼️" : r.type === "VIDEO" ? "🎬" : r.type === "LINK" ? "🔗" : "📋"}</span>
-                  <span className="font-semibold flex-1">{r.title}</span>
+                <div key={r.id} className="flex items-center gap-2.5 p-2.5 border rounded-lg bg-gray-50 text-sm border-gray-200">
+                  <span className="text-base">{getFileIcon(r.url)}</span>
+                  <span className="font-semibold text-gray-700 flex-1">{r.title}</span>
                   <a
                     href={r.url}
                     target="_blank"
@@ -322,195 +387,280 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
           </div>
         )}
 
-        {/* Normal file link if it is not embedded as Google Form */}
+        {/* Normal file link styled in Moodle style */}
         {task.attachmentUrl && !isGoogleForm && (
-          <div className="flex items-center gap-3 p-4 border rounded-md" style={{ borderColor: "var(--border-color)", background: "var(--bg-primary)" }}>
-            <FileText className="text-[#f98012]" size={32} />
-            <div>
-              <p className="font-medium">Guía / Archivo Adjunto</p>
-              <p className="text-xs text-muted">Subido por el docente</p>
-            </div>
+          <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg flex items-center gap-3">
+            <span className="text-xl shrink-0">{getFileIcon(task.attachmentUrl)}</span>
             <a 
               href={task.attachmentUrl} 
               target="_blank"
-              download
-              className="btn btn-secondary ml-auto"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 hover:underline font-medium text-sm break-all"
             >
-              Descargar Guía
+              {getFileNameFromUrl(task.attachmentUrl)}
             </a>
+            <span className="text-gray-500 text-xs ml-auto shrink-0">
+              {formatMoodleDate(task.createdAt || task.updatedAt)}
+            </span>
           </div>
         )}
       </div>
 
-      {/* Exam Iframe or normal upload area */}
-      {isGoogleForm ? (
-        <div className="card mb-6 flex flex-col gap-4">
-          <h2 className="text-lg font-bold">Examen en Línea</h2>
-          <div className="relative border rounded-lg overflow-hidden bg-white" style={{ height: "650px", borderColor: "var(--border-color)" }}>
-            {isTimerExpired || (timeLeft !== null && timeLeft <= 0) ? (
-              <div className="absolute inset-0 bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-6 text-center">
-                <AlertTriangle className="text-red-500 mb-4 animate-bounce" size={48} />
-                <h3 className="text-xl font-bold text-red-600">Tiempo Expirado</h3>
-                <p className="text-muted mt-2 max-w-md">
-                  El tiempo límite para completar este examen ha finalizado y el formulario ha sido bloqueado. Tus respuestas parciales se han registrado.
-                </p>
-              </div>
-            ) : isSubmitted ? (
-              <div className="absolute inset-0 bg-green-50 dark:bg-green-950/20 flex flex-col items-center justify-center p-6 text-center">
-                <CheckCircle className="text-green-500 mb-4" size={48} />
-                <h3 className="text-xl font-bold text-green-600">Examen Entregado</h3>
-                <p className="text-muted mt-2 max-w-md">
-                  Has completado y entregado este examen con éxito.
-                </p>
-              </div>
-            ) : (
-              <iframe
-                src={embedUrl}
-                className="w-full h-full"
-                frameBorder="0"
-                marginHeight={0}
-                marginWidth={0}
-              >
-                Cargando formulario...
-              </iframe>
-            )}
-          </div>
+      {/* Editing / Uploading form */}
+      {isEditing ? (
+        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6 shadow-sm animate-scale-in">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Subir archivo de entrega</h2>
+          
+          {error && (
+            <div className="flex items-center gap-3 p-4 border border-red-200 bg-red-50 rounded-xl text-red-900 mb-4 animate-scale-in">
+              <AlertTriangle className="text-red-600 flex-shrink-0" size={20} />
+              <div className="flex-1 text-sm font-medium">{error}</div>
+            </div>
+          )}
 
-          {!isSubmitted && !isTimerExpired && (
-            <div className="flex justify-between items-center mt-2 border-t pt-4" style={{ borderColor: "var(--border-color)" }}>
-              <p className="text-xs text-muted">⚠️ Recuerda dar clic en &quot;Enviar&quot; dentro de Google Forms antes de dar clic aquí.</p>
+          <form onSubmit={handleUpload} className="flex flex-col gap-4">
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:bg-gray-50 transition-colors">
+              <UploadCloud size={48} className="mx-auto mb-4 text-[#f98012]" />
+              <label htmlFor="file-upload" className="cursor-pointer">
+                <span className="btn btn-secondary mx-auto mb-2 inline-flex">Seleccionar Archivo</span>
+                <input 
+                  id="file-upload" 
+                  type="file" 
+                  className="hidden" 
+                  onChange={handleFileChange} 
+                />
+              </label>
+              <p className="text-sm text-gray-555 mt-2">
+                {file ? file.name : "Soporta PDF, DOCX, Imágenes y archivos comprimidos."}
+              </p>
+            </div>
+
+            <div className="flex gap-3 justify-end mt-2">
               <button 
-                onClick={handleMarkAsFinished} 
+                type="button" 
+                onClick={() => { setIsEditing(false); setFile(null); setError(""); }} 
+                className="px-4 py-2 border border-gray-300 rounded text-gray-700 text-sm hover:bg-gray-50 font-medium transition-colors"
                 disabled={loading}
-                className="btn btn-primary flex items-center gap-2 py-2.5 px-6"
               >
-                {loading ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />}
-                Finalizar y Entregar Examen
+                Cancelar
+              </button>
+              <button 
+                type="submit" 
+                className="px-4 py-2 bg-[#f98012] hover:bg-[#e06d09] text-white font-medium text-sm rounded flex items-center gap-2 transition-colors"
+                disabled={loading}
+              >
+                {loading ? <Loader2 className="animate-spin" size={16} /> : null}
+                Guardar cambios
               </button>
             </div>
-          )}
+          </form>
         </div>
       ) : (
-        <div className="card" style={{ borderTop: isGraded ? '4px solid var(--success)' : isSubmitted ? '4px solid var(--primary-color)' : '4px solid var(--border-color)' }}>
-          <h2 className="text-lg font-bold mb-4">Tu Entrega</h2>
-
-          {isGraded && (
-            <div className={`${gradeReason ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'} border rounded-lg p-4 mb-6`}>
-              <h3 className={`font-bold mb-1 flex items-center gap-2 ${gradeReason ? 'text-red-800' : 'text-green-800'}`}>
-                {gradeReason ? <AlertTriangle size={18} /> : <CheckCircle size={18} />}
-                {gradeReason ? gradeReason : 'Tarea Calificada'}
-              </h3>
-              {gradeReason && (
-                <p className="text-sm text-red-700 mb-2">Se ha asignado la nota mínima (1.0) de forma automática.</p>
-              )}
-              <p className={`text-2xl font-black my-2 ${gradeReason ? 'text-red-700' : 'text-green-700'}`}>
-                Nota: {submission.grade !== null && submission.grade !== undefined ? Math.max(1.0, Number(submission.grade)).toFixed(1) : submission.grade}
-              </p>
-              {submission.feedback && (
-                <div className={`mt-2 ${gradeReason ? 'text-red-900' : 'text-green-900'}`}>
-                  <strong>Comentario del docente:</strong>
-                  <p className="italic mt-1">&quot;{submission.feedback}&quot;</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {isSubmitted && !isGoogleForm && !task.isExternal && (
-            <div className="flex items-center gap-3 p-4 border rounded-md mb-6" style={{ borderColor: "var(--border-color)" }}>
-              <FileText className="text-[#f98012]" size={32} />
-              <div>
-                <p className="font-medium">Archivo entregado</p>
-                <p className="text-sm text-muted">Enviado el {formatToColombiaString(submission.submittedAt)}</p>
-              </div>
-              {submission.fileUrl && (
-                <a 
-                  href={submission.fileUrl} 
-                  target="_blank"
-                  download
-                  className="btn btn-secondary ml-auto"
-                >
-                  Descargar
-                </a>
-              )}
-            </div>
-          )}
-
-          {task.isExternal ? (
-            !isGraded && (
-              <div className="flex flex-col items-center justify-center py-8 text-center gap-3">
-                <Clock size={36} className="text-muted opacity-40" />
-                <p className="text-muted text-sm">La calificación para esta tarea entregada al docente aún no ha sido registrada.</p>
-              </div>
-            )
-          ) : (
-            !isGraded && !isGoogleForm && (
-              isSubmissionBlocked || isTimerExpired ? (
-                <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-lg p-4 text-red-800 dark:text-red-350 flex flex-col gap-2">
-                  <h3 className="font-bold flex items-center gap-2">
-                    <Clock size={18} /> Plazo de Entrega Vencido / Tiempo Agotado
-                  </h3>
-                  <p className="text-sm">
-                    El tiempo límite ha expirado o el plazo original ha vencido. La entrega se ha deshabilitado.
-                  </p>
-                </div>
-              ) : (
-                <form onSubmit={handleUpload} className="flex flex-col gap-4">
-                  {isOverdue && (
-                    <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-indigo-900/50 rounded-lg p-4 text-[#7c3d00] dark:text-[#f98012] flex flex-col gap-1">
-                      <h3 className="font-bold flex items-center gap-2 text-sm">
-                        <Clock size={16} className="text-[#f98012] dark:text-[#f98012]" />
-                        Plazo Extemporáneo Activo
-                      </h3>
-                      <p className="text-xs">
-                        El plazo de entrega original ha vencido, pero tienes permiso para entregar tu tarea tarde
-                        {activeExtensionDate ? ` hasta el ${formatToColombiaString(activeExtensionDate)}.` : " sin límite de tiempo definido."}
-                      </p>
-                    </div>
-                  )}
-                  {error && (
-                    errorType === "warning" ? (
-                      <div className="flex items-center gap-3 p-4 border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 rounded-xl text-amber-900 dark:text-amber-200 animate-scale-in">
-                        <AlertTriangle className="text-amber-600 dark:text-amber-400 flex-shrink-0" size={20} />
-                        <div className="flex-1 text-sm font-medium">
-                          {error}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-3 p-4 border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/20 rounded-xl text-red-900 dark:text-red-200 animate-scale-in">
-                        <AlertTriangle className="text-red-600 dark:text-red-400 flex-shrink-0" size={20} />
-                        <div className="flex-1 text-sm font-medium">
-                          {error}
-                        </div>
-                      </div>
-                    )
-                  )}
-                  
-                  <div className="border-2 border-dashed rounded-lg p-8 text-center hover:bg-gray-50 transition-colors" style={{ borderColor: 'var(--primary-color)' }}>
-                    <UploadCloud size={48} className="mx-auto mb-4" style={{ color: 'var(--primary-color)' }} />
-                    <label htmlFor="file-upload" className="cursor-pointer">
-                      <span className="btn btn-secondary mx-auto mb-2 inline-flex">Seleccionar Archivo</span>
-                      <input 
-                        id="file-upload" 
-                        type="file" 
-                        className="hidden" 
-                        onChange={handleFileChange} 
-                      />
-                    </label>
-                    <p className="text-sm text-muted mt-2">
-                      {file ? file.name : "Soporta PDF, DOCX, Imágenes y archivos comprimidos."}
-                    </p>
-                  </div>
-
-                  <button type="submit" className="btn btn-primary mt-2" disabled={loading}>
-                    {loading ? <Loader2 className="animate-spin" size={20} /> : (isSubmitted ? "Reemplazar Entrega" : "Enviar Tarea")}
+        <>
+          {/* Action buttons (Moodle styled, light grey, under file guide) */}
+          {canEditOrDelete && (
+            <div className="flex items-center gap-3 mb-6">
+              {isSubmitted ? (
+                <>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 border border-gray-300 text-gray-800 font-semibold text-sm rounded transition-colors cursor-pointer"
+                  >
+                    Editar entrega
                   </button>
-                </form>
-              )
-            )
+                  <button
+                    onClick={handleDelete}
+                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 border border-gray-300 text-gray-800 font-semibold text-sm rounded transition-colors cursor-pointer"
+                  >
+                    Borrar entrega
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="px-4 py-2 bg-[#f98012] hover:bg-[#e06d09] text-white font-semibold text-sm rounded shadow-sm transition-colors cursor-pointer"
+                >
+                  Agregar entrega
+                </button>
+              )}
+            </div>
           )}
-        </div>
+
+          {/* Submission status table */}
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden mb-8 shadow-sm">
+            <div className="p-4 bg-gray-50 border-b border-gray-200">
+              <h2 className="text-xl font-bold text-gray-900 leading-tight">Estado de la entrega</h2>
+            </div>
+            <table className="w-full border-collapse text-left text-sm text-gray-700">
+              <tbody>
+                {/* Estado de la entrega */}
+                <tr className="border-b border-gray-100">
+                  <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Estado de la entrega</td>
+                  <td className="p-4 align-middle">
+                    {isSubmitted ? (
+                      <span className="px-3 py-1 bg-[#d4edda] text-[#155724] rounded-sm text-xs font-semibold uppercase">
+                        Enviado para calificar
+                      </span>
+                    ) : (
+                      <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-sm text-xs font-semibold uppercase">
+                        No entregado
+                      </span>
+                    )}
+                  </td>
+                </tr>
+                
+                {/* Estado de la calificación */}
+                <tr className="border-b border-gray-100">
+                  <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Estado de la calificación</td>
+                  <td className="p-4 align-middle">
+                    {isGraded ? (
+                      <span className="px-3 py-1 bg-[#d4edda] text-[#155724] rounded-sm text-xs font-semibold uppercase">
+                        Calificado
+                      </span>
+                    ) : (
+                      <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-sm text-xs font-semibold uppercase">
+                        Sin calificar
+                      </span>
+                    )}
+                  </td>
+                </tr>
+                
+                {/* Última modificación */}
+                <tr className="border-b border-gray-100">
+                  <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Última modificación</td>
+                  <td className="p-4 align-middle">
+                    {submission?.submittedAt ? formatMoodleDate(submission.submittedAt, true) : "-"}
+                  </td>
+                </tr>
+                
+                {/* Archivos enviados */}
+                {!isGoogleForm && !task.isExternal && (
+                  <tr className="border-b border-gray-100">
+                    <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Archivos enviados</td>
+                    <td className="p-4 align-middle">
+                      {submission?.fileUrl ? (
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <span className="text-xl shrink-0">{getFileIcon(submission.fileUrl)}</span>
+                          <a 
+                            href={submission.fileUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="text-blue-600 hover:text-blue-800 hover:underline font-semibold"
+                          >
+                            {getFileNameFromUrl(submission.fileUrl)}
+                          </a>
+                          <span className="text-gray-400 text-xs shrink-0">
+                            {formatMoodleDate(submission.submittedAt)}
+                          </span>
+                        </div>
+                      ) : "-"}
+                    </td>
+                  </tr>
+                )}
+
+                {/* Comentarios de la entrega */}
+                <tr>
+                  <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Comentarios de la entrega</td>
+                  <td className="p-4 align-middle">
+                    <details className="group cursor-pointer">
+                      <summary className="text-blue-600 hover:underline flex items-center gap-1 font-medium list-none select-none">
+                        <span className="inline-block transition-transform duration-200 group-open:rotate-90 text-[10px]">▶</span>
+                        Comentarios (0)
+                      </summary>
+                      <p className="text-gray-400 text-xs mt-2 pl-4 cursor-default">No hay comentarios en esta entrega.</p>
+                    </details>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Overdue/Closed/Grace messages if not submitted */}
+          {!isSubmitted && (isSubmissionBlocked || isTimerExpired) && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800 flex flex-col gap-1 mb-8 animate-scale-in">
+              <h3 className="font-bold flex items-center gap-2">
+                <Clock size={18} /> Plazo de Entrega Vencido / Tiempo Agotado
+              </h3>
+              <p className="text-sm">
+                El tiempo límite ha expirado o el plazo original ha vencido. La entrega se ha deshabilitado.
+              </p>
+            </div>
+          )}
+
+          {!isSubmitted && isOverdue && !isSubmissionBlocked && !isTimerExpired && (
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 text-[#7c3d00] flex flex-col gap-1 mb-8 animate-scale-in">
+              <h3 className="font-bold flex items-center gap-2 text-sm">
+                <Clock size={16} className="text-[#f98012]" />
+                Plazo Extemporáneo Activo
+              </h3>
+              <p className="text-xs">
+                El plazo de entrega original ha vencido, pero tienes permiso para entregar tu tarea tarde hasta el {formatToColombiaString(activeDeadline)}.
+              </p>
+            </div>
+          )}
+
+          {/* Feedback/Grading section ("Comentario") */}
+          {isGraded && (
+            <div className="mt-10 animate-fade-in">
+              <div className="p-1 mb-4">
+                <h2 className="text-2xl font-bold text-gray-900 leading-tight">Comentario</h2>
+              </div>
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+                <table className="w-full border-collapse text-left text-sm text-gray-700">
+                  <tbody>
+                    {/* Calificación */}
+                    <tr className="border-b border-gray-100">
+                      <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Calificación</td>
+                      <td className="p-4 align-middle font-bold text-gray-950 text-base">
+                        {submission.grade !== null && submission.grade !== undefined 
+                          ? `${Math.max(1.0, Number(submission.grade)).toFixed(2).replace('.', ',')} / 5,00` 
+                          : "-"}
+                      </td>
+                    </tr>
+                    
+                    {/* Calificado sobre */}
+                    <tr className="border-b border-gray-100">
+                      <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Calificado sobre</td>
+                      <td className="p-4 align-middle">
+                        {submission.updatedAt ? formatMoodleDate(submission.updatedAt, true) : "-"}
+                      </td>
+                    </tr>
+                    
+                    {/* Calificado por */}
+                    <tr className="border-b border-gray-100">
+                      <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Calificado por</td>
+                      <td className="p-4 align-middle">
+                        <div className="flex items-center gap-2.5">
+                          {task.course?.teacher?.profilePic ? (
+                            <img 
+                              src={task.course.teacher.profilePic} 
+                              alt={teacherName} 
+                              className="w-8 h-8 rounded-full object-cover shadow-sm border border-gray-200"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-[#e9ecef] text-[#495057] font-semibold flex items-center justify-center text-xs uppercase shadow-sm border border-gray-300">
+                              {initials}
+                            </div>
+                          )}
+                          <span className="text-gray-800 font-semibold">{teacherName}</span>
+                        </div>
+                      </td>
+                    </tr>
+                    
+                    {/* Comentarios de retroalimentación */}
+                    <tr>
+                      <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Comentarios de retroalimentación</td>
+                      <td className="p-4 align-middle text-gray-800 whitespace-pre-wrap leading-relaxed">
+                        {submission.feedback || "Excelente actividad"}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
 }
-

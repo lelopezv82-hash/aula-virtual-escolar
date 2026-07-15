@@ -247,3 +247,74 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Error interno del servidor al subir archivo' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth_token")?.value;
+    
+    if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    if (payload.role !== "STUDENT") {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
+    const studentId = payload.id as string;
+    const { searchParams } = new URL(request.url);
+    const taskId = searchParams.get('taskId');
+
+    if (!taskId) {
+      return NextResponse.json({ error: 'Falta taskId' }, { status: 400 });
+    }
+
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      include: {
+        submissions: {
+          where: { studentId }
+        }
+      }
+    });
+
+    if (!task) {
+      return NextResponse.json({ error: 'Tarea no encontrada' }, { status: 404 });
+    }
+
+    const submission = task.submissions[0];
+    if (!submission) {
+      return NextResponse.json({ error: 'No existe una entrega para eliminar' }, { status: 404 });
+    }
+
+    if (submission.status === "GRADED") {
+      return NextResponse.json({ error: 'No puedes eliminar una entrega calificada' }, { status: 400 });
+    }
+
+    const { isClosed } = getTaskDeadlineStatus(task, submission);
+    if (isClosed) {
+      return NextResponse.json({ error: 'El plazo de entrega ha vencido, no puedes eliminar la entrega' }, { status: 400 });
+    }
+
+    // If it's a timed exam that has been started, don't allow deleting the submission entirely (it would reset their attempt/timer).
+    // Instead, just clear the file if there is one, or return an error if it's not allowed.
+    if (task.duration && submission.startedAt) {
+      await prisma.submission.update({
+        where: { id: submission.id },
+        data: {
+          fileUrl: null,
+          submittedAt: null,
+          status: "PENDING"
+        }
+      });
+    } else {
+      await prisma.submission.delete({
+        where: { id: submission.id }
+      });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error in submission delete:', error);
+    return NextResponse.json({ error: 'Error interno del servidor al eliminar la entrega' }, { status: 500 });
+  }
+}

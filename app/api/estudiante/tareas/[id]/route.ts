@@ -35,6 +35,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       include: {
         groups: true,
         resources: true,
+        course: {
+          include: {
+            teacher: {
+              select: {
+                id: true,
+                name: true,
+                profilePic: true
+              }
+            }
+          }
+        },
         questions: {
           orderBy: { order: 'asc' },
           include: {
