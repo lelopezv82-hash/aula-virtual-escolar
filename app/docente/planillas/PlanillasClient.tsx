@@ -150,7 +150,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [newTaskDuration, setNewTaskDuration] = useState("");
   const [newTaskWeight, setNewTaskWeight] = useState("0");
   const [newTaskGroupIds, setNewTaskGroupIds] = useState<string[]>([]);
-  const [newTaskTheme, setNewTaskTheme] = useState("");
+  const [newTaskSelectedThemes, setNewTaskSelectedThemes] = useState<string[]>([]);
+  const [planillasThemes, setPlanillasThemes] = useState<{id: string, title: string}[]>([]);
   const [newTaskPublishAt, setNewTaskPublishAt] = useState("");
   const [newTaskAllowLateSubmission, setNewTaskAllowLateSubmission] = useState(false);
   const [newTaskExternalUrl, setNewTaskExternalUrl] = useState("");
@@ -487,18 +488,19 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     setNewTaskDuration("");
     setNewTaskWeight("0");
     setNewTaskGroupIds(selectedGroupId ? [selectedGroupId] : []);
-    setNewTaskTheme(
-      type === "EXAM" ? "Saber" :
-      type === "TASK" ? "Hacer" :
-      type === "SER" ? "Ser" :
-      type === "FINAL" ? "Examen Final" : "Asistencia"
+    // default theme pre-selection by type
+    setNewTaskSelectedThemes(
+      type === "EXAM" ? ["Saber"] :
+      type === "TASK" ? ["Hacer"] :
+      type === "SER" ? ["Ser"] :
+      type === "FINAL" ? ["Examen Final"] : []
     );
     setNewTaskPublishAt("");
     setNewTaskAllowLateSubmission(false);
     setNewTaskExternalUrl("");
     setNewTaskFile(null);
     setNewTaskResourceIds([]);
-    // Fetch resources for the selected course
+    // Fetch resources and themes for the selected course
     if (selectedCourseId) {
       setLoadingResources(true);
       fetch(`/api/docente/recursos?courseId=${selectedCourseId}`)
@@ -506,6 +508,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         .then(d => { if (d.resources) setModalResources(d.resources); })
         .catch(() => {})
         .finally(() => setLoadingResources(false));
+      fetch(`/api/docente/temas?courseId=${selectedCourseId}`)
+        .then(r => r.json())
+        .then(d => { if (d.themes) setPlanillasThemes(d.themes); })
+        .catch(() => {});
     }
   };
 
@@ -521,10 +527,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     
     if (addModal.type === "SER") {
       fd.append("isExternal", "true");
-      fd.append("theme", "Actitudinal");
+      fd.append("theme", JSON.stringify(["Actitudinal"]));
     } else {
       fd.append("isExternal", String(newTaskIsExternal));
-      fd.append("theme", newTaskTheme.trim());
+      fd.append("theme", JSON.stringify(newTaskSelectedThemes));
     }
 
     if (newTaskDuration) fd.append("duration", newTaskDuration);
@@ -577,13 +583,17 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       setNewTaskDuration(t.duration ? String(t.duration) : "");
       setNewTaskWeight(t.weight != null ? String(t.weight) : "0");
       setNewTaskGroupIds((t.groups || []).map((g: any) => g.id));
-      setNewTaskTheme(t.theme || "");
+      setNewTaskSelectedThemes(
+        t.themes && t.themes.length > 0
+          ? t.themes.map((th: any) => th.title)
+          : (t.theme ? [t.theme] : [])
+      );
       setNewTaskPublishAt(toLocal(t.publishAt));
       setNewTaskAllowLateSubmission(!!t.allowLateSubmission);
       setNewTaskExternalUrl(t.attachmentUrl || "");
       setNewTaskFile(null);
       setNewTaskResourceIds((t.resources || []).map((r: any) => r.id));
-      // Fetch available resources for course
+      // Fetch available resources and themes for course
       if (selectedCourseId) {
         setLoadingResources(true);
         fetch(`/api/docente/recursos?courseId=${selectedCourseId}`)
@@ -591,6 +601,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           .then(d => { if (d.resources) setModalResources(d.resources); })
           .catch(() => {})
           .finally(() => setLoadingResources(false));
+        fetch(`/api/docente/temas?courseId=${selectedCourseId}`)
+          .then(r => r.json())
+          .then(d => { if (d.themes) setPlanillasThemes(d.themes); })
+          .catch(() => {});
       }
     } catch { alert("Error de conexión."); }
     setLoadingEdit(false);
@@ -2230,15 +2244,32 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     />
                   </div>
                   <div className="input-group">
-                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Tema *</label>
-                    <input
-                      type="text"
-                      placeholder="Ej. Dinámica, Termodinámica"
-                      value={newTaskTheme}
-                      onChange={e => setNewTaskTheme(e.target.value)}
-                      className="input-field w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
-                      required
-                    />
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Temas Asociados</label>
+                    <div className="border rounded-lg p-2 max-h-[90px] overflow-y-auto flex flex-col gap-1.5 bg-slate-50 dark:bg-slate-900" style={{ borderColor: "var(--border-color)" }}>
+                      {[...planillasThemes].sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: "base" })).map(t => {
+                        const isChecked = newTaskSelectedThemes.includes(t.title);
+                        return (
+                          <label key={t.id} className="flex items-center gap-2 text-[11px] font-bold cursor-pointer hover:text-primary">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                setNewTaskSelectedThemes(isChecked
+                                  ? newTaskSelectedThemes.filter(title => title !== t.title)
+                                  : [...newTaskSelectedThemes, t.title]
+                                );
+                              }}
+                              className="rounded w-3.5 h-3.5"
+                              style={{ accentColor: "#f98012" }}
+                            />
+                            <span>{t.title}</span>
+                          </label>
+                        );
+                      })}
+                      {planillasThemes.length === 0 && (
+                        <span className="text-[10px] text-gray-400 italic">No hay temas creados en esta asignatura.<br/>Créalos desde Gestión de Contenido.</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
