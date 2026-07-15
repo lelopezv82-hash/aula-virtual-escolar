@@ -29,9 +29,8 @@ export default async function CursoDescripcionPage({
   });
   const studentGroupId = studentRecord?.groupId || null;
 
-  // Get active periods sorted
+  // Get active periods
   const periodsDb = await prisma.period.findMany({ where: { active: true } });
-  periodsDb.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
   const activePeriodNames = periodsDb.map(p => p.name);
 
   const now = new Date();
@@ -47,7 +46,7 @@ export default async function CursoDescripcionPage({
     orderBy: { createdAt: "asc" },
   });
 
-  // Fetch tasks and exams
+  // Fetch tasks and exams (only from active periods)
   const tasks = await prisma.task.findMany({
     where: {
       courseId: id,
@@ -60,14 +59,30 @@ export default async function CursoDescripcionPage({
     orderBy: { dueDate: "asc" },
   });
 
-  // Build sections per period
-  const sections = activePeriodNames.map((periodName, idx) => {
-    const periodResources = resources
-      .filter(r => r.period === periodName)
+  // Collect all unique themes (preserving order of first appearance)
+  const themeOrder: string[] = [];
+  const seenThemes = new Set<string>();
+
+  for (const r of resources) {
+    const t = r.theme?.trim() || "";
+    if (t && !seenThemes.has(t)) { seenThemes.add(t); themeOrder.push(t); }
+  }
+  for (const t of tasks) {
+    const th = t.theme?.trim() || "";
+    if (th && !seenThemes.has(th)) { seenThemes.add(th); themeOrder.push(th); }
+  }
+
+  // Sort themes naturally (Tema 1, Tema 2, Actividad I, Actividad II, etc.)
+  themeOrder.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+  // Build sections by theme
+  const sections = themeOrder.map((theme, idx) => {
+    const sectionResources = resources
+      .filter(r => r.theme?.trim() === theme)
       .map(r => ({ id: r.id, title: r.title, type: r.type, url: r.url }));
 
-    const periodTasks = tasks
-      .filter(t => t.period === periodName)
+    const sectionTasks = tasks
+      .filter(t => t.theme?.trim() === theme)
       .map(t => {
         const submission = t.submissions[0];
         const isSubmitted = !!(submission && submission.status !== "PENDING");
@@ -78,28 +93,23 @@ export default async function CursoDescripcionPage({
           type: t.type,
           dueDate: t.dueDate.toISOString(),
           publishAt: t.publishAt ? t.publishAt.toISOString() : null,
+          description: t.description || null,
           isSubmitted,
           isGraded,
           grade: isGraded && submission?.grade != null ? Number(submission.grade) : null,
         };
       });
 
-    return {
-      key: periodName,
-      title: `${periodName}`,
-      resources: periodResources,
-      tasks: periodTasks,
-      defaultOpen: idx === 0,
-    };
+    return { theme, sectionResources, sectionTasks, defaultOpen: idx === 0 };
   });
 
-  // Items without a period (general section)
+  // Items without a theme — show as "General" section
   const generalResources = resources
-    .filter(r => !r.period || !activePeriodNames.includes(r.period))
+    .filter(r => !r.theme?.trim())
     .map(r => ({ id: r.id, title: r.title, type: r.type, url: r.url }));
 
   const generalTasks = tasks
-    .filter(t => !t.period || !activePeriodNames.includes(t.period))
+    .filter(t => !t.theme?.trim())
     .map(t => {
       const submission = t.submissions[0];
       const isSubmitted = !!(submission && submission.status !== "PENDING");
@@ -110,6 +120,7 @@ export default async function CursoDescripcionPage({
         type: t.type,
         dueDate: t.dueDate.toISOString(),
         publishAt: t.publishAt ? t.publishAt.toISOString() : null,
+        description: t.description || null,
         isSubmitted,
         isGraded,
         grade: isGraded && submission?.grade != null ? Number(submission.grade) : null,
@@ -120,26 +131,26 @@ export default async function CursoDescripcionPage({
 
   return (
     <div>
-      {/* General section (no period) */}
+      {/* Theme sections */}
+      {sections.map((s, idx) => (
+        <MoodleSection
+          key={s.theme}
+          title={s.theme}
+          resources={s.sectionResources}
+          tasks={s.sectionTasks}
+          defaultOpen={idx === 0 && !hasGeneral}
+        />
+      ))}
+
+      {/* General section (items without theme) */}
       {hasGeneral && (
         <MoodleSection
           title="General"
           resources={generalResources}
           tasks={generalTasks}
-          defaultOpen={true}
+          defaultOpen={sections.length === 0}
         />
       )}
-
-      {/* Period sections */}
-      {sections.map((s, idx) => (
-        <MoodleSection
-          key={s.key}
-          title={s.title}
-          resources={s.resources}
-          tasks={s.tasks}
-          defaultOpen={idx === 0 && !hasGeneral}
-        />
-      ))}
 
       {sections.length === 0 && !hasGeneral && (
         <div style={{

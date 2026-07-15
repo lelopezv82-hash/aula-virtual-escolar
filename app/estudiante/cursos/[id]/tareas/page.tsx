@@ -67,6 +67,7 @@ export default async function CursoTareasPage({
 
   return (
     <div>
+      <style>{`.moodle-link:hover { text-decoration: underline !important; }`}</style>
       {/* Moodle-style page header */}
       <h2 style={{
         fontSize: "1.5rem",
@@ -150,14 +151,13 @@ export default async function CursoTareasPage({
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <Link
                     href={`/estudiante/tareas/${task.id}`}
+                    className="moodle-link"
                     style={{
                       fontWeight: 600,
                       fontSize: "0.95rem",
                       color: "#0066cc",
                       textDecoration: "none",
                     }}
-                    onMouseOver={e => (e.currentTarget.style.textDecoration = "underline")}
-                    onMouseOut={e => (e.currentTarget.style.textDecoration = "none")}
                   >
                     {task.title}
                   </Link>
