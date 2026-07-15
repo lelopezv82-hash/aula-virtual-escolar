@@ -42,6 +42,34 @@ export async function POST(request: Request) {
     const courseId = formData.get('courseId') as string;
     const title = formData.get('title') as string;
     const type = formData.get('type') as string;
+
+    if (type === "THEME") {
+      if (!courseId || !title) {
+        return NextResponse.json({ error: 'Faltan datos obligatorios (título y asignatura)' }, { status: 400 });
+      }
+      const course = await prisma.course.findFirst({
+        where: { id: courseId, teacherId },
+        include: { groups: true }
+      });
+      if (!course) {
+        return NextResponse.json({ error: 'Curso no encontrado o no te pertenece' }, { status: 403 });
+      }
+      const resource = await prisma.resource.create({
+        data: {
+          title,
+          type,
+          url: "#",
+          courseId,
+          theme: title,
+          period: "General",
+          groups: {
+            connect: course.groups.map(g => ({ id: g.id }))
+          }
+        }
+      });
+      return NextResponse.json({ success: true, resource });
+    }
+
     const link = formData.get('link') as string | null;
     const file = formData.get('file') as File | null;
     const theme = formData.get('theme') as string | null;

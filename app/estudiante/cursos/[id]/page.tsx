@@ -8,122 +8,6 @@ const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-sec
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// High-fidelity Moodle example sections from screenshot
-const exampleSections = [
-  {
-    title: "Tema 1. Fundamentos básicos de la investigación educativa",
-    items: [
-      {
-        isResource: true as const,
-        id: "ex-r1",
-        title: "Diapositivas clase 1",
-        type: "PPTX",
-        url: "#",
-        createdAt: "2025-03-28T22:50:00.000Z"
-      },
-      {
-        isResource: false as const,
-        id: "ex-t1",
-        title: "1. Evaluación",
-        type: "TASK",
-        publishAt: "2025-03-28T23:00:00.000Z",
-        dueDate: "2025-04-04T23:00:00.000Z",
-        description: null,
-        isSubmitted: false,
-        isGraded: false,
-        grade: null,
-        createdAt: "2025-03-28T22:55:00.000Z",
-        attachmentUrl: null,
-        resources: []
-      }
-    ]
-  },
-  {
-    title: "Tema 2. Modelos y enfoques de investigación en educación",
-    items: [
-      {
-        isResource: true as const,
-        id: "ex-r2",
-        title: "Diapositivas segunda clase",
-        type: "PPTX",
-        url: "#",
-        createdAt: "2025-04-07T22:50:00.000Z"
-      },
-      {
-        isResource: false as const,
-        id: "ex-t2",
-        title: "2. Evaluación",
-        type: "TASK",
-        publishAt: "2025-04-07T23:00:00.000Z",
-        dueDate: "2025-04-14T23:00:00.000Z",
-        description: null,
-        isSubmitted: false,
-        isGraded: false,
-        grade: null,
-        createdAt: "2025-04-07T22:55:00.000Z",
-        attachmentUrl: null,
-        resources: []
-      }
-    ]
-  },
-  {
-    title: "Tema 3. Análisis de la realidad social",
-    items: [
-      {
-        isResource: true as const,
-        id: "ex-r3",
-        title: "Diapositivas",
-        type: "PPTX",
-        url: "#",
-        createdAt: "2025-04-16T22:50:00.000Z"
-      },
-      {
-        isResource: false as const,
-        id: "ex-t3",
-        title: "3. Evaluación",
-        type: "TASK",
-        publishAt: "2025-04-16T23:00:00.000Z",
-        dueDate: "2025-04-23T23:00:00.000Z",
-        description: null,
-        isSubmitted: false,
-        isGraded: false,
-        grade: null,
-        createdAt: "2025-04-16T22:55:00.000Z",
-        attachmentUrl: null,
-        resources: []
-      }
-    ]
-  },
-  {
-    title: "Tema 4. Definición de la metodología mixta en la investigación educativa",
-    items: [
-      {
-        isResource: true as const,
-        id: "ex-r4",
-        title: "Diapositivas",
-        type: "PPT",
-        url: "#",
-        createdAt: "2025-04-25T22:50:00.000Z"
-      },
-      {
-        isResource: false as const,
-        id: "ex-t4",
-        title: "4. Evaluación",
-        type: "TASK",
-        publishAt: "2025-04-25T23:00:00.000Z",
-        dueDate: "2025-05-02T23:00:00.000Z",
-        description: null,
-        isSubmitted: false,
-        isGraded: false,
-        grade: null,
-        createdAt: "2025-04-25T22:55:00.000Z",
-        attachmentUrl: null,
-        resources: []
-      }
-    ]
-  }
-];
-
 export default async function CursoDescripcionPage({
   params,
 }: {
@@ -267,45 +151,42 @@ export default async function CursoDescripcionPage({
 
   return (
     <div>
-      {/* ALWAYS render the high-fidelity mock Moodle examples first */}
-      {exampleSections.map((s) => (
-        <MoodleSection
-          key={s.title}
-          title={s.title}
-          items={s.items}
-          defaultOpen={false}
-        />
-      ))}
-
-      {/* If there is real database content, render it below grouped by Theme */}
-      {hasRealContent && (
-        <div style={{ marginTop: "2.5rem", borderTop: "2px dashed #dee2e6", paddingTop: "1.5rem" }}>
-          <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "#495057", marginBottom: "1rem" }}>
-            Contenido de la Asignatura (Plataforma)
-          </h3>
-          {/* Theme sections */}
-          {sortedThemeNames.map((themeName) => {
-            const themeItems = themeMap.get(themeName) || [];
-            return (
-              themeItems.length > 0 && (
-                <MoodleSection
-                  key={themeName}
-                  title={themeName}
-                  items={themeItems}
-                  defaultOpen={false}
-                />
-              )
-            );
-          })}
-
-          {/* General section for items without a theme */}
-          {hasGeneral && (
+      {/* Render theme sections */}
+      {sortedThemeNames.map((themeName) => {
+        const themeItems = themeMap.get(themeName) || [];
+        return (
+          themeItems.length > 0 && (
             <MoodleSection
-              title="General"
-              items={generalItems}
+              key={themeName}
+              title={themeName}
+              items={themeItems}
               defaultOpen={false}
             />
-          )}
+          )
+        );
+      })}
+
+      {/* General section for items without a theme */}
+      {hasGeneral && (
+        <MoodleSection
+          title="General"
+          items={generalItems}
+          defaultOpen={false}
+        />
+      )}
+
+      {/* Empty course state */}
+      {!hasRealContent && (
+        <div style={{
+          background: "#fff",
+          border: "1px solid #dee2e6",
+          borderRadius: "6px",
+          padding: "3rem",
+          textAlign: "center",
+          color: "#6c757d",
+          fontSize: "0.95rem",
+        }}>
+          No hay contenido disponible en este curso todavía.
         </div>
       )}
     </div>
