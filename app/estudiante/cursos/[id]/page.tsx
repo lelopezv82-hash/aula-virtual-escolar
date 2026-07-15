@@ -1,7 +1,7 @@
 import prisma from '@/lib/prisma';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
-import MoodleSection from "./MoodleSection";
+import MoodleSection, { MoodleItem } from "./MoodleSection";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
@@ -12,11 +12,17 @@ export const revalidate = 0;
 const exampleSections = [
   {
     title: "Tema 1. Fundamentos básicos de la investigación educativa",
-    resources: [
-      { id: "ex-r1", title: "Diapositivas clase 1", type: "PPTX", url: "#" }
-    ],
-    tasks: [
+    items: [
       {
+        isResource: true as const,
+        id: "ex-r1",
+        title: "Diapositivas clase 1",
+        type: "PPTX",
+        url: "#",
+        createdAt: "2025-03-28T22:50:00.000Z"
+      },
+      {
+        isResource: false as const,
         id: "ex-t1",
         title: "1. Evaluación",
         type: "TASK",
@@ -25,17 +31,26 @@ const exampleSections = [
         description: null,
         isSubmitted: false,
         isGraded: false,
-        grade: null
+        grade: null,
+        createdAt: "2025-03-28T22:55:00.000Z",
+        attachmentUrl: null,
+        resources: []
       }
     ]
   },
   {
     title: "Tema 2. Modelos y enfoques de investigación en educación",
-    resources: [
-      { id: "ex-r2", title: "Diapositivas segunda clase", type: "PPTX", url: "#" }
-    ],
-    tasks: [
+    items: [
       {
+        isResource: true as const,
+        id: "ex-r2",
+        title: "Diapositivas segunda clase",
+        type: "PPTX",
+        url: "#",
+        createdAt: "2025-04-07T22:50:00.000Z"
+      },
+      {
+        isResource: false as const,
         id: "ex-t2",
         title: "2. Evaluación",
         type: "TASK",
@@ -44,17 +59,26 @@ const exampleSections = [
         description: null,
         isSubmitted: false,
         isGraded: false,
-        grade: null
+        grade: null,
+        createdAt: "2025-04-07T22:55:00.000Z",
+        attachmentUrl: null,
+        resources: []
       }
     ]
   },
   {
     title: "Tema 3. Análisis de la realidad social",
-    resources: [
-      { id: "ex-r3", title: "Diapositivas", type: "PPTX", url: "#" }
-    ],
-    tasks: [
+    items: [
       {
+        isResource: true as const,
+        id: "ex-r3",
+        title: "Diapositivas",
+        type: "PPTX",
+        url: "#",
+        createdAt: "2025-04-16T22:50:00.000Z"
+      },
+      {
+        isResource: false as const,
         id: "ex-t3",
         title: "3. Evaluación",
         type: "TASK",
@@ -63,17 +87,26 @@ const exampleSections = [
         description: null,
         isSubmitted: false,
         isGraded: false,
-        grade: null
+        grade: null,
+        createdAt: "2025-04-16T22:55:00.000Z",
+        attachmentUrl: null,
+        resources: []
       }
     ]
   },
   {
     title: "Tema 4. Definición de la metodología mixta en la investigación educativa",
-    resources: [
-      { id: "ex-r4", title: "Diapositivas", type: "PPT", url: "#" }
-    ],
-    tasks: [
+    items: [
       {
+        isResource: true as const,
+        id: "ex-r4",
+        title: "Diapositivas",
+        type: "PPT",
+        url: "#",
+        createdAt: "2025-04-25T22:50:00.000Z"
+      },
+      {
+        isResource: false as const,
         id: "ex-t4",
         title: "4. Evaluación",
         type: "TASK",
@@ -82,7 +115,10 @@ const exampleSections = [
         description: null,
         isSubmitted: false,
         isGraded: false,
-        grade: null
+        grade: null,
+        createdAt: "2025-04-25T22:55:00.000Z",
+        attachmentUrl: null,
+        resources: []
       }
     ]
   }
@@ -126,7 +162,7 @@ export default async function CursoDescripcionPage({
     orderBy: { createdAt: "asc" },
   });
 
-  // Fetch all tasks and exams for this course (active periods + published)
+  // Fetch all tasks and exams for this course (active periods + published + linked resources)
   const tasks = await prisma.task.findMany({
     where: {
       courseId: id,
@@ -135,16 +171,37 @@ export default async function CursoDescripcionPage({
       AND: [{ OR: [{ publishAt: null }, { publishAt: { lte: now } }] }],
       groups: studentGroupId ? { some: { id: studentGroupId } } : undefined,
     },
-    include: { submissions: { where: { studentId } } },
+    include: {
+      submissions: { where: { studentId } },
+      resources: true // Linked resources
+    },
     orderBy: { dueDate: "asc" },
   });
 
-  // Helper: map a task to the TaskItem shape
-  function mapTask(t: typeof tasks[0]) {
+  // Collect all resource IDs that are linked to any task in this course
+  const linkedResourceIds = new Set<string>();
+  tasks.forEach(t => {
+    t.resources.forEach(r => linkedResourceIds.add(r.id));
+  });
+
+  // Convert resources (ONLY those that are standalone, not linked to a task) to MoodleItem shape
+  const standaloneResources = resources.filter(r => !linkedResourceIds.has(r.id));
+  const resourceItems: MoodleItem[] = standaloneResources.map(r => ({
+    isResource: true as const,
+    id: r.id,
+    title: r.title,
+    type: r.type,
+    url: r.url,
+    createdAt: r.createdAt.toISOString()
+  }));
+
+  // Convert tasks to MoodleItem shape, carrying their linked resources
+  const taskItems: MoodleItem[] = tasks.map(t => {
     const submission = t.submissions[0];
     const isSubmitted = !!(submission && submission.status !== "PENDING");
     const isGraded = !!(submission && submission.status === "GRADED");
     return {
+      isResource: false as const,
       id: t.id,
       title: t.title,
       type: t.type,
@@ -154,33 +211,47 @@ export default async function CursoDescripcionPage({
       isSubmitted,
       isGraded,
       grade: isGraded && submission?.grade != null ? Number(submission.grade) : null,
+      createdAt: t.createdAt.toISOString(),
+      attachmentUrl: t.attachmentUrl,
+      resources: t.resources.map(res => ({
+        id: res.id,
+        title: res.title,
+        type: res.type,
+        url: res.url
+      }))
     };
-  }
+  });
+
+  // Combine both arrays
+  const allItems = [...resourceItems, ...taskItems];
+
+  // Helper to filter resources and tasks by period
+  const getPeriodItems = (periodName: string) => {
+    // A standalone resource belongs to a period if its period field matches
+    const resIds = standaloneResources.filter(r => r.period === periodName).map(r => r.id);
+    const taskIds = tasks.filter(t => t.period === periodName).map(t => t.id);
+    return allItems.filter(item => {
+      if (item.isResource) return resIds.includes(item.id);
+      return taskIds.includes(item.id);
+    });
+  };
 
   // Build one section per active period
   const sections = activePeriodNames.map((periodName) => {
-    const sectionResources = resources
-      .filter(r => r.period === periodName)
-      .map(r => ({ id: r.id, title: r.title, type: r.type, url: r.url }));
-
-    const sectionTasks = tasks
-      .filter(t => t.period === periodName)
-      .map(mapTask);
-
-    return { periodName, sectionResources, sectionTasks };
+    const sectionItems = getPeriodItems(periodName);
+    return { periodName, sectionItems };
   });
 
   // Items without a period → General section
-  const generalResources = resources
-    .filter(r => !r.period || !activePeriodNames.includes(r.period))
-    .map(r => ({ id: r.id, title: r.title, type: r.type, url: r.url }));
+  const generalResIds = standaloneResources.filter(r => !r.period || !activePeriodNames.includes(r.period)).map(r => r.id);
+  const generalTaskIds = tasks.filter(t => !t.period || !activePeriodNames.includes(t.period)).map(t => t.id);
+  const generalItems = allItems.filter(item => {
+    if (item.isResource) return generalResIds.includes(item.id);
+    return generalTaskIds.includes(item.id);
+  });
 
-  const generalTasks = tasks
-    .filter(t => !t.period || !activePeriodNames.includes(t.period))
-    .map(mapTask);
-
-  const hasGeneral = generalResources.length > 0 || generalTasks.length > 0;
-  const hasRealContent = sections.some(s => s.sectionResources.length > 0 || s.sectionTasks.length > 0) || hasGeneral;
+  const hasGeneral = generalItems.length > 0;
+  const hasRealContent = sections.some(s => s.sectionItems.length > 0) || hasGeneral;
 
   return (
     <div>
@@ -189,8 +260,7 @@ export default async function CursoDescripcionPage({
         <MoodleSection
           key={s.title}
           title={s.title}
-          resources={s.resources}
-          tasks={s.tasks}
+          items={s.items}
           defaultOpen={false}
         />
       ))}
@@ -203,12 +273,11 @@ export default async function CursoDescripcionPage({
           </h3>
           {/* Period sections */}
           {sections.map((s) => (
-            (s.sectionResources.length > 0 || s.sectionTasks.length > 0) && (
+            s.sectionItems.length > 0 && (
               <MoodleSection
                 key={s.periodName}
                 title={s.periodName}
-                resources={s.sectionResources}
-                tasks={s.sectionTasks}
+                items={s.sectionItems}
                 defaultOpen={false}
               />
             )
@@ -218,8 +287,7 @@ export default async function CursoDescripcionPage({
           {hasGeneral && (
             <MoodleSection
               title="General"
-              resources={generalResources}
-              tasks={generalTasks}
+              items={generalItems}
               defaultOpen={false}
             />
           )}
