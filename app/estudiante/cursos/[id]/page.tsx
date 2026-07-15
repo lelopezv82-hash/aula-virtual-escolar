@@ -22,20 +22,20 @@ export default async function CursoDescripcionPage({
   const { payload } = await jwtVerify(token, JWT_SECRET);
   const studentId = payload.id as string;
 
-  // Get student group
   const studentRecord = await prisma.user.findUnique({
     where: { id: studentId },
     select: { groupId: true },
   });
   const studentGroupId = studentRecord?.groupId || null;
 
-  // Get active periods
+  // Get active periods sorted naturally
   const periodsDb = await prisma.period.findMany({ where: { active: true } });
+  periodsDb.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
   const activePeriodNames = periodsDb.map(p => p.name);
 
   const now = new Date();
 
-  // Fetch resources
+  // Fetch all resources for this course (active + published)
   const resources = await prisma.resource.findMany({
     where: {
       courseId: id,
@@ -46,7 +46,7 @@ export default async function CursoDescripcionPage({
     orderBy: { createdAt: "asc" },
   });
 
-  // Fetch tasks and exams (only from active periods)
+  // Fetch all tasks and exams for this course (active periods + published)
   const tasks = await prisma.task.findMany({
     where: {
       courseId: id,
@@ -59,100 +59,75 @@ export default async function CursoDescripcionPage({
     orderBy: { dueDate: "asc" },
   });
 
-  // Collect all unique themes (preserving order of first appearance)
-  const themeOrder: string[] = [];
-  const seenThemes = new Set<string>();
-
-  for (const r of resources) {
-    const t = r.theme?.trim() || "";
-    if (t && !seenThemes.has(t)) { seenThemes.add(t); themeOrder.push(t); }
+  // Helper: map a task to the TaskItem shape
+  function mapTask(t: typeof tasks[0]) {
+    const submission = t.submissions[0];
+    const isSubmitted = !!(submission && submission.status !== "PENDING");
+    const isGraded = !!(submission && submission.status === "GRADED");
+    return {
+      id: t.id,
+      title: t.title,
+      type: t.type,
+      dueDate: t.dueDate.toISOString(),
+      publishAt: t.publishAt ? t.publishAt.toISOString() : null,
+      description: t.description || null,
+      isSubmitted,
+      isGraded,
+      grade: isGraded && submission?.grade != null ? Number(submission.grade) : null,
+    };
   }
-  for (const t of tasks) {
-    const th = t.theme?.trim() || "";
-    if (th && !seenThemes.has(th)) { seenThemes.add(th); themeOrder.push(th); }
-  }
 
-  // Sort themes naturally (Tema 1, Tema 2, Actividad I, Actividad II, etc.)
-  themeOrder.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
-
-  // Build sections by theme
-  const sections = themeOrder.map((theme, idx) => {
+  // Build one section per active period
+  const sections = activePeriodNames.map((periodName, idx) => {
     const sectionResources = resources
-      .filter(r => r.theme?.trim() === theme)
+      .filter(r => r.period === periodName)
       .map(r => ({ id: r.id, title: r.title, type: r.type, url: r.url }));
 
     const sectionTasks = tasks
-      .filter(t => t.theme?.trim() === theme)
-      .map(t => {
-        const submission = t.submissions[0];
-        const isSubmitted = !!(submission && submission.status !== "PENDING");
-        const isGraded = !!(submission && submission.status === "GRADED");
-        return {
-          id: t.id,
-          title: t.title,
-          type: t.type,
-          dueDate: t.dueDate.toISOString(),
-          publishAt: t.publishAt ? t.publishAt.toISOString() : null,
-          description: t.description || null,
-          isSubmitted,
-          isGraded,
-          grade: isGraded && submission?.grade != null ? Number(submission.grade) : null,
-        };
-      });
+      .filter(t => t.period === periodName)
+      .map(mapTask);
 
-    return { theme, sectionResources, sectionTasks, defaultOpen: idx === 0 };
+    return { periodName, sectionResources, sectionTasks, defaultOpen: idx === 0 };
   });
 
-  // Items without a theme — show as "General" section
+  // Items without a period → General section
   const generalResources = resources
-    .filter(r => !r.theme?.trim())
+    .filter(r => !r.period || !activePeriodNames.includes(r.period))
     .map(r => ({ id: r.id, title: r.title, type: r.type, url: r.url }));
 
   const generalTasks = tasks
-    .filter(t => !t.theme?.trim())
-    .map(t => {
-      const submission = t.submissions[0];
-      const isSubmitted = !!(submission && submission.status !== "PENDING");
-      const isGraded = !!(submission && submission.status === "GRADED");
-      return {
-        id: t.id,
-        title: t.title,
-        type: t.type,
-        dueDate: t.dueDate.toISOString(),
-        publishAt: t.publishAt ? t.publishAt.toISOString() : null,
-        description: t.description || null,
-        isSubmitted,
-        isGraded,
-        grade: isGraded && submission?.grade != null ? Number(submission.grade) : null,
-      };
-    });
+    .filter(t => !t.period || !activePeriodNames.includes(t.period))
+    .map(mapTask);
 
   const hasGeneral = generalResources.length > 0 || generalTasks.length > 0;
+  const hasContent = sections.some(s => s.sectionResources.length > 0 || s.sectionTasks.length > 0) || hasGeneral;
 
   return (
     <div>
-      {/* Theme sections */}
+      {/* Period sections */}
       {sections.map((s, idx) => (
-        <MoodleSection
-          key={s.theme}
-          title={s.theme}
-          resources={s.sectionResources}
-          tasks={s.sectionTasks}
-          defaultOpen={idx === 0 && !hasGeneral}
-        />
+        (s.sectionResources.length > 0 || s.sectionTasks.length > 0) && (
+          <MoodleSection
+            key={s.periodName}
+            title={s.periodName}
+            resources={s.sectionResources}
+            tasks={s.sectionTasks}
+            defaultOpen={idx === 0}
+          />
+        )
       ))}
 
-      {/* General section (items without theme) */}
+      {/* General section */}
       {hasGeneral && (
         <MoodleSection
           title="General"
           resources={generalResources}
           tasks={generalTasks}
-          defaultOpen={sections.length === 0}
+          defaultOpen={!sections.some(s => s.sectionResources.length > 0 || s.sectionTasks.length > 0)}
         />
       )}
 
-      {sections.length === 0 && !hasGeneral && (
+      {!hasContent && (
         <div style={{
           background: "#fff",
           border: "1px solid #dee2e6",
