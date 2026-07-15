@@ -1,19 +1,11 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { FolderOpen, ClipboardList, FileText, Award } from "lucide-react";
 
 interface CursoSidebarProps {
   courseId: string;
   courseName: string;
   periods?: string[];
-}
-
-interface NavSection {
-  icon: React.ReactNode;
-  label: string;
-  href: string;
-  subItems?: { label: string; href: string }[];
 }
 
 export default function CursoSidebar({ courseId, courseName, periods = [] }: CursoSidebarProps) {
@@ -22,171 +14,123 @@ export default function CursoSidebar({ courseId, courseName, periods = [] }: Cur
   const estado = searchParams.get("estado");
   const base = `/estudiante/cursos/${courseId}`;
 
-  const sections: NavSection[] = [
-    {
-      icon: <FolderOpen size={20} />,
-      label: "Recursos",
-      href: `${base}/recursos`,
-    },
-    {
-      icon: <ClipboardList size={20} />,
-      label: "Tareas",
-      href: `${base}/tareas`,
-      subItems: [
-        { label: "Pendientes", href: `${base}/tareas?estado=pendientes` },
-        { label: "Entregadas", href: `${base}/tareas?estado=entregadas` },
-      ],
-    },
-    {
-      icon: <FileText size={20} />,
-      label: "Exámenes",
-      href: `${base}/examenes`,
-      subItems: [
-        { label: "Disponibles", href: `${base}/examenes?estado=disponibles` },
-        { label: "Presentados", href: `${base}/examenes?estado=presentados` },
-      ],
-    },
-    {
-      icon: <Award size={20} />,
-      label: "Calificaciones",
-      href: `${base}/calificaciones`,
-    },
-  ];
-
-  const isSectionActive = (section: NavSection) => {
-    return pathname.startsWith(section.href);
-  };
-
-  const isSubActive = (subHref: string) => {
-    if (subHref.includes("estado=entregadas")) {
-      return pathname.endsWith("/tareas") && estado === "entregadas";
-    }
-    if (subHref.includes("estado=pendientes")) {
-      return pathname.endsWith("/tareas") && (estado === "pendientes" || !estado);
-    }
-    if (subHref.includes("estado=presentados")) {
-      return pathname.endsWith("/examenes") && estado === "presentados";
-    }
-    if (subHref.includes("estado=disponibles")) {
-      return pathname.endsWith("/examenes") && (estado === "disponibles" || !estado);
-    }
-    return false;
-  };
-
   const isHomeActive = pathname === base;
 
+  const isTareasActive = pathname.includes("/tareas");
+  const isExamenesActive = pathname.includes("/examenes");
+  const isRecursosActive = pathname.includes("/recursos");
+  const isCalificacionesActive = pathname.includes("/calificaciones");
+
+  const isPendientesActive = isTareasActive && (estado === "pendientes" || !estado);
+  const isEntregadasActive = isTareasActive && estado === "entregadas";
+  const isDisponiblesActive = isExamenesActive && (estado === "disponibles" || !estado);
+  const isPresentadosActive = isExamenesActive && estado === "presentados";
+
+  const linkBase = "flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors duration-150";
+  const activeLink = "bg-[#f0f0f0] text-[#333] font-semibold border-l-4 border-[#f98012] pl-3";
+  const inactiveLink = "text-[#555] hover:bg-gray-100 border-l-4 border-transparent";
+
+  const subLinkBase = "flex items-center gap-2 pl-10 pr-4 py-2 text-sm transition-colors duration-150";
+  const subActive = "text-[#333] font-semibold";
+  const subInactive = "text-[#666] hover:text-[#333] hover:bg-gray-50";
+
   return (
-    <div
-      className="card"
-      style={{
-        position: "sticky",
-        top: "1.5rem",
-        padding: 0,
-        overflow: "hidden",
-        border: "1px solid var(--border-color)",
-        boxShadow: "var(--shadow-md)",
-      }}
-    >
+    <div style={{
+      background: "#fff",
+      border: "1px solid #dee2e6",
+      borderRadius: "4px",
+      overflow: "hidden",
+      position: "sticky",
+      top: "1.5rem",
+    }}>
       {/* Course Name Header */}
-      <div 
-        className="hover:bg-[rgba(249,128,18,0.04)]"
-        style={{ 
-          padding: "1.25rem 1.5rem", 
-          paddingLeft: isHomeActive ? "1.25rem" : "1.5rem",
-          borderBottom: "1px solid var(--border-color)", 
-          background: isHomeActive ? "rgba(249,128,18,0.08)" : undefined,
-          borderLeft: isHomeActive ? "4px solid var(--primary-color)" : "4px solid transparent",
-          transition: "all 0.2s ease"
-        }}
-      >
-        <Link href={base} className="transition-colors block hover:text-[var(--primary-color)]" style={{ color: isHomeActive ? "var(--primary-color)" : "var(--text-primary)", textDecoration: "none" }}>
-          <h2 className="font-bold text-lg capitalize" style={{ color: "inherit", letterSpacing: "-0.01em", marginBottom: "0.25rem" }}>
+      <div style={{
+        background: "#f8f9fa",
+        borderBottom: "1px solid #dee2e6",
+        padding: "1rem 1.25rem",
+      }}>
+        <Link href={base} style={{ textDecoration: "none" }}>
+          <div style={{
+            fontWeight: 700,
+            fontSize: "1rem",
+            color: "#333",
+            lineHeight: 1.3,
+            textTransform: "capitalize",
+          }}>
             {courseName}
-          </h2>
-        </Link>
-        {periods && periods.length > 0 && (
-          <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: 500, marginTop: "0.15rem" }}>
-            {periods.join(" • ")}
           </div>
-        )}
+          {periods && periods.length > 0 && (
+            <div style={{ fontSize: "0.8rem", color: "#6c757d", marginTop: "0.2rem" }}>
+              {periods.join(" · ")}
+            </div>
+          )}
+        </Link>
       </div>
 
-      {/* Nav Sections */}
-      <nav style={{ padding: "0.75rem 0" }}>
-        {sections.map((section, idx) => {
-          const sectionActive = isSectionActive(section);
-          return (
-            <div key={section.label}>
-              {/* Section Header Link */}
-              <Link
-                href={section.href}
-                className="flex items-center gap-3 py-3 text-[var(--text-secondary)] hover:bg-[rgba(249,128,18,0.04)] hover:text-[var(--primary-color)]"
-                style={{
-                  paddingLeft: sectionActive ? "1.25rem" : "1.5rem",
-                  paddingRight: "1.5rem",
-                  color: sectionActive ? "var(--primary-color)" : "var(--text-secondary)",
-                  fontWeight: sectionActive ? 700 : 600,
-                  fontSize: "1.05rem",
-                  background: sectionActive ? "rgba(249,128,18,0.08)" : undefined,
-                  borderLeft: sectionActive ? "4px solid var(--primary-color)" : "4px solid transparent",
-                  transition: "all 0.2s ease",
-                }}
-              >
-                <span style={{ opacity: sectionActive ? 1 : 0.7, display: "flex", alignItems: "center" }}>
-                  {section.icon}
-                </span>
-                <span>{section.label}</span>
-              </Link>
+      {/* Nav */}
+      <nav style={{ padding: "0.5rem 0" }}>
 
-              {/* Sub-items */}
-              {section.subItems && (
-                <div style={{ display: "flex", flexDirection: "column", paddingBottom: "0.5rem" }}>
-                  {section.subItems.map((sub) => {
-                    const active = isSubActive(sub.href);
-                    return (
-                      <Link
-                        key={sub.label}
-                        href={sub.href}
-                        className="flex items-center gap-2 py-2 text-[var(--text-muted)] hover:bg-[rgba(249,128,18,0.02)] hover:text-[var(--primary-color)]"
-                        style={{
-                          paddingLeft: "3.25rem",
-                          paddingRight: "1.5rem",
-                          fontSize: "0.95rem",
-                          color: active ? "var(--primary-color)" : "var(--text-muted)",
-                          fontWeight: active ? 600 : 500,
-                          background: active ? "rgba(249,128,18,0.04)" : undefined,
-                          transition: "all 0.2s ease",
-                        }}
-                      >
-                        {active && (
-                          <span
-                            style={{
-                              width: "6px",
-                              height: "6px",
-                              borderRadius: "50%",
-                              backgroundColor: "var(--primary-color)",
-                              display: "inline-block",
-                              marginLeft: "-10px",
-                              marginRight: "4px",
-                            }}
-                          />
-                        )}
-                        <span>{sub.label}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
+        {/* Recursos */}
+        <Link href={`${base}/recursos`} className={`${linkBase} ${isRecursosActive ? activeLink : inactiveLink}`}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+          Recursos
+        </Link>
 
-              {/* Separator Line */}
-              {idx < sections.length - 1 && (
-                <div style={{ padding: "0.25rem 0" }}>
-                  <div style={{ height: "1px", background: "var(--border-color)", opacity: 0.6, margin: "0.25rem 1.25rem" }} />
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {/* Tareas section */}
+        <Link href={`${base}/tareas`} className={`${linkBase} ${isTareasActive ? activeLink : inactiveLink}`}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+          Tareas
+        </Link>
+
+        <Link href={`${base}/tareas?estado=pendientes`} className={`${subLinkBase} ${isPendientesActive ? subActive : subInactive}`}>
+          {isPendientesActive && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#f98012", display: "inline-block", marginLeft: -10, marginRight: 4 }} />}
+          Pendientes
+        </Link>
+        <Link href={`${base}/tareas?estado=entregadas`} className={`${subLinkBase} ${isEntregadasActive ? subActive : subInactive}`}>
+          {isEntregadasActive && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#f98012", display: "inline-block", marginLeft: -10, marginRight: 4 }} />}
+          Entregadas
+        </Link>
+
+        <div style={{ height: 1, background: "#dee2e6", margin: "0.4rem 1rem" }} />
+
+        {/* Exámenes section */}
+        <Link href={`${base}/examenes`} className={`${linkBase} ${isExamenesActive ? activeLink : inactiveLink}`}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+          Exámenes
+        </Link>
+
+        <Link href={`${base}/examenes?estado=disponibles`} className={`${subLinkBase} ${isDisponiblesActive ? subActive : subInactive}`}>
+          {isDisponiblesActive && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#f98012", display: "inline-block", marginLeft: -10, marginRight: 4 }} />}
+          Disponibles
+        </Link>
+        <Link href={`${base}/examenes?estado=presentados`} className={`${subLinkBase} ${isPresentadosActive ? subActive : subInactive}`}>
+          {isPresentadosActive && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#f98012", display: "inline-block", marginLeft: -10, marginRight: 4 }} />}
+          Presentados
+        </Link>
+
+        <div style={{ height: 1, background: "#dee2e6", margin: "0.4rem 1rem" }} />
+
+        {/* Calificaciones */}
+        <Link href={`${base}/calificaciones`} className={`${linkBase} ${isCalificacionesActive ? activeLink : inactiveLink}`}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="8" r="6"/>
+            <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>
+          </svg>
+          Calificaciones
+        </Link>
       </nav>
     </div>
   );

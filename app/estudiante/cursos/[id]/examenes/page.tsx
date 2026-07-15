@@ -1,7 +1,6 @@
 import prisma from '@/lib/prisma';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
-import { ClipboardList, Clock, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import ExamenCardAcciones from "@/app/estudiante/examenes/ExamenCardAcciones";
 import { formatToColombiaString, getTaskDeadlineStatus } from '@/lib/dateUtils';
@@ -52,7 +51,7 @@ export default async function CursoExamenesPage({
       course: true,
       submissions: { where: { studentId } },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: { dueDate: "asc" },
   });
 
   const filtered = exams.filter(exam => {
@@ -67,11 +66,9 @@ export default async function CursoExamenesPage({
     const isSubmitted = submission && submission.status !== "PENDING";
 
     if (estado === "presentados") {
-      // External exams are always considered "presentados" (presented to teacher)
       if (exam.isExternal) return true;
       return !!(isSubmitted || isVirtuallyClosed);
     }
-    // default: disponibles — external exams go straight to presentados
     if (exam.isExternal) return false;
     return !isSubmitted && !isVirtuallyClosed;
   });
@@ -80,20 +77,47 @@ export default async function CursoExamenesPage({
 
   return (
     <div>
-      <h2 className="text-lg font-bold mb-4">
+      {/* Moodle-style page header */}
+      <h2 style={{
+        fontSize: "1.5rem",
+        fontWeight: 700,
+        color: "#333",
+        marginBottom: "1.5rem",
+        paddingBottom: "0.75rem",
+        borderBottom: "1px solid #dee2e6",
+      }}>
         Exámenes — {showingPresentados ? "Presentados" : "Disponibles"}
       </h2>
 
       {filtered.length === 0 ? (
-        <div className="card text-center py-12 text-muted">
-          <ClipboardList size={44} className="mx-auto mb-4 opacity-40" />
-          <p>{showingPresentados ? "No has presentado ningún examen todavía." : "No hay exámenes disponibles en esta asignatura."}</p>
+        <div style={{
+          background: "#fff",
+          border: "1px solid #dee2e6",
+          borderRadius: "4px",
+          padding: "3rem 2rem",
+          textAlign: "center",
+          color: "#6c757d",
+        }}>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ margin: "0 auto 1rem" }}>
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+          <p style={{ fontSize: "0.95rem" }}>
+            {showingPresentados ? "No has presentado ningún examen todavía." : "No hay exámenes disponibles en esta asignatura."}
+          </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
-          {filtered.map(exam => {
+        <div style={{
+          background: "#fff",
+          border: "1px solid #dee2e6",
+          borderRadius: "4px",
+          overflow: "hidden",
+        }}>
+          {filtered.map((exam, idx) => {
             const submission = exam.submissions[0] || null;
-            const { activeDeadline, hasExtension, isLate, isClosed } = getTaskDeadlineStatus(exam, submission);
+            const { activeDeadline, hasExtension, isClosed } = getTaskDeadlineStatus(exam, submission);
             const isSubmitted = submission && submission.status !== "PENDING";
 
             const isGoogleForm = !!(
@@ -115,10 +139,7 @@ export default async function CursoExamenesPage({
                 submission.status === "PENDING" &&
                 isTimerExpired &&
                 isGoogleForm)
-                ? {
-                    status: "GRADED",
-                    grade: 1.0,
-                  }
+                ? { status: "GRADED", grade: 1.0 }
                 : null;
 
             const activeSubmission =
@@ -129,102 +150,133 @@ export default async function CursoExamenesPage({
             const isGraded = !!(activeSubmission && activeSubmission.status === "GRADED");
             const grade = activeSubmission ? (activeSubmission.grade as number | null) : null;
 
-            const leftBorderColor = isGraded
-              ? (grade !== null && Number(grade) < 3 ? 'var(--danger)' : 'var(--success)')
-              : isLate ? 'var(--danger)' : '#8b5cf6';
-
             return (
               <div
                 key={exam.id}
                 style={{
-                  background: "var(--bg-primary)",
                   display: "flex",
-                  flexDirection: "row",
                   alignItems: "center",
-                  justifyContent: "space-between",
                   gap: "1rem",
-                  padding: "1rem",
-                  borderRadius: "var(--radius-lg)",
-                  border: "1px solid var(--border-color)",
-                  borderLeft: `4px solid ${leftBorderColor}`,
-                  boxShadow: "var(--shadow-sm)",
+                  padding: "0.875rem 1.25rem",
+                  borderBottom: idx < filtered.length - 1 ? "1px solid #dee2e6" : "none",
+                  background: idx % 2 === 0 ? "#fff" : "#f8f9fa",
                 }}
               >
+                {/* Exam icon */}
+                <div style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: "4px",
+                  background: isGraded ? "#d4edda" : isSubmitted ? "#cce5ff" : "#e8d5f5",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  border: `1px solid ${isGraded ? "#b8ddbf" : isSubmitted ? "#b3d4f0" : "#d5b8ec"}`,
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke={isGraded ? "#155724" : isSubmitted ? "#004085" : "#6f42c1"}
+                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                  </svg>
+                </div>
+
+                {/* Exam info */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    {isGraded && (
-                      <span className="badge badge-success flex items-center gap-1">
-                        <CheckCircle size={12} /> Calificado
-                      </span>
-                    )}
-                    {isSubmitted && !isGraded && (
-                      <span className="badge badge-info flex items-center gap-1">
-                        <Clock size={12} /> Entregado
-                      </span>
-                    )}
-                    {!isSubmitted && isLate && <span className="badge badge-danger">Atrasado</span>}
-                    {exam.isExternal ? (
-                      <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "rgba(59,130,246,0.1)", color: "#2563eb", border: "1px solid rgba(59,130,246,0.2)" }}>Entregado al docente</span>
-                    ) : (
-                      <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "rgba(16,185,129,0.1)", color: "#059669", border: "1px solid rgba(16,185,129,0.2)" }}>Subido a plataforma</span>
-                    )}
+                  <div style={{
+                    fontWeight: 600,
+                    fontSize: "0.95rem",
+                    color: "#333",
+                    marginBottom: "0.2rem",
+                  }}>
+                    {exam.title}
                   </div>
-                  <h3 className="font-bold text-base mb-0.5" style={{ color: "#8b5cf6" }}>{exam.title}</h3>
-                  <p className="text-sm text-muted truncate">
-                    {exam.description
-                      ? exam.description.replace(/Importado desde Excel\s*([—–-]\s*columna\s*[A-Z]+)?/gi, "").trim() || "Sin descripción"
-                      : "Sin descripción"}
-                  </p>
-                  <div className="flex items-center gap-1 text-xs text-muted mt-1">
-                    <Clock size={12} />
-                    <span>Vence: {formatToColombiaString(activeDeadline)} {hasExtension && "(Prórroga)"}</span>
+                  <div style={{ fontSize: "0.8rem", color: "#6c757d" }}>
+                    Vence: {formatToColombiaString(activeDeadline)}
+                    {hasExtension && <span style={{ marginLeft: 6, color: "#856404" }}>(Prórroga)</span>}
+                    {exam.duration && (
+                      <span style={{ marginLeft: 8 }}>· Duración: {exam.duration} min</span>
+                    )}
                   </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
+
+                {/* Status badge + grade + action */}
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem", flexShrink: 0 }}>
                   {isGraded && grade !== null && grade !== undefined && (
-                    <div style={{ textAlign: "center", minWidth: "60px" }}>
-                      <div style={{ fontSize: "1.5rem", fontWeight: 800, color: leftBorderColor, lineHeight: 1 }}>
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{
+                        fontSize: "1.3rem",
+                        fontWeight: 800,
+                        color: Number(grade) >= 3 ? "#155724" : "#721c24",
+                        lineHeight: 1,
+                      }}>
                         {Number(grade).toFixed(1)}
                       </div>
-                      <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>nota</div>
+                      <div style={{ fontSize: "0.7rem", color: "#6c757d" }}>/ 5.0</div>
                     </div>
                   )}
-                  <div>
-                    {exam.isExternal && isGraded ? (
-                      <Link
-                        href={`/estudiante/examenes/${exam.id}`}
-                        className="btn btn-secondary"
-                      >
-                        Ver Calificación
-                      </Link>
-                    ) : (
-                      <ExamenCardAcciones
-                        examId={exam.id}
-                        examTitle={exam.title}
-                        courseName={exam.course.name}
-                        attachmentUrl={exam.attachmentUrl}
-                        dueDate={exam.dueDate.toISOString()}
-                        duration={exam.duration}
-                        allowLateSubmission={exam.allowLateSubmission}
-                        lateSubmissionUntil={exam.lateSubmissionUntil ? exam.lateSubmissionUntil.toISOString() : null}
-                        submission={submission ? {
-                          status: submission.status,
-                          grade: submission.grade,
-                          feedback: submission.feedback,
-                          fileUrl: submission.fileUrl,
-                          submittedAt: submission.submittedAt,
-                          startedAt: submission.startedAt,
-                          allowLateSubmission: submission.allowLateSubmission,
-                          lateSubmissionUntil: submission.lateSubmissionUntil,
-                          attempt: submission.attempt ?? 1,
-                          unlockedAnswers: submission.unlockedAnswers ?? false,
-                          answers: (submission as any).answers,
-                        } : null}
-                        studentName={studentName}
-                        isExternal={exam.isExternal}
-                      />
-                    )}
-                  </div>
+
+                  <span style={{
+                    display: "inline-block",
+                    padding: "0.25rem 0.65rem",
+                    fontSize: "0.75rem",
+                    fontWeight: 600,
+                    borderRadius: "3px",
+                    background: isGraded ? "#d4edda" : isSubmitted ? "#cce5ff" : "#e8d5f5",
+                    color: isGraded ? "#155724" : isSubmitted ? "#004085" : "#6f42c1",
+                    border: `1px solid ${isGraded ? "#b8ddbf" : isSubmitted ? "#b3d4f0" : "#d5b8ec"}`,
+                    whiteSpace: "nowrap",
+                  }}>
+                    {isGraded ? "✓ Calificado" : isSubmitted ? "Presentado" : "Disponible"}
+                  </span>
+
+                  {exam.isExternal && isGraded ? (
+                    <Link
+                      href={`/estudiante/examenes/${exam.id}`}
+                      style={{
+                        padding: "0.35rem 0.85rem",
+                        fontSize: "0.8rem",
+                        fontWeight: 600,
+                        borderRadius: "3px",
+                        background: "#f8f9fa",
+                        color: "#333",
+                        border: "1px solid #dee2e6",
+                        textDecoration: "none",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      Ver calificación
+                    </Link>
+                  ) : (
+                    <ExamenCardAcciones
+                      examId={exam.id}
+                      examTitle={exam.title}
+                      courseName={exam.course.name}
+                      attachmentUrl={exam.attachmentUrl}
+                      dueDate={exam.dueDate.toISOString()}
+                      duration={exam.duration}
+                      allowLateSubmission={exam.allowLateSubmission}
+                      lateSubmissionUntil={exam.lateSubmissionUntil ? exam.lateSubmissionUntil.toISOString() : null}
+                      submission={submission ? {
+                        status: submission.status,
+                        grade: submission.grade,
+                        feedback: submission.feedback,
+                        fileUrl: submission.fileUrl,
+                        submittedAt: submission.submittedAt,
+                        startedAt: submission.startedAt,
+                        allowLateSubmission: submission.allowLateSubmission,
+                        lateSubmissionUntil: submission.lateSubmissionUntil,
+                        attempt: submission.attempt ?? 1,
+                        unlockedAnswers: submission.unlockedAnswers ?? false,
+                        answers: (submission as any).answers,
+                      } : null}
+                      studentName={studentName}
+                      isExternal={exam.isExternal}
+                    />
+                  )}
                 </div>
               </div>
             );
