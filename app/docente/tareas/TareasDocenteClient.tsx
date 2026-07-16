@@ -149,7 +149,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
 
   const statusBadge = (sub: StudentGradeEntry["submission"]) => {
     if (!sub) return <span className="text-xs text-muted italic">Sin entrega</span>;
-    if (sub.status === "GRADED") return <span className="badge badge-success flex items-center gap-1"><CheckCircle size={10} /> Calificada</span>;
+    if (sub.status === "GRADED" || sub.grade != null) return <span className="badge badge-success flex items-center gap-1"><CheckCircle size={10} /> Calificada</span>;
     if (sub.status === "SUBMITTED") return <span className="badge badge-info flex items-center gap-1"><Clock size={10} /> Entregada</span>;
     return <span className="badge badge-danger flex items-center gap-1"><AlertCircle size={10} /> Pendiente</span>;
   };

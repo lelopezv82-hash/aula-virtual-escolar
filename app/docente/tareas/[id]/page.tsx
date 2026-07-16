@@ -206,7 +206,7 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
                           <tr key={student.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                             <td className="py-3 px-4" style={{ paddingLeft: '16px' }}>{student.name}</td>
                             <td className="py-3 px-4">
-                              {isGraded ? (
+                              {isGraded || (submission && submission.grade != null) ? (
                                 <span className="badge badge-success flex w-fit items-center gap-1"><CheckCircle size={12}/> Calificada: {submission.grade}</span>
                               ) : isSubmitted ? (
                                 <span className="badge badge-info">Entregada</span>
