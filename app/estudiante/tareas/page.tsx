@@ -140,7 +140,7 @@ export default async function TareasEstudiantePage() {
                       </span>
                     ) : (
                       <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f0f9ff", color: "#0369a1", border: "1px solid #b9e6fe" }}>
-                        💻 Por plataforma
+                        💻 Entrega en plataforma
                       </span>
                     )}
                     {isGraded && (

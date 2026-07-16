@@ -242,7 +242,7 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                               borderRadius: 3, background: "#f0f9ff", color: "#0369a1",
                               border: "1px solid #b9e6fe"
                             }}>
-                              💻 Por plataforma
+                              💻 Entrega en plataforma
                             </span>
                           )}
                         </div>
