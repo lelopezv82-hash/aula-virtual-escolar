@@ -234,6 +234,15 @@ export default async function CalificacionesEstudiantePage() {
                             <span style={{ fontSize: "0.75rem", fontWeight: 700, padding: "2px 8px", background: "#f3f4f6", borderRadius: "4px", color: "#4b5563" }}>
                               {sub.task.course.name}
                             </span>
+                            {sub.task.isExternal ? (
+                              <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1" }}>
+                                📁 Entregado en clase
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f0f9ff", color: "#0369a1", border: "1px solid #b9e6fe" }}>
+                                💻 Por plataforma
+                              </span>
+                            )}
                             {isGraded && (
                               sub.submittedAt === null && !sub.task.isExternal ? (
                                 <span className="badge badge-danger flex items-center gap-1"><AlertCircle size={12} /> Plazo vencido</span>
