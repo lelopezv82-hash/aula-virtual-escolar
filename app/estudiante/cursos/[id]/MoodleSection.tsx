@@ -234,7 +234,7 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                               borderRadius: 3, background: "#f1f5f9", color: "#475569",
                               border: "1px solid #cbd5e1"
                             }}>
-                              📁 Entregado al docente
+                              📁 Entregado en clase
                             </span>
                           ) : (
                             <span style={{
@@ -242,7 +242,7 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                               borderRadius: 3, background: "#f0f9ff", color: "#0369a1",
                               border: "1px solid #b9e6fe"
                             }}>
-                              💻 Subido a plataforma
+                              💻 Por plataforma
                             </span>
                           )}
                         </div>
