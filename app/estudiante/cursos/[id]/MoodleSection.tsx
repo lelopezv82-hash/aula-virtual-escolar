@@ -234,7 +234,7 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                               borderRadius: 3, background: "#f1f5f9", color: "#475569",
                               border: "1px solid #cbd5e1"
                             }}>
-                              📁 Entregado en clase
+                              📁 Entrega en clase
                             </span>
                           ) : (
                             <span style={{

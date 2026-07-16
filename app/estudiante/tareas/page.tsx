@@ -136,7 +136,7 @@ export default async function TareasEstudiantePage() {
                     </span>
                     {task.isExternal ? (
                       <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1" }}>
-                        📁 Entregado en clase
+                        📁 Entrega en clase
                       </span>
                     ) : (
                       <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f0f9ff", color: "#0369a1", border: "1px solid #b9e6fe" }}>
