@@ -266,9 +266,13 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                                     <div className="flex flex-col gap-0.5">
                                       <div className="flex items-center gap-2">
                                         <span>{task.title}</span>
-                                        {task.isExternal && (
-                                          <span className="text-[10px] font-bold bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-900/50">
-                                            Presencial
+                                        {task.isExternal ? (
+                                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border" style={{ background: "#f1f5f9", color: "#475569", borderColor: "#cbd5e1" }}>
+                                            📁 Entrega en clase
+                                          </span>
+                                        ) : (
+                                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border" style={{ background: "#f0f9ff", color: "#0369a1", borderColor: "#b9e6fe" }}>
+                                            💻 Entrega en plataforma
                                           </span>
                                         )}
                                       </div>

@@ -2106,6 +2106,11 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     <div className="min-w-0 flex-1">
                       <p className="font-bold text-gray-800 dark:text-gray-200 leading-tight truncate" title={t.title}>{t.title}</p>
                       <p className="text-gray-400 mt-0.5">{cat.label}{cat.sublabel ? ` — ${cat.sublabel}` : ""}</p>
+                      {t.isExternal ? (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border mt-1 inline-block" style={{ background: "#f1f5f9", color: "#475569", borderColor: "#cbd5e1" }}>📁 Entrega en clase</span>
+                      ) : (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border mt-1 inline-block" style={{ background: "#f0f9ff", color: "#0369a1", borderColor: "#b9e6fe" }}>💻 Entrega en plataforma</span>
+                      )}
                     </div>
                   </div>
                   {/* Bottom row: actions */}

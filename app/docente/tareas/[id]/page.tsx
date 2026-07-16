@@ -102,6 +102,11 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
               <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Asignatura: {task.course.name}</span>
               <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Tema: {task.theme || "Sin Tema"}</span>
               <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400">Título: {task.title}</span>
+              {task.isExternal ? (
+                <span className="px-2 py-0.5 rounded font-bold" style={{ background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1" }}>📁 Entrega en clase</span>
+              ) : (
+                <span className="px-2 py-0.5 rounded font-bold" style={{ background: "#f0f9ff", color: "#0369a1", border: "1px solid #b9e6fe" }}>💻 Entrega en plataforma</span>
+              )}
             </div>
           </div>
         </div>
