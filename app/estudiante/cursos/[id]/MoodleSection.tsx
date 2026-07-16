@@ -24,6 +24,7 @@ export type MoodleTask = {
   grade: number | null;
   createdAt: string;
   attachmentUrl: string | null;
+  isExternal?: boolean;
   resources: { id: string; title: string; type: string; url: string }[];
 };
 
@@ -225,6 +226,23 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                               border: "1px solid #ffc107",
                             }}>
                               Pendiente por calificar
+                            </span>
+                          )}
+                          {item.isExternal ? (
+                            <span style={{
+                              fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
+                              borderRadius: 3, background: "#f1f5f9", color: "#475569",
+                              border: "1px solid #cbd5e1"
+                            }}>
+                              📁 Entregado al docente
+                            </span>
+                          ) : (
+                            <span style={{
+                              fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
+                              borderRadius: 3, background: "#f0f9ff", color: "#0369a1",
+                              border: "1px solid #b9e6fe"
+                            }}>
+                              💻 Subido a plataforma
                             </span>
                           )}
                         </div>

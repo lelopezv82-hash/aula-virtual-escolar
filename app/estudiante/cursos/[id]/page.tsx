@@ -106,6 +106,7 @@ export default async function CursoDescripcionPage({
       grade: isGraded && submission?.grade != null ? Number(submission.grade) : null,
       createdAt: t.createdAt.toISOString(),
       attachmentUrl: t.attachmentUrl,
+      isExternal: t.isExternal ?? false,
       resources: t.resources.map(res => ({
         id: res.id,
         title: res.title,
