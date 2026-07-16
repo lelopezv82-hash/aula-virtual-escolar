@@ -547,19 +547,6 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                   </tr>
                 )}
 
-                {/* Comentarios de la entrega */}
-                <tr>
-                  <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Comentarios de la entrega</td>
-                  <td className="p-4 align-middle">
-                    <details className="group cursor-pointer">
-                      <summary className="text-blue-600 hover:underline flex items-center gap-1 font-medium list-none select-none">
-                        <span className="inline-block transition-transform duration-200 group-open:rotate-90 text-[10px]">▶</span>
-                        Comentarios (0)
-                      </summary>
-                      <p className="text-gray-400 text-xs mt-2 pl-4 cursor-default">No hay comentarios en esta entrega.</p>
-                    </details>
-                  </td>
-                </tr>
               </tbody>
             </table>
           </div>
@@ -612,13 +599,15 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                       </td>
                     </tr>
                     
-                    {/* Comentarios de retroalimentación */}
-                    <tr>
-                      <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Comentarios de retroalimentación</td>
-                      <td className="p-4 align-middle text-gray-800 whitespace-pre-wrap leading-relaxed">
-                        {activeSubmission.feedback || "Excelente actividad"}
-                      </td>
-                    </tr>
+                    {/* Comentarios de retroalimentación — only shown if it's a real human comment, not auto-grade JSON */}
+                    {activeSubmission.feedback && !activeSubmission.feedback.trim().startsWith('[') && !activeSubmission.feedback.trim().startsWith('{') && (
+                      <tr>
+                        <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Comentarios de retroalimentación</td>
+                        <td className="p-4 align-middle text-gray-800 whitespace-pre-wrap leading-relaxed">
+                          {activeSubmission.feedback}
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -653,19 +642,6 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
             </div>
           )}
 
-          {/* Re-attempt action button if allowed (e.g. native exam with 2 attempts, or if they haven't started second attempt yet) */}
-          {isNativeExam && activeSubmission?.attempt === 1 && !isClosed && (
-            <div className="flex justify-center mt-6">
-              <button
-                onClick={handleStartSecondAttempt}
-                disabled={loading}
-                className="px-6 py-3 bg-[#f98012] hover:bg-[#e06d09] text-white font-bold rounded shadow transition-colors cursor-pointer"
-              >
-                {loading ? <Loader2 className="animate-spin mr-2 inline" size={20} /> : null}
-                Realizar Segundo Intento
-              </button>
-            </div>
-          )}
         </>
       ) : (
         /* Render exam taking view if not submitted yet */
