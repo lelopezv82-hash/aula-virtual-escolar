@@ -499,21 +499,15 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                   <td className="p-4 align-middle">
                     {task.isExternal ? (
                       isGraded ? (
-                        Number(submission?.grade) > 1.0 ? (
-                           <span className="px-3 py-1 bg-[#d4edda] text-[#155724] border border-[#c3e6cb] rounded-sm text-xs font-bold uppercase w-max inline-flex items-center gap-1">
-                             ✅ Entregado en clase
-                           </span>
-                        ) : (
-                           <span className="px-3 py-1 bg-red-100 text-red-800 border border-red-200 rounded-sm text-xs font-bold uppercase w-max inline-flex items-center gap-1">
-                             ❌ No entregó
-                           </span>
-                        )
+                         <span className="px-3 py-1 bg-[#d4edda] text-[#155724] border border-[#c3e6cb] rounded-sm text-xs font-bold uppercase w-max inline-flex items-center gap-1">
+                           ✅ Registrado por el docente
+                         </span>
                       ) : (
                         <div className="flex flex-col gap-1">
                           <span className="px-3 py-1 bg-gray-100 text-gray-600 border border-gray-200 rounded-sm text-xs font-bold uppercase w-max inline-flex items-center gap-1">
                             ⏳ Pendiente de validación
                           </span>
-                          <span className="text-xs text-gray-500 italic">Esta actividad es de entrega física. El docente registrará si la entregaste.</span>
+                          <span className="text-xs text-gray-500 italic">Esta actividad es de entrega física. El docente registrará tu calificación.</span>
                         </div>
                       )
                     ) : isSubmitted ? (
