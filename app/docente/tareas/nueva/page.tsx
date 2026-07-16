@@ -422,14 +422,14 @@ export default function NuevaTareaPage() {
 
         <div className="flex gap-4">
           <div className="input-group flex-1">
-            <label htmlFor="dueDate">Fecha y Hora Límite *</label>
+            <label htmlFor="dueDate">{isExternal ? "Fecha y Hora Límite (Opcional)" : "Fecha y Hora Límite *"}</label>
             <input
               id="dueDate"
               type="datetime-local"
               className="input-field"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              required
+              required={!isExternal}
             />
           </div>
           <div className="input-group flex-1">

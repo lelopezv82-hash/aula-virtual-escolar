@@ -2287,14 +2287,14 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 </div>
                 <div className="input-group">
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    {addModal.type === "SER" ? "Fecha *" : `Fecha Límite de Entrega ${newTaskIsExternal ? "(Opcional)" : "*"}`}
+                    {addModal.type === "SER" ? "Fecha Límite (Opcional)" : `Fecha Límite de Entrega ${newTaskIsExternal ? "(Opcional)" : "*"}`}
                   </label>
                   <input
                     type="datetime-local"
                     value={newTaskDueDate}
                     onChange={e => setNewTaskDueDate(e.target.value)}
                     className="input-field w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
-                    required={addModal.type === "SER" ? true : !newTaskIsExternal}
+                    required={addModal.type === "SER" ? false : !newTaskIsExternal}
                   />
                 </div>
                 {(addModal?.type === "EXAM" || addModal?.type === "FINAL") && (
