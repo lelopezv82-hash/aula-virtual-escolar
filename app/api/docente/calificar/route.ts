@@ -66,8 +66,8 @@ export async function PATCH(request: Request) {
         create: {
           taskId,
           studentId,
-          ...updateData,
-          status: "PENDING"
+          status: "PENDING",
+          ...updateData
         }
       });
     }

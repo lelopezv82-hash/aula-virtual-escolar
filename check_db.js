@@ -1,30 +1,25 @@
-require('dotenv').config();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
-  const submissions = await prisma.submission.findMany({
-    orderBy: { createdAt: 'desc' },
-    take: 3,
-    select: {
-      id: true,
-      student: { select: { name: true } },
-      status: true,
-      grade: true,
-      feedback: true,
-      createdAt: true,
-      submittedAt: true
-    }
+  const user = await prisma.user.findFirst({
+    where: { name: { contains: 'CARRASCAL' } }
+  });
+  console.log('User:', user?.id, user?.name);
+
+  const subs = await prisma.submission.findMany({
+    where: { studentId: user?.id },
+    include: { task: true }
   });
 
-  console.log(JSON.stringify(submissions, null, 2));
+  console.log('Submissions:', subs.map(s => ({
+    id: s.id,
+    taskId: s.taskId,
+    taskTitle: s.task.title,
+    status: s.status,
+    grade: s.grade,
+    feedback: s.feedback
+  })));
 }
 
-main()
-  .catch(e => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+main().finally(() => prisma.$disconnect());
