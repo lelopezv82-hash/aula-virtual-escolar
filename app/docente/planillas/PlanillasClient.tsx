@@ -730,7 +730,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         setSavedGlobalAllowLate(al);
         setSavedGlobalLateUntil(lu);
       }
-      if (task.type === "EXAM") {
+      if (task.type === "EXAM" || task.type === "FINAL") {
         const questRes = await fetch(`/api/docente/tareas/${task.id}/questions`);
         const questData = await questRes.json();
         if (questRes.ok) setExamQuestions(questData.questions || []);
@@ -2155,13 +2155,13 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                       <button
                         onClick={() => openQuestionsModal(t)}
                         className={`flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-[10px] font-bold transition-colors w-full ${
-                          t.type === "EXAM"
+                          (t.type === "EXAM" || t.type === "FINAL")
                             ? "bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40"
                             : "bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40"
                         }`}
-                        title={t.type === "EXAM" ? "Gestionar preguntas, entregas e intentos" : "Gestionar entregas y prórrogas"}
+                        title={(t.type === "EXAM" || t.type === "FINAL") ? "Gestionar preguntas, entregas e intentos" : "Gestionar entregas y prórrogas"}
                       >
-                        {t.type === "EXAM" ? "Gestionar Examen" : "Gestionar Entregas"}
+                        {(t.type === "EXAM" || t.type === "FINAL") ? "Gestionar Examen" : "Gestionar Entregas"}
                       </button>
                     )}
                   </div>
@@ -2692,7 +2692,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             <div className="flex justify-between items-center pb-2 border-b border-gray-200 dark:border-gray-800">
               <div>
                 <h3 className="font-bold text-xl text-gray-900 dark:text-gray-100">
-                  {questionsModalTask.type === "EXAM" ? "Gestión de Examen" : "Gestión de Tarea"}: {questionsModalTask.title}
+                  {(questionsModalTask.type === "EXAM" || questionsModalTask.type === "FINAL") ? "Gestión de Examen" : "Gestión de Tarea"}: {questionsModalTask.title}
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-450 mt-0.5">
                   Administra entregas, prórrogas e intentos directamente desde la planilla.
@@ -2704,7 +2704,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             </div>
 
             {/* Tabs — only for exams */}
-            {questionsModalTask.type === "EXAM" && (
+            {(questionsModalTask.type === "EXAM" || questionsModalTask.type === "FINAL") && (
               <div className="flex gap-4 border-b border-gray-200 dark:border-gray-800">
                 {(["control", "questions"] as const).map(tab => (
                   <button
@@ -2729,7 +2729,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                   <Loader2 className="animate-spin text-[#f98012]" size={32} />
                   <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold">Cargando información...</p>
                 </div>
-              ) : manageTab === "questions" && questionsModalTask.type === "EXAM" ? (
+              ) : manageTab === "questions" && (questionsModalTask.type === "EXAM" || questionsModalTask.type === "FINAL") ? (
                 <QuestionEditor
                   key={questionsModalTask.id}
                   taskId={questionsModalTask.id}
@@ -2790,7 +2790,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     <h4 className="font-bold text-sm text-gray-800 dark:text-gray-200">
                       Entregas ({taskStudents.length} estudiantes)
                     </h4>
-                    {questionsModalTask.type === "EXAM" && (
+                    {(questionsModalTask.type === "EXAM" || questionsModalTask.type === "FINAL") && (
                       <button
                         onClick={resetAllGroupSubmissions}
                         disabled={resettingSubmissions !== null || taskStudents.length === 0}
@@ -2866,7 +2866,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                               </td>
                               <td className="py-3 px-4 text-right">
                                 <div className="flex justify-end gap-2">
-                                  {questionsModalTask.type !== "EXAM" && sub?.fileUrl && (
+                                  {questionsModalTask.type !== "EXAM" && questionsModalTask.type !== "FINAL" && sub?.fileUrl && (
                                     <a href={sub.fileUrl} target="_blank" rel="noopener noreferrer"
                                       className="btn btn-secondary text-[11px] px-2 py-1 flex items-center gap-1"
                                       title="Descargar archivo de entrega"
@@ -2875,7 +2875,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                                       Descargar
                                     </a>
                                   )}
-                                  {questionsModalTask.type === "EXAM" && (
+                                  {(questionsModalTask.type === "EXAM" || questionsModalTask.type === "FINAL") && (
                                     <button
                                       onClick={() => resetStudentSubmission(s.id, s.name, hasSub)}
                                       disabled={resettingSubmissions === s.id}
