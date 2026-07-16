@@ -315,7 +315,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
       {/* Title section with pink icon */}
       <div className="flex items-start gap-4 mb-6">
         <Link
-          href={task?.courseId ? `/estudiante/cursos/${task.courseId}/tareas?estado=${submission && submission.status !== "PENDING" ? "entregadas" : "pendientes"}` : "/estudiante"}
+          href={task?.courseId ? `/estudiante/cursos/${task.courseId}` : "/estudiante"}
           className="p-2 rounded-full hover:bg-gray-100 transition-colors mt-1 animate-scale-in"
         >
           <ArrowLeft size={24} />
@@ -558,19 +558,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                   </tr>
                 )}
 
-                {/* Comentarios de la entrega */}
-                <tr>
-                  <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Comentarios de la entrega</td>
-                  <td className="p-4 align-middle">
-                    <details className="group cursor-pointer">
-                      <summary className="text-blue-600 hover:underline flex items-center gap-1 font-medium list-none select-none">
-                        <span className="inline-block transition-transform duration-200 group-open:rotate-90 text-[10px]">▶</span>
-                        Comentarios (0)
-                      </summary>
-                      <p className="text-gray-400 text-xs mt-2 pl-4 cursor-default">No hay comentarios en esta entrega.</p>
-                    </details>
-                  </td>
-                </tr>
+
               </tbody>
             </table>
           </div>

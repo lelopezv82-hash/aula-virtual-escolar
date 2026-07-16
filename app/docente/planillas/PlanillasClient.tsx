@@ -175,7 +175,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
   // ── Manual Grading Modal ──
   const [gradingTask, setGradingTask] = useState<TaskItem | null>(null);
-  const [gradingStudents, setGradingStudents] = useState<Array<{ id: string; name: string; groupName: string; submission: { id: string; status: string; grade: number | null; feedback: string | null; submittedAt: string | null } | null }>>([]);
+  const [gradingStudents, setGradingStudents] = useState<Array<{ id: string; name: string; groupName: string; submission: { id: string; status: string; grade: number | null; feedback: string | null; submittedAt: string | null; fileUrl: string | null } | null }>>([]); 
   const [gradeInputs, setGradeInputs] = useState<Record<string, string>>({});
   const [feedbackInputs, setFeedbackInputs] = useState<Record<string, string>>({});
   const [loadingStudents, setLoadingStudents] = useState(false);
@@ -2613,6 +2613,29 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                           <p className="font-semibold text-sm truncate">{student.name}</p>
                           <p className="text-[10px] text-muted">{student.groupName}</p>
                           <div className="mt-0.5">{statusBadge(student.submission)}</div>
+                          {student.submission?.fileUrl && (
+                            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                              <a
+                                href={student.submission.fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 transition-colors"
+                                title="Ver archivo"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                Ver
+                              </a>
+                              <a
+                                href={student.submission.fileUrl}
+                                download
+                                className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 transition-colors"
+                                title="Descargar archivo"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                Descargar
+                              </a>
+                            </div>
+                          )}
                         </div>
                       </div>
 
