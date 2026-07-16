@@ -88,17 +88,20 @@ export default async function TareasEstudiantePage() {
           pendingTasks.map(task => {
             const submission = task.submissions[0];
             const { activeDeadline, hasExtension, isClosed, isLate } = getTaskDeadlineStatus(task, submission);
-            const virtualGraded = (!submission && isClosed) || (submission && submission.status === "PENDING" && isClosed);
+            const hasGradeSet = submission?.grade != null;
+            const virtualGraded = (!submission && isClosed) || (submission && submission.status === "PENDING" && isClosed && !hasGradeSet);
 
-            const activeStatus = submission && submission.status !== "PENDING"
+            const activeStatus = (submission && submission.status !== "PENDING")
               ? submission.status
+              : hasGradeSet ? "GRADED"
               : virtualGraded ? "GRADED" : (submission?.status || null);
-            const activeGrade = submission && submission.status !== "PENDING"
+            const activeGrade = (submission && submission.status !== "PENDING")
               ? (submission.grade !== null && submission.grade !== undefined ? Math.max(1.0, submission.grade) : null)
+              : hasGradeSet ? Math.max(1.0, submission!.grade!)
               : virtualGraded ? 1.0 : null;
 
             // Determine reason for minimum grade
-            const neverSubmitted = !submission || submission.status === "PENDING";
+            const neverSubmitted = !submission || (submission.status === "PENDING" && !hasGradeSet);
             const gradeReason = virtualGraded && neverSubmitted ? "No entregó" : null;
 
             const isSubmitted = activeStatus && activeStatus !== "PENDING";

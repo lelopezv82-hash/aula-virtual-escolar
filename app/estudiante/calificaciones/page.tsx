@@ -150,7 +150,7 @@ export default async function CalificacionesEstudiantePage() {
   // Sort by updatedAt desc (using task updatedAt fallback for virtual ones)
   activeSubmissions.sort((a, b) => new Date(b.updatedAt || b.task.updatedAt).getTime() - new Date(a.updatedAt || a.task.updatedAt).getTime());
 
-  const graded = activeSubmissions.filter(s => s.status === "GRADED");
+  const graded = activeSubmissions.filter(s => s.status === "GRADED" || s.grade != null);
   const avg = graded.length > 0
     ? graded.reduce((sum, s) => sum + Math.max(1.0, s.grade ?? 0), 0) / graded.length
     : null;
@@ -204,7 +204,7 @@ export default async function CalificacionesEstudiantePage() {
                 
                 <div className="flex flex-col gap-4">
                   {periodSubs.map(sub => {
-                    const isGraded = sub.status === "GRADED";
+                    const isGraded = sub.status === "GRADED" || sub.grade != null;
                     const isPending = sub.status === "SUBMITTED";
                     const currentGrade = sub.grade !== null && sub.grade !== undefined ? Math.max(1.0, sub.grade) : 0;
                     const gradeColor = isGraded

@@ -47,12 +47,12 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
       .finally(() => setInitialLoad(false));
   }, [taskId, router]);
 
-  const isGraded = submission?.status === "GRADED";
+  const isGraded = submission?.status === "GRADED" || (submission?.grade != null && submission?.status === "PENDING");
   const isSubmitted = submission?.status === "SUBMITTED" || isGraded;
 
   // Check deadline status for grade reason
   const { isClosed: isDeadlinePassed } = task ? getTaskDeadlineStatus(task, submission) : { isClosed: false };
-  const neverSubmitted = !submission || submission.status === "PENDING";
+  const neverSubmitted = !submission || (submission.status === "PENDING" && submission.grade == null);
   const virtualGraded = neverSubmitted && isDeadlinePassed;
   const gradeReason = virtualGraded ? "No entregaste la tarea a tiempo" : null;
 
