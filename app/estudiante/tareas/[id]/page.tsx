@@ -497,7 +497,14 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                 <tr className="border-b border-gray-100">
                   <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Estado de la entrega</td>
                   <td className="p-4 align-middle">
-                    {isSubmitted ? (
+                    {task.isExternal ? (
+                      <div className="flex flex-col gap-1">
+                        <span className="px-3 py-1 bg-[#f1f5f9] text-[#475569] border border-[#cbd5e1] rounded-sm text-xs font-bold uppercase w-max inline-flex items-center gap-1">
+                          📁 Entregado en clase
+                        </span>
+                        <span className="text-xs text-gray-500 italic">Esta actividad no requiere subir archivos a la plataforma.</span>
+                      </div>
+                    ) : isSubmitted ? (
                       <span className="px-3 py-1 bg-[#d4edda] text-[#155724] rounded-sm text-xs font-semibold uppercase">
                         Enviado para calificar
                       </span>
@@ -564,7 +571,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
           </div>
 
           {/* Overdue/Closed/Grace messages if not submitted */}
-          {!isSubmitted && (isSubmissionBlocked || isTimerExpired) && (
+          {!isSubmitted && (isSubmissionBlocked || isTimerExpired) && !task.isExternal && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800 flex flex-col gap-1 mb-8 animate-scale-in">
               <h3 className="font-bold flex items-center gap-2">
                 <Clock size={18} /> Plazo de Entrega Vencido / Tiempo Agotado
@@ -575,7 +582,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
             </div>
           )}
 
-          {!isSubmitted && isOverdue && !isSubmissionBlocked && !isTimerExpired && (
+          {!isSubmitted && isOverdue && !isSubmissionBlocked && !isTimerExpired && !task.isExternal && (
             <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 text-[#7c3d00] flex flex-col gap-1 mb-8 animate-scale-in">
               <h3 className="font-bold flex items-center gap-2 text-sm">
                 <Clock size={16} className="text-[#f98012]" />
