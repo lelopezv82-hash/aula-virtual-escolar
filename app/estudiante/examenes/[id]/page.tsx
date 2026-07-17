@@ -441,7 +441,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
           </div>
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 uppercase leading-none">{task.title}</h1>
-            {formatToColombiaString(task.dueDate) !== "Sin fecha límite" && (
+            {task.dueDate && new Date(task.dueDate).getFullYear() < 9000 && (
               <p className="text-muted text-sm mt-1">Vence: {formatToColombiaString(task.dueDate)}</p>
             )}
           </div>
