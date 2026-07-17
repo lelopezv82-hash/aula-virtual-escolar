@@ -486,7 +486,7 @@ export default function CursosPage() {
                     {[
                       { label: "Saber (Exámenes)", colorText: "text-purple-700 dark:text-purple-400", bgInput: "bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300", key: "saberPercent" },
                       { label: "Hacer (Tareas)", colorText: "text-orange-700 dark:text-orange-400", bgInput: "bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300", key: "hacerPercent" },
-                      { label: "Ser (Actitudinal)", colorText: "text-yellow-800 dark:text-yellow-500", bgInput: "bg-yellow-50 dark:bg-yellow-950/40 border-yellow-200 dark:border-yellow-800 text-yellow-850 dark:text-yellow-400", key: "serPercent" },
+                      { label: "Ser (Actitudinal)", colorText: "text-teal-800 dark:text-teal-500", bgInput: "bg-teal-50 dark:bg-teal-950/40 border-teal-200 dark:border-teal-800 text-teal-850 dark:text-teal-400", key: "serPercent" },
                       { label: "Examen Final", colorText: "text-sky-700 dark:text-sky-400", bgInput: "bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800 text-sky-700 dark:text-sky-300", key: "finalPercent" },
                     ].map(({ label, colorText, bgInput, key }) => (
                       <div key={key} className="input-group">

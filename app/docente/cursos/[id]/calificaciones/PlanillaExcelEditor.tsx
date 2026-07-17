@@ -1187,7 +1187,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
           {[
             { key: "saber" as const, label: "Saber", color: "text-purple-700", bg: "bg-purple-50", border: "border-purple-200" },
             { key: "hacer" as const, label: "Hacer", color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-200" },
-            { key: "ser" as const, label: "Ser", color: "text-yellow-700", bg: "bg-yellow-50", border: "border-yellow-200" },
+            { key: "ser" as const, label: "Ser", color: "text-teal-700", bg: "bg-teal-50", border: "border-teal-200" },
             { key: "final" as const, label: "Exam. Final", color: "text-sky-700", bg: "bg-sky-50", border: "border-sky-200" },
           ].map(({ key, label, color, bg, border }) => (
             <div key={key} className="flex items-center gap-1">
@@ -1456,10 +1456,10 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
                 </th>
 
                 {/* Ser Category Header */}
-                <th colSpan={Math.max(1, serTasks.length)} className="p-2 border-r border-gray-200 bg-yellow-50 text-yellow-800 uppercase tracking-wide">
+                <th colSpan={Math.max(1, serTasks.length)} className="p-2 border-r border-gray-200 bg-teal-50 text-teal-800 uppercase tracking-wide">
                   <div className="flex items-center justify-center gap-1.5">
                     Ser ({serPct}%)
-                    <button onClick={() => openAddModal("SER")} className="p-1 hover:bg-yellow-200 bg-yellow-100 rounded text-yellow-700 transition-colors" title="Agregar evaluación">
+                    <button onClick={() => openAddModal("SER")} className="p-1 hover:bg-teal-200 bg-teal-100 rounded text-teal-700 transition-colors" title="Agregar evaluación">
                       <Plus size={14} />
                     </button>
                   </div>
@@ -1527,7 +1527,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
                   <th className="p-2 border-r border-gray-200 text-gray-400 font-normal italic">-</th>
                 ) : (
                   serTasks.map(t => (
-                    <th key={t.id} className="p-2 border-r border-gray-200 w-12 hover:bg-yellow-100" title={t.title}>
+                    <th key={t.id} className="p-2 border-r border-gray-200 w-12 hover:bg-teal-100" title={t.title}>
                       {taskNumbers[t.id]}
                     </th>
                   ))
@@ -1780,7 +1780,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
                       <td className="p-2 border-r border-gray-200 text-center font-semibold text-orange-700 bg-blue-50/10">
                         {stats.hacerAvg !== null ? (stats.hacerAvg * hacerPct / 100).toFixed(2) : "—"}
                       </td>
-                      <td className="p-2 border-r border-gray-200 text-center font-semibold text-yellow-700 bg-blue-50/10">
+                      <td className="p-2 border-r border-gray-200 text-center font-semibold text-teal-700 bg-blue-50/10">
                         {stats.ser !== null ? (stats.ser * serPct / 100).toFixed(2) : "—"}
                       </td>
                       {showFinal && (
@@ -1826,7 +1826,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
                 <span className={`px-2 py-0.5 rounded font-black ${
                   t.type === "EXAM" ? "bg-purple-100 text-purple-800" : 
                   t.type === "TASK" ? "bg-orange-100 text-orange-800" :
-                  t.type === "SER" ? "bg-yellow-100 text-yellow-800" :
+                  t.type === "SER" ? "bg-teal-100 text-teal-800" :
                   t.type === "FINAL" ? "bg-sky-100 text-sky-800" :
                   "bg-green-100 text-green-800"
                 }`}>
@@ -1951,7 +1951,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                       {[...saberTasks, ...hacerTasks, ...serTasks, ...finalTasks, ...attendTasks].map(t => {
                         const category = t.type === "EXAM" ? "SABER" : t.type === "TASK" ? "HACER" : t.type === "SER" ? "SER" : t.type === "FINAL" ? "FINAL" : "ASISTENCIA";
-                        const bgClass = t.type === "EXAM" ? "bg-purple-100 text-purple-800" : t.type === "TASK" ? "bg-orange-100 text-orange-800" : t.type === "SER" ? "bg-yellow-100 text-yellow-800" : t.type === "FINAL" ? "bg-sky-100 text-sky-800" : "bg-green-100 text-green-800";
+                        const bgClass = t.type === "EXAM" ? "bg-purple-100 text-purple-800" : t.type === "TASK" ? "bg-orange-100 text-orange-800" : t.type === "SER" ? "bg-teal-100 text-teal-800" : t.type === "FINAL" ? "bg-sky-100 text-sky-800" : "bg-green-100 text-green-800";
                         return (
                           <tr key={t.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/20">
                             <td className="p-3 font-semibold text-gray-700 dark:text-gray-300">

@@ -1930,8 +1930,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
             {/* SER */}
             <div className="flex items-center gap-2">
-              <span className="font-bold text-yellow-700 dark:text-yellow-500 text-xs">Ser:</span>
-              <span className="font-bold text-yellow-800 dark:text-yellow-400 text-xs">{courseWeights?.serPercent ?? 20}%</span>
+              <span className="font-bold text-teal-700 dark:text-teal-500 text-xs">Ser:</span>
+              <span className="font-bold text-teal-800 dark:text-teal-400 text-xs">{courseWeights?.serPercent ?? 20}%</span>
             </div>
 
             {/* EXAMEN FINAL */}

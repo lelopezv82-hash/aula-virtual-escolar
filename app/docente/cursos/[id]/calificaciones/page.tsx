@@ -84,7 +84,7 @@ function PeriodSummaryCard({
       <span style={{ color: "var(--text-muted)", fontWeight: 300, fontSize: "1.1rem" }}>+</span>
       {componentEntry(hacerW, hacer, hacerPct, "Hacer (Procedimental)", "var(--primary-color)")}
       <span style={{ color: "var(--text-muted)", fontWeight: 300, fontSize: "1.1rem" }}>+</span>
-      {componentEntry(serW, ser, serPct, "Ser (Actitudinal)", "#f59e0b")}
+      {componentEntry(serW, ser, serPct, "Ser (Actitudinal)", "#0d9488")}
       <span style={{ color: "var(--text-muted)", fontWeight: 300, fontSize: "1.1rem" }}>=</span>
       <div style={{
         display: "flex", flexDirection: "column", alignItems: "center",

@@ -435,7 +435,7 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
                   + Procedimental (Hacer)
                 </button>
                 <button onClick={() => addColumn("SER")}
-                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-yellow-100 hover:bg-yellow-200 text-yellow-700 border border-yellow-200 transition-colors">
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-teal-100 hover:bg-teal-200 text-teal-700 border border-teal-200 transition-colors">
                   + Actitudinal (Ser)
                 </button>
               </div>
@@ -468,15 +468,6 @@ export default function PlanillaVisorEditor({ courseId, activePeriod }: Planilla
         </div>
       )}
 
-      {/* ── Tip ─────────────────────────────────────────────────── */}
-      <div className="flex gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs">
-        <span className="text-2xl leading-none">💡</span>
-        <div className="flex flex-col gap-1 text-amber-800">
-          <p className="font-bold text-sm">¿Sin internet? No hay problema</p>
-          <p><strong>1.</strong> Descarga la planilla con <strong>"Descargar .xlsx"</strong> y edítala en Excel sin conexión.</p>
-          <p><strong>2.</strong> Con internet, usa <strong>"Reemplazar planilla"</strong>, sube el archivo editado y presiona <strong>"Guardar y sincronizar"</strong>.</p>
-        </div>
-      </div>
 
       {/* ── Drop zone (empty state) ──────────────────────────────── */}
       {rows.length === 0 ? (

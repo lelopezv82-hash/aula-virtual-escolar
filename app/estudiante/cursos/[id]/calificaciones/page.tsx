@@ -37,14 +37,16 @@ export default async function CursoCalificacionesPage({
 
   const course = await prisma.course.findUnique({
     where: { id },
-    select: { saberPercent: true, hacerPercent: true, serPercent: true }
+    select: { saberPercent: true, hacerPercent: true, serPercent: true, finalPercent: true }
   });
   const saberPct = (course?.saberPercent ?? 30) / 100;
   const hacerPct = (course?.hacerPercent ?? 50) / 100;
   const serPct   = (course?.serPercent   ?? 20) / 100;
+  const finalPct = (course?.finalPercent ?? 0) / 100;
   const saberLabel = `${course?.saberPercent ?? 30}%`;
   const hacerLabel = `${course?.hacerPercent ?? 50}%`;
   const serLabel   = `${course?.serPercent   ?? 20}%`;
+  const finalLabel = `${course?.finalPercent ?? 0}%`;
 
   const tasks = await prisma.task.findMany({
     where: {
@@ -239,14 +241,22 @@ export default async function CursoCalificacionesPage({
             const effectiveSerGrade = avgSer ?? additionalGrade;
 
             // Weighted final using course-specific percentages
-            const saberWeighted = avgExamenes !== null ? +(avgExamenes * saberPct).toFixed(2) : null;
+            const finalWeighted = avgFinal !== null ? +(avgFinal * finalPct).toFixed(2) : null;
+            const saberWeighted = (avgExamenes !== null || finalWeighted !== null)
+              ? +((avgExamenes !== null ? avgExamenes * saberPct : 0) + (finalWeighted ?? 0)).toFixed(2)
+              : null;
+            const combinedWeight = saberPct + finalPct;
+            const avgSaberCombined = (avgExamenes !== null || avgFinal !== null)
+              ? +(((avgExamenes ?? 0) * saberPct + (avgFinal ?? 0) * finalPct) / combinedWeight).toFixed(2)
+              : null;
+
             const hacerWeighted = avgTareas   !== null ? +(avgTareas   * hacerPct).toFixed(2) : null;
             const serWeighted   = effectiveSerGrade !== null ? +(effectiveSerGrade * serPct).toFixed(2) : null;
             const finalGrade =
               saberWeighted !== null || hacerWeighted !== null || serWeighted !== null
                 ? (saberWeighted ?? 0) + (hacerWeighted ?? 0) + (serWeighted ?? 0)
                 : null;
-            const componentCount = (avgExamenes !== null ? 1 : 0) + (avgTareas !== null ? 1 : 0) + (effectiveSerGrade !== null ? 1 : 0);
+            const componentCount = (avgExamenes !== null || avgFinal !== null ? 1 : 0) + (avgTareas !== null ? 1 : 0) + (effectiveSerGrade !== null ? 1 : 0);
             const hasSubs = periodSubs.length > 0;
             const components = componentCount;
 
@@ -273,13 +283,15 @@ export default async function CursoCalificacionesPage({
                     <p className="text-xs font-bold uppercase tracking-wider text-muted mb-3">Resumen del {periodName}</p>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "1.5rem", alignItems: "flex-end" }}>
                       {/* Saber — Exámenes */}
-                      {avgExamenes !== null && (
+                      {saberWeighted !== null && (
                         <div style={{ textAlign: "center", minWidth: "80px" }}>
-                          <div style={{ fontSize: "1.7rem", fontWeight: 800, color: gradeColor(avgExamenes), lineHeight: 1 }}>
-                            {saberWeighted!.toFixed(2)}
+                          <div style={{ fontSize: "1.7rem", fontWeight: 800, color: gradeColor(avgSaberCombined!), lineHeight: 1 }}>
+                            {saberWeighted.toFixed(2)}
                           </div>
                           <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "2px" }}>
-                            {avgExamenes.toFixed(1)} × {saberLabel}
+                            {avgFinal !== null
+                              ? `${avgSaberCombined!.toFixed(1)} × ${((saberPct + finalPct) * 100).toFixed(0)}%`
+                              : `${avgExamenes!.toFixed(1)} × ${saberLabel}`}
                           </div>
                           <div className="flex items-center justify-center gap-1 mt-1">
                             <FileText size={11} style={{ color: "#8b5cf6" }} />
@@ -288,7 +300,7 @@ export default async function CursoCalificacionesPage({
                         </div>
                       )}
 
-                      {avgExamenes !== null && (avgTareas !== null || effectiveSerGrade !== null) && (
+                      {saberWeighted !== null && (avgTareas !== null || effectiveSerGrade !== null) && (
                         <div style={{ fontSize: "1.5rem", color: "var(--text-muted)", fontWeight: 300, lineHeight: 1 }}>+</div>
                       )}
 
@@ -322,7 +334,7 @@ export default async function CursoCalificacionesPage({
                             {effectiveSerGrade.toFixed(1)} × {serLabel}
                           </div>
                           <div className="flex items-center justify-center gap-1 mt-1">
-                            <Star size={11} style={{ color: "#f59e0b" }} />
+                            <Star size={11} style={{ color: "#0d9488" }} />
                             <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Ser (Actitudinal)</span>
                           </div>
                         </div>
@@ -390,8 +402,8 @@ export default async function CursoCalificacionesPage({
                   {/* Ser — Actitudinal */}
                   <div>
                     <div className="flex items-center gap-2 mb-3">
-                      <Star size={14} style={{ color: "#f59e0b" }} />
-                      <span style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#f59e0b" }}>Ser — Actitudinal</span>
+                      <Star size={14} style={{ color: "#0d9488" }} />
+                      <span style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#0d9488" }}>Ser — Actitudinal</span>
                     </div>
                     {serSubs.length > 0 ? (
                       <div className="flex flex-col gap-3">{serSubs.map(renderCard)}</div>
@@ -418,11 +430,11 @@ export default async function CursoCalificacionesPage({
                               <span className="badge badge-success flex items-center gap-1">
                                 <CheckCircle size={12} /> Calificada
                               </span>
-                              <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "rgba(245,158,11,0.1)", color: "#d97706", border: "1px solid rgba(245,158,11,0.2)" }}>
+                              <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "rgba(13,148,136,0.1)", color: "#0d9488", border: "1px solid rgba(13,148,136,0.2)" }}>
                                 Asignada por el docente
                               </span>
                             </div>
-                            <h4 className="font-bold text-base mb-0.5" style={{ color: "#f59e0b" }}>
+                            <h4 className="font-bold text-base mb-0.5" style={{ color: "#0d9488" }}>
                               Nota Actitudinal — {periodName}
                             </h4>
                             <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
@@ -455,7 +467,7 @@ export default async function CursoCalificacionesPage({
                           }}
                         >
                           <div style={{ flex: 1 }}>
-                            <h4 className="font-bold text-base mb-0.5" style={{ color: "#f59e0b" }}>
+                            <h4 className="font-bold text-base mb-0.5" style={{ color: "#0d9488" }}>
                               Nota Actitudinal — {periodName}
                             </h4>
                             <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
