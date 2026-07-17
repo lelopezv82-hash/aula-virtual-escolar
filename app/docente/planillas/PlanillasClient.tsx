@@ -15,11 +15,6 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 // @ts-ignore
 import autoTable from "jspdf-autotable";
-import dynamic from "next/dynamic";
-const PlanillaVisorEditor = dynamic(
-  () => import("../cursos/[id]/calificaciones/PlanillaVisorEditor"),
-  { ssr: false }
-);
 
 // ── Interfaces ────────────────────────────────────────────────────────────────
 
@@ -188,7 +183,6 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [examQuestions, setExamQuestions] = useState<any[]>([]);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [manageTab, setManageTab] = useState<"control" | "questions">("control");
-  const [showPlanillaVisor, setShowPlanillaVisor] = useState(false);
   const [taskStudents, setTaskStudents] = useState<any[]>([]);
   const [globalAllowLate, setGlobalAllowLate] = useState(false);
   const [globalLateUntil, setGlobalLateUntil] = useState("");
@@ -1776,14 +1770,6 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             />
           </label>
 
-          <button
-            onClick={() => setShowPlanillaVisor(v => !v)}
-            className="btn btn-secondary flex items-center gap-1.5 text-sm"
-            style={showPlanillaVisor ? { background: "#f98012", borderColor: "#e06d09", color: "#fff" } : {}}
-            title="Sube tu planilla Excel, edítala aquí y sincroniza las notas automáticamente"
-          >
-            <FileSpreadsheet size={15} /> Mi Planilla Excel
-          </button>
 
           <button onClick={exportToOfficialTemplate} className="btn btn-secondary flex items-center gap-1.5 text-sm" style={{ background: "#1d4ed8", borderColor: "#1e40af", color: "#fff" }} title="Genera la planilla oficial en formato Monseñor Díaz Plata con todas las notas">
             <FileSpreadsheet size={15} /> Planilla Oficial
@@ -1965,12 +1951,6 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         {loading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="animate-spin text-orange-500" size={40} />
-          </div>
-        ) : showPlanillaVisor ? (
-          <div className="p-4 bg-slate-50 dark:bg-gray-900">
-            {selectedCourseId && selectedPeriod && (
-              <PlanillaVisorEditor courseId={selectedCourseId} activePeriod={selectedPeriod} />
-            )}
           </div>
         ) : (
           <div className="overflow-x-auto w-full">
