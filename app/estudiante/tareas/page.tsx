@@ -171,7 +171,9 @@ export default async function TareasEstudiantePage() {
                   </p>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.75rem", color: "var(--text-muted)" }}>
                     <Clock size={12} />
+                  {formatToColombiaString(activeDeadline) !== "Sin fecha límite" && (
                     <span>Vence: {formatToColombiaString(activeDeadline)} {hasExtension && "(Prórroga)"}</span>
+                  )}
                   </div>
                 </div>
 

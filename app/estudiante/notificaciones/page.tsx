@@ -112,7 +112,7 @@ export default async function NotificacionesPage() {
       title: `Nueva tarea: ${t.title}`,
       subtitle: t.course.name,
       date: t.createdAt,
-      extra: `Vence: ${formatToColombiaString(t.dueDate, false)}`
+      extra: formatToColombiaString(t.dueDate, false) !== "Sin fecha límite" ? `Vence: ${formatToColombiaString(t.dueDate, false)}` : undefined
     });
   });
 
