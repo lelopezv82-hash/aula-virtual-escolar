@@ -10,7 +10,6 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import dynamic from "next/dynamic";
-const PlanillaVisorEditor = dynamic(() => import("./PlanillaVisorEditor"), { ssr: false });
 const PlanillaExcelEditor = dynamic(() => import("./PlanillaExcelEditor"), { ssr: false });
 
 interface PeriodGrades {
@@ -111,7 +110,7 @@ export default function CalificacionesConsolidadoPage() {
   const [activePeriod, setActivePeriod] = useState<string>("");
   const [sortField, setSortField] = useState<"name" | "saber" | "hacer" | "ser" | "final">("name");
   const [sortAsc, setSortAsc] = useState(true);
-  const [activeTab, setActiveTab] = useState<"consolidado" | "mi-planilla" | "planilla-notas">("planilla-notas");
+  const [activeTab, setActiveTab] = useState<"consolidado" | "planilla-notas">("planilla-notas");
 
   const exportToExcel = () => {
     if (!data || !activePeriod) return;
@@ -399,16 +398,6 @@ export default function CalificacionesConsolidadoPage() {
                 🗂️ Planilla de Notas
               </button>
               <button
-                onClick={() => setActiveTab("mi-planilla")}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  activeTab === "mi-planilla"
-                    ? "bg-white dark:bg-gray-750 text-gray-800 dark:text-white shadow-sm"
-                    : "text-gray-500 hover:text-gray-800 dark:hover:text-white"
-                }`}
-              >
-                📄 Mi Planilla Excel
-              </button>
-              <button
                 onClick={() => setActiveTab("consolidado")}
                 className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   activeTab === "consolidado"
@@ -423,8 +412,6 @@ export default function CalificacionesConsolidadoPage() {
 
           {activeTab === "planilla-notas" ? (
             <PlanillaExcelEditor courseId={courseId} activePeriod={activePeriod} />
-          ) : activeTab === "mi-planilla" ? (
-            <PlanillaVisorEditor courseId={courseId} activePeriod={activePeriod} />
           ) : (
             <>
               {/* Stats row */}
