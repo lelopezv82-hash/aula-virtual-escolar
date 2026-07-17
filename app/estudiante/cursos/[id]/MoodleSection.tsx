@@ -39,7 +39,9 @@ interface MoodleSectionProps {
 function formatDate(dateStr: string | null) {
   if (!dateStr) return null;
   try {
-    return new Date(dateStr).toLocaleString("es-CO", {
+    const d = new Date(dateStr);
+    if (d.getFullYear() >= 9000) return null; // No real deadline set
+    return d.toLocaleString("es-CO", {
       weekday: "long", day: "numeric", month: "long", year: "numeric",
       hour: "2-digit", minute: "2-digit", timeZone: "America/Bogota",
     });
