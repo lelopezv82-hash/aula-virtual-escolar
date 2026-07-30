@@ -230,21 +230,13 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                               Pendiente por calificar
                             </span>
                           )}
-                          {item.isExternal ? (
+                           {item.isExternal && (
                             <span style={{
                               fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
                               borderRadius: 3, background: "#f1f5f9", color: "#475569",
                               border: "1px solid #cbd5e1"
                             }}>
                               📁 Entrega en clase
-                            </span>
-                          ) : (
-                            <span style={{
-                              fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
-                              borderRadius: 3, background: "#f0f9ff", color: "#0369a1",
-                              border: "1px solid #b9e6fe"
-                            }}>
-                              💻 Entrega en plataforma
                             </span>
                           )}
                         </div>
