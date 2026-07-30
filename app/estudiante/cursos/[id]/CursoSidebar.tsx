@@ -78,6 +78,17 @@ export default function CursoSidebar({ courseId, courseName, periods = [] }: Cur
 
         <div style={{ height: 1, background: "#dee2e6", margin: "0.35rem 1rem" }} />
 
+        {/* Recursos y Materiales */}
+        <Link href={`${base}/recursos`} style={pathname.includes("/recursos") ? activeStyle : linkBase}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+          </svg>
+          Recursos y Materiales
+        </Link>
+
+        <div style={{ height: 1, background: "#dee2e6", margin: "0.35rem 1rem" }} />
+
         {/* Calificaciones */}
         <Link href={`${base}/calificaciones`} style={isCalifActive ? activeStyle : linkBase}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
