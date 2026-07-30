@@ -67,17 +67,6 @@ export default function CursoSidebar({ courseId, courseName, periods = [] }: Cur
       {/* Navigation */}
       <nav style={{ padding: "0.5rem 0" }}>
 
-        {/* Contenido del curso (home) */}
-        <Link href={base} style={isHomeActive ? activeStyle : linkBase}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-            <polyline points="9 22 9 12 15 12 15 22"/>
-          </svg>
-          Actividades en plataforma
-        </Link>
-
-        <div style={{ height: 1, background: "#dee2e6", margin: "0.35rem 1rem" }} />
-
         {/* Recursos y Materiales */}
         <Link href={`${base}/recursos`} style={pathname.includes("/recursos") ? activeStyle : linkBase}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -85,6 +74,17 @@ export default function CursoSidebar({ courseId, courseName, periods = [] }: Cur
             <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
           </svg>
           Recursos y Materiales
+        </Link>
+
+        <div style={{ height: 1, background: "#dee2e6", margin: "0.35rem 1rem" }} />
+
+        {/* Contenido del curso (home) */}
+        <Link href={base} style={isHomeActive ? activeStyle : linkBase}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+          Actividades en plataforma
         </Link>
 
         <div style={{ height: 1, background: "#dee2e6", margin: "0.35rem 1rem" }} />
