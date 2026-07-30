@@ -42,13 +42,14 @@ export default async function NotificacionesPage() {
             { publishAt: null },
             { publishAt: { lte: now } }
           ]
+        },
+        {
+          OR: [
+            { groups: { none: {} } },
+            ...(studentGroupId ? [{ groups: { some: { id: studentGroupId } } }] : [])
+          ]
         }
-      ],
-      groups: studentGroupId ? {
-        some: {
-          id: studentGroupId
-        }
-      } : { none: {} }
+      ]
     },
     orderBy: { createdAt: "desc" },
     take: 10,
@@ -68,13 +69,14 @@ export default async function NotificacionesPage() {
             { publishAt: null },
             { publishAt: { lte: now } }
           ]
+        },
+        {
+          OR: [
+            { groups: { none: {} } },
+            ...(studentGroupId ? [{ groups: { some: { id: studentGroupId } } }] : [])
+          ]
         }
-      ],
-      groups: studentGroupId ? {
-        some: {
-          id: studentGroupId
-        }
-      } : { none: {} }
+      ]
     },
     orderBy: { createdAt: "desc" },
     take: 10,

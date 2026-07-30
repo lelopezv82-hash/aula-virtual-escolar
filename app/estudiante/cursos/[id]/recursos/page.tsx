@@ -46,7 +46,14 @@ export default async function CursoRecursosPage({
       courseId: id,
       active: true,
       OR: [{ publishAt: null }, { publishAt: { lte: now } }],
-      groups: studentGroupId ? { some: { id: studentGroupId } } : undefined,
+      AND: [
+        {
+          OR: [
+            { groups: { none: {} } },
+            ...(studentGroupId ? [{ groups: { some: { id: studentGroupId } } }] : [])
+          ]
+        }
+      ]
     },
     orderBy: { createdAt: "desc" },
     include: { groups: true },

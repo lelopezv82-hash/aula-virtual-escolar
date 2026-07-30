@@ -39,7 +39,14 @@ export default async function CursoDescripcionPage({
       courseId: id,
       active: true,
       OR: [{ publishAt: null }, { publishAt: { lte: now } }],
-      groups: studentGroupId ? { some: { id: studentGroupId } } : undefined,
+      AND: [
+        {
+          OR: [
+            { groups: { none: {} } },
+            ...(studentGroupId ? [{ groups: { some: { id: studentGroupId } } }] : [])
+          ]
+        }
+      ]
     },
     include: {
       themes: true
@@ -55,8 +62,15 @@ export default async function CursoDescripcionPage({
       isExternal: false,
       type: { in: ["TASK", "EXAM", "FINAL"] },
       OR: [{ period: null }, { period: { in: activePeriodNames } }],
-      AND: [{ OR: [{ publishAt: null }, { publishAt: { lte: now } }] }],
-      groups: studentGroupId ? { some: { id: studentGroupId } } : undefined,
+      AND: [
+        { OR: [{ publishAt: null }, { publishAt: { lte: now } }] },
+        {
+          OR: [
+            { groups: { none: {} } },
+            ...(studentGroupId ? [{ groups: { some: { id: studentGroupId } } }] : [])
+          ]
+        }
+      ]
     },
     include: {
       submissions: { where: { studentId } },
