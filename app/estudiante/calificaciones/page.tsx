@@ -51,14 +51,13 @@ export default async function CalificacionesEstudiantePage() {
             { publishAt: null },
             { publishAt: { lte: now } }
           ]
-        },
-        {
-          OR: [
-            { groups: { none: {} } },
-            ...(studentGroupId ? [{ groups: { some: { id: studentGroupId } } }] : [])
-          ]
         }
-      ]
+      ],
+      groups: studentGroupId ? {
+        some: {
+          id: studentGroupId
+        }
+      } : { none: {} }
     },
     include: {
       course: true,

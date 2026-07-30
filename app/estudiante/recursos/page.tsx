@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+﻿import prisma from '@/lib/prisma';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { BookOpen, Download, Link as LinkIcon, AlertCircle } from "lucide-react";
@@ -49,10 +49,11 @@ export default async function RecursosEstudiantePage() {
           }
         }
       },
-      OR: [
-        { groups: { none: {} } },
-        { groups: { some: { id: studentGroupId } } }
-      ]
+      groups: {
+        some: {
+          id: studentGroupId
+        }
+      }
     },
     include: {
       course: true

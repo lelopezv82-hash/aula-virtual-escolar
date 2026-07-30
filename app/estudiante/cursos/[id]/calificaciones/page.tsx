@@ -53,15 +53,8 @@ export default async function CursoCalificacionesPage({
       courseId: id,
       active: true,
       OR: [{ period: null }, { period: { in: activePeriodNames } }],
-      AND: [
-        { OR: [{ publishAt: null }, { publishAt: { lte: now } }] },
-        {
-          OR: [
-            { groups: { none: {} } },
-            ...(studentGroupId ? [{ groups: { some: { id: studentGroupId } } }] : [])
-          ]
-        }
-      ]
+      AND: [{ OR: [{ publishAt: null }, { publishAt: { lte: now } }] }],
+      groups: studentGroupId ? { some: { id: studentGroupId } } : undefined,
     },
     include: {
       course: true,
