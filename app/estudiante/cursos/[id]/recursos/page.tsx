@@ -82,7 +82,7 @@ export default async function CursoRecursosPage({
               <span style={{ fontSize: "1.5rem" }}>{TYPE_ICONS[resource.type] || "📁"}</span>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-sm truncate" title={resource.title}>{resource.title}</p>
-                <p className="text-xs text-muted">{resource.type}{resource.theme ? ` • ${resource.theme}` : ""}</p>
+                <p className="text-xs text-muted">{resource.type}</p>
               </div>
               <a
                 href={resource.url}

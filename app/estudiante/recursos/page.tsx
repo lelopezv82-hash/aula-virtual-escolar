@@ -1,4 +1,4 @@
-﻿import prisma from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { BookOpen, Download, Link as LinkIcon, AlertCircle } from "lucide-react";
@@ -122,7 +122,7 @@ export default async function RecursosEstudiantePage() {
                           {resource.title}
                         </h3>
                         <p className="text-xs text-muted mt-0.5">
-                          {resource.type} {resource.theme ? `• ${resource.theme}` : ""}
+                          {resource.type}
                         </p>
                       </div>
 
