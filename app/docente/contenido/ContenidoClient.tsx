@@ -200,7 +200,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     }
   }, [resourceForm.courseId, courses]);
 
-  const openNewResourceModal = (courseId?: string, periodName?: string, defaultType?: string) => {
+  const openNewResourceModal = (courseId?: string, periodName?: string, defaultType?: string, preselectedTheme?: string) => {
     setError("");
     setEditingResource(null);
     setResourceForm({
@@ -209,7 +209,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       type: defaultType || "PDF",
       link: "",
       theme: "",
-      themes: [],
+      themes: preselectedTheme ? [preselectedTheme] : [],
       period: periodName || periods[0]?.name || "Periodo 1",
       groupIds: [],
       publishAt: ""
@@ -585,14 +585,27 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                         {courseThemes.map(t => (
                           <span key={t.id} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-semibold" style={{ background: '#e8f0fe', color: '#1a56db', border: '1px solid #c7d7fb' }}>
                             {t.title}
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteTheme(t.id)}
-                              className="ml-1 hover:text-red-600 transition-colors opacity-60 hover:opacity-100"
-                              title="Eliminar tema"
-                            >
-                              <X size={14} />
-                            </button>
+                            <div className="flex items-center gap-1 ml-2 pl-2" style={{ borderLeft: '1px solid #c7d7fb' }}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveTab("materiales"); // switch back to materials tab
+                                  openNewResourceModal(course.id, undefined, undefined, t.title);
+                                }}
+                                className="flex items-center gap-0.5 hover:text-[#f98012] transition-colors opacity-70 hover:opacity-100 text-[11px]"
+                                title="Añadir material a este tema"
+                              >
+                                <Plus size={13} /> Recurso
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteTheme(t.id)}
+                                className="hover:text-red-600 transition-colors opacity-70 hover:opacity-100 ml-1"
+                                title="Eliminar tema"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
                           </span>
                         ))}
                         {themeInputCourseId === course.id ? (
