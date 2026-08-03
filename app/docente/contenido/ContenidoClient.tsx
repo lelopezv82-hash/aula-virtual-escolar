@@ -84,7 +84,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
   const router = useRouter();
   const confirm = useConfirm();
 
-  const activeTab = "materiales";
+  const [activeTab, setActiveTab] = useState("materiales");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -386,26 +386,41 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       ) : (
         <div className="flex flex-col gap-6">
 
-          {/* ── Header ── */}
-          <div className="flex justify-between items-center flex-wrap gap-4">
-            <div className="flex flex-col gap-0.5">
-              <h3 className="font-bold text-base md:text-lg">Recursos y Guías</h3>
-            </div>
-            <div className="flex items-center gap-4 flex-wrap">
-              <GDriveVisibilityToggle context="materials" />
-              <button
-                id="btn-nuevo-recurso"
-                onClick={() => openNewResourceModal(undefined, undefined, undefined)}
-                className="btn btn-primary px-4 py-2 text-sm flex items-center gap-2"
-              >
-                <Plus size={18} /> Subir Recurso
-              </button>
-            </div>
+          {/* ── Tabs ── */}
+          <div className="flex border-b" style={{ borderColor: "var(--border-color)" }}>
+            <button
+              className={`px-5 py-3 font-semibold transition-colors border-b-2 flex items-center gap-2 ${
+                activeTab === "materiales" ? "text-[#f98012] border-[#f98012]" : "text-muted border-transparent hover:text-foreground"
+              }`}
+              onClick={() => setActiveTab("materiales")}
+            >
+              <FileText size={18} /> Recursos y Guías
+            </button>
+            <button
+              className={`px-5 py-3 font-semibold transition-colors border-b-2 flex items-center gap-2 ${
+                activeTab === "temas" ? "text-[#f98012] border-[#f98012]" : "text-muted border-transparent hover:text-foreground"
+              }`}
+              onClick={() => setActiveTab("temas")}
+            >
+              <BookMarked size={18} /> Temas de Asignatura
+            </button>
           </div>
 
-
-
-          {/* ══════════════════════════════════════
+          {/* ── Header Actions ── */}
+          <div className="flex justify-end items-center flex-wrap gap-4">
+            {activeTab === "materiales" && (
+              <div className="flex items-center gap-4 flex-wrap">
+                <GDriveVisibilityToggle context="materials" />
+                <button
+                  id="btn-nuevo-recurso"
+                  onClick={() => openNewResourceModal(undefined, undefined, undefined)}
+                  className="btn btn-primary px-4 py-2 text-sm flex items-center gap-2"
+                >
+                  <Plus size={18} /> Subir Recurso
+                </button>
+              </div>
+            )}
+          </div>          {/* ══════════════════════════════════════
               TAB: RECURSOS Y GUÍAS
               Archivos, PDFs, videos, enlaces
               (excluye tipo PLAN)
@@ -442,77 +457,6 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                             </button>
                           ),
                           <>
-                            {/* ── Temas de la asignatura ── */}
-                            {(() => {
-                              const courseThemes = [...(course.themes || [])]
-                                .sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }));
-                              return (
-                                <div className="mb-4 pb-4 flex flex-col gap-2" style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                  <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Temas de la asignatura</span>
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    {courseThemes.length === 0 && themeInputCourseId !== course.id && (
-                                      <span className="text-xs italic" style={{ color: 'var(--text-muted)' }}>Sin temas creados.</span>
-                                    )}
-                                    {courseThemes.map(t => (
-                                      <span key={t.id} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: '#e8f0fe', color: '#1a56db', border: '1px solid #c7d7fb' }}>
-                                        {t.title}
-                                        <button
-                                          type="button"
-                                          onClick={() => handleDeleteTheme(t.id)}
-                                          className="ml-1 hover:text-red-600 transition-colors opacity-60 hover:opacity-100"
-                                          title="Eliminar tema"
-                                        >
-                                          <X size={11} />
-                                        </button>
-                                      </span>
-                                    ))}
-                                    {themeInputCourseId === course.id ? (
-                                      <div className="flex items-center gap-1">
-                                        <input
-                                          autoFocus
-                                          type="text"
-                                          className="input-field py-0.5 px-2 text-xs"
-                                          style={{ width: 210, height: 28 }}
-                                          placeholder="Nombre del tema..."
-                                          value={themeInputValue}
-                                          onChange={e => setThemeInputValue(e.target.value)}
-                                          onKeyDown={e => {
-                                            if (e.key === 'Enter') { e.preventDefault(); handleCreateTheme(course.id); }
-                                            if (e.key === 'Escape') { setThemeInputCourseId(null); setThemeInputValue(''); }
-                                          }}
-                                        />
-                                        <button
-                                          type="button"
-                                          disabled={creatingTheme || !themeInputValue.trim()}
-                                          onClick={() => handleCreateTheme(course.id)}
-                                          className="btn btn-primary flex items-center gap-1"
-                                          style={{ padding: '2px 10px', fontSize: '11px', height: 28 }}
-                                        >
-                                          {creatingTheme ? <Loader2 size={11} className="animate-spin" /> : 'Añadir'}
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => { setThemeInputCourseId(null); setThemeInputValue(''); }}
-                                          className="btn btn-secondary flex items-center"
-                                          style={{ padding: '2px 8px', fontSize: '11px', height: 28 }}
-                                        >
-                                          <X size={11} />
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        onClick={() => { setThemeInputCourseId(course.id); setThemeInputValue(''); }}
-                                        className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-dashed transition-colors hover:border-[#f98012] hover:text-[#f98012]"
-                                        style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}
-                                      >
-                                        <Plus size={11} /> Nuevo Tema
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })()}
                             {periodRes.length === 0 ? (
                             <p className="text-muted text-xs italic p-2">No hay recursos en este periodo.</p>
                           ) : (
@@ -618,10 +562,89 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
           )}
 
           {/* ══════════════════════════════════════
-              TAB: PLANES DE CLASE
-              Solo tipo PLAN
+              TAB: TEMAS DE ASIGNATURA
               ══════════════════════════════════════ */}
+          {activeTab === "temas" && (
+            <div className="flex flex-col gap-6">
+              {courses.map(course => {
+                const courseThemes = [...(course.themes || [])]
+                  .sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }));
 
+                return (
+                  <div key={course.id} className="card w-full">
+                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                      <BookMarked className="text-[#f98012]" /> {course.name}
+                    </h2>
+                    
+                    <div className="mb-4 flex flex-col gap-3">
+                      <p className="text-sm text-muted">Administra los temas de esta asignatura.</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {courseThemes.length === 0 && themeInputCourseId !== course.id && (
+                          <span className="text-sm italic" style={{ color: 'var(--text-muted)' }}>Sin temas creados.</span>
+                        )}
+                        {courseThemes.map(t => (
+                          <span key={t.id} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-semibold" style={{ background: '#e8f0fe', color: '#1a56db', border: '1px solid #c7d7fb' }}>
+                            {t.title}
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteTheme(t.id)}
+                              className="ml-1 hover:text-red-600 transition-colors opacity-60 hover:opacity-100"
+                              title="Eliminar tema"
+                            >
+                              <X size={14} />
+                            </button>
+                          </span>
+                        ))}
+                        {themeInputCourseId === course.id ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              autoFocus
+                              type="text"
+                              className="input-field py-1 px-3 text-sm"
+                              style={{ width: 250, height: 34 }}
+                              placeholder="Nombre del tema..."
+                              value={themeInputValue}
+                              onChange={e => setThemeInputValue(e.target.value)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') { e.preventDefault(); handleCreateTheme(course.id); }
+                                if (e.key === 'Escape') { setThemeInputCourseId(null); setThemeInputValue(''); }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              disabled={creatingTheme || !themeInputValue.trim()}
+                              onClick={() => handleCreateTheme(course.id)}
+                              className="btn btn-primary flex items-center gap-1"
+                              style={{ padding: '4px 12px', fontSize: '13px', height: 34 }}
+                            >
+                              {creatingTheme ? <Loader2 size={14} className="animate-spin" /> : 'Añadir'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { setThemeInputCourseId(null); setThemeInputValue(''); }}
+                              className="btn btn-secondary flex items-center"
+                              style={{ padding: '4px 8px', height: 34 }}
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => { setThemeInputCourseId(course.id); setThemeInputValue(''); }}
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-semibold border border-dashed transition-colors hover:border-[#f98012] hover:text-[#f98012]"
+                            style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}
+                          >
+                            <Plus size={14} /> Nuevo Tema
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
         </div>
       )}
