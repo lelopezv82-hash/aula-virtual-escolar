@@ -190,6 +190,49 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
   const [themeInputValue, setThemeInputValue] = useState("");
   const [creatingTheme, setCreatingTheme] = useState(false);
 
+  /* ─── Link Materials state ─────────────────────────────── */
+  const [showLinkMaterialsModal, setShowLinkMaterialsModal] = useState(false);
+  const [selectedThemeForLink, setSelectedThemeForLink] = useState<{ courseId: string; theme: Theme } | null>(null);
+  const [linkMaterialsSelection, setLinkMaterialsSelection] = useState<string[]>([]);
+  const [linkingMaterials, setLinkingMaterials] = useState(false);
+
+  const openLinkMaterialsModal = (courseId: string, theme: Theme) => {
+    const course = courses.find(c => c.id === courseId);
+    if (!course) return;
+    const preselected = course.resources.filter(r => r.themes && r.themes.includes(theme.title)).map(r => r.id);
+    setSelectedThemeForLink({ courseId, theme });
+    setLinkMaterialsSelection(preselected);
+    setShowLinkMaterialsModal(true);
+  };
+
+  const handleSaveLinkMaterials = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedThemeForLink) return;
+    setLinkingMaterials(true);
+    setError("");
+    try {
+      const res = await fetch("/api/docente/temas", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: selectedThemeForLink.theme.id,
+          resourceIds: linkMaterialsSelection
+        })
+      });
+      if (res.ok) {
+        setShowLinkMaterialsModal(false);
+        router.refresh();
+      } else {
+        const data = await res.json();
+        setError(data.error || "Error al vincular materiales");
+      }
+    } catch {
+      setError("Error de conexión");
+    } finally {
+      setLinkingMaterials(false);
+    }
+  };
+
   const [availableGroups, setAvailableGroups] = useState<Group[]>([]);
   useEffect(() => {
     if (resourceForm.courseId) {
@@ -578,38 +621,54 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                     
                     <div className="mb-4 flex flex-col gap-3">
                       <p className="text-sm text-muted">Administra los temas de esta asignatura.</p>
-                      <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex flex-col gap-4">
                         {courseThemes.length === 0 && themeInputCourseId !== course.id && (
                           <span className="text-sm italic" style={{ color: 'var(--text-muted)' }}>Sin temas creados.</span>
                         )}
-                        {courseThemes.map(t => (
-                          <span key={t.id} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-semibold" style={{ background: '#e8f0fe', color: '#1a56db', border: '1px solid #c7d7fb' }}>
-                            {t.title}
-                            <div className="flex items-center gap-1 ml-2 pl-2" style={{ borderLeft: '1px solid #c7d7fb' }}>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveTab("materiales"); // switch back to materials tab
-                                  openNewResourceModal(course.id, undefined, undefined, t.title);
-                                }}
-                                className="flex items-center gap-0.5 hover:text-[#f98012] transition-colors opacity-70 hover:opacity-100 text-[11px]"
-                                title="Añadir material a este tema"
-                              >
-                                <Plus size={13} /> Recurso
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteTheme(t.id)}
-                                className="hover:text-red-600 transition-colors opacity-70 hover:opacity-100 ml-1"
-                                title="Eliminar tema"
-                              >
-                                <X size={14} />
-                              </button>
+                        {courseThemes.map(t => {
+                          const linkedResources = course.resources.filter(r => r.themes && r.themes.includes(t.title));
+                          return (
+                            <div key={t.id} className="border rounded-lg p-4" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
+                              <div className="flex justify-between items-center mb-2">
+                                <h3 className="font-bold text-lg" style={{ color: '#1a56db' }}>{t.title}</h3>
+                                <div className="flex gap-2 items-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => openLinkMaterialsModal(course.id, t)}
+                                    className="btn btn-primary py-1 px-3 text-xs flex items-center gap-1"
+                                  >
+                                    <BookMarked size={14} /> Vincular Materiales
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteTheme(t.id)}
+                                    className="p-1.5 rounded hover:bg-red-50 text-red-600 transition-colors"
+                                    title="Eliminar tema"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
+                              </div>
+                              {linkedResources.length > 0 ? (
+                                <ul className="flex flex-col gap-1.5 mt-3 pl-3 border-l-2 border-[#1a56db]">
+                                  {linkedResources.map(r => (
+                                    <li key={r.id} className="text-sm flex items-center gap-2 text-slate-700">
+                                      <span>{TYPE_ICONS[r.type] || "📁"}</span>
+                                      <span className="font-semibold">{r.title}</span>
+                                      <span className="text-[10px] text-muted uppercase ml-2 bg-slate-200 px-1.5 py-0.5 rounded">
+                                        {r.period}
+                                      </span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="text-xs text-muted italic mt-2">No hay materiales vinculados a este tema.</p>
+                              )}
                             </div>
-                          </span>
-                        ))}
+                          );
+                        })}
                         {themeInputCourseId === course.id ? (
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-2 mt-2">
                             <input
                               autoFocus
                               type="text"
@@ -630,7 +689,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                               className="btn btn-primary flex items-center gap-1"
                               style={{ padding: '4px 12px', fontSize: '13px', height: 34 }}
                             >
-                              {creatingTheme ? <Loader2 size={14} className="animate-spin" /> : 'Añadir'}
+                              {creatingTheme ? <Loader2 size={14} className="animate-spin" /> : 'Guardar'}
                             </button>
                             <button
                               type="button"
@@ -645,8 +704,8 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                           <button
                             type="button"
                             onClick={() => { setThemeInputCourseId(course.id); setThemeInputValue(''); }}
-                            className="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-semibold border border-dashed transition-colors hover:border-[#f98012] hover:text-[#f98012]"
-                            style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}
+                            className="flex items-center justify-center gap-1 px-3 py-2 mt-2 rounded-lg text-sm font-semibold border border-dashed transition-colors hover:border-[#f98012] hover:text-[#f98012]"
+                            style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)', maxWidth: '250px' }}
                           >
                             <Plus size={14} /> Nuevo Tema
                           </button>
@@ -705,7 +764,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                   value={resourceForm.title} onChange={e => setResourceForm({ ...resourceForm, title: e.target.value })} required />
               </div>
               <div className="input-group flex-1">
-                <label className="text-xs font-bold mb-1">Temas Asociados</label>
+                <label className="text-xs font-bold mb-1">Temas Asociados (Opcional)</label>
                 {(() => {
                   const courseThemes = [...(courses
                     .find(c => c.id === resourceForm.courseId)
@@ -846,6 +905,75 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
               <button type="submit" className="btn btn-primary text-xs" disabled={loading}>
                 {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
                 {editingPeriod ? "Guardar Cambios" : "Crear Periodo"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ══ Modal: Vincular Materiales a Tema ══ */}
+      {showLinkMaterialsModal && selectedThemeForLink && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowLinkMaterialsModal(false)}>
+          <form onSubmit={handleSaveLinkMaterials} className="modal-content w-full max-w-lg" style={{ borderRadius: "1rem" }}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <BookMarked className="text-[#f98012]" size={20} />
+                Vincular a: {selectedThemeForLink.theme.title}
+              </h2>
+              <button type="button" onClick={() => setShowLinkMaterialsModal(false)} className="p-1 rounded hover:bg-slate-100">
+                <X size={20} />
+              </button>
+            </div>
+            {error && <div className="alert alert-danger mb-4 text-xs font-bold">{error}</div>}
+            
+            <p className="text-sm text-muted mb-4">Selecciona los materiales que deseas vincular a este tema.</p>
+            
+            <div className="border rounded-lg p-3 max-h-[350px] overflow-y-auto flex flex-col gap-2 bg-slate-50" style={{ borderColor: "var(--border-color)" }}>
+              {(() => {
+                const course = courses.find(c => c.id === selectedThemeForLink.courseId);
+                const materials = course?.resources.filter(r => r.type !== "PLAN" && r.type !== "THEME") || [];
+                
+                if (materials.length === 0) {
+                  return <p className="text-xs text-muted italic">No hay materiales en esta asignatura.</p>;
+                }
+
+                return materials.map(res => {
+                  const isChecked = linkMaterialsSelection.includes(res.id);
+                  return (
+                    <label key={res.id} className="flex items-start gap-3 p-2 rounded hover:bg-white cursor-pointer transition-colors border border-transparent hover:border-slate-200">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          if (isChecked) {
+                            setLinkMaterialsSelection(prev => prev.filter(id => id !== res.id));
+                          } else {
+                            setLinkMaterialsSelection(prev => [...prev, res.id]);
+                          }
+                        }}
+                        className="rounded mt-0.5"
+                        style={{ accentColor: "#f98012" }}
+                      />
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-bold flex items-center gap-1.5 text-slate-800">
+                          {TYPE_ICONS[res.type] || "📁"} {res.title}
+                        </span>
+                        <div className="flex items-center gap-2 text-[10px] uppercase font-bold text-muted">
+                          <span className="bg-slate-200 px-1.5 py-0.5 rounded">{res.period}</span>
+                          <span>{res.type}</span>
+                        </div>
+                      </div>
+                    </label>
+                  );
+                });
+              })()}
+            </div>
+
+            <div className="flex justify-end gap-3 border-t pt-4 mt-4" style={{ borderColor: "var(--border-color)" }}>
+              <button type="button" className="btn btn-secondary text-xs" onClick={() => setShowLinkMaterialsModal(false)}>Cancelar</button>
+              <button type="submit" className="btn btn-primary text-xs" disabled={linkingMaterials}>
+                {linkingMaterials ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                Guardar Cambios
               </button>
             </div>
           </form>

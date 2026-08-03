@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import prisma from "@/lib/prisma";
@@ -71,6 +71,38 @@ export async function DELETE(request: Request) {
     await prisma.theme.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch {
+    return NextResponse.json({ error: "Error interno" }, { status: 500 });
+  }
+}
+
+// PATCH - update resources linked to a theme
+export async function PATCH(request: Request) {
+  try {
+    const teacherId = await getTeacherId();
+    if (!teacherId) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    const body = await request.json();
+    const { id, resourceIds } = body;
+    if (!id || !Array.isArray(resourceIds)) {
+      return NextResponse.json({ error: "id (tema) y resourceIds son obligatorios" }, { status: 400 });
+    }
+    const theme = await prisma.theme.findFirst({
+      where: { id },
+      include: { course: { select: { teacherId: true } } },
+    });
+    if (!theme || theme.course.teacherId !== teacherId) {
+      return NextResponse.json({ error: "Tema no encontrado" }, { status: 404 });
+    }
+    await prisma.theme.update({
+      where: { id },
+      data: {
+        resources: {
+          set: resourceIds.map((resId: string) => ({ id: resId }))
+        }
+      }
+    });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error al vincular materiales al tema:", error);
     return NextResponse.json({ error: "Error interno" }, { status: 500 });
   }
 }
