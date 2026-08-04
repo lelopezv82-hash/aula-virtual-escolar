@@ -538,16 +538,6 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                     {activeSubmission?.submittedAt ? formatMoodleDate(activeSubmission.submittedAt, true) : "-"}
                   </td>
                 </tr>
-                
-                {/* Intentos */}
-                {activeSubmission?.attempt && (
-                  <tr className="border-b border-gray-100">
-                    <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Intento</td>
-                    <td className="p-4 align-middle font-medium text-gray-800">
-                      {activeSubmission.attempt}
-                    </td>
-                  </tr>
-                )}
 
               </tbody>
             </table>
