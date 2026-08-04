@@ -83,9 +83,20 @@ export async function GET(req: Request) {
         type: true,
         active: true,
         isExternal: true,
+        dueDate: true,
+        allowLateSubmission: true,
+        lateSubmissionUntil: true,
+        duration: true,
         submissions: {
           where: { studentId: { in: studentIds } },
-          select: { studentId: true, grade: true, status: true }
+          select: { 
+            studentId: true, 
+            grade: true, 
+            status: true,
+            allowLateSubmission: true,
+            lateSubmissionUntil: true,
+            startedAt: true
+          }
         }
       },
       orderBy: { createdAt: "asc" }

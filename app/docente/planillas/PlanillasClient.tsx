@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import QuestionEditor from "../tareas/[id]/QuestionEditor";
-import { toColombiaISOString, fromColombiaLocalStringToDate } from "@/lib/dateUtils";
+import { toColombiaISOString, fromColombiaLocalStringToDate, getTaskDeadlineStatus } from "@/lib/dateUtils";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 // @ts-ignore
@@ -54,7 +54,18 @@ interface TaskItem {
   type: string; // EXAM | TASK | SER | FINAL | ATTEND
   active?: boolean;
   isExternal?: boolean;
-  submissions: { studentId: string; grade: number | null; status: string }[];
+  dueDate?: string;
+  allowLateSubmission?: boolean;
+  lateSubmissionUntil?: string;
+  duration?: number;
+  submissions: { 
+    studentId: string; 
+    grade: number | null; 
+    status: string;
+    startedAt?: string;
+    allowLateSubmission?: boolean;
+    lateSubmissionUntil?: string;
+  }[];
 }
 
 interface CourseWeights {
@@ -358,15 +369,45 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
       // Build grid from existing submissions
       const grid: Record<string, Record<string, string>> = {};
+      const initGrid: Record<string, Record<string, string>> = {};
+      const now = new Date();
+
       for (const s of fStudents) {
         grid[s.id] = {};
+        initGrid[s.id] = {};
         for (const t of fTasks) {
           const sub = t.submissions.find(x => x.studentId === s.id);
-          grid[s.id][t.id] = sub?.grade !== null && sub?.grade !== undefined ? String(sub.grade) : "";
+          
+          let defaultVal = "";
+          if (!t.isExternal) {
+            const { isClosed } = getTaskDeadlineStatus(t as any, sub as any);
+            const isTimerExpired = sub?.startedAt && t.duration && 
+              (new Date(sub.startedAt).getTime() + t.duration * 60 * 1000 + 30000 < now.getTime());
+              
+            if (isClosed || isTimerExpired) {
+              defaultVal = "1.0";
+            }
+          }
+
+          const hasRealGrade = sub?.grade !== null && sub?.grade !== undefined;
+          
+          // initGrid reflects exactly what is in the DB
+          initGrid[s.id][t.id] = hasRealGrade ? String(sub.grade) : "";
+
+          // grid reflects the UI state (auto 1.0 if applicable)
+          if (hasRealGrade) {
+            grid[s.id][t.id] = String(sub.grade);
+          } else if (sub?.status === "PENDING" && defaultVal) {
+            grid[s.id][t.id] = defaultVal;
+          } else if (!sub && defaultVal) {
+            grid[s.id][t.id] = defaultVal;
+          } else {
+            grid[s.id][t.id] = "";
+          }
         }
       }
       setGradesGrid(grid);
-      setInitialGrid(JSON.parse(JSON.stringify(grid)));
+      setInitialGrid(initGrid);
     } catch { /* silent */ }
     finally   { setLoading(false); }
   };
