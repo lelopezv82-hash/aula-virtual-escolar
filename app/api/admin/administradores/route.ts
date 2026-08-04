@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     }
 
     // Generate or use custom password
-    const plainPassword = customPassword || Math.random().toString(36).slice(-8);
+    const plainPassword = customPassword || Math.floor(10000000 + Math.random() * 90000000).toString();
     const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
     const admin = await prisma.user.create({
