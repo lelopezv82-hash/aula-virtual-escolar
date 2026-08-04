@@ -74,7 +74,7 @@ export async function POST(request: Request) {
       }
 
       // Generate temporary password
-      const plainPassword = Math.floor(10000000 + Math.random() * 90000000).toString();
+      const plainPassword = Math.floor(100000 + Math.random() * 900000).toString();
       const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
       // Create student
