@@ -96,8 +96,8 @@ export default async function TareasEstudiantePage() {
               : hasGradeSet ? "GRADED"
               : virtualGraded ? "GRADED" : (submission?.status || null);
             const activeGrade = (submission && submission.status !== "PENDING")
-              ? (submission.grade !== null && submission.grade !== undefined ? Math.max(1.0, submission.grade) : null)
-              : hasGradeSet ? Math.max(1.0, submission!.grade!)
+              ? (submission.grade !== null && submission.grade !== undefined ? submission.grade : null)
+              : hasGradeSet ? submission!.grade!
               : virtualGraded ? 1.0 : null;
 
             // Determine reason for minimum grade

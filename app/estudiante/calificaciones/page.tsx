@@ -105,42 +105,9 @@ export default async function CalificacionesEstudiantePage() {
         feedback: shouldHideFeedback ? null : sub.feedback
       };
 
-      if (sub.status === "PENDING" && (isClosed || isTimerExpired)) {
-        return {
-          ...processedSub,
-          status: "GRADED",
-          grade: 1.0,
-          feedbackTemplate,
-          task
-        };
-      }
       return {
         ...processedSub,
         feedbackTemplate,
-        task
-      };
-    }
-
-    // If no submission and task/exam is closed, virtually grade as 1.0 (skip for external tasks/exams)
-    if (isClosed && !task.isExternal) {
-      return {
-        id: `virtual-${task.id}`,
-        taskId: task.id,
-        studentId,
-        status: "GRADED",
-        grade: 1.0,
-        feedback: null,
-        feedbackTemplate,
-        fileUrl: null,
-        submittedAt: null,
-        createdAt: task.dueDate,
-        updatedAt: task.dueDate,
-        allowLateSubmission: false,
-        lateSubmissionUntil: null,
-        gdriveEmail: null,
-        startedAt: null,
-        attempt: 1,
-        unlockedAnswers: false,
         task
       };
     }
@@ -151,16 +118,78 @@ export default async function CalificacionesEstudiantePage() {
   // Sort by updatedAt desc (using task updatedAt fallback for virtual ones)
   activeSubmissions.sort((a, b) => new Date(b.updatedAt || b.task.updatedAt).getTime() - new Date(a.updatedAt || a.task.updatedAt).getTime());
 
-  const graded = activeSubmissions.filter(s => s.status === "GRADED" || s.grade != null);
-  const avg = graded.length > 0
-    ? graded.reduce((sum, s) => sum + Math.max(1.0, s.grade ?? 0), 0) / graded.length
-    : null;
+  // Group submissions by period and course to calculate true definitivas
+  const periodData = [...activePeriodNames, "Otros"].map(periodName => {
+    const periodSubs = activeSubmissions.filter(sub => {
+      if (periodName === "Otros") {
+        return !sub.task.period || !activePeriodNames.includes(sub.task.period);
+      }
+      return sub.task.period === periodName;
+    });
+
+    if (periodSubs.length === 0) return null;
+
+    const coursesMap = new Map<string, { course: any, subs: any[], definitiva: number | null }>();
+    
+    periodSubs.forEach(sub => {
+      const cid = sub.task.courseId;
+      if (!coursesMap.has(cid)) {
+        coursesMap.set(cid, { course: sub.task.course, subs: [], definitiva: null });
+      }
+      coursesMap.get(cid)!.subs.push(sub);
+    });
+
+    // Calculate definitiva for each course
+    coursesMap.forEach(courseData => {
+      const { course, subs } = courseData;
+      
+      const saberSubs = subs.filter(s => s.task.type === "EXAM" && (s.status === "GRADED" || s.grade != null));
+      const hacerSubs = subs.filter(s => s.task.type === "TASK" && (s.status === "GRADED" || s.grade != null));
+      const serSubs   = subs.filter(s => s.task.type === "SER" && (s.status === "GRADED" || s.grade != null));
+      const finalSubs = subs.filter(s => s.task.type === "FINAL" && (s.status === "GRADED" || s.grade != null));
+
+      const avgType = (list: any[]) => list.length > 0 ? list.reduce((a, b) => a + (b.grade || 0), 0) / list.length : null;
+
+      const saber = avgType(saberSubs);
+      const hacer = avgType(hacerSubs);
+      const ser = avgType(serSubs);
+      const final = avgType(finalSubs);
+
+      const sp = course.saberPercent ?? 30;
+      const hp = course.hacerPercent ?? 50;
+      const ep = course.serPercent ?? 20;
+      const fp = course.finalPercent ?? 0;
+
+      const hasAny = saber !== null || hacer !== null || ser !== null || final !== null;
+      courseData.definitiva = hasAny 
+        ? (saber ?? 0) * (sp / 100) + (hacer ?? 0) * (hp / 100) + (ser ?? 0) * (ep / 100) + (final ?? 0) * (fp / 100)
+        : null;
+    });
+
+    return {
+      periodName,
+      courses: Array.from(coursesMap.values())
+    };
+  }).filter(Boolean);
+
+  // Calculate global average from definitivas
+  let validDefinitivas = 0;
+  let sumDefinitivas = 0;
+  periodData.forEach(p => {
+    p?.courses.forEach(c => {
+      if (c.definitiva !== null) {
+        sumDefinitivas += c.definitiva;
+        validDefinitivas++;
+      }
+    });
+  });
+  const avg = validDefinitivas > 0 ? sumDefinitivas / validDefinitivas : null;
 
   return (
     <div className="animate-fade-in">
       <div className="dashboard-header">
         <h1>Mis Calificaciones</h1>
-        <p>Consulta tus notas y retroalimentación agrupadas por periodos académicos.</p>
+        <p>Consulta tus notas definitivas y retroalimentación agrupadas por periodos académicos.</p>
       </div>
 
       {/* Summary card */}
@@ -174,148 +203,157 @@ export default async function CalificacionesEstudiantePage() {
           </div>
           <div>
             <p className="font-semibold">Escala colombiana (0.0 – 5.0)</p>
-            <p className="text-sm text-muted">{graded.length} tarea(s) calificadas de {activeSubmissions.length} activas entregadas</p>
+            <p className="text-sm text-muted">Promedio calculado a partir de las notas definitivas de {validDefinitivas} curso(s).</p>
           </div>
         </div>
       )}
 
-      {activeSubmissions.length === 0 ? (
+      {periodData.length === 0 ? (
         <div className="card text-center py-10 text-muted">
           <AlertCircle size={40} className="mx-auto mb-3 opacity-40" />
           <p>No tienes entregas calificadas en periodos académicos activos.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-6">
-          {[...activePeriodNames, "Otros"].map(periodName => {
-            const periodSubs = activeSubmissions.filter(sub => {
-              if (periodName === "Otros") {
-                return !sub.task.period || !activePeriodNames.includes(sub.task.period);
-              }
-              return sub.task.period === periodName;
-            });
-
-            if (periodSubs.length === 0) return null;
-
+          {periodData.map((periodInfo: any) => {
             return (
-              <div key={periodName} className="p-4 rounded-lg border" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
+              <div key={periodInfo.periodName} className="p-4 rounded-lg border" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
                 <h2 className="font-bold text-sm uppercase tracking-wider mb-4 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                  {periodName}
+                  {periodInfo.periodName}
                 </h2>
                 
-                <div className="flex flex-col gap-4">
-                  {periodSubs.map(sub => {
-                    const isGraded = sub.status === "GRADED" || sub.grade != null;
-                    const isPending = sub.status === "SUBMITTED";
-                    const currentGrade = sub.grade !== null && sub.grade !== undefined ? Math.max(1.0, sub.grade) : 0;
-                    const gradeColor = isGraded
-                      ? currentGrade >= 3 ? "var(--success)" : "var(--danger)"
-                      : "var(--text-muted)";
-
-                    return (
-                      <div key={sub.id}
-                        style={{
-                          background: "var(--bg-primary)",
-                          borderLeft: `4px solid ${isGraded ? gradeColor : "var(--border-color)"}`,
-                          display: "flex",
-                          flexDirection: "row",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          gap: "1rem",
-                          padding: "1rem",
-                          borderRadius: "var(--radius-lg)",
-                          border: `1px solid var(--border-color)`,
-                          borderLeftWidth: "4px",
-                          boxShadow: "var(--shadow-sm)",
-                        }}
-                      >
-                        {/* Left: info */}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem", flexWrap: "wrap" }}>
-                            <span style={{ fontSize: "0.75rem", fontWeight: 700, padding: "2px 8px", background: "#f3f4f6", borderRadius: "4px", color: "#4b5563" }}>
-                              {sub.task.course.name}
+                <div className="flex flex-col gap-6">
+                  {periodInfo.courses.map((courseData: any) => (
+                    <div key={courseData.course.id} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-100 dark:border-gray-700 shadow-sm">
+                      <div className="flex justify-between items-center mb-4 pb-3 border-b border-gray-100 dark:border-gray-700">
+                        <h3 className="font-bold text-md flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                          <span className="w-2 h-2 rounded-full" style={{ background: 'var(--primary-color)' }}></span>
+                          {courseData.course.name}
+                        </h3>
+                        {courseData.definitiva !== null && (
+                          <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-600">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">Nota Definitiva:</span>
+                            <span className={`font-black text-lg ${courseData.definitiva >= 3 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+                              {courseData.definitiva.toFixed(1)}
                             </span>
-                            {sub.task.isExternal ? (
-                              <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1" }}>
-                                📁 Entrega en clase
-                              </span>
-                            ) : (
-                              <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f0f9ff", color: "#0369a1", border: "1px solid #b9e6fe" }}>
-                                💻 Entrega en plataforma
-                              </span>
-                            )}
-                            {isGraded && (
-                              sub.submittedAt === null && !sub.task.isExternal ? (
-                                <span className="badge badge-danger flex items-center gap-1"><AlertCircle size={12} /> Plazo vencido</span>
-                              ) : (
-                                <span className="badge badge-success flex items-center gap-1"><CheckCircle size={12} /> Calificada</span>
-                              )
-                            )}
-                            {isPending && <span className="badge badge-info flex items-center gap-1"><Clock size={12} /> En revisión</span>}
                           </div>
-                          <h3 style={{ fontWeight: 700, fontSize: "1.1rem", margin: "0 0 0.25rem" }}>{sub.task.title}</h3>
-                          {isGraded && sub.feedback && !sub.feedback.includes("Calificado automáticamente por Google Forms") && !sub.feedback.trim().startsWith("[") && (
-                            <div style={{ marginTop: "0.5rem", padding: "0.75rem", borderRadius: "0.5rem", fontSize: "0.875rem", fontStyle: "italic", background: "var(--bg-secondary)", color: "var(--text-secondary)", borderLeft: "3px solid var(--primary-color)" }}>
-                              💬 &quot;{sub.feedback}&quot;
-                            </div>
-                          )}
-                          {isGraded && sub.submittedAt === null && !sub.task.isExternal && (
-                            <p style={{ fontSize: "0.875rem", color: "var(--danger)", marginTop: "0.25rem", fontWeight: 500 }}>Calificación automática por falta de entrega.</p>
-                          )}
-                          {!isGraded && (
-                            <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>Tu docente aún no ha calificado esta entrega.</p>
-                          )}
-                        </div>
-
-                        {/* Right: grade + action */}
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem", minWidth: "120px", textAlign: "center" }}>
-                          {isGraded ? (
-                            <>
-                              <div style={{ fontSize: "2rem", fontWeight: 800, color: gradeColor, lineHeight: 1 }}>
-                                {sub.grade !== null && sub.grade !== undefined ? Math.max(1.0, sub.grade).toFixed(1) : ""}
-                              </div>
-                              <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>nota</div>
-                            </>
-                          ) : (
-                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontStyle: "italic", marginBottom: "0.5rem" }}>
-                              {sub.task.type === "EXAM" ? "En proceso de calificación..." : "Pendiente de revisión"}
-                            </div>
-                          )}
-
-                          <div className="mt-1 w-full flex justify-center">
-                            {sub.task.type === "EXAM" ? (
-                              <EvidenciaBotones
-                                exam={{
-                                  id: sub.task.id,
-                                  title: sub.task.title,
-                                  course: { name: sub.task.course?.name || "Asignatura" }
-                                }}
-                                submission={{
-                                  grade: sub.grade !== null && sub.grade !== undefined ? Math.max(1.0, sub.grade) : null,
-                                  status: sub.status,
-                                  fileUrl: sub.fileUrl,
-                                  submittedAt: sub.submittedAt,
-                                  feedback: sub.feedback,
-                                  feedbackTemplate: sub.feedbackTemplate,
-                                  studentName: studentName,
-                                  attempt: sub.attempt,
-                                  unlockedAnswers: sub.unlockedAnswers,
-                                  answers: (sub as any).answers
-                                }}
-                                isGoogleForm={!!(sub.task.attachmentUrl?.includes("docs.google.com/forms") || sub.task.attachmentUrl?.includes("forms.gle"))}
-                                variant="secondary"
-                                label="Ver Calificación"
-                              />
-                            ) : (
-                              <Link href={`/estudiante/tareas/${sub.task.id}`} className="btn btn-secondary text-xs px-2 py-1 w-full flex justify-center">
-                                Ver Entrega
-                              </Link>
-                            )}
-                          </div>
-                        </div>
+                        )}
                       </div>
-                    );
-                  })}
+                      
+                      <div className="flex flex-col gap-3">
+                        {courseData.subs.map((sub: any) => {
+                          const isGraded = sub.status === "GRADED" || sub.grade != null;
+                          const isPending = sub.status === "SUBMITTED";
+                          const currentGrade = sub.grade !== null && sub.grade !== undefined ? sub.grade : 0;
+                          const gradeColor = isGraded
+                            ? currentGrade >= 3 ? "var(--success)" : "var(--danger)"
+                            : "var(--text-muted)";
+
+                          return (
+                            <div key={sub.id}
+                              style={{
+                                background: "var(--bg-primary)",
+                                borderLeft: `4px solid ${isGraded ? gradeColor : "var(--border-color)"}`,
+                                display: "flex",
+                                flexDirection: "row",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                gap: "1rem",
+                                padding: "1rem",
+                                borderRadius: "var(--radius-lg)",
+                                border: `1px solid var(--border-color)`,
+                                borderLeftWidth: "4px",
+                                boxShadow: "var(--shadow-sm)",
+                              }}
+                            >
+                              {/* Left: info */}
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem", flexWrap: "wrap" }}>
+                                  {sub.task.isExternal ? (
+                                    <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1" }}>
+                                      📁 Entrega en clase
+                                    </span>
+                                  ) : (
+                                    <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f0f9ff", color: "#0369a1", border: "1px solid #b9e6fe" }}>
+                                      💻 Entrega en plataforma
+                                    </span>
+                                  )}
+                                  {isGraded && (
+                                    sub.submittedAt === null && !sub.task.isExternal ? (
+                                      <span className="badge badge-danger flex items-center gap-1"><AlertCircle size={12} /> Plazo vencido</span>
+                                    ) : (
+                                      <span className="badge badge-success flex items-center gap-1"><CheckCircle size={12} /> Calificada</span>
+                                    )
+                                  )}
+                                  {isPending && <span className="badge badge-info flex items-center gap-1"><Clock size={12} /> En revisión</span>}
+                                </div>
+                                <h3 style={{ fontWeight: 700, fontSize: "1.1rem", margin: "0 0 0.25rem" }}>{sub.task.title}</h3>
+                                {isGraded && sub.feedback && !sub.feedback.includes("Calificado automáticamente por Google Forms") && !sub.feedback.trim().startsWith("[") && (
+                                  <div style={{ marginTop: "0.5rem", padding: "0.75rem", borderRadius: "0.5rem", fontSize: "0.875rem", fontStyle: "italic", background: "var(--bg-secondary)", color: "var(--text-secondary)", borderLeft: "3px solid var(--primary-color)" }}>
+                                    💬 &quot;{sub.feedback}&quot;
+                                  </div>
+                                )}
+                                {isGraded && sub.submittedAt === null && !sub.task.isExternal && (
+                                  <p style={{ fontSize: "0.875rem", color: "var(--danger)", marginTop: "0.25rem", fontWeight: 500 }}>Calificación automática por falta de entrega.</p>
+                                )}
+                                {!isGraded && (
+                                  <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>Tu docente aún no ha calificado esta entrega.</p>
+                                )}
+                              </div>
+
+                              {/* Right: grade + action */}
+                              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem", minWidth: "120px", textAlign: "center" }}>
+                                {isGraded ? (
+                                  <>
+                                    <div style={{ fontSize: "2rem", fontWeight: 800, color: gradeColor, lineHeight: 1 }}>
+                                      {sub.grade !== null && sub.grade !== undefined ? sub.grade.toFixed(1) : ""}
+                                    </div>
+                                    <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>nota</div>
+                                  </>
+                                ) : (
+                                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontStyle: "italic", marginBottom: "0.5rem" }}>
+                                    {sub.task.type === "EXAM" ? "En proceso de calificación..." : "Pendiente de revisión"}
+                                  </div>
+                                )}
+
+                                <div className="mt-1 w-full flex justify-center">
+                                  {sub.task.type === "EXAM" ? (
+                                    <EvidenciaBotones
+                                      exam={{
+                                        id: sub.task.id,
+                                        title: sub.task.title,
+                                        course: { name: sub.task.course?.name || "Asignatura" }
+                                      }}
+                                      submission={{
+                                        grade: sub.grade !== null && sub.grade !== undefined ? sub.grade : null,
+                                        status: sub.status,
+                                        fileUrl: sub.fileUrl,
+                                        submittedAt: sub.submittedAt,
+                                        feedback: sub.feedback,
+                                        feedbackTemplate: sub.feedbackTemplate,
+                                        studentName: studentName,
+                                        attempt: sub.attempt,
+                                        unlockedAnswers: sub.unlockedAnswers,
+                                        answers: (sub as any).answers
+                                      }}
+                                      isGoogleForm={!!(sub.task.attachmentUrl?.includes("docs.google.com/forms") || sub.task.attachmentUrl?.includes("forms.gle"))}
+                                      variant="secondary"
+                                      label="Ver Calificación"
+                                    />
+                                  ) : (
+                                    <Link href={`/estudiante/tareas/${sub.task.id}`} className="btn btn-secondary text-xs px-2 py-1 w-full flex justify-center">
+                                      Ver Entrega
+                                    </Link>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             );

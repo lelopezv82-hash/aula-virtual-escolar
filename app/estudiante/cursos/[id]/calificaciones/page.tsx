@@ -124,7 +124,7 @@ export default async function CursoCalificacionesPage({
   // Compute overall average across all graded items
   const graded = activeSubmissions.filter(s => s.status === "GRADED" || s.grade != null);
   const overallAvg = graded.length > 0
-    ? graded.reduce((sum, s) => sum + Math.max(1.0, s.grade ?? 0), 0) / graded.length
+    ? graded.reduce((sum, s) => sum + (s.grade ?? 0), 0) / graded.length
     : null;
 
   const gradeColor = (g: number) => g >= 3 ? "var(--success)" : "var(--danger)";
@@ -132,7 +132,7 @@ export default async function CursoCalificacionesPage({
   const renderCard = (sub: any) => {
     const isGraded = sub.status === "GRADED" || sub.grade != null;
     const isPending = sub.status === "SUBMITTED";
-    const currentGrade = sub.grade !== null && sub.grade !== undefined ? Math.max(1.0, sub.grade) : 0;
+    const currentGrade = sub.grade !== null && sub.grade !== undefined ? sub.grade : 0;
     const gColor = isGraded ? gradeColor(currentGrade) : "var(--text-muted)";
     const isExam = sub.task.type === "EXAM";
     const accentColor = isExam ? "#8b5cf6" : "var(--primary-color)";
@@ -190,7 +190,7 @@ export default async function CursoCalificacionesPage({
           {isGraded ? (
             <>
               <div style={{ fontSize: "2rem", fontWeight: 800, color: gColor, lineHeight: 1 }}>
-                {sub.grade !== null && sub.grade !== undefined ? Math.max(1.0, sub.grade).toFixed(1) : ""}
+                {sub.grade !== null && sub.grade !== undefined ? sub.grade.toFixed(1) : ""}
               </div>
               <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>nota</div>
             </>
@@ -232,7 +232,7 @@ export default async function CursoCalificacionesPage({
             const gradedSer      = serSubs.filter(s   => s.status === "GRADED" || s.grade != null);
             const gradedFinal    = finalSubs.filter(s => s.status === "GRADED" || s.grade != null);
 
-            const avg = (arr: any[]) => arr.length > 0 ? arr.reduce((s, x) => s + Math.max(1.0, x.grade ?? 0), 0) / arr.length : null;
+            const avg = (arr: any[]) => arr.length > 0 ? arr.reduce((s, x) => s + (x.grade ?? 0), 0) / arr.length : null;
             const avgTareas   = avg(gradedTareas);
             const avgExamenes = avg(gradedExamenes);
             const avgSer      = avg(gradedSer);

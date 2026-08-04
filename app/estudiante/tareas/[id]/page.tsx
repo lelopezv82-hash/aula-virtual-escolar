@@ -616,8 +616,8 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                       <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Calificación</td>
                       <td className="p-4 align-middle font-bold text-gray-950 text-base">
                         {submission.grade !== null && submission.grade !== undefined 
-                          ? `${Math.max(1.0, Number(submission.grade)).toFixed(2).replace('.', ',')} / 5,00` 
-                          : "-"}
+                          ? `${Number(submission.grade).toFixed(2).replace('.', ',')} / 5,00` 
+                          : "Pendiente"}
                       </td>
                     </tr>
                     

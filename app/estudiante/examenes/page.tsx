@@ -106,7 +106,7 @@ export default async function ExamenesEstudiantePage() {
               ? submission.status
               : virtualGraded ? "GRADED" : (submission?.status || null);
             const activeGrade = submission && submission.status !== "PENDING"
-              ? (submission.grade !== null && submission.grade !== undefined ? Math.max(1.0, submission.grade) : null)
+              ? (submission.grade !== null && submission.grade !== undefined ? submission.grade : null)
               : virtualGraded ? 1.0 : null;
 
             // Determine reason for minimum grade

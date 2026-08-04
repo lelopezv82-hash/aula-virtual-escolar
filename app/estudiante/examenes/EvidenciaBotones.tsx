@@ -149,7 +149,7 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm, label
                       <div className="flex flex-col items-end shrink-0 gap-1 mt-2">
                         <span className="text-sm text-[#202124]">Calificación</span>
                         <div className="bg-[#f98012] text-white px-3 py-1 rounded-[4px] font-medium text-sm">
-                          {submission.grade !== null && submission.grade !== undefined ? Math.max(1.0, Number(submission.grade)).toFixed(1) : '?'}
+                          {submission.grade !== null && submission.grade !== undefined ? Number(submission.grade).toFixed(1) : '?'}
                         </div>
                       </div>
                     </div>
@@ -249,11 +249,6 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm, label
                     </div>
                   ) : (
                     <div className="bg-white rounded-[8px] p-6 border border-[#dadce0] text-[14px] text-[#202124]" style={{ padding: '24px' }}>
-                       {!submission.feedback && (submission.grade === null || submission.grade === undefined || Math.max(1.0, submission.grade) === 1.0) ? (
-                        <p className="text-[#d93025] font-medium text-base">
-                          Este examen fue calificado con la nota mínima de <strong>1.0</strong> debido a que el plazo venció o el tiempo expiró sin que se registraran respuestas en la plataforma.
-                        </p>
-                      ) : (
                         <div className="flex flex-col gap-3">
                           <p>No se encontró información detallada de esta entrega en la plataforma.</p>
                           {nativeTask?.attachmentUrl && (
@@ -270,7 +265,6 @@ export default function EvidenciaBotones({ exam, submission, isGoogleForm, label
                             </div>
                           )}
                         </div>
-                      )}
                     </div>
                   )
                 ) : (
