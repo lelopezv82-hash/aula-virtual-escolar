@@ -756,47 +756,11 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
               </div>
             </div>
 
-            <div className="flex gap-4 mb-3 flex-wrap sm:flex-nowrap">
-              <div className="input-group flex-1">
-                <label className="text-xs font-bold mb-1">Título *</label>
-                <input type="text" className="input-field py-1.5 px-3 text-xs"
-                  placeholder="Ej. Guía de Álgebra Lineal"
-                  value={resourceForm.title} onChange={e => setResourceForm({ ...resourceForm, title: e.target.value })} required />
-              </div>
-              <div className="input-group flex-1">
-                <label className="text-xs font-bold mb-1">Temas Asociados (Opcional)</label>
-                {(() => {
-                  const courseThemes = [...(courses
-                    .find(c => c.id === resourceForm.courseId)
-                    ?.themes || [])]
-                    .sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }));
-                  return (
-                    <div className="border rounded-lg p-2 max-h-[80px] overflow-y-auto flex flex-col gap-1.5 bg-slate-50" style={{ borderColor: "var(--border-color)" }}>
-                      {courseThemes.map(t => {
-                        const isChecked = resourceForm.themes?.includes(t.title);
-                        return (
-                          <label key={t.id} className="flex items-center gap-2 text-[11px] font-bold cursor-pointer hover:text-primary">
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() => {
-                                const newThemes = isChecked
-                                  ? (resourceForm.themes || []).filter(title => title !== t.title)
-                                  : [...(resourceForm.themes || []), t.title];
-                                setResourceForm({ ...resourceForm, themes: newThemes });
-                              }}
-                              className="rounded w-3.5 h-3.5"
-                              style={{ accentColor: "#f98012" }}
-                            />
-                            <span>{t.title}</span>
-                          </label>
-                        );
-                      })}
-                      {courseThemes.length === 0 && <span className="text-[10px] text-muted italic">No hay temas.</span>}
-                    </div>
-                  );
-                })()}
-              </div>
+            <div className="input-group mb-3">
+              <label className="text-xs font-bold mb-1">Título *</label>
+              <input type="text" className="input-field py-1.5 px-3 text-xs"
+                placeholder="Ej. Guía de Álgebra Lineal"
+                value={resourceForm.title} onChange={e => setResourceForm({ ...resourceForm, title: e.target.value })} required />
             </div>
 
             <div className="input-group mb-3">
