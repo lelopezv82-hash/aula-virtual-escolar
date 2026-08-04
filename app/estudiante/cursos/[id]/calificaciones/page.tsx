@@ -85,7 +85,7 @@ export default async function CursoCalificacionesPage({
       const shouldHideFeedback = (task.type === "EXAM" || task.type === "FINAL") && !canSeeAnswers;
       const processedSub = { ...sub, feedback: shouldHideFeedback ? null : sub.feedback };
       if (sub.status === "PENDING" && (isClosed || isTimerExpired)) {
-        return { ...processedSub, status: "GRADED", grade: 1.0, feedbackTemplate, task };
+        return { ...processedSub, status: "PENDING", grade: null, feedbackTemplate, task };
       }
       return { ...processedSub, feedbackTemplate, task };
     }
@@ -103,7 +103,7 @@ export default async function CursoCalificacionesPage({
     if (isClosed && !task.isExternal) {
       return {
         id: `virtual-${task.id}`,
-        taskId: task.id, studentId, status: "GRADED", grade: 1.0,
+        taskId: task.id, studentId, status: "PENDING", grade: null,
         feedback: null, feedbackTemplate, fileUrl: null, submittedAt: null,
         createdAt: task.dueDate, updatedAt: task.dueDate,
         allowLateSubmission: false, lateSubmissionUntil: null, gdriveEmail: null,
@@ -122,9 +122,11 @@ export default async function CursoCalificacionesPage({
   const additionalGradesMap = new Map(additionalGradesDb.map(ag => [ag.period, ag.grade]));
 
   // Compute overall average across all graded items
-  const graded = activeSubmissions.filter(s => s.status === "GRADED" || s.grade != null);
-  const overallAvg = graded.length > 0
-    ? graded.reduce((sum, s) => sum + (s.grade ?? 0), 0) / graded.length
+  const validOverallGrades = activeSubmissions
+    .map(s => typeof s.grade === 'number' ? s.grade : parseFloat(s.grade))
+    .filter(v => !isNaN(v) && v >= 1 && v <= 5);
+  const overallAvg = validOverallGrades.length > 0
+    ? validOverallGrades.reduce((a, b) => a + b, 0) / validOverallGrades.length
     : null;
 
   const gradeColor = (g: number) => g >= 3 ? "var(--success)" : "var(--danger)";
@@ -180,7 +182,7 @@ export default async function CursoCalificacionesPage({
             </div>
           )}
           {isGraded && sub.submittedAt === null && !sub.task.isExternal && (
-            <p style={{ fontSize: "0.875rem", color: "var(--danger)", marginTop: "0.25rem", fontWeight: 500 }}>Calificación automática por falta de entrega.</p>
+            <p style={{ fontSize: "0.875rem", color: "var(--danger)", marginTop: "0.25rem", fontWeight: 500 }}></p>
           )}
           {!isGraded && (
             <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>Tu docente aún no ha calificado esta entrega.</p>
@@ -232,7 +234,12 @@ export default async function CursoCalificacionesPage({
             const gradedSer      = serSubs.filter(s   => s.status === "GRADED" || s.grade != null);
             const gradedFinal    = finalSubs.filter(s => s.status === "GRADED" || s.grade != null);
 
-            const avg = (arr: any[]) => arr.length > 0 ? arr.reduce((s, x) => s + (x.grade ?? 0), 0) / arr.length : null;
+            const avg = (arr: any[]) => {
+              const validGrades = arr
+                .map(x => typeof x.grade === 'number' ? x.grade : parseFloat(x.grade))
+                .filter(v => !isNaN(v) && v >= 1 && v <= 5);
+              return validGrades.length > 0 ? validGrades.reduce((s, v) => s + v, 0) / validGrades.length : null;
+            };
             const avgTareas   = avg(gradedTareas);
             const avgExamenes = avg(gradedExamenes);
             const avgSer      = avg(gradedSer);

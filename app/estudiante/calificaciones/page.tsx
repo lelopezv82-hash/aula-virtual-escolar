@@ -148,7 +148,12 @@ export default async function CalificacionesEstudiantePage() {
       const serSubs   = subs.filter(s => s.task.type === "SER" && (s.status === "GRADED" || s.grade != null));
       const finalSubs = subs.filter(s => s.task.type === "FINAL" && (s.status === "GRADED" || s.grade != null));
 
-      const avgType = (list: any[]) => list.length > 0 ? list.reduce((a, b) => a + (b.grade || 0), 0) / list.length : null;
+      const avgType = (list: any[]) => {
+        const validGrades = list
+          .map(x => typeof x.grade === 'number' ? x.grade : parseFloat(x.grade))
+          .filter(v => !isNaN(v) && v >= 1 && v <= 5);
+        return validGrades.length > 0 ? validGrades.reduce((a, b) => a + b, 0) / validGrades.length : null;
+      };
 
       const saber = avgType(saberSubs);
       const hacer = avgType(hacerSubs);
