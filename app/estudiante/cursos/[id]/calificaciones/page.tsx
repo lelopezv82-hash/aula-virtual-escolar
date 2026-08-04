@@ -85,7 +85,7 @@ export default async function CursoCalificacionesPage({
       const shouldHideFeedback = (task.type === "EXAM" || task.type === "FINAL") && !canSeeAnswers;
       const processedSub = { ...sub, feedback: shouldHideFeedback ? null : sub.feedback };
       if (sub.status === "PENDING" && (isClosed || isTimerExpired)) {
-        return { ...processedSub, status: "PENDING", grade: null, feedbackTemplate, task };
+        return { ...processedSub, status: "GRADED", grade: 1.0, feedbackTemplate, task };
       }
       return { ...processedSub, feedbackTemplate, task };
     }
@@ -103,7 +103,7 @@ export default async function CursoCalificacionesPage({
     if (isClosed && !task.isExternal) {
       return {
         id: `virtual-${task.id}`,
-        taskId: task.id, studentId, status: "PENDING", grade: null,
+        taskId: task.id, studentId, status: "GRADED", grade: 1.0,
         feedback: null, feedbackTemplate, fileUrl: null, submittedAt: null,
         createdAt: task.dueDate, updatedAt: task.dueDate,
         allowLateSubmission: false, lateSubmissionUntil: null, gdriveEmail: null,
@@ -182,7 +182,7 @@ export default async function CursoCalificacionesPage({
             </div>
           )}
           {isGraded && sub.submittedAt === null && !sub.task.isExternal && (
-            <p style={{ fontSize: "0.875rem", color: "var(--danger)", marginTop: "0.25rem", fontWeight: 500 }}></p>
+            <p style={{ fontSize: "0.875rem", color: "var(--danger)", marginTop: "0.25rem", fontWeight: 500 }}>Calificación automática por falta de entrega.</p>
           )}
           {!isGraded && (
             <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>Tu docente aún no ha calificado esta entrega.</p>

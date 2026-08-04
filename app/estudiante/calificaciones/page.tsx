@@ -105,10 +105,25 @@ export default async function CalificacionesEstudiantePage() {
         feedback: shouldHideFeedback ? null : sub.feedback
       };
 
+      if (sub.status === "PENDING" && (isClosed || isTimerExpired)) {
+        return { ...processedSub, status: "GRADED", grade: 1.0, feedbackTemplate, task };
+      }
+
       return {
         ...processedSub,
         feedbackTemplate,
         task
+      };
+    }
+
+    if (isClosed && !task.isExternal) {
+      return {
+        id: `virtual-${task.id}`,
+        taskId: task.id, studentId: studentId, status: "GRADED", grade: 1.0,
+        feedback: null, feedbackTemplate: null, fileUrl: null, submittedAt: null,
+        createdAt: task.dueDate || new Date(), updatedAt: task.dueDate || new Date(),
+        allowLateSubmission: false, lateSubmissionUntil: null, gdriveEmail: null,
+        startedAt: null, attempt: 1, unlockedAnswers: false, task
       };
     }
 
