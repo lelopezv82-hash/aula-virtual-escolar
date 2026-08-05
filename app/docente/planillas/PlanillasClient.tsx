@@ -369,12 +369,11 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
       // Build grid from existing submissions
       const grid: Record<string, Record<string, string>> = {};
-      const initGrid: Record<string, Record<string, string>> = {};
       const now = new Date();
+      const autoSaveSubmissions: { studentId: string; taskId: string; grade: string }[] = [];
 
       for (const s of fStudents) {
         grid[s.id] = {};
-        initGrid[s.id] = {};
         for (const t of fTasks) {
           const sub = t.submissions.find(x => x.studentId === s.id);
           
@@ -391,23 +390,27 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
           const hasRealGrade = sub?.grade !== null && sub?.grade !== undefined;
           
-          // initGrid reflects exactly what is in the DB
-          initGrid[s.id][t.id] = hasRealGrade ? String(sub.grade) : "";
-
-          // grid reflects the UI state (auto 1.0 if applicable)
           if (hasRealGrade) {
             grid[s.id][t.id] = String(sub.grade);
-          } else if (sub?.status === "PENDING" && defaultVal) {
+          } else if (defaultVal) {
             grid[s.id][t.id] = defaultVal;
-          } else if (!sub && defaultVal) {
-            grid[s.id][t.id] = defaultVal;
+            autoSaveSubmissions.push({ studentId: s.id, taskId: t.id, grade: defaultVal });
           } else {
             grid[s.id][t.id] = "";
           }
         }
       }
       setGradesGrid(grid);
-      setInitialGrid(initGrid);
+      setInitialGrid(JSON.parse(JSON.stringify(grid)));
+
+      if (autoSaveSubmissions.length > 0) {
+        fetch("/api/docente/planillas", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ courseId: selectedCourseId, submissions: autoSaveSubmissions })
+        }).catch(err => console.error("Error auto-saving 1.0s:", err));
+      }
+
     } catch { /* silent */ }
     finally   { setLoading(false); }
   };
