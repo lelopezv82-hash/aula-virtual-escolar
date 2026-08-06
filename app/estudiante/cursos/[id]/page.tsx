@@ -28,6 +28,29 @@ export default async function CursoDescripcionPage({
   });
   const studentGroupId = studentRecord?.groupId || null;
 
+  const course = await prisma.course.findUnique({
+    where: { id },
+    select: { hiddenSections: true }
+  });
+  const hiddenSections = Array.isArray(course?.hiddenSections) ? (course?.hiddenSections as string[]) : [];
+
+  if (hiddenSections.includes("descripcion")) {
+    return (
+      <div style={{
+        background: "#fff",
+        border: "1px solid #dee2e6",
+        borderRadius: "6px",
+        padding: "3rem",
+        textAlign: "center",
+        color: "#6c757d",
+      }}>
+        <div style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>🔒</div>
+        <h2 style={{ fontSize: "1.1rem", fontWeight: 700, color: "#333", marginBottom: "0.25rem" }}>Sección Oculta</h2>
+        <p style={{ fontSize: "0.875rem" }}>El docente ha desactivado la visibilidad de la sección de descripción/contenido para este curso.</p>
+      </div>
+    );
+  }
+
   const periodsDb = await prisma.period.findMany({ where: { active: true } });
   const activePeriodNames = periodsDb.map(p => p.name);
 

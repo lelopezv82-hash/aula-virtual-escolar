@@ -39,8 +39,11 @@ export default async function CursoLayout({
 
   const course = await prisma.course.findUnique({
     where: { id },
-    include: {
-      teacher: { select: { name: true } },
+    select: {
+      id: true,
+      name: true,
+      active: true,
+      hiddenSections: true,
       groups: { select: { id: true } },
     },
   });
@@ -55,6 +58,8 @@ export default async function CursoLayout({
       </div>
     );
   }
+
+  const hiddenSections = Array.isArray(course.hiddenSections) ? (course.hiddenSections as string[]) : [];
 
   // Fetch active periods for sidebar sub-items
   const periodsDb = await prisma.period.findMany({ where: { active: true } });
@@ -74,7 +79,7 @@ export default async function CursoLayout({
       <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: "1.5rem", alignItems: "start" }}>
         {/* Sidebar */}
         <Suspense fallback={<div className="card p-6 text-muted">Cargando menú...</div>}>
-          <CursoSidebar courseId={id} courseName={course.name} periods={periodNames} />
+          <CursoSidebar courseId={id} courseName={course.name} periods={periodNames} hiddenSections={hiddenSections} />
         </Suspense>
 
         {/* Main content */}

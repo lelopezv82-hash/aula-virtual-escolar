@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { BookOpen, Plus, Edit2, Trash2, X, Save, Loader2, Eye, EyeOff, Star } from "lucide-react";
+import { BookOpen, Plus, Edit2, Trash2, X, Save, Loader2, Eye, EyeOff, Star, Shield, Settings } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
+import VisibilidadModal from "./VisibilidadModal";
 
 interface Course {
   id: string;
@@ -22,6 +23,7 @@ interface Course {
   period2Active: boolean;
   period3Active: boolean;
   period4Active: boolean;
+  hiddenSections?: string[];
   saberPercent: number;
   hacerPercent: number;
   serPercent: number;
@@ -46,6 +48,7 @@ export default function CursosPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [mounted, setMounted] = useState(false);
+  const [selectedVisibilidadCourse, setSelectedVisibilidadCourse] = useState<Course | null>(null);
 
   // Additional Grades Modal
   const [showGradesModal, setShowGradesModal] = useState(false);
@@ -362,7 +365,7 @@ export default function CursosPage() {
 
               </div>
 
-              <div className="flex justify-between items-center border-t pt-4 mt-6" style={{ borderColor: "var(--border-color)" }}>
+              <div className="flex justify-between items-center border-t pt-4 mt-6 flex-wrap gap-2" style={{ borderColor: "var(--border-color)" }}>
                 <div className="flex gap-3 text-xs text-muted">
                   <span className="flex items-center gap-1">
                     📋 <strong>{course._count.tasks}</strong> tareas
@@ -371,6 +374,16 @@ export default function CursosPage() {
                     📁 <strong>{course._count.resources}</strong> recursos
                   </span>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedVisibilidadCourse(course)}
+                  className="btn btn-secondary text-xs px-2.5 py-1 flex items-center gap-1.5"
+                  title="Configurar visibilidad de secciones para estudiantes"
+                >
+                  <Eye size={14} className="text-primary" style={{ color: "var(--primary-color)" }} />
+                  Visibilidad de Secciones
+                </button>
               </div>
             </div>
           ))}
@@ -628,6 +641,21 @@ export default function CursosPage() {
           </div>
         </div>,
         document.body
+      )}
+
+      {/* Visibilidad Modal */}
+      {selectedVisibilidadCourse && (
+        <VisibilidadModal
+          courseId={selectedVisibilidadCourse.id}
+          courseName={selectedVisibilidadCourse.name}
+          initialHiddenSections={selectedVisibilidadCourse.hiddenSections || []}
+          initialPeriod1Active={selectedVisibilidadCourse.period1Active}
+          initialPeriod2Active={selectedVisibilidadCourse.period2Active}
+          initialPeriod3Active={selectedVisibilidadCourse.period3Active}
+          initialPeriod4Active={selectedVisibilidadCourse.period4Active}
+          onClose={() => setSelectedVisibilidadCourse(null)}
+          onSuccess={() => fetchCourses()}
+        />
       )}
     </div>
   );

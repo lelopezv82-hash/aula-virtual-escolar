@@ -4,16 +4,24 @@ import { usePathname } from "next/navigation";
 import { BookOpen, ClipboardList, Award, FileText } from "lucide-react";
 
 const tabs = [
-  { href: "", label: "Descripción", icon: <BookOpen size={16} /> },
-  { href: "/tareas", label: "Tareas", icon: <ClipboardList size={16} /> },
-  { href: "/examenes", label: "Exámenes", icon: <FileText size={16} /> },
-  { href: "/recursos", label: "Recursos", icon: <BookOpen size={16} /> },
-  { href: "/calificaciones", label: "Calificaciones", icon: <Award size={16} /> },
+  { key: "descripcion", href: "", label: "Descripción", icon: <BookOpen size={16} /> },
+  { key: "tareas", href: "/tareas", label: "Tareas", icon: <ClipboardList size={16} /> },
+  { key: "examenes", href: "/examenes", label: "Exámenes", icon: <FileText size={16} /> },
+  { key: "recursos", href: "/recursos", label: "Recursos", icon: <BookOpen size={16} /> },
+  { key: "calificaciones", href: "/calificaciones", label: "Calificaciones", icon: <Award size={16} /> },
 ];
 
-export default function CursoTabs({ courseId }: { courseId: string }) {
+export default function CursoTabs({
+  courseId,
+  hiddenSections = [],
+}: {
+  courseId: string;
+  hiddenSections?: string[];
+}) {
   const pathname = usePathname();
   const base = `/estudiante/cursos/${courseId}`;
+
+  const visibleTabs = tabs.filter((t) => !hiddenSections.includes(t.key));
 
   return (
     <div
@@ -23,12 +31,12 @@ export default function CursoTabs({ courseId }: { courseId: string }) {
         paddingBottom: 0,
       }}
     >
-      {tabs.map((tab) => {
+      {visibleTabs.map((tab) => {
         const href = base + tab.href;
-        // exact match for description (base), prefix match for others
-        const isActive = tab.href === ""
-          ? pathname === base
-          : pathname.startsWith(base + tab.href);
+        const isActive =
+          tab.href === ""
+            ? pathname === base
+            : pathname.startsWith(base + tab.href);
 
         return (
           <Link

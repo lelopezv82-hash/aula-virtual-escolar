@@ -37,8 +37,26 @@ export default async function CursoCalificacionesPage({
 
   const course = await prisma.course.findUnique({
     where: { id },
-    select: { saberPercent: true, hacerPercent: true, serPercent: true, finalPercent: true }
+    select: { saberPercent: true, hacerPercent: true, serPercent: true, finalPercent: true, hiddenSections: true }
   });
+  const hiddenSections = Array.isArray(course?.hiddenSections) ? (course?.hiddenSections as string[]) : [];
+
+  if (hiddenSections.includes("calificaciones")) {
+    return (
+      <div style={{
+        background: "#fff",
+        border: "1px solid #dee2e6",
+        borderRadius: "6px",
+        padding: "3rem",
+        textAlign: "center",
+        color: "#6c757d",
+      }}>
+        <div style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>🔒</div>
+        <h2 style={{ fontSize: "1.1rem", fontWeight: 700, color: "#333", marginBottom: "0.25rem" }}>Sección Oculta</h2>
+        <p style={{ fontSize: "0.875rem" }}>El docente ha desactivado la visibilidad de la sección de Calificaciones para este curso.</p>
+      </div>
+    );
+  }
   const saberPct = (course?.saberPercent ?? 30) / 100;
   const hacerPct = (course?.hacerPercent ?? 50) / 100;
   const serPct   = (course?.serPercent   ?? 20) / 100;
