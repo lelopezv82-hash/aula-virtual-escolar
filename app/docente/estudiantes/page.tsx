@@ -1,10 +1,11 @@
-﻿"use client";
+"use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   UserPlus, Search, Edit2, Trash2, KeyRound, Copy, Check,
   X, Save, Loader2, Upload, FileSpreadsheet,
-  Eye, EyeOff
+  Eye, EyeOff, Filter, AlertTriangle, CheckSquare, Square
 } from "lucide-react";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
@@ -37,11 +38,28 @@ interface NewCredentials {
 }
 
 export default function EstudiantesPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-muted"><Loader2 className="animate-spin" size={32} /></div>}>
+      <EstudiantesContent />
+    </Suspense>
+  );
+}
+
+function EstudiantesContent() {
   const confirm = useConfirm();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const initialGroupId = searchParams.get("groupId") || "ALL";
+
   const [students, setStudents] = useState<Student[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [selectedGroupFilter, setSelectedGroupFilter] = useState<string>(initialGroupId);
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [deletingBulk, setDeletingBulk] = useState(false);
+
   const [showModal, setShowModal] = useState(false);
   const [editStudent, setEditStudent] = useState<Student | null>(null);
   const [newCredentials, setNewCredentials] = useState<NewCredentials | null>(null);
@@ -60,6 +78,13 @@ export default function EstudiantesPage() {
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState("");
   const [copiedAll, setCopiedAll] = useState(false);
+
+  useEffect(() => {
+    const urlGroup = searchParams.get("groupId");
+    if (urlGroup) {
+      setSelectedGroupFilter(urlGroup);
+    }
+  }, [searchParams]);
 
   const fetchStudents = useCallback(async () => {
     setLoading(true);
@@ -89,12 +114,112 @@ export default function EstudiantesPage() {
     fetchGrades();
   }, [fetchStudents, fetchGrades]);
 
-  const filtered = students.filter(s =>
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
-    s.username.toLowerCase().includes(search.toLowerCase()) ||
-    (s.grade || "").toLowerCase().includes(search.toLowerCase()) ||
-    (s.groupName || "").toLowerCase().includes(search.toLowerCase())
-  );
+  const unassignedCount = useMemo(() => {
+    return students.filter(s => !s.groupId).length;
+  }, [students]);
+
+  const flatGroupList = useMemo(() => {
+    const list: { id: string; label: string }[] = [];
+    grades.forEach(g => {
+      g.groups?.forEach(gp => {
+        list.push({ id: gp.id, label: `Grado ${g.name} - ${gp.name}` });
+      });
+    });
+    return list;
+  }, [grades]);
+
+  const filtered = useMemo(() => {
+    return students.filter(s => {
+      if (selectedGroupFilter !== "ALL") {
+        if (selectedGroupFilter === "UNASSIGNED") {
+          if (s.groupId !== null) return false;
+        } else {
+          if (s.groupId !== selectedGroupFilter) return false;
+        }
+      }
+
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      return (
+        s.name.toLowerCase().includes(q) ||
+        s.username.toLowerCase().includes(q) ||
+        (s.grade || "").toLowerCase().includes(q) ||
+        (s.groupName || "").toLowerCase().includes(q)
+      );
+    });
+  }, [students, selectedGroupFilter, search]);
+
+  const handleBulkDeleteUnassigned = async () => {
+    if (unassignedCount === 0) return;
+    const ok = await confirm({
+      title: "Eliminar estudiantes sin grupo",
+      message: `¿Estás seguro de eliminar los ${unassignedCount} estudiantes que no tienen grupo asignado? Esta acción no se puede deshacer.`,
+      confirmText: "Eliminar todos los sin grupo"
+    });
+    if (!ok) return;
+
+    setDeletingBulk(true);
+    try {
+      const res = await fetch("/api/docente/estudiantes", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deleteAllUnassigned: true })
+      });
+      if (res.ok) {
+        fetchStudents();
+        setSelectedStudentIds([]);
+      } else {
+        alert("Error al eliminar los estudiantes");
+      }
+    } catch {
+      alert("Error de conexión");
+    } finally {
+      setDeletingBulk(false);
+    }
+  };
+
+  const handleBulkDeleteSelected = async () => {
+    if (selectedStudentIds.length === 0) return;
+    const ok = await confirm({
+      title: "Eliminar estudiantes seleccionados",
+      message: `¿Estás seguro de eliminar los ${selectedStudentIds.length} estudiantes seleccionados?`,
+      confirmText: "Eliminar seleccionados"
+    });
+    if (!ok) return;
+
+    setDeletingBulk(true);
+    try {
+      const res = await fetch("/api/docente/estudiantes", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: selectedStudentIds })
+      });
+      if (res.ok) {
+        fetchStudents();
+        setSelectedStudentIds([]);
+      } else {
+        alert("Error al eliminar estudiantes seleccionados");
+      }
+    } catch {
+      alert("Error de conexión");
+    } finally {
+      setDeletingBulk(false);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedStudentIds.length === filtered.length) {
+      setSelectedStudentIds([]);
+    } else {
+      setSelectedStudentIds(filtered.map(s => s.id));
+    }
+  };
+
+  const toggleSelectStudent = (id: string) => {
+    setSelectedStudentIds(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
 
   const openCreate = () => {
     setEditStudent(null);
@@ -351,19 +476,70 @@ export default function EstudiantesPage() {
       </div>
 
       <div className="card w-full">
-        <div className="flex justify-between items-center mb-6 gap-4 flex-wrap">
-          <div style={{ position: "relative", maxWidth: "320px", width: "100%" }}>
-            <Search size={18} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
-            <input
-              type="text"
-              className="input-field"
-              style={{ paddingLeft: "2.75rem" }}
-              placeholder="Buscar por nombre, usuario, grado…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+        {/* Filters and Actions Bar */}
+        <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center mb-6 gap-4 flex-wrap">
+          <div className="flex flex-wrap items-center gap-3 flex-1">
+            {/* Search Input */}
+            <div style={{ position: "relative", minWidth: "240px", flex: 1 }}>
+              <Search size={18} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
+              <input
+                type="text"
+                className="input-field"
+                style={{ paddingLeft: "2.75rem" }}
+                placeholder="Buscar por nombre, usuario, grado…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+
+            {/* Group Filter Dropdown */}
+            <div className="flex items-center gap-2 border rounded-lg p-1 bg-body" style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)" }}>
+              <Filter size={14} className="text-muted ml-2" />
+              <select
+                value={selectedGroupFilter}
+                onChange={(e) => setSelectedGroupFilter(e.target.value)}
+                className="text-xs p-2 rounded-md font-medium border-none bg-transparent"
+                style={{ color: "var(--text-primary)" }}
+              >
+                <option value="ALL">🎓 Todos los Grupos ({students.length})</option>
+                {flatGroupList.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.label}
+                  </option>
+                ))}
+                <option value="UNASSIGNED">⚠️ Sin Grupo Asignado ({unassignedCount})</option>
+              </select>
+            </div>
           </div>
-          <span className="text-muted text-sm">{filtered.length} estudiante(s)</span>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-muted text-xs font-semibold px-2">
+              {filtered.length} estudiante(s)
+            </span>
+
+            {selectedStudentIds.length > 0 && (
+              <button
+                onClick={handleBulkDeleteSelected}
+                disabled={deletingBulk}
+                className="btn text-xs font-semibold px-3 py-1.5 flex items-center gap-1.5 bg-red-600 text-white hover:bg-red-700 rounded-lg shadow-sm"
+              >
+                {deletingBulk ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                Eliminar Seleccionados ({selectedStudentIds.length})
+              </button>
+            )}
+
+            {unassignedCount > 0 && selectedStudentIds.length === 0 && (
+              <button
+                onClick={handleBulkDeleteUnassigned}
+                disabled={deletingBulk}
+                className="btn text-xs font-semibold px-3 py-1.5 flex items-center gap-1.5 bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 rounded-lg"
+                title="Eliminar todos los estudiantes de prueba que no pertenecen a ningún grupo"
+              >
+                {deletingBulk ? <Loader2 size={14} className="animate-spin" /> : <AlertTriangle size={14} />}
+                Eliminar Sin Grupo ({unassignedCount})
+              </button>
+            )}
+          </div>
         </div>
 
         {loading ? (
@@ -375,6 +551,20 @@ export default function EstudiantesPage() {
             <table className="w-full text-left" style={{ borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--border-color)", color: "var(--text-muted)" }}>
+                  <th className="py-3 px-3 w-10 text-center">
+                    <button
+                      type="button"
+                      onClick={toggleSelectAll}
+                      className="text-muted hover:text-primary"
+                      title={selectedStudentIds.length === filtered.length ? "Desmarcar todos" : "Seleccionar todos"}
+                    >
+                      {filtered.length > 0 && selectedStudentIds.length === filtered.length ? (
+                        <CheckSquare size={18} className="text-primary" style={{ color: "var(--primary-color)" }} />
+                      ) : (
+                        <Square size={18} />
+                      )}
+                    </button>
+                  </th>
                   <th className="py-3 px-4 font-medium">Nombre</th>
                   <th className="py-3 px-4 font-medium">Usuario</th>
                   <th className="py-3 px-4 font-medium">Contraseña</th>
@@ -385,39 +575,66 @@ export default function EstudiantesPage() {
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="text-center py-10 text-muted">
-                      {search ? "No se encontraron resultados." : "No hay estudiantes registrados."}
+                    <td colSpan={6} className="text-center py-10 text-muted">
+                      {search || selectedGroupFilter !== "ALL"
+                        ? "No se encontraron resultados para los filtros aplicados."
+                        : "No hay estudiantes registrados."}
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((student) => (
-                    <tr key={student.id} style={{ borderBottom: "1px solid var(--border-color)", transition: "background 0.15s" }}
-                      onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-primary)")}
-                      onMouseLeave={e => (e.currentTarget.style.background = "")}
-                    >
-                      <td className="py-3 px-4 font-medium">{student.name}</td>
-                      <td className="py-3 px-4" style={{ color: "var(--text-secondary)", fontFamily: "monospace" }}>{student.username}</td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          <span style={{ fontFamily: "monospace", fontSize: "0.95rem", color: "var(--text-primary)" }}>
-                            {student.passwordPlain ? (
-                              visiblePasswords[student.id] ? student.passwordPlain : "••••••••"
+                  filtered.map((student) => {
+                    const isSelected = selectedStudentIds.includes(student.id);
+                    return (
+                      <tr
+                        key={student.id}
+                        style={{
+                          borderBottom: "1px solid var(--border-color)",
+                          background: isSelected ? "rgba(37, 99, 235, 0.05)" : undefined,
+                          transition: "background 0.15s",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isSelected) e.currentTarget.style.background = "var(--bg-primary)";
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isSelected) e.currentTarget.style.background = "";
+                        }}
+                      >
+                        <td className="py-3 px-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => toggleSelectStudent(student.id)}
+                            className="text-muted hover:text-primary"
+                          >
+                            {isSelected ? (
+                              <CheckSquare size={18} className="text-primary" style={{ color: "var(--primary-color)" }} />
                             ) : (
-                              <span className="text-muted italic text-xs">No disponible</span>
+                              <Square size={18} />
                             )}
-                          </span>
-                          {student.passwordPlain && (
-                            <button
-                              type="button"
-                              onClick={() => setVisiblePasswords(prev => ({ ...prev, [student.id]: !prev[student.id] }))}
-                              className="p-1 rounded text-muted hover:text-primary hover:bg-gray-100 transition-colors"
-                              style={{ background: "none", border: "none", cursor: "pointer", display: "flex", padding: "0.25rem" }}
-                              title={visiblePasswords[student.id] ? "Ocultar contraseña" : "Mostrar contraseña"}
-                            >
-                              {visiblePasswords[student.id] ? <EyeOff size={15} /> : <Eye size={15} />}
-                            </button>
-                          )}
-                        </div>
+                          </button>
+                        </td>
+                        <td className="py-3 px-4 font-medium">{student.name}</td>
+                        <td className="py-3 px-4" style={{ color: "var(--text-secondary)", fontFamily: "monospace" }}>{student.username}</td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <span style={{ fontFamily: "monospace", fontSize: "0.95rem", color: "var(--text-primary)" }}>
+                              {student.passwordPlain ? (
+                                visiblePasswords[student.id] ? student.passwordPlain : "••••••••"
+                              ) : (
+                                <span className="text-muted italic text-xs">No disponible</span>
+                              )}
+                            </span>
+                            {student.passwordPlain && (
+                              <button
+                                type="button"
+                                onClick={() => setVisiblePasswords(prev => ({ ...prev, [student.id]: !prev[student.id] }))}
+                                className="p-1 rounded text-muted hover:text-primary hover:bg-gray-100 transition-colors"
+                                style={{ background: "none", border: "none", cursor: "pointer", display: "flex", padding: "0.25rem" }}
+                                title={visiblePasswords[student.id] ? "Ocultar contraseña" : "Mostrar contraseña"}
+                              >
+                                {visiblePasswords[student.id] ? <EyeOff size={15} /> : <Eye size={15} />}
+                              </button>
+                            )}
+                          </div>
                       </td>
                       <td className="py-3 px-4">
                         {(student.grade || student.groupName) ? (
@@ -443,7 +660,8 @@ export default function EstudiantesPage() {
                         </div>
                       </td>
                     </tr>
-                  ))
+                    );
+                  })
                 )}
               </tbody>
             </table>

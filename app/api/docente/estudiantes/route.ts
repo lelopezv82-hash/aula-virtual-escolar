@@ -146,20 +146,36 @@ export async function PATCH(request: Request) {
   }
 }
 
-// DELETE - Remove student
+// DELETE - Remove student(s)
 export async function DELETE(request: Request) {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("auth_token")?.value;
     if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    if (payload.role !== "TEACHER") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (payload.role !== "TEACHER" && payload.role !== "ADMIN") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    const { id } = await request.json();
-    if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
+    const body = await request.json();
+    const { id, ids, deleteAllUnassigned } = body;
+
+    if (deleteAllUnassigned) {
+      const deleted = await prisma.user.deleteMany({
+        where: { role: "STUDENT", groupId: null }
+      });
+      return NextResponse.json({ success: true, count: deleted.count });
+    }
+
+    if (Array.isArray(ids) && ids.length > 0) {
+      const deleted = await prisma.user.deleteMany({
+        where: { role: "STUDENT", id: { in: ids } }
+      });
+      return NextResponse.json({ success: true, count: deleted.count });
+    }
+
+    if (!id) return NextResponse.json({ error: 'ID o lista de IDs requeridos' }, { status: 400 });
 
     await prisma.user.delete({ where: { id } });
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, count: 1 });
   } catch (error) {
     console.error("Error deleting student for teacher:", error);
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
