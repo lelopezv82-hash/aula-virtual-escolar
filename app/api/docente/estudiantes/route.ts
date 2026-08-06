@@ -17,7 +17,7 @@ function generateUsername(name: string): string {
     .split(/\s+/)
     .filter(Boolean);
   if (base.length >= 2) {
-    return `${base[0]}.${base[1]}`;
+    return `${base[0]}.${base[base.length - 1]}`;
   }
   return base[0] || "estudiante";
 }
@@ -146,6 +146,25 @@ export async function PATCH(request: Request) {
   }
 }
 
+// Helper to safely delete student IDs including child records to prevent FK errors
+async function safeDeleteStudents(whereCondition: any) {
+  const students = await prisma.user.findMany({
+    where: { role: "STUDENT", ...whereCondition },
+    select: { id: true }
+  });
+  const studentIds = students.map(s => s.id);
+  if (studentIds.length === 0) return 0;
+
+  await prisma.submission.deleteMany({ where: { studentId: { in: studentIds } } });
+  await prisma.additionalGrade.deleteMany({ where: { studentId: { in: studentIds } } });
+  await prisma.googleDriveAccount.deleteMany({ where: { userId: { in: studentIds } } });
+
+  const result = await prisma.user.deleteMany({
+    where: { id: { in: studentIds } }
+  });
+  return result.count;
+}
+
 // DELETE - Remove student(s)
 export async function DELETE(request: Request) {
   try {
@@ -156,26 +175,29 @@ export async function DELETE(request: Request) {
     if (payload.role !== "TEACHER" && payload.role !== "ADMIN") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const body = await request.json();
-    const { id, ids, deleteAllUnassigned } = body;
+    const { id, ids, deleteAllUnassigned, groupIdToDelete } = body;
 
     if (deleteAllUnassigned) {
-      const deleted = await prisma.user.deleteMany({
-        where: { role: "STUDENT", groupId: null }
-      });
-      return NextResponse.json({ success: true, count: deleted.count });
+      const count = await safeDeleteStudents({ groupId: null });
+      return NextResponse.json({ success: true, count });
+    }
+
+    if (groupIdToDelete) {
+      const count = await safeDeleteStudents({ groupId: groupIdToDelete });
+      return NextResponse.json({ success: true, count });
     }
 
     if (Array.isArray(ids) && ids.length > 0) {
-      const deleted = await prisma.user.deleteMany({
-        where: { role: "STUDENT", id: { in: ids } }
-      });
-      return NextResponse.json({ success: true, count: deleted.count });
+      const count = await safeDeleteStudents({ id: { in: ids } });
+      return NextResponse.json({ success: true, count });
     }
 
-    if (!id) return NextResponse.json({ error: 'ID o lista de IDs requeridos' }, { status: 400 });
+    if (id) {
+      const count = await safeDeleteStudents({ id });
+      return NextResponse.json({ success: true, count });
+    }
 
-    await prisma.user.delete({ where: { id } });
-    return NextResponse.json({ success: true, count: 1 });
+    return NextResponse.json({ error: 'ID o parámetro de borrado requerido' }, { status: 400 });
   } catch (error) {
     console.error("Error deleting student for teacher:", error);
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });

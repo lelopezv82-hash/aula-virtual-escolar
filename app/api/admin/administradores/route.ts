@@ -17,7 +17,7 @@ function generateUsername(name: string): string {
     .split(/\s+/)
     .filter(Boolean);
   if (base.length >= 2) {
-    return `${base[0]}.${base[1]}`;
+    return `${base[0]}.${base[base.length - 1]}`;
   }
   return base[0] || "admin";
 }
