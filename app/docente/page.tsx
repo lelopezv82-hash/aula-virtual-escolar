@@ -1,27 +1,31 @@
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
-import prisma from '@/lib/prisma';
-import { Users, BookOpen, ClipboardList, TrendingUp, CheckCircle, Clock } from "lucide-react";
-import Link from "next/link";
-import EntregasRecientes from "./EntregasRecientes";
+import prisma from "@/lib/prisma";
+import DocenteDashboardClient, {
+  CourseGroupItem,
+  TaskStatItem,
+  SubItem,
+} from "./DocenteDashboardClient";
 
-
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || "super-secret-educational-key-2026"
+);
 
 export default async function DocenteDashboard() {
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
-  
+
   if (!token) return null;
   const payload = (await jwtVerify(token, JWT_SECRET)).payload as any;
   const teacherId = payload.id as string;
 
-  // 1. Basic Stats
+  // 1. Fetch courses for this teacher with groups, grade, students, tasks and submissions
   const courses = await prisma.course.findMany({
-    where: { teacherId },
+    where: { teacherId, active: true },
     include: {
       groups: {
         include: {
+          grade: true,
           students: {
             where: { role: "STUDENT" },
             select: { id: true }
@@ -37,47 +41,63 @@ export default async function DocenteDashboard() {
     }
   });
 
-  const teacherStudentIds = new Set<string>();
-  courses.forEach(c => {
-    c.groups?.forEach(g => {
-      g.students?.forEach(s => teacherStudentIds.add(s.id));
-    });
-  });
-  const studentsCount = teacherStudentIds.size;
-  const coursesCount = courses.length;
-  
-  let tasksCount = 0;
-  let pendingReviewsCount = 0;
-  courses.forEach(c => {
-    tasksCount += c.tasks.length;
-    c.tasks.forEach(t => {
-      pendingReviewsCount += t.submissions.filter(s => s.status === "SUBMITTED").length;
-    });
-  });
+  // Build items grouped by Course and GradeGroup
+  const courseGroups: CourseGroupItem[] = [];
+  const gradesMap = new Map<string, { id: string; name: string }>();
+  const coursesMap = new Map<string, { id: string; name: string }>();
 
-  // 2. Course Averages for circular charts
-  const courseAverages = courses.map(course => {
-    let sum = 0;
-    let count = 0;
-    course.tasks.forEach(t => {
-      t.submissions.forEach(s => {
-        if (s.status === "GRADED" && s.grade !== null) {
-          sum += s.grade;
-          count++;
-        }
+  courses.forEach((c) => {
+    coursesMap.set(c.id, { id: c.id, name: c.name });
+
+    c.groups.forEach((g) => {
+      const gradeId = g.gradeId || g.grade?.id || "unknown";
+      const gradeName = g.grade?.name || "Sin Grado";
+      gradesMap.set(gradeId, { id: gradeId, name: gradeName });
+
+      const studentIds = g.students.map((s) => s.id);
+      const studentsCount = studentIds.length;
+      const tasksCount = c.tasks.length;
+
+      let pendingCount = 0;
+      let gradedCount = 0;
+      let sumGrades = 0;
+
+      c.tasks.forEach((t) => {
+        t.submissions.forEach((sub) => {
+          if (studentIds.includes(sub.studentId)) {
+            if (sub.status === "SUBMITTED") pendingCount++;
+            if (sub.status === "GRADED" && sub.grade !== null) {
+              gradedCount++;
+              sumGrades += sub.grade;
+            }
+          }
+        });
+      });
+
+      const averageGrade = gradedCount > 0 ? sumGrades / gradedCount : null;
+
+      courseGroups.push({
+        courseId: c.id,
+        courseName: c.name,
+        groupId: g.id,
+        groupName: g.name,
+        gradeId,
+        gradeName,
+        studentIds,
+        studentsCount,
+        tasksCount,
+        pendingCount,
+        gradedCount,
+        averageGrade,
       });
     });
-    const avg = count > 0 ? sum / count : null;
-    return {
-      id: course.id,
-      name: course.name,
-      average: avg,
-      gradedCount: count
-    };
-  }).filter(c => c.average !== null || c.gradedCount > 0);
+  });
 
-  // 3. Task Submission Rates (Recent 4 tasks)
-  const allTasks = await prisma.task.findMany({
+  const uniqueGrades = Array.from(gradesMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  const uniqueCourses = Array.from(coursesMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+
+  // 2. Fetch Recent Tasks stats
+  const allTasksRaw = await prisma.task.findMany({
     where: { course: { teacherId }, active: true },
     include: {
       submissions: true,
@@ -85,6 +105,7 @@ export default async function DocenteDashboard() {
         include: {
           groups: {
             include: {
+              grade: true,
               students: {
                 where: { role: "STUDENT" },
                 select: { id: true }
@@ -95,209 +116,82 @@ export default async function DocenteDashboard() {
       }
     },
     orderBy: { createdAt: "desc" },
-    take: 4
+    take: 5
   });
 
-  const taskStats = allTasks.map(task => {
+  const allTasks: TaskStatItem[] = allTasksRaw.map((task) => {
     const taskStudentIds = new Set<string>();
-    task.course.groups?.forEach(g => {
-      g.students?.forEach(s => taskStudentIds.add(s.id));
+    let gradeName = "";
+    let groupName = "";
+
+    task.course.groups.forEach((g) => {
+      if (!gradeName && g.grade?.name) gradeName = g.grade.name;
+      if (!groupName && g.name) groupName = g.name;
+      g.students.forEach((s) => taskStudentIds.add(s.id));
     });
-    const totalForTask = taskStudentIds.size || studentsCount;
-    const submittedCount = task.submissions.filter(s => s.status !== "PENDING").length;
-    const rate = totalForTask > 0 ? (submittedCount / totalForTask) * 100 : 0;
+
+    const total = taskStudentIds.size;
+    const submittedCount = task.submissions.filter((s) => s.status !== "PENDING").length;
+    const rate = total > 0 ? (submittedCount / total) * 100 : 0;
+
     return {
       id: task.id,
       title: task.title,
+      courseId: task.courseId,
       courseName: task.course.name,
+      gradeName: gradeName || "Sin Grado",
+      groupName: groupName || "General",
       submitted: submittedCount,
-      total: totalForTask,
-      rate
+      total,
+      rate,
     };
   });
 
-  // 4. Live Recent Submissions
-  const recentSubmissions = await prisma.submission.findMany({
+  // 3. Fetch Recent Submissions
+  const submissionsRaw = await prisma.submission.findMany({
     where: {
       task: { course: { teacherId } },
       status: { in: ["SUBMITTED", "GRADED"] }
     },
     include: {
-      student: true,
+      student: { select: { name: true } },
       task: {
         include: {
-          course: true,
+          course: { select: { name: true } },
           questions: { select: { id: true }, take: 1 }
         }
       }
     },
     orderBy: { updatedAt: "desc" },
-    take: 4
+    take: 5
   });
 
+  const recentSubmissions: SubItem[] = submissionsRaw.map((sub) => ({
+    id: sub.id,
+    taskId: sub.taskId,
+    studentId: sub.studentId,
+    studentName: sub.student.name,
+    taskTitle: sub.task.title,
+    courseName: sub.task.course.name,
+    grade: sub.grade,
+    status: sub.status,
+    updatedAt: sub.updatedAt.toISOString(),
+    feedback: sub.feedback,
+    fileUrl: sub.fileUrl,
+    submittedAt: sub.submittedAt ? sub.submittedAt.toISOString() : null,
+    isExam: sub.task.type === "EXAM" || sub.task.questions.length > 0,
+    isGoogleForm: false,
+    answers: sub.answers,
+  }));
+
   return (
-    <div className="animate-fade-in flex flex-col gap-6">
-      <div className="dashboard-header">
-        <h1>¡Hola, {payload.name}!</h1>
-        <p>Resumen de tu actividad académica y estadísticas en tiempo real.</p>
-      </div>
-
-      {/* 4 Cards Grid */}
-      <div className="stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "1.5rem" }}>
-        <div className="card stat-card" style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-          <div className="stat-icon" style={{ background: "rgba(37, 99, 235, 0.1)", color: "var(--primary-color)", padding: "0.75rem", borderRadius: "var(--radius-md)" }}>
-            <Users size={28} />
-          </div>
-          <div className="stat-info">
-            <h3 style={{ fontSize: "0.875rem", color: "var(--text-secondary)", margin: 0 }}>Total Estudiantes</h3>
-            <div className="value" style={{ fontSize: "1.75rem", fontWeight: "bold" }}>{studentsCount}</div>
-          </div>
-        </div>
-
-        <div className="card stat-card" style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-          <div className="stat-icon" style={{ background: "rgba(16, 185, 129, 0.1)", color: "var(--success)", padding: "0.75rem", borderRadius: "var(--radius-md)" }}>
-            <BookOpen size={28} />
-          </div>
-          <div className="stat-info">
-            <h3 style={{ fontSize: "0.875rem", color: "var(--text-secondary)", margin: 0 }}>Cursos Activos</h3>
-            <div className="value" style={{ fontSize: "1.75rem", fontWeight: "bold" }}>{coursesCount}</div>
-          </div>
-        </div>
-
-        <div className="card stat-card" style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-          <div className="stat-icon" style={{ background: "rgba(245, 158, 11, 0.1)", color: "var(--warning)", padding: "0.75rem", borderRadius: "var(--radius-md)" }}>
-            <ClipboardList size={28} />
-          </div>
-          <div className="stat-info">
-            <h3 style={{ fontSize: "0.875rem", color: "var(--text-secondary)", margin: 0 }}>Tareas Asignadas</h3>
-            <div className="value" style={{ fontSize: "1.75rem", fontWeight: "bold" }}>{tasksCount}</div>
-          </div>
-        </div>
-
-        <div className="card stat-card" style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-          <div className="stat-icon" style={{ background: "rgba(239, 68, 68, 0.1)", color: "var(--danger)", padding: "0.75rem", borderRadius: "var(--radius-md)" }}>
-            <TrendingUp size={28} />
-          </div>
-          <div className="stat-info">
-            <h3 style={{ fontSize: "0.875rem", color: "var(--text-secondary)", margin: 0 }}>Entregas por Calificar</h3>
-            <div className="value" style={{ fontSize: "1.75rem", fontWeight: "bold" }}>{pendingReviewsCount}</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Charts & Activity Section */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }} className="flex-col lg:grid">
-        {/* Left Column: Submission Rate (Bar Chart) */}
-        <div className="card">
-          <h2 className="text-lg font-bold mb-4">Tasas de Entrega de Tareas Recientes</h2>
-          {taskStats.length === 0 ? (
-            <p className="text-muted text-sm text-center py-10">Crea tareas para empezar a recopilar estadísticas de entregas.</p>
-          ) : (
-            <div className="flex flex-col gap-4">
-              {taskStats.map(stat => (
-                <div key={stat.id}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="font-semibold truncate max-w-[200px]" title={stat.title}>{stat.title}</span>
-                    <span className="text-muted">{stat.submitted} / {stat.total} ({stat.rate.toFixed(0)}%)</span>
-                  </div>
-                  <div style={{ background: "var(--bg-primary)", height: "12px", borderRadius: "var(--radius-full)", overflow: "hidden" }}>
-                    <div style={{
-                      background: "var(--primary-color)",
-                      width: `${stat.rate}%`,
-                      height: "100%",
-                      borderRadius: "var(--radius-full)",
-                      transition: "width 0.8s ease-out"
-                    }} />
-                  </div>
-                  <div className="text-xs text-muted mt-0.5">{stat.courseName}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Right Column: Course Average Grades (SVG Donut Charts) */}
-        <div className="card">
-          <h2 className="text-lg font-bold mb-4">Promedio de Notas por Curso</h2>
-          {courseAverages.length === 0 ? (
-            <p className="text-muted text-sm text-center py-10">Califica las entregas de tus estudiantes para ver promedios por curso.</p>
-          ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "1rem", textAlign: "center" }}>
-              {courseAverages.map(c => {
-                const avg = c.average || 0;
-                const percent = (avg / 5) * 100;
-                const r = 36;
-                const circ = 2 * Math.PI * r;
-                const offset = circ - (percent / 100) * circ;
-                
-                // Color mapping: green if >= 3.5, yellow if >= 3.0, red if lower
-                const strokeColor = avg >= 3.5 ? "var(--success)" : avg >= 3.0 ? "var(--warning)" : "var(--danger)";
-
-                return (
-                  <div key={c.id} className="flex flex-col items-center p-2 rounded-lg" style={{ background: "var(--bg-primary)", border: "1px solid var(--border-color)" }}>
-                    <div style={{ position: "relative", width: "90px", height: "90px" }}>
-                      <svg width="90" height="90" viewBox="0 0 90 90">
-                        {/* Background circle */}
-                        <circle cx="45" cy="45" r={r} stroke="var(--border-color)" strokeWidth="6" fill="transparent" />
-                        {/* Progress circle */}
-                        <circle
-                          cx="45"
-                          cy="45"
-                          r={r}
-                          stroke={strokeColor}
-                          strokeWidth="6"
-                          fill="transparent"
-                          strokeDasharray={circ}
-                          strokeDashoffset={offset}
-                          strokeLinecap="round"
-                          transform="rotate(-90 45 45)"
-                          style={{ transition: "stroke-dashoffset 0.8s ease-out" }}
-                        />
-                      </svg>
-                      {/* Inside text */}
-                      <div style={{
-                        position: "absolute",
-                        inset: 0,
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        justifyContent: "center"
-                      }}>
-                        <span style={{ fontSize: "1.25rem", fontWeight: "bold", color: strokeColor }}>{avg.toFixed(1)}</span>
-                        <span style={{ fontSize: "0.6rem", color: "var(--text-muted)", marginTop: "-2px" }}>/ 5.0</span>
-                      </div>
-                    </div>
-                    <span className="font-semibold text-xs mt-2 truncate w-full" title={c.name}>{c.name}</span>
-                    <span className="text-muted" style={{ fontSize: "0.65rem" }}>{c.gradedCount} tareas calificadas</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Activity Timeline */}
-      <div className="card w-full">
-        <h2 className="text-lg font-bold mb-4">Entregas y Actividad Reciente</h2>
-        <EntregasRecientes submissions={recentSubmissions.map(sub => ({
-          id: sub.id,
-          taskId: sub.taskId,
-          studentId: sub.studentId,
-          studentName: sub.student.name,
-          taskTitle: sub.task.title,
-          courseName: sub.task.course.name,
-          grade: sub.grade,
-          status: sub.status,
-          updatedAt: sub.updatedAt?.toISOString() ?? "",
-          feedback: (sub as any).feedback ?? null,
-          fileUrl: (sub as any).fileUrl ?? null,
-          submittedAt: sub.submittedAt?.toISOString() ?? null,
-          isExam: ((sub.task as any).questions?.length ?? 0) > 0 || !!((sub.task as any).attachmentUrl && ((sub.task as any).attachmentUrl.includes("docs.google.com/forms") || (sub.task as any).attachmentUrl.includes("forms.gle"))),
-          isGoogleForm: !!((sub.task as any).attachmentUrl && ((sub.task as any).attachmentUrl.includes("docs.google.com/forms") || (sub.task as any).attachmentUrl.includes("forms.gle"))),
-          answers: (sub as any).answers ?? {}
-        }))} />
-      </div>
-    </div>
+    <DocenteDashboardClient
+      teacherName={payload.name || "Profesor"}
+      courseGroups={courseGroups}
+      allTasks={allTasks}
+      recentSubmissions={recentSubmissions}
+      uniqueGrades={uniqueGrades}
+      uniqueCourses={uniqueCourses}
+    />
   );
 }
