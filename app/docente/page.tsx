@@ -17,10 +17,17 @@ export default async function DocenteDashboard() {
   const teacherId = payload.id as string;
 
   // 1. Basic Stats
-  const studentsCount = await prisma.user.count({ where: { role: "STUDENT" } });
   const courses = await prisma.course.findMany({
     where: { teacherId },
     include: {
+      groups: {
+        include: {
+          students: {
+            where: { role: "STUDENT" },
+            select: { id: true }
+          }
+        }
+      },
       tasks: {
         where: { active: true },
         include: {
@@ -29,7 +36,14 @@ export default async function DocenteDashboard() {
       }
     }
   });
-  
+
+  const teacherStudentIds = new Set<string>();
+  courses.forEach(c => {
+    c.groups?.forEach(g => {
+      g.students?.forEach(s => teacherStudentIds.add(s.id));
+    });
+  });
+  const studentsCount = teacherStudentIds.size;
   const coursesCount = courses.length;
   
   let tasksCount = 0;
@@ -67,21 +81,37 @@ export default async function DocenteDashboard() {
     where: { course: { teacherId }, active: true },
     include: {
       submissions: true,
-      course: true
+      course: {
+        include: {
+          groups: {
+            include: {
+              students: {
+                where: { role: "STUDENT" },
+                select: { id: true }
+              }
+            }
+          }
+        }
+      }
     },
     orderBy: { createdAt: "desc" },
     take: 4
   });
 
   const taskStats = allTasks.map(task => {
+    const taskStudentIds = new Set<string>();
+    task.course.groups?.forEach(g => {
+      g.students?.forEach(s => taskStudentIds.add(s.id));
+    });
+    const totalForTask = taskStudentIds.size || studentsCount;
     const submittedCount = task.submissions.filter(s => s.status !== "PENDING").length;
-    const rate = studentsCount > 0 ? (submittedCount / studentsCount) * 100 : 0;
+    const rate = totalForTask > 0 ? (submittedCount / totalForTask) * 100 : 0;
     return {
       id: task.id,
       title: task.title,
       courseName: task.course.name,
       submitted: submittedCount,
-      total: studentsCount,
+      total: totalForTask,
       rate
     };
   });
