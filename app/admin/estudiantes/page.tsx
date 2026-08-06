@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -234,10 +234,16 @@ export default function EstudiantesPage() {
           const ws = wb.Sheets[wsname];
           const jsonData = XLSX.utils.sheet_to_json(ws, { defval: "" });
           
+          const getVal = (row: any, keywords: string[]) => {
+            if (!row) return '';
+            const keys = Object.keys(row);
+            const key = keys.find(k => keywords.some(kw => k.toLowerCase().includes(kw)));
+            return key ? row[key] : '';
+          };
           const mapped = jsonData.map((row: any) => {
-            const name = row.Nombre || row.nombre || row.name || row.Name || '';
-            const grade = row.Grado || row.grado || row.grade || row.Grade || '';
-            const groupName = row.Grupo || row.grupo || row.groupName || row.group || row.Group || '';
+            const name = getVal(row, ['nombre', 'name', 'estudiante', 'alumno']);
+            const grade = getVal(row, ['grado', 'grade', 'curso']);
+            const groupName = getVal(row, ['grupo', 'group']);
             return {
               name: String(name).trim(),
               grade: String(grade).trim(),
@@ -263,10 +269,16 @@ export default function EstudiantesPage() {
         header: true,
         skipEmptyLines: true,
         complete: (results) => {
+          const getVal = (row: any, keywords: string[]) => {
+            if (!row) return '';
+            const keys = Object.keys(row);
+            const key = keys.find(k => keywords.some(kw => k.toLowerCase().includes(kw)));
+            return key ? row[key] : '';
+          };
           const mapped = results.data.map((row: any) => {
-            const name = row.Nombre || row.nombre || row.name || row.Name || '';
-            const grade = row.Grado || row.grado || row.grade || row.Grade || '';
-            const groupName = row.Grupo || row.grupo || row.groupName || row.group || row.Group || '';
+            const name = getVal(row, ['nombre', 'name', 'estudiante', 'alumno']);
+            const grade = getVal(row, ['grado', 'grade', 'curso']);
+            const groupName = getVal(row, ['grupo', 'group']);
             return {
               name: String(name).trim(),
               grade: String(grade).trim(),
