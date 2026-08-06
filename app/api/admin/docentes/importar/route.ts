@@ -16,8 +16,11 @@ function generateUsername(name: string): string {
     .trim()
     .split(/\s+/)
     .filter(Boolean);
-  if (base.length >= 2) {
-    return `${base[0]}.${base[base.length - 1]}`;
+  if (base.length >= 3) {
+    return `${base[0]}.${base[2]}`;
+  }
+  if (base.length === 2) {
+    return `${base[0]}.${base[1]}`;
   }
   return base[0] || "docente";
 }
