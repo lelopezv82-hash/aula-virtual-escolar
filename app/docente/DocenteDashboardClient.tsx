@@ -237,10 +237,10 @@ export default function DocenteDashboardClient({
         <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: "var(--border-color)" }}>
           <div className="flex items-center gap-2">
             <GraduationCap className="text-primary" size={22} style={{ color: "var(--primary-color)" }} />
-            <h2 className="text-lg font-bold">Resumen por Grado y Curso</h2>
+            <h2 className="text-lg font-bold">Resumen por Grado y Asignatura</h2>
           </div>
           <Link href="/docente/cursos" className="text-xs font-semibold text-primary flex items-center gap-1 hover:underline" style={{ color: "var(--primary-color)" }}>
-            Gestionar Cursos <ArrowRight size={14} />
+            Gestionar Asignaturas <ArrowRight size={14} />
           </Link>
         </div>
 
@@ -249,12 +249,12 @@ export default function DocenteDashboardClient({
             <BookOpen size={40} className="text-muted opacity-40" />
             <p className="text-muted text-sm max-w-md">
               {courseGroups.length === 0
-                ? "No tienes cursos ni grupos de grado asignados actualmente. Crea una asignatura y asígnale un grado/grupo en 'Gestión Asignaturas' para ver el resumen detallado por grado y curso."
-                : "No se encontraron cursos para la combinación de Grado y Curso seleccionada en el filtro."}
+                ? "No tienes asignaturas ni grupos de grado asignados actualmente. Crea una asignatura y asígnale un grado/grupo en 'Gestión Asignaturas' para ver el resumen detallado por grado y asignatura."
+                : "No se encontraron asignaturas para la combinación de Grado y Asignatura seleccionada en el filtro."}
             </p>
             {courseGroups.length === 0 && (
-              <Link href="/docente/cursos" className="btn btn-primary text-xs font-semibold mt-2">
-                + Crear Curso / Asignar Grado
+              <Link href="/docente/cursos?nuevo=true" className="btn btn-primary text-xs font-semibold mt-2">
+                + Crear Asignatura / Asignar Grado
               </Link>
             )}
           </div>

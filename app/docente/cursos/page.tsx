@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { BookOpen, Plus, Edit2, Trash2, X, Save, Loader2, Eye, EyeOff, Star, Shield, Settings } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
 import VisibilidadModal from "./VisibilidadModal";
@@ -111,16 +112,24 @@ export default function CursosPage() {
     }
   }, []);
 
+  const searchParams = useSearchParams();
+
   useEffect(() => {
     fetchCourses();
   }, [fetchCourses]);
 
-  const openCreateCourse = () => {
+  const openCreateCourse = useCallback(() => {
     setEditCourse(null);
     setCourseForm({ name: "", description: "", groupIds: [], saberPercent: 30, hacerPercent: 50, serPercent: 20, finalPercent: 0 });
     setError("");
     setShowCourseModal(true);
-  };
+  }, []);
+
+  useEffect(() => {
+    if (searchParams.get("nuevo") === "true" || searchParams.get("create") === "true") {
+      openCreateCourse();
+    }
+  }, [searchParams, openCreateCourse]);
 
   const openEditCourse = (c: Course) => {
     setEditCourse(c);
