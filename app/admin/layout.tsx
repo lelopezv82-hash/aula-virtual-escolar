@@ -43,7 +43,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     },
     {
       href: "/admin/grados",
-      label: "Gestión Estudiantes",
+      label: "Gestión Grados",
       icon: <Layers size={20} />,
     },
   ];
