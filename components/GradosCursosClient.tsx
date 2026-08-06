@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Plus, Trash2, Layers, Users, Loader2, Save, X, Copy, Check, UserPlus, Eye, EyeOff, Edit2, FileSpreadsheet, Upload, Key } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
 import * as XLSX from "xlsx";
@@ -140,9 +141,17 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
     }
   }, [selectedGroupForStudents, role]);
 
+  const searchParams = useSearchParams();
+
   useEffect(() => {
     fetchGrades();
   }, [fetchGrades]);
+
+  useEffect(() => {
+    if (searchParams.get("nuevo") === "true" || searchParams.get("create") === "true") {
+      setShowGradeModal(true);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (selectedGroupForStudents) {

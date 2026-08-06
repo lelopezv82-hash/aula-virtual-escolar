@@ -247,15 +247,20 @@ export default function DocenteDashboardClient({
         {filteredGroups.length === 0 ? (
           <div className="py-12 text-center flex flex-col items-center gap-3">
             <BookOpen size={40} className="text-muted opacity-40" />
-            <p className="text-muted text-sm max-w-md">
+            <p className="text-muted text-sm max-w-lg leading-relaxed">
               {courseGroups.length === 0
-                ? "No tienes asignaturas ni grupos de grado asignados actualmente. Crea una asignatura y asígnale un grado/grupo en 'Gestión Asignaturas' para ver el resumen detallado por grado y asignatura."
+                ? "Para comenzar a usar tu Aula Virtual, primero debes crear el Grado y Grupo (Paso 1) y luego crear la Asignatura vinculándola al grupo correspondiente (Paso 2)."
                 : "No se encontraron asignaturas para la combinación de Grado y Asignatura seleccionada en el filtro."}
             </p>
             {courseGroups.length === 0 && (
-              <Link href="/docente/cursos?nuevo=true" className="btn btn-primary text-xs font-semibold mt-2">
-                + Crear Asignatura / Asignar Grado
-              </Link>
+              <div className="flex flex-wrap items-center justify-center gap-3 mt-2">
+                <Link href="/docente/grados?nuevo=true" className="btn btn-secondary text-xs font-semibold py-2 px-4 flex items-center gap-1.5 border">
+                  🎓 Paso 1: Crear Grado y Grupo
+                </Link>
+                <Link href="/docente/cursos?nuevo=true" className="btn btn-primary text-xs font-semibold py-2 px-4 flex items-center gap-1.5">
+                  📚 Paso 2: Crear Asignatura
+                </Link>
+              </div>
             )}
           </div>
         ) : (
