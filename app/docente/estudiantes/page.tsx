@@ -540,7 +540,7 @@ function EstudiantesContent() {
               </button>
             )}
 
-            {unassignedCount > 0 && selectedStudentIds.length === 0 && (
+            {unassignedCount > 0 && selectedStudentIds.length === 0 && selectedGroupFilter === "ALL" && (
               <button
                 onClick={handleBulkDeleteUnassigned}
                 disabled={deletingBulk}
