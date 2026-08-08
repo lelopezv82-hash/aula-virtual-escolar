@@ -915,8 +915,8 @@ function EstudiantesContent() {
                           {importData.slice(0, 10).map((row, idx) => (
                             <tr key={idx} style={{ borderBottom: "1px solid var(--border-color)" }}>
                               <td className="p-2 font-medium">{row.name}</td>
-                              <td className="p-2 text-muted">{row.grade || '—'}</td>
-                              <td className="p-2 text-muted">{row.groupName || '—'}</td>
+                              <td className="p-2 text-muted">{row.grade || (selectedGroupFilter !== 'ALL' && selectedGroupFilter !== 'UNASSIGNED' ? (flatGroupList.find((g: any) => g.id === selectedGroupFilter)?.label?.split(' - ')[0] || '—') : '—')}</td>
+                              <td className="p-2 text-muted">{row.groupName || (selectedGroupFilter !== 'ALL' && selectedGroupFilter !== 'UNASSIGNED' ? (flatGroupList.find((g: any) => g.id === selectedGroupFilter)?.label?.split(' - ')[1] || '—') : '—')}</td>
                             </tr>
                           ))}
                         </tbody>
