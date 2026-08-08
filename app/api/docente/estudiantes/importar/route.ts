@@ -6,8 +6,8 @@ import bcrypt from 'bcryptjs';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
-// Helper to generate a unique username
-function generateUsername(name: string): string {
+// Helper to generate a base username from full name
+function generateBaseUsername(name: string): string {
   const base = name
     .toLowerCase()
     .normalize("NFD")
@@ -25,92 +25,150 @@ function generateUsername(name: string): string {
   return base[0] || "estudiante";
 }
 
-// POST - Bulk import students
+// POST - Bulk import students with performance optimization
 export async function POST(request: Request) {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("auth_token")?.value;
     if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    if (payload.role !== "TEACHER") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (payload.role !== "TEACHER" && payload.role !== "ADMIN") {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
 
     const { students } = await request.json();
     if (!students || !Array.isArray(students) || students.length === 0) {
       return NextResponse.json({ error: 'No se enviaron estudiantes válidos' }, { status: 400 });
     }
 
-    const createdStudents = [];
+    // Filter valid non-empty rows
+    const validRows = students.filter((row: Record<string, unknown>) => {
+      const name = String(row.name || row.Nombre || '').trim();
+      return name.length > 0;
+    });
 
-    for (const row of students) {
-      const name = (row.name || row.Nombre || '').trim();
+    if (validRows.length === 0) {
+      return NextResponse.json({ error: 'No hay filas con nombres válidos para importar' }, { status: 400 });
+    }
+
+    // Cache grades & groups to minimize DB queries
+    const existingGrades = await prisma.grade.findMany({
+      include: { groups: true }
+    });
+    const gradeMap = new Map<string, { id: string; groups: Map<string, string> }>();
+
+    for (const g of existingGrades) {
+      const groupMap = new Map<string, string>();
+      for (const grp of g.groups) {
+        groupMap.set(grp.name.trim().toLowerCase(), grp.id);
+      }
+      gradeMap.set(g.name.trim().toLowerCase(), { id: g.id, groups: groupMap });
+    }
+
+    // Retrieve existing usernames to prevent collisions locally
+    const existingUsers = await prisma.user.findMany({
+      select: { username: true }
+    });
+    const usedUsernames = new Set(existingUsers.map(u => u.username.toLowerCase()));
+
+    const studentsToCreate: Array<{
+      name: string;
+      username: string;
+      password: string;
+      passwordPlain: string;
+      role: "STUDENT";
+      grade: string | null;
+      groupName: string | null;
+      groupId: string | null;
+    }> = [];
+
+    const createdStudentsResponse: Array<{
+      name: string;
+      username: string;
+      plainPassword: string;
+      grade: string | null;
+      groupName: string | null;
+    }> = [];
+
+    // Process all students in memory first
+    for (const row of validRows) {
+      const name = String(row.name || row.Nombre || '').trim();
       const grade = String(row.grade || row.Grado || row.gradeName || '').trim() || null;
       const groupName = String(row.groupName || row.Grupo || row.group || '').trim() || null;
 
-      if (!name) continue; // Skip empty rows
+      let resolvedGroupId: string | null = null;
 
-      // Resolve Grade and Group dynamically
-      let resolvedGroupId = null;
       if (grade) {
-        let gradeRecord = await prisma.grade.findUnique({ where: { name: grade } });
-        if (!gradeRecord) {
-          gradeRecord = await prisma.grade.create({ data: { name: grade } });
+        const gradeKey = grade.toLowerCase();
+        let gradeEntry = gradeMap.get(gradeKey);
+
+        if (!gradeEntry) {
+          const newGradeRecord = await prisma.grade.create({ data: { name: grade } });
+          gradeEntry = { id: newGradeRecord.id, groups: new Map() };
+          gradeMap.set(gradeKey, gradeEntry);
         }
-        
+
         if (groupName) {
-          let groupRecord = await prisma.gradeGroup.findUnique({
-            where: { gradeId_name: { gradeId: gradeRecord.id, name: groupName } }
-          });
-          if (!groupRecord) {
-            groupRecord = await prisma.gradeGroup.create({
-              data: { name: groupName, gradeId: gradeRecord.id }
+          const groupKey = groupName.toLowerCase();
+          let groupObjId = gradeEntry.groups.get(groupKey);
+
+          if (!groupObjId) {
+            const newGroupRecord = await prisma.gradeGroup.create({
+              data: { name: groupName, gradeId: gradeEntry.id }
             });
+            groupObjId = newGroupRecord.id;
+            gradeEntry.groups.set(groupKey, groupObjId);
           }
-          resolvedGroupId = groupRecord.id;
+          resolvedGroupId = groupObjId;
         }
       }
 
       // Generate unique username
-      const baseUsername = generateUsername(name);
+      const baseUsername = generateBaseUsername(name);
       let username = baseUsername;
       let counter = 1;
-      while (await prisma.user.findUnique({ where: { username } })) {
+      while (usedUsernames.has(username.toLowerCase())) {
         username = `${baseUsername}${counter++}`;
       }
+      usedUsernames.add(username.toLowerCase());
 
-      // Generate temporary password
+      // Temporary password
       const plainPassword = Math.floor(100000 + Math.random() * 900000).toString();
-      const hashedPassword = await bcrypt.hash(plainPassword, 10);
+      const hashedPassword = await bcrypt.hash(plainPassword, 8); // Optimized salt rounds for bulk import
 
-      // Create student
-      const student = await prisma.user.create({
-        data: {
-          name,
-          username,
-          password: hashedPassword,
-          passwordPlain: plainPassword,
-          role: "STUDENT",
-          grade,
-          groupName,
-          groupId: resolvedGroupId
-        }
+      studentsToCreate.push({
+        name,
+        username,
+        password: hashedPassword,
+        passwordPlain: plainPassword,
+        role: "STUDENT",
+        grade,
+        groupName,
+        groupId: resolvedGroupId
       });
 
-      createdStudents.push({
-        name: student.name,
-        username: student.username,
+      createdStudentsResponse.push({
+        name,
+        username,
         plainPassword,
-        grade: grade,
-        groupName: groupName
+        grade,
+        groupName
       });
     }
 
+    // Execute bulk creation inside a high-speed Prisma transaction
+    await prisma.$transaction(
+      studentsToCreate.map(studentData => prisma.user.create({ data: studentData }))
+    );
+
     return NextResponse.json({
       success: true,
-      createdCount: createdStudents.length,
-      createdStudents
+      createdCount: createdStudentsResponse.length,
+      createdStudents: createdStudentsResponse
     });
   } catch (error) {
-    console.error("Error bulk importing students for teacher:", error);
-    return NextResponse.json({ error: 'Error interno del servidor al importar' }, { status: 500 });
+    console.error("Error bulk importing students:", error);
+    return NextResponse.json({ error: 'Error interno del servidor al importar estudiantes' }, { status: 500 });
   }
 }
+
