@@ -448,15 +448,21 @@ function EstudiantesContent() {
       if (res.ok) {
         setImportResults(data.createdStudents);
         fetchStudents();
+
+        // Auto-mask passwords in results after 60 seconds for security
+        setTimeout(() => {
+          setVisiblePasswords({});
+        }, 60000);
       } else {
-        setImportError(data.error || "Error al realizar la importación.");
+        setImportError(data.error || "Error al importar los estudiantes.");
       }
     } catch {
-      setImportError("Error de red al intentar importar.");
+      setImportError("Error de conexión al importar.");
     } finally {
       setImporting(false);
     }
   };
+
 
   const copyAllImportCredentials = () => {
     if (!importResults) return;
