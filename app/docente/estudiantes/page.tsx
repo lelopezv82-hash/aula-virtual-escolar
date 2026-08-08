@@ -369,10 +369,12 @@ function EstudiantesContent() {
             const name = getVal(row, ['nombre', 'name', 'estudiante', 'alumno']);
             const grade = getVal(row, ['grado', 'grade', 'curso']);
             const groupName = getVal(row, ['grupo', 'group']);
+            const groupId = getVal(row, ['groupid', 'group_id', 'grupoid']);
             return {
               name: String(name).trim(),
               grade: String(grade).trim(),
-              groupName: String(groupName).trim()
+              groupName: String(groupName).trim(),
+              groupId: String(groupId).trim() || undefined
             };
           }).filter((item: any) => item.name !== "");
 
@@ -404,10 +406,12 @@ function EstudiantesContent() {
             const name = getVal(row, ['nombre', 'name', 'estudiante', 'alumno']);
             const grade = getVal(row, ['grado', 'grade', 'curso']);
             const groupName = getVal(row, ['grupo', 'group']);
+            const groupId = getVal(row, ['groupid', 'group_id', 'grupoid']);
             return {
               name: String(name).trim(),
               grade: String(grade).trim(),
-              groupName: String(groupName).trim()
+              groupName: String(groupName).trim(),
+              groupId: String(groupId).trim() || undefined
             };
           }).filter((item: any) => item.name !== "");
 
@@ -432,7 +436,13 @@ function EstudiantesContent() {
       const res = await fetch("/api/docente/estudiantes/importar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ students: importData }),
+        body: JSON.stringify({
+          students: importData.map((s: any) => ({
+            ...s,
+            groupId: (s.groupId && s.groupId !== "") ? s.groupId :
+              (selectedGroupFilter !== "ALL" && selectedGroupFilter !== "UNASSIGNED" ? selectedGroupFilter : undefined)
+          }))
+        }),
       });
       const data = await res.json();
       if (res.ok) {
