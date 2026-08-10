@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
 
 export default function LogoutButton() {
@@ -41,7 +41,7 @@ export default function LogoutButton() {
   return (
     <button
       onClick={handleLogout}
-      className="logout-btn"
+      className="logout-btn font-medium text-sm text-slate-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 transition-colors"
       disabled={loading}
       title="Cerrar sesión"
       style={{
@@ -51,11 +51,16 @@ export default function LogoutButton() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: "0.5rem",
-        color: "inherit"
+        padding: "0.25rem 0.5rem",
       }}
     >
-      {loading ? <Loader2 size={20} className="animate-spin" /> : <LogOut size={20} />}
+      {loading ? (
+        <span className="flex items-center gap-1.5">
+          <Loader2 size={14} className="animate-spin" /> Cerrando...
+        </span>
+      ) : (
+        "Cerrar sesión"
+      )}
     </button>
   );
 }

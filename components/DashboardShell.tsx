@@ -118,10 +118,11 @@ export default function DashboardShell({
             </div>
           )}
           
-          <div className="navbar-user">
+          <div className="navbar-user flex items-center gap-2">
             <div className="user-text hidden md:block">
               <span className="user-name">{user?.name || "Usuario"}</span>
             </div>
+            <span className="text-gray-300 dark:text-gray-600 hidden md:inline select-none">|</span>
           </div>
           
           <div className="navbar-actions">
