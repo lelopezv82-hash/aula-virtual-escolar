@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { X, AlertTriangle, Trash2, Info } from 'lucide-react';
 
 interface ConfirmModalProps {
@@ -58,7 +58,7 @@ export default function ConfirmModal({
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/40 dark:bg-black/60 backdrop-blur-md animate-fade-in"
+      className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/70 backdrop-blur-md animate-fade-in"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
