@@ -75,6 +75,8 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
     ? { status: "GRADED", grade: 1.0, feedback: null, submittedAt: null, fileUrl: null, attempt: submission?.attempt || 1, unlockedAnswers: submission?.unlockedAnswers || false }
     : null;
 
+  const activeSubmission = (submission && submission.status !== "PENDING") ? submission : (virtualSubmission || submission);
+
   const hasActiveExtension = !!(submission?.allowLateSubmission || task?.allowLateSubmission);
   const isAutomaticGrade1 = (submission?.grade === 1 || submission?.grade === 1.0) && hasActiveExtension;
 
