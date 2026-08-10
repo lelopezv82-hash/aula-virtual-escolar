@@ -95,8 +95,10 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
 
     const initialLeft = calculateTimeLeft();
     if (initialLeft <= 0) {
-      setIsTimerExpired(true);
-      setTimeLeft(0);
+      if (!submission.allowLateSubmission) {
+        setIsTimerExpired(true);
+        setTimeLeft(0);
+      }
       return;
     } else {
       setTimeLeft(initialLeft);
@@ -107,7 +109,9 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
       if (left <= 0) {
         clearInterval(interval);
         setTimeLeft(0);
-        triggerAutoSubmit();
+        if (!submission.allowLateSubmission) {
+          triggerAutoSubmit();
+        }
       } else {
         setTimeLeft(left);
       }
@@ -308,7 +312,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const teacherName = task.course?.teacher?.name || "Docente";
   const initials = teacherName.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase();
 
-  const canEditOrDelete = !isGraded && !isSubmissionBlocked && !isTimerExpired && !task.isExternal && !isGoogleForm;
+  const canEditOrDelete = !isGraded && !isSubmissionBlocked && (!isTimerExpired || submission?.allowLateSubmission) && !task.isExternal && !isGoogleForm;
 
   return (
     <div className="animate-fade-in max-w-4xl mx-auto px-4 py-6">
@@ -579,7 +583,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
           </div>
 
           {/* Overdue/Closed/Grace messages if not submitted */}
-          {!isSubmitted && (isSubmissionBlocked || isTimerExpired) && !task.isExternal && (
+          {!isSubmitted && (isSubmissionBlocked || (isTimerExpired && !submission?.allowLateSubmission)) && !task.isExternal && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800 flex flex-col gap-1 mb-8 animate-scale-in">
               <h3 className="font-bold flex items-center gap-2">
                 <Clock size={18} /> Plazo de Entrega Vencido / Tiempo Agotado
@@ -590,7 +594,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
             </div>
           )}
 
-          {!isSubmitted && isOverdue && !isSubmissionBlocked && !isTimerExpired && !task.isExternal && (
+          {!isSubmitted && isOverdue && !isSubmissionBlocked && (!isTimerExpired || submission?.allowLateSubmission) && !task.isExternal && (
             <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 text-[#7c3d00] flex flex-col gap-1 mb-8 animate-scale-in">
               <h3 className="font-bold flex items-center gap-2 text-sm">
                 <Clock size={16} className="text-[#f98012]" />

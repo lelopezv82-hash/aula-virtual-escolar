@@ -99,7 +99,8 @@ export default async function CursoCalificacionesPage({
 
     if (sub) {
       const isTimerExpired = sub.startedAt && task.duration &&
-        (new Date(sub.startedAt).getTime() + task.duration * 60 * 1000 + 30000 < now.getTime());
+        (new Date(sub.startedAt).getTime() + task.duration * 60 * 1000 + 30000 < now.getTime()) &&
+        !sub.allowLateSubmission;
       const shouldHideFeedback = (task.type === "EXAM" || task.type === "FINAL") && !canSeeAnswers;
       const processedSub = { ...sub, feedback: shouldHideFeedback ? null : sub.feedback };
       if (sub.status === "PENDING" && (isClosed || isTimerExpired)) {

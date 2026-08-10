@@ -97,7 +97,8 @@ export default async function CalificacionesEstudiantePage() {
     if (sub) {
       // Detect if the student's individual timer has expired (including 30s grace period)
       const isTimerExpired = sub.startedAt && task.duration && 
-        (new Date(sub.startedAt).getTime() + task.duration * 60 * 1000 + 30000 < now.getTime());
+        (new Date(sub.startedAt).getTime() + task.duration * 60 * 1000 + 30000 < now.getTime()) &&
+        !sub.allowLateSubmission;
 
       const shouldHideFeedback = (task.type === "EXAM" || task.type === "FINAL") && !canSeeAnswers;
       const processedSub = {

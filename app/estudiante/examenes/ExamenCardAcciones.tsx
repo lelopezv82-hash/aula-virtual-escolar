@@ -68,7 +68,8 @@ export default function ExamenCardAcciones({
     submission?.startedAt &&
     duration &&
     new Date(submission.startedAt).getTime() + duration * 60 * 1000 + 30000 <
-      now.getTime();
+      now.getTime() &&
+    !submission.allowLateSubmission;
 
   const virtualSubmission =
     ((!submission || submission.status === "PENDING") &&

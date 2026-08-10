@@ -59,8 +59,9 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const isGoogleForm = !isNativeExam && !!(task?.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));
   
   // Detect if the student's individual timer has expired
-  const timerHasExpired = isTimerExpired || !!(submission?.startedAt && task?.duration && 
-    (new Date(submission.startedAt).getTime() + task.duration * 60 * 1000 < now.getTime()));
+  const timerHasExpired = (isTimerExpired || !!(submission?.startedAt && task?.duration && 
+    (new Date(submission.startedAt).getTime() + task.duration * 60 * 1000 < now.getTime()))) &&
+    !submission?.allowLateSubmission;
 
   // Check if late submissions are blocked (overdue and no extensions)
   const { isClosed, isLate: isOverdue, activeDeadline } = getTaskDeadlineStatus(task, submission);
@@ -178,9 +179,11 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
 
     const initialLeft = calculateTimeLeft();
     if (initialLeft <= 0) {
-      setIsTimerExpired(true);
-      setTimeLeft(0);
-      triggerAutoSubmit();
+      if (!submission.allowLateSubmission) {
+        setIsTimerExpired(true);
+        setTimeLeft(0);
+        triggerAutoSubmit();
+      }
       return;
     } else {
       setTimeLeft(initialLeft);
@@ -191,8 +194,10 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
       if (left <= 0) {
         clearInterval(interval);
         setTimeLeft(0);
-        setIsTimerExpired(true);
-        triggerAutoSubmit();
+        if (!submission.allowLateSubmission) {
+          setIsTimerExpired(true);
+          triggerAutoSubmit();
+        }
       } else {
         setTimeLeft(left);
       }

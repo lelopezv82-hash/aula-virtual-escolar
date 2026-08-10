@@ -91,18 +91,14 @@ export function getTaskDeadlineStatus(
       activeDeadline = new Date(submission.lateSubmissionUntil);
       hasExtension = true;
     } else {
-      if (!isExam) {
-        isUnlimitedExtension = true;
-      }
+      isUnlimitedExtension = true;
     }
   } else if (task.allowLateSubmission) {
     if (task.lateSubmissionUntil) {
       activeDeadline = new Date(task.lateSubmissionUntil);
       hasExtension = true;
     } else {
-      if (!isExam) {
-        isUnlimitedExtension = true;
-      }
+      isUnlimitedExtension = true;
     }
   }
 
