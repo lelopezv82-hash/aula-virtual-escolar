@@ -56,7 +56,7 @@ export async function POST(request: Request) {
       data: {
         password: hashedNewPassword,
         mustChangePassword: false,
-        passwordPlain: null // Clear plaintext password for security
+        passwordPlain: newPassword
       }
     });
 
