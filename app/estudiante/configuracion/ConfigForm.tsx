@@ -17,6 +17,7 @@ export default function ConfigForm() {
   const [securityQuestion, setSecurityQuestion] = useState("");
   const [securityAnswer, setSecurityAnswer] = useState("");
   const [securityPin, setSecurityPin] = useState("");
+  const [recoveryEmail, setRecoveryEmail] = useState("");
   const [hasExistingQuestion, setHasExistingQuestion] = useState(false);
   const [hasExistingPin, setHasExistingPin] = useState(false);
 
@@ -39,6 +40,9 @@ export default function ConfigForm() {
           }
           if (secData.hasPin) {
             setHasExistingPin(true);
+          }
+          if (secData.recoveryEmail) {
+            setRecoveryEmail(secData.recoveryEmail);
           }
         }
       } catch (err) {
@@ -83,12 +87,13 @@ export default function ConfigForm() {
           securityQuestion: securityQuestion || undefined,
           securityAnswer: securityAnswer || undefined,
           securityPin: securityPin || undefined,
+          recoveryEmail: recoveryEmail,
         }),
       });
 
       const data = await res.json();
       if (res.ok) {
-        setMessage({ type: "success", text: "Configuración y datos de seguridad actualizados correctamente." });
+        setMessage({ type: "success", text: "Configuración, correo de recuperación y datos de seguridad actualizados correctamente." });
         setNewPassword("");
         setConfirmPassword("");
         setSecurityAnswer("");
@@ -289,6 +294,20 @@ export default function ConfigForm() {
             onChange={(e) => setSecurityPin(e.target.value.replace(/\D/g, ''))}
             placeholder="Ej. 1234"
           />
+        </div>
+
+        <div className="input-group">
+          <label className="font-semibold text-sm mb-1 block" style={{ color: "var(--text-secondary)" }}>
+            📧 Correo Electrónico de Recuperación (Opción 3)
+          </label>
+          <input
+            type="email"
+            className="input-field"
+            value={recoveryEmail}
+            onChange={(e) => setRecoveryEmail(e.target.value)}
+            placeholder="ejemplo@estudiante.edu.co"
+          />
+          <p className="text-[11px] text-muted mt-1">Si olvidas tu clave en el login, podrás solicitar un código o enlace de recuperación enviado a este correo.</p>
         </div>
       </div>
 

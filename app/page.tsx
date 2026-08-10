@@ -16,11 +16,12 @@ export default function Home() {
 
   // Password Recovery state
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
-  const [recStep, setRecStep] = useState<"user" | "options" | "security" | "success">("user");
+  const [recStep, setRecStep] = useState<"user" | "options" | "security" | "email" | "success">("user");
   const [recUsername, setRecUsername] = useState("");
   const [recUserInfo, setRecUserInfo] = useState<any>(null);
   const [recAnswer, setRecAnswer] = useState("");
   const [recPin, setRecPin] = useState("");
+  const [recEmailCode, setRecEmailCode] = useState("");
   const [recNewPassword, setRecNewPassword] = useState("");
   const [recError, setRecError] = useState("");
   const [recSuccess, setRecSuccess] = useState("");
@@ -109,6 +110,58 @@ export default function Home() {
         setRecStep("success");
       } else {
         setRecError(data.error || "Respuesta o PIN incorrecto");
+      }
+    } catch {
+      setRecError("Error de conexión");
+    } finally {
+      setRecLoading(false);
+    }
+  };
+
+  const handleSendEmailToken = async () => {
+    setRecError("");
+    setRecLoading(true);
+    try {
+      const res = await fetch("/api/auth/recover-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "send-email-token", username: recUsername })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setRecStep("email");
+        if (data.code) setRecEmailCode(data.code);
+      } else {
+        setRecError(data.error || "Error enviando correo de recuperación");
+      }
+    } catch {
+      setRecError("Error de conexión");
+    } finally {
+      setRecLoading(false);
+    }
+  };
+
+  const handleVerifyEmailToken = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRecError("");
+    setRecLoading(true);
+    try {
+      const res = await fetch("/api/auth/recover-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "verify-email-token",
+          username: recUsername,
+          emailCode: recEmailCode,
+          newPassword: recNewPassword
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setRecSuccess(data.message);
+        setRecStep("success");
+      } else {
+        setRecError(data.error || "Código incorrecto o expirado");
       }
     } catch {
       setRecError("Error de conexión");
@@ -255,6 +308,7 @@ export default function Home() {
                 setRecSuccess("");
                 setRecAnswer("");
                 setRecPin("");
+                setRecEmailCode("");
                 setRecNewPassword("");
               }}
               className="text-xs font-semibold text-[#f98012] hover:underline"
@@ -326,14 +380,14 @@ export default function Home() {
               </form>
             )}
 
-            {/* STEP 2: Choose Method (Option 1 vs Option 2) */}
+            {/* STEP 2: Choose Method (Option 1 vs Option 2 vs Option 3) */}
             {recStep === "options" && (
               <div className="flex flex-col gap-3">
                 <p className="text-xs text-slate-700 dark:text-slate-300">
                   Hola <strong className="text-orange-600">{recUserInfo?.name}</strong>. Elige cómo deseas restablecer tu clave:
                 </p>
 
-                {recUserInfo?.hasSecurity ? (
+                {recUserInfo?.hasSecurity && (
                   <button
                     onClick={() => setRecStep("security")}
                     className="p-3 rounded-xl border border-orange-200 dark:border-orange-900/40 bg-orange-50/50 dark:bg-orange-950/20 text-left hover:border-orange-500 transition-all flex flex-col gap-1 group"
@@ -345,10 +399,21 @@ export default function Home() {
                       Restablece tu contraseña de forma inmediata respondiendo tu pregunta o PIN.
                     </span>
                   </button>
-                ) : (
-                  <div className="p-3 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/20 text-xs text-amber-800 dark:text-amber-300">
-                    ℹ️ No tienes configurada una pregunta secreta o PIN. Puedes enviar una solicitud a tu docente.
-                  </div>
+                )}
+
+                {recUserInfo?.hasEmail && (
+                  <button
+                    onClick={handleSendEmailToken}
+                    disabled={recLoading}
+                    className="p-3 rounded-xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/50 dark:bg-emerald-950/20 text-left hover:border-emerald-500 transition-all flex flex-col gap-1 group"
+                  >
+                    <span className="font-bold text-xs text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
+                      📧 Enviar Código a mi Correo de Recuperación ({recUserInfo.maskedEmail})
+                    </span>
+                    <span className="text-[11px] text-slate-600 dark:text-slate-400">
+                      Utiliza el correo registrado en tu configuración para recibir un código de verificación.
+                    </span>
+                  </button>
                 )}
 
                 <button
@@ -375,7 +440,7 @@ export default function Home() {
               </div>
             )}
 
-            {/* STEP 3: Security Question / PIN Answer Form */}
+            {/* STEP 3A: Security Question / PIN Answer Form */}
             {recStep === "security" && (
               <form onSubmit={handleVerifySecurity} className="flex flex-col gap-3">
                 {recUserInfo?.securityQuestion && (
@@ -438,6 +503,62 @@ export default function Home() {
                     className="btn btn-primary text-xs flex items-center gap-1"
                   >
                     {recLoading ? <Loader2 className="animate-spin" size={14} /> : "Restablecer Clave"}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* STEP 3B: Email Verification Code Form (Option 3) */}
+            {recStep === "email" && (
+              <form onSubmit={handleVerifyEmailToken} className="flex flex-col gap-3">
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 rounded-xl text-xs text-emerald-800 dark:text-emerald-300">
+                  📩 Código generado para <strong>{recUserInfo?.maskedEmail}</strong>. Ingresa el código de 6 dígitos para continuar.
+                </div>
+
+                <div className="input-group">
+                  <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 block">
+                    Código de 6 dígitos
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    required
+                    className="input-field text-sm tracking-widest text-center font-mono font-bold w-40 mx-auto"
+                    placeholder="123456"
+                    value={recEmailCode}
+                    onChange={e => setRecEmailCode(e.target.value)}
+                  />
+                </div>
+
+                <div className="input-group">
+                  <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 block">
+                    Nueva Contraseña
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    className="input-field text-sm"
+                    placeholder="Mínimo 6 caracteres"
+                    value={recNewPassword}
+                    onChange={e => setRecNewPassword(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex justify-between items-center mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setRecStep("options")}
+                    className="text-xs text-muted hover:underline"
+                  >
+                    ← Volver
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={recLoading || !recEmailCode || !recNewPassword}
+                    className="btn btn-primary text-xs flex items-center gap-1"
+                  >
+                    {recLoading ? <Loader2 className="animate-spin" size={14} /> : "Verificar y Cambiar Clave"}
                   </button>
                 </div>
               </form>

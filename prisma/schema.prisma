@@ -33,6 +33,7 @@ model User {
   securityQuestion      String?
   securityAnswer        String?
   securityPin           String?
+  recoveryEmail         String?
   resetRequests         PasswordResetRequest[]
 
   @@index([groupId])
@@ -49,6 +50,17 @@ model PasswordResetRequest {
 
   @@index([studentId])
   @@index([status])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  studentId String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([studentId])
 }
 
 model Course {

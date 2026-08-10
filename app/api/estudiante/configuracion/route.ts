@@ -17,12 +17,13 @@ export async function GET() {
 
     const student = await prisma.user.findUnique({
       where: { id: payload.id as string },
-      select: { securityQuestion: true, securityPin: true }
+      select: { securityQuestion: true, securityPin: true, recoveryEmail: true }
     });
 
     return NextResponse.json({
       securityQuestion: student?.securityQuestion || "",
-      hasPin: !!student?.securityPin
+      hasPin: !!student?.securityPin,
+      recoveryEmail: student?.recoveryEmail || ""
     });
   } catch (error) {
     console.error("Error fetching student security settings:", error);
@@ -40,7 +41,7 @@ export async function PATCH(request: Request) {
     if (payload.role !== "STUDENT") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const studentId = payload.id as string;
-    const { currentPassword, newPassword, securityQuestion, securityAnswer, securityPin } = await request.json();
+    const { currentPassword, newPassword, securityQuestion, securityAnswer, securityPin, recoveryEmail } = await request.json();
 
     const student = await prisma.user.findUnique({
       where: { id: studentId }
@@ -83,6 +84,20 @@ export async function PATCH(request: Request) {
           return NextResponse.json({ error: 'El PIN de seguridad debe tener exactamente 4 dígitos numéricos.' }, { status: 400 });
         }
         updateData.securityPin = securityPin.trim();
+      }
+    }
+
+    // Recovery Email update
+    if (recoveryEmail !== undefined) {
+      const cleanEmail = recoveryEmail.trim().toLowerCase();
+      if (cleanEmail) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(cleanEmail)) {
+          return NextResponse.json({ error: 'El correo de recuperación no tiene un formato válido.' }, { status: 400 });
+        }
+        updateData.recoveryEmail = cleanEmail;
+      } else {
+        updateData.recoveryEmail = null;
       }
     }
 

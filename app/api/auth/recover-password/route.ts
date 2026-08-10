@@ -6,6 +6,15 @@ import { jwtVerify } from "jose";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
+const maskEmail = (email: string) => {
+  if (!email || !email.includes("@")) return "";
+  const [local, domain] = email.split("@");
+  const maskedLocal = local.length <= 2 
+    ? local[0] + "*" 
+    : local[0] + "*".repeat(local.length - 2) + local[local.length - 1];
+  return `${maskedLocal}@${domain}`;
+};
+
 // GET - Teacher or Admin gets list of pending reset requests
 export async function GET() {
   try {
@@ -33,7 +42,6 @@ export async function GET() {
         orderBy: { createdAt: "desc" }
       });
     } else {
-      // Teacher: get courses to find groups taught by teacher
       const courses = await prisma.course.findMany({
         where: { teacherId: userId },
         include: { groups: true }
@@ -67,7 +75,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { action, username, answer, pin, newPassword } = body;
+    const { action, username, answer, pin, newPassword, emailCode } = body;
 
     if (!action) return NextResponse.json({ error: "Acción requerida" }, { status: 400 });
 
@@ -92,7 +100,9 @@ export async function POST(request: Request) {
         username: user.username,
         hasSecurity: !!(user.securityQuestion || user.securityPin),
         securityQuestion: user.securityQuestion || null,
-        hasPin: !!user.securityPin
+        hasPin: !!user.securityPin,
+        hasEmail: !!user.recoveryEmail,
+        maskedEmail: user.recoveryEmail ? maskEmail(user.recoveryEmail) : null
       });
     }
 
@@ -140,7 +150,6 @@ export async function POST(request: Request) {
         }
       });
 
-      // Mark any pending reset request as RESOLVED
       await prisma.passwordResetRequest.updateMany({
         where: { studentId: user.id, status: "PENDING" },
         data: { status: "RESOLVED" }
@@ -152,7 +161,97 @@ export async function POST(request: Request) {
       });
     }
 
-    // 3. Request reset from Teacher
+    // 3. Send Email Reset Token / Code (Opción 3)
+    if (action === "send-email-token") {
+      if (!cleanUsername) return NextResponse.json({ error: "Usuario requerido" }, { status: 400 });
+
+      const user = await prisma.user.findFirst({
+        where: { username: { equals: cleanUsername, mode: "insensitive" } }
+      });
+
+      if (!user || !user.recoveryEmail) {
+        return NextResponse.json({ error: "Este usuario no tiene un correo de recuperación registrado." }, { status: 400 });
+      }
+
+      // Generate a 6-digit code
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+
+      // Clean old tokens for student
+      await prisma.passwordResetToken.deleteMany({
+        where: { studentId: user.id }
+      });
+
+      await prisma.passwordResetToken.create({
+        data: {
+          token: code,
+          studentId: user.id,
+          expiresAt
+        }
+      });
+
+      return NextResponse.json({
+        success: true,
+        code,
+        maskedEmail: maskEmail(user.recoveryEmail),
+        message: `Se ha generado el código de recuperación de 6 dígitos para tu correo ${maskEmail(user.recoveryEmail)}.`
+      });
+    }
+
+    // 4. Verify Email Token / Code and reset password
+    if (action === "verify-email-token") {
+      if (!cleanUsername || !emailCode) {
+        return NextResponse.json({ error: "Código de verificación requerido" }, { status: 400 });
+      }
+      if (!newPassword || newPassword.length < 6) {
+        return NextResponse.json({ error: "La nueva contraseña debe tener al menos 6 caracteres." }, { status: 400 });
+      }
+
+      const user = await prisma.user.findFirst({
+        where: { username: { equals: cleanUsername, mode: "insensitive" } }
+      });
+
+      if (!user) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+
+      const resetToken = await prisma.passwordResetToken.findFirst({
+        where: {
+          studentId: user.id,
+          token: emailCode.trim(),
+          expiresAt: { gt: new Date() }
+        }
+      });
+
+      if (!resetToken) {
+        return NextResponse.json({ error: "El código de recuperación es incorrecto o ha expirado (15 min)." }, { status: 400 });
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          password: hashedPassword,
+          passwordPlain: newPassword,
+          mustChangePassword: false
+        }
+      });
+
+      await prisma.passwordResetToken.deleteMany({
+        where: { studentId: user.id }
+      });
+
+      await prisma.passwordResetRequest.updateMany({
+        where: { studentId: user.id, status: "PENDING" },
+        data: { status: "RESOLVED" }
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: "¡Contraseña restablecida exitosamente vía correo de recuperación! Ya puedes ingresar."
+      });
+    }
+
+    // 5. Request reset from Teacher (Opción 1)
     if (action === "request-teacher-reset") {
       if (!cleanUsername) return NextResponse.json({ error: "Usuario requerido" }, { status: 400 });
 
@@ -164,7 +263,6 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
       }
 
-      // Check if already pending
       const existing = await prisma.passwordResetRequest.findFirst({
         where: { studentId: user.id, status: "PENDING" }
       });
