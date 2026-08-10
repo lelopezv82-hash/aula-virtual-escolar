@@ -920,7 +920,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
           className="modal-overlay"
           onClick={(e) => e.target === e.currentTarget && !showCreateStudentInGroupModal && setShowStudentListModal(false)}
         >
-          <div className="modal-content flex flex-col max-h-[85vh]" style={{ maxWidth: "700px" }}>
+          <div className="modal-content flex flex-col max-h-[88vh] p-6" style={{ maxWidth: "850px" }}>
             <div className="flex justify-between items-center border-b pb-4 mb-4" style={{ borderColor: "var(--border-color)" }}>
               <div>
                 <h2 className="text-xl font-extrabold flex items-center gap-2">
