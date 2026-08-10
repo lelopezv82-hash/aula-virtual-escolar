@@ -266,26 +266,37 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   }
 
   // Get clean filename from absolute URL
-  function getFileNameFromUrl(url: string): string {
-    if (!url) return "archivo";
+  function getFileNameFromUrl(url: string, defaultFallback: string = "Documento adjunto"): string {
+    if (!url || typeof url !== "string") return defaultFallback;
     try {
       const decoded = decodeURIComponent(url);
-      const urlObj = new URL(decoded);
-      const pathname = urlObj.pathname;
-      const parts = pathname.split('/');
-      const lastPart = parts[parts.length - 1];
-      if (lastPart) {
-        const fileParts = lastPart.split('%2F');
-        return fileParts[fileParts.length - 1];
+      const cleanUrl = decoded.split("?")[0].replace(/\/(view|preview|edit|copy|download)\/?$/i, "");
+      const parts = cleanUrl.split("/").filter(Boolean);
+      let fileName = parts[parts.length - 1] || "";
+
+      if (fileName.includes("_")) {
+        const subParts = fileName.split("_");
+        if (subParts.length > 1) {
+          const lastSub = subParts[subParts.length - 1];
+          if (lastSub && lastSub.includes(".")) {
+            fileName = lastSub;
+          } else {
+            const tsIdx = subParts.findIndex(p => /^\d{10,}$/.test(p));
+            if (tsIdx !== -1 && tsIdx < subParts.length - 1) {
+              fileName = subParts.slice(tsIdx + 1).join("_");
+            }
+          }
+        }
       }
+
+      if (!fileName || ["view", "edit", "preview", "file", "d", "uc"].includes(fileName.toLowerCase()) || !fileName.includes(".")) {
+        return defaultFallback;
+      }
+
+      return fileName;
     } catch {
-      const parts = url.split('/');
-      const lastPart = parts[parts.length - 1];
-      if (lastPart) {
-        return lastPart.split('?')[0];
-      }
+      return defaultFallback;
     }
-    return "archivo";
   }
 
   // Get standard Moodle icon based on file type
@@ -569,7 +580,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                             rel="noopener noreferrer" 
                             className="text-blue-600 hover:text-blue-800 hover:underline font-semibold"
                           >
-                            {getFileNameFromUrl(submission.fileUrl)}
+                            {getFileNameFromUrl(submission.fileUrl, "Archivo de entrega")}
                           </a>
                           <span className="text-gray-400 text-xs shrink-0">
                             {formatMoodleDate(submission.submittedAt)}
