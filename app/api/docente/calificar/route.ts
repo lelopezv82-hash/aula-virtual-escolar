@@ -29,6 +29,10 @@ export async function PATCH(request: Request) {
     
     if (allowLateSubmission !== undefined) {
       updateData.allowLateSubmission = !!allowLateSubmission;
+      if (allowLateSubmission && grade === undefined) {
+        updateData.grade = null;
+        updateData.status = "PENDING";
+      }
     }
 
     if (lateSubmissionUntil !== undefined) {

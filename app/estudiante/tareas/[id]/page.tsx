@@ -47,8 +47,11 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
       .finally(() => setInitialLoad(false));
   }, [taskId, router]);
 
-  const isGraded = submission?.status === "GRADED" || (submission?.grade != null && submission?.status === "PENDING");
-  const isSubmitted = submission?.status === "SUBMITTED" || isGraded;
+  const hasActiveExtension = !!(submission?.allowLateSubmission || task?.allowLateSubmission);
+  const isAutomaticGrade1 = (submission?.grade === 1 || submission?.grade === 1.0) && hasActiveExtension;
+
+  const isGraded = (submission?.status === "GRADED" && !isAutomaticGrade1) || (submission?.grade != null && submission?.grade !== 1.0 && submission?.status === "PENDING");
+  const isSubmitted = (submission?.status === "SUBMITTED" || isGraded) && !isAutomaticGrade1;
 
   // Check deadline status for grade reason
   const { isClosed: isDeadlinePassed } = task ? getTaskDeadlineStatus(task, submission) : { isClosed: false };
@@ -312,7 +315,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const teacherName = task.course?.teacher?.name || "Docente";
   const initials = teacherName.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase();
 
-  const canEditOrDelete = !isGraded && !isSubmissionBlocked && (!isTimerExpired || submission?.allowLateSubmission) && !task.isExternal && !isGoogleForm;
+  const canEditOrDelete = (!isGraded || isAutomaticGrade1) && !isSubmissionBlocked && (!isTimerExpired || hasActiveExtension) && !task.isExternal && !isGoogleForm;
 
   return (
     <div className="animate-fade-in max-w-4xl mx-auto px-4 py-6">

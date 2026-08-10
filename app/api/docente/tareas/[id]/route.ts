@@ -244,6 +244,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       }
     });
 
+    if (allowLateSubmission) {
+      await prisma.submission.updateMany({
+        where: {
+          taskId: resolvedParams.id,
+          grade: 1.0,
+        },
+        data: {
+          grade: null,
+          status: "PENDING",
+        }
+      });
+    }
+
 
     // Si el archivo adjunto cambió y quedó en Supabase (gdrive falló), encolar para reintento
     if (file && file.size > 0 && !gdriveEmail && attachmentUrl && attachmentUrl.includes('supabase') && attachmentUrl !== task.attachmentUrl) {

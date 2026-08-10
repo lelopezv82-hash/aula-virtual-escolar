@@ -106,6 +106,17 @@ export default async function CalificacionesEstudiantePage() {
         feedback: shouldHideFeedback ? null : sub.feedback
       };
 
+      const hasActiveExtension = !!(sub.allowLateSubmission || task.allowLateSubmission);
+      if (hasActiveExtension && (sub.grade === 1 || sub.grade === 1.0) && sub.fileUrl === null) {
+        return {
+          ...processedSub,
+          status: "PENDING",
+          grade: null,
+          feedbackTemplate,
+          task
+        };
+      }
+
       if (sub.status === "PENDING" && (isClosed || isTimerExpired)) {
         return { ...processedSub, status: "GRADED", grade: 1.0, feedbackTemplate, task };
       }
