@@ -78,10 +78,11 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const activeSubmission = (submission && submission.status !== "PENDING") ? submission : (virtualSubmission || submission);
 
   const hasActiveExtension = !!(submission?.allowLateSubmission || task?.allowLateSubmission);
-  const isAutomaticGrade1 = (submission?.grade === 1 || submission?.grade === 1.0) && hasActiveExtension;
+  const hasUploadedFile = !!(submission?.fileUrl && submission.fileUrl.trim() !== "");
+  const isAutomaticGrade1 = (submission?.grade === 1 || submission?.grade === 1.0) && hasActiveExtension && !hasUploadedFile;
 
   const isGraded = activeSubmission?.status === "GRADED" && !isAutomaticGrade1;
-  const isSubmitted = (activeSubmission?.status === "SUBMITTED" || isGraded) && !isAutomaticGrade1;
+  const isSubmitted = hasUploadedFile || activeSubmission?.status === "SUBMITTED" || (isGraded && !isAutomaticGrade1);
 
   // Determine the reason for minimum grade (1.0)
   const neverStarted = !submission || (submission.status === "PENDING" && !submission.startedAt);

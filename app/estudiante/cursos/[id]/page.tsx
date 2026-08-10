@@ -116,7 +116,7 @@ export default async function CursoDescripcionPage({
 
   const taskItems: MoodleItem[] = tasks.map(t => {
     const submission = t.submissions[0];
-    const isSubmitted = !!(submission && (submission.status !== "PENDING" || submission.grade != null));
+    const isSubmitted = !!(submission && (submission.status !== "PENDING" || submission.grade != null || !!submission.fileUrl));
     const isGraded = !!(submission && (submission.status === "GRADED" || submission.grade != null));
     return {
       isResource: false as const,

@@ -48,14 +48,15 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   }, [taskId, router]);
 
   const hasActiveExtension = !!(submission?.allowLateSubmission || task?.allowLateSubmission);
-  const isAutomaticGrade1 = (submission?.grade === 1 || submission?.grade === 1.0) && hasActiveExtension;
+  const hasUploadedFile = !!(submission?.fileUrl && submission.fileUrl.trim() !== "");
+  const isAutomaticGrade1 = (submission?.grade === 1 || submission?.grade === 1.0) && hasActiveExtension && !hasUploadedFile;
 
   const isGraded = (submission?.status === "GRADED" && !isAutomaticGrade1) || (submission?.grade != null && submission?.grade !== 1.0 && submission?.status === "PENDING");
-  const isSubmitted = (submission?.status === "SUBMITTED" || isGraded) && !isAutomaticGrade1;
+  const isSubmitted = hasUploadedFile || submission?.status === "SUBMITTED" || (isGraded && !isAutomaticGrade1);
 
   // Check deadline status for grade reason
   const { isClosed: isDeadlinePassed } = task ? getTaskDeadlineStatus(task, submission) : { isClosed: false };
-  const neverSubmitted = !submission || (submission.status === "PENDING" && submission.grade == null);
+  const neverSubmitted = (!submission || (submission.status === "PENDING" && submission.grade == null)) && !hasUploadedFile;
   const virtualGraded = neverSubmitted && isDeadlinePassed;
   const gradeReason = virtualGraded ? "No entregaste la tarea a tiempo" : null;
 
