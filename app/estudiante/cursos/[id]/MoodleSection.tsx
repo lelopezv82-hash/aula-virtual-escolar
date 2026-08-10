@@ -1,6 +1,6 @@
-"use client";
 import { useState } from "react";
 import Link from "next/link";
+import { formatToColombiaString, getTaskDeadlineStatus } from "@/lib/dateUtils";
 
 export type MoodleResource = {
   isResource: true;
@@ -17,6 +17,10 @@ export type MoodleTask = {
   title: string;
   type: string;
   dueDate: string;
+  allowLateSubmission?: boolean;
+  lateSubmissionUntil?: string | null;
+  submissionAllowLateSubmission?: boolean;
+  submissionLateSubmissionUntil?: string | null;
   publishAt: string | null;
   description: string | null;
   isSubmitted: boolean;
@@ -193,6 +197,23 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                   ? item.description.replace(/Importado desde Excel\s*([—–-]\s*columna\s*[A-Z]+)?/gi, "").trim()
                   : null;
 
+                let deadlineStatus = null;
+                if (!item.isResource) {
+                  deadlineStatus = getTaskDeadlineStatus(
+                    {
+                      dueDate: item.dueDate,
+                      allowLateSubmission: !!item.allowLateSubmission,
+                      lateSubmissionUntil: item.lateSubmissionUntil,
+                      type: item.type,
+                    },
+                    {
+                      allowLateSubmission: !!item.submissionAllowLateSubmission,
+                      lateSubmissionUntil: item.submissionLateSubmissionUntil,
+                    }
+                  );
+                }
+                const hasExtension = !item.isResource && deadlineStatus && deadlineStatus.isLate && !deadlineStatus.isClosed;
+
                 return (
                   <div key={item.id} style={{
                     display: "flex",
@@ -230,7 +251,16 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                               Pendiente por calificar
                             </span>
                           )}
-                           {item.isExternal && (
+                          {hasExtension && !item.isSubmitted && (
+                            <span style={{
+                              fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
+                              borderRadius: 3, background: "#fff7ed", color: "#c2410c",
+                              border: "1px solid #ffedd5",
+                            }}>
+                              ⏰ Prórroga Activa
+                            </span>
+                          )}
+                          {item.isExternal && (
                             <span style={{
                               fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
                               borderRadius: 3, background: "#f1f5f9", color: "#475569",
@@ -250,6 +280,30 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                             <span><span style={{ fontWeight: 600 }}>Cierre:</span> {cierre}</span>
                           )}
                         </div>
+
+                        {hasExtension && !item.isSubmitted && deadlineStatus && (
+                          <div style={{
+                            marginTop: "0.4rem",
+                            padding: "0.5rem 0.75rem",
+                            background: "#fff7ed",
+                            border: "1px solid #ffedd5",
+                            borderRadius: "6px",
+                            color: "#9a3412",
+                            fontSize: "0.78rem",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "2px"
+                          }}>
+                            <div style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: "4px" }}>
+                              <span>⏰</span> Plazo Extemporáneo Activo
+                            </div>
+                            <div>
+                              {deadlineStatus.isUnlimitedExtension
+                                ? "El plazo de entrega original ha vencido, pero tienes permiso para entregar tu tarea tarde sin fecha de expiración."
+                                : `El plazo de entrega original ha vencido, pero tienes permiso para entregar tu tarea tarde hasta el ${formatToColombiaString(deadlineStatus.activeDeadline)}.`}
+                            </div>
+                          </div>
+                        )}
 
                         {cleanDesc && (
                           <div style={{
