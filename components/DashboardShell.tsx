@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, X, BookOpen, Clock, User } from "lucide-react";
+import { Menu, X, BookOpen, Clock } from "lucide-react";
 import LogoutButton from "./LogoutButton";
 import ActiveLink from "./ActiveLink";
 
@@ -121,9 +121,6 @@ export default function DashboardShell({
           <div className="navbar-user">
             <div className="user-text hidden md:block">
               <span className="user-name">{user?.name || "Usuario"}</span>
-            </div>
-            <div className="user-avatar" style={{ background: themeColor || "var(--primary-color)" }}>
-              {user?.name ? user.name.charAt(0).toUpperCase() : <User size={16} />}
             </div>
           </div>
           

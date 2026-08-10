@@ -43,7 +43,7 @@ export default function LogoutButton() {
       onClick={handleLogout}
       className="logout-btn"
       disabled={loading}
-      title="Cerrar Sesión"
+      title="Cerrar sesión"
       style={{
         border: "none",
         background: "none",
