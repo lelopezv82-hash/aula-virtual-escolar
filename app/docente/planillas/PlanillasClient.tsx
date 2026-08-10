@@ -2512,9 +2512,14 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               <button
                 onClick={editTaskId ? handleEditTask : handleAddTask}
                 disabled={addingTask || !newTaskName.trim() || newTaskGroupIds.length === 0}
-                className="text-xs font-bold text-white bg-[#f97316] border border-[#ea580c] px-4 py-2 rounded-lg hover:bg-[#ea580c] transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="text-xs font-bold text-white bg-[#f97316] border border-[#ea580c] px-4 py-2 rounded-lg hover:bg-[#ea580c] transition-colors flex items-center justify-center gap-1.5 min-w-[140px] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {addingTask ? <Loader2 size={16} className="animate-spin mx-auto" /> : (
+                {addingTask ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin shrink-0" />
+                    <span>Guardando...</span>
+                  </>
+                ) : (
                   <>
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
                     <span>{editTaskId ? "Guardar Cambios" : (addModal.type === "EXAM" ? "Crear Examen" : addModal.type === "TASK" ? "Crear Tarea" : addModal.type === "SER" ? "Crear Evaluación Actitudinal" : "Crear Evaluación")}</span>
