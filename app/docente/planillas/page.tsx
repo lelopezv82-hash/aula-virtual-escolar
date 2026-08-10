@@ -6,6 +6,8 @@ import PlanillasClient from "./PlanillasClient";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
+import { Suspense } from "react";
+
 export default async function PlanillasPage() {
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
@@ -42,10 +44,12 @@ export default async function PlanillasPage() {
   const teacherName = payload.name;
 
   return (
-    <PlanillasClient 
-      courses={courses} 
-      periods={periods} 
-      teacherName={teacherName} 
-    />
+    <Suspense fallback={<div className="p-8 text-center">Cargando planillas...</div>}>
+      <PlanillasClient 
+        courses={courses} 
+        periods={periods} 
+        teacherName={teacherName} 
+      />
+    </Suspense>
   );
 }

@@ -9,6 +9,7 @@ import {
   Eye, EyeOff, Users
 } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import QuestionEditor from "../tareas/[id]/QuestionEditor";
 import { toColombiaISOString, fromColombiaLocalStringToDate, getTaskDeadlineStatus } from "@/lib/dateUtils";
 import * as XLSX from "xlsx";
@@ -118,10 +119,14 @@ const colLetter = (idx: number): string => {
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function PlanillasClient({ courses, periods, teacherName }: PlanillasClientProps) {
+  const searchParams = useSearchParams();
+  const initCourseId = searchParams.get("courseId") || courses[0]?.id || "";
+  const initGroupId = searchParams.get("groupId") || "";
+
   // ── Selector state ──
-  const [selectedCourseId, setSelectedCourseId] = useState(courses[0]?.id ?? "");
+  const [selectedCourseId, setSelectedCourseId] = useState(initCourseId);
   const [selectedPeriod,   setSelectedPeriod]   = useState(periods[0]?.name ?? "Periodo 1");
-  const [selectedGroupId,  setSelectedGroupId]  = useState("");
+  const [selectedGroupId,  setSelectedGroupId]  = useState(initGroupId);
 
   // ── Data state ──
   const [students,      setStudents]      = useState<Student[]>([]);
@@ -330,9 +335,13 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
   // Auto-select first group on course change
   useEffect(() => {
-    setSelectedGroupId(groups[0]?.id ?? "");
+    // Only auto-select if selectedGroupId is empty OR not part of the new course
+    const groupExists = groups.some(g => g.id === selectedGroupId);
+    if (!groupExists && groups.length > 0) {
+      setSelectedGroupId(groups[0]?.id ?? "");
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCourseId]);
+  }, [selectedCourseId, groups]);
 
   // Fetch when filters complete
   useEffect(() => {
