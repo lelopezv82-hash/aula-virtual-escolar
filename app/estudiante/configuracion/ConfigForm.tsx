@@ -128,7 +128,7 @@ export default function ConfigForm() {
 
       <div className="input-group">
         <label className="font-semibold text-sm mb-1 block" style={{ color: "var(--text-secondary)" }}>
-          Contraseña Actual
+          Contraseña Actual <span className="text-xs font-normal text-muted">(Solo si vas a cambiar tu contraseña)</span>
         </label>
         <div style={{ position: "relative" }}>
           <input
@@ -137,7 +137,6 @@ export default function ConfigForm() {
             style={{ paddingRight: "2.5rem" }}
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
-            required
             placeholder="••••••••"
           />
           {currentPassword && (
@@ -167,7 +166,7 @@ export default function ConfigForm() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }} className="flex-col sm:grid">
         <div className="input-group">
           <label className="font-semibold text-sm mb-1 block" style={{ color: "var(--text-secondary)" }}>
-            Nueva Contraseña
+            Nueva Contraseña <span className="text-xs font-normal text-muted">(Opcional)</span>
           </label>
           <div style={{ position: "relative" }}>
             <input
@@ -176,7 +175,6 @@ export default function ConfigForm() {
               style={{ paddingRight: "2.5rem" }}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              required
               placeholder="Mínimo 6 caracteres"
             />
             {newPassword && (
@@ -205,7 +203,7 @@ export default function ConfigForm() {
 
         <div className="input-group">
           <label className="font-semibold text-sm mb-1 block" style={{ color: "var(--text-secondary)" }}>
-            Confirmar Nueva Contraseña
+            Confirmar Nueva Contraseña <span className="text-xs font-normal text-muted">(Opcional)</span>
           </label>
           <div style={{ position: "relative" }}>
             <input
@@ -214,7 +212,6 @@ export default function ConfigForm() {
               style={{ paddingRight: "2.5rem" }}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              required
               placeholder="Repite la contraseña"
             />
             {confirmPassword && (
