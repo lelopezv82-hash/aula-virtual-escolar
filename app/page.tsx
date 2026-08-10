@@ -14,6 +14,18 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  // Password Recovery state
+  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
+  const [recStep, setRecStep] = useState<"user" | "options" | "security" | "success">("user");
+  const [recUsername, setRecUsername] = useState("");
+  const [recUserInfo, setRecUserInfo] = useState<any>(null);
+  const [recAnswer, setRecAnswer] = useState("");
+  const [recPin, setRecPin] = useState("");
+  const [recNewPassword, setRecNewPassword] = useState("");
+  const [recError, setRecError] = useState("");
+  const [recSuccess, setRecSuccess] = useState("");
+  const [recLoading, setRecLoading] = useState(false);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -50,120 +62,6 @@ export default function Home() {
       setLoading(false);
     }
   };
-
-  return (
-    <div className="landing-container flex flex-col items-center justify-center">
-      <div className="glass-panel landing-card animate-fade-in">
-        <div className="logo-container">
-          <h1 className="logo-text">Aula Virtual</h1>
-          <p className="subtitle">
-            Conectando conocimiento, innovación y aprendizaje.
-          </p>
-        </div>
-
-        {error && errorField === "connection" && (
-          <div className="alert alert-danger animate-fade-in mt-2 mb-4">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleLogin} className="mt-4 flex flex-col gap-4 text-left">
-          <div className="input-group">
-            <label htmlFor="username">Usuario</label>
-            <div className="input-wrapper relative">
-              <User className="input-icon" size={20} />
-              <input
-                id="username"
-                type="text"
-                className={`input-field with-icon ${(errorField === "username" || errorField === "both") ? "is-invalid" : ""}`}
-                value={username}
-                onChange={(e) => {
-                  setUsername(e.target.value);
-                  if (errorField === "username" || errorField === "both") {
-                    setErrorField("");
-                    setError("");
-                  }
-                }}
-                required
-              />
-              {(errorField === "username" || errorField === "both") && (
-                <div className="speech-bubble">
-                  {errorField === "both" ? "El usuario es incorrecto" : error}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="input-group">
-            <label htmlFor="password">Contraseña</label>
-            <div className="input-wrapper relative">
-              <Lock className="input-icon" size={20} />
-              <input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                className={`input-field with-icon pr-10 ${(errorField === "password" || errorField === "both") ? "is-invalid" : ""}`}
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  if (errorField === "password" || errorField === "both") {
-                    setErrorField("");
-                    setError("");
-                  }
-                }}
-                required
-              />
-              <button
-                type="button"
-                className="password-toggle-btn"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: "absolute",
-                  right: "12px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  color: "var(--text-muted)",
-                  padding: 0,
-                  display: "flex",
-                  alignItems: "center"
-                }}
-                title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-              {(errorField === "password" || errorField === "both") && (
-                <div className="speech-bubble">
-                  {error}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            className="btn btn-primary w-full mt-4 btn-lg"
-            disabled={loading}
-          >
-            {loading ? (
-              <Loader2 className="animate-spin" size={20} />
-            ) : (
-              <>
-                Ingresar <ArrowRight size={20} />
-              </>
-            )}
-  // Password Recovery state
-  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
-  const [recStep, setRecStep] = useState<"user" | "options" | "security" | "success">("user");
-  const [recUsername, setRecUsername] = useState("");
-  const [recUserInfo, setRecUserInfo] = useState<any>(null);
-  const [recAnswer, setRecAnswer] = useState("");
-  const [recPin, setRecPin] = useState("");
-  const [recNewPassword, setRecNewPassword] = useState("");
-  const [recError, setRecError] = useState("");
-  const [recSuccess, setRecSuccess] = useState("");
-  const [recLoading, setRecLoading] = useState(false);
 
   const handleCheckUser = async (e: React.FormEvent) => {
     e.preventDefault();
