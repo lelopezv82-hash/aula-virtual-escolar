@@ -161,6 +161,30 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
     }
   }, [selectedGroupForStudents, fetchStudents]);
 
+  useEffect(() => {
+    const manageGroupId = searchParams.get("manageGroupId");
+    if (manageGroupId && grades.length > 0 && !showStudentListModal) {
+      for (const grade of grades) {
+        const group = grade.groups.find(g => g.id === manageGroupId);
+        if (group) {
+          setSelectedGroupForStudents(group);
+          setParentGradeOfSelectedGroup(grade);
+          setNewStudentCredentials(null);
+          setStudentName("");
+          setStudentPassword("");
+          setStudentError("");
+          setShowStudentListModal(true);
+          
+          // Remove query param to prevent re-opening on manual close
+          const url = new URL(window.location.href);
+          url.searchParams.delete("manageGroupId");
+          window.history.replaceState({}, "", url.toString());
+          break;
+        }
+      }
+    }
+  }, [grades, searchParams, showStudentListModal]);
+
   const handleAddGrade = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!gradeName.trim()) return;

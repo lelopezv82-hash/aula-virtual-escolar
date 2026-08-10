@@ -316,7 +316,7 @@ export default function DocenteDashboardClient({
                       {/* Action buttons */}
                       <div className="flex items-center gap-2 pt-1">
                         <Link
-                          href={`/docente/estudiantes?groupId=${cg.groupId}`}
+                          href={`/docente/grados?manageGroupId=${cg.groupId}`}
                           className="btn btn-secondary text-[11px] flex-1 justify-center py-1.5"
                         >
                           👥 Ver Estudiantes ({cg.studentsCount})
