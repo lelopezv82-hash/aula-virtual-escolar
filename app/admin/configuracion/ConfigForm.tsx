@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Save, Loader2, KeyRound } from "lucide-react";
 
@@ -16,6 +16,23 @@ export default function ConfigForm({ initialName }: ConfigFormProps) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "danger"; text: string } | null>(null);
+
+  useEffect(() => {
+    const fetchCurrentPassword = async () => {
+      try {
+        const res = await fetch("/api/auth/current-password");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.passwordPlain) {
+            setCurrentPassword(data.passwordPlain);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching current password", err);
+      }
+    };
+    fetchCurrentPassword();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
