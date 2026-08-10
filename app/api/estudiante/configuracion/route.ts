@@ -6,21 +6,41 @@ import bcrypt from 'bcryptjs';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
+export async function GET() {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth_token")?.value;
+    if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    if (payload.role !== "STUDENT") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+
+    const student = await prisma.user.findUnique({
+      where: { id: payload.id as string },
+      select: { securityQuestion: true, securityPin: true }
+    });
+
+    return NextResponse.json({
+      securityQuestion: student?.securityQuestion || "",
+      hasPin: !!student?.securityPin
+    });
+  } catch (error) {
+    console.error("Error fetching student security settings:", error);
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+  }
+}
+
 export async function PATCH(request: Request) {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("auth_token")?.value;
     if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-    
+
     const { payload } = await jwtVerify(token, JWT_SECRET);
     if (payload.role !== "STUDENT") return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const studentId = payload.id as string;
-    const { currentPassword, newPassword } = await request.json();
-
-    if (!currentPassword || !newPassword) {
-      return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
-    }
+    const { currentPassword, newPassword, securityQuestion, securityAnswer, securityPin } = await request.json();
 
     const student = await prisma.user.findUnique({
       where: { id: studentId }
@@ -30,30 +50,54 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Estudiante no encontrado' }, { status: 404 });
     }
 
-    // Verify current password
-    const match = await bcrypt.compare(currentPassword, student.password);
-    if (!match) {
-      return NextResponse.json({ error: 'La contraseña actual es incorrecta' }, { status: 400 });
+    const updateData: Record<string, any> = {};
+
+    // Password update
+    if (newPassword) {
+      if (!currentPassword) {
+        return NextResponse.json({ error: 'Debes ingresar tu contraseña actual para cambiarla.' }, { status: 400 });
+      }
+      const match = await bcrypt.compare(currentPassword, student.password);
+      if (!match) {
+        return NextResponse.json({ error: 'La contraseña actual es incorrecta' }, { status: 400 });
+      }
+      if (newPassword.length < 6) {
+        return NextResponse.json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' }, { status: 400 });
+      }
+      updateData.password = await bcrypt.hash(newPassword, 10);
+      updateData.passwordPlain = newPassword;
     }
 
-    if (newPassword.length < 6) {
-      return NextResponse.json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' }, { status: 400 });
+    // Security question update
+    if (securityQuestion !== undefined && securityAnswer !== undefined) {
+      if (securityQuestion.trim() && securityAnswer.trim()) {
+        updateData.securityQuestion = securityQuestion.trim();
+        updateData.securityAnswer = securityAnswer.trim().toLowerCase();
+      }
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    // Security PIN update
+    if (securityPin !== undefined && securityPin !== null) {
+      if (securityPin.trim()) {
+        if (!/^\d{4}$/.test(securityPin.trim())) {
+          return NextResponse.json({ error: 'El PIN de seguridad debe tener exactamente 4 dígitos numéricos.' }, { status: 400 });
+        }
+        updateData.securityPin = securityPin.trim();
+      }
+    }
 
-    // Update in database
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: 'No hay cambios para guardar' }, { status: 400 });
+    }
+
     await prisma.user.update({
       where: { id: studentId },
-      data: {
-        password: hashedPassword,
-        passwordPlain: newPassword
-      }
+      data: updateData
     });
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error updating student password:", error);
+    console.error("Error updating student configuration:", error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }

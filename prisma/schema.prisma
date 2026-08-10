@@ -30,9 +30,25 @@ model User {
   googleDriveAccounts GoogleDriveAccount[]
   submissions         Submission[]
   group               GradeGroup?          @relation("GroupStudents", fields: [groupId], references: [id])
+  securityQuestion      String?
+  securityAnswer        String?
+  securityPin           String?
+  resetRequests         PasswordResetRequest[]
 
   @@index([groupId])
   @@index([role])
+}
+
+model PasswordResetRequest {
+  id        String   @id @default(uuid())
+  studentId String
+  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studentId])
+  @@index([status])
 }
 
 model Course {

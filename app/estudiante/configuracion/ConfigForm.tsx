@@ -14,8 +14,14 @@ export default function ConfigForm() {
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
+  const [securityQuestion, setSecurityQuestion] = useState("");
+  const [securityAnswer, setSecurityAnswer] = useState("");
+  const [securityPin, setSecurityPin] = useState("");
+  const [hasExistingQuestion, setHasExistingQuestion] = useState(false);
+  const [hasExistingPin, setHasExistingPin] = useState(false);
+
   useEffect(() => {
-    const fetchCurrentPassword = async () => {
+    const fetchCurrentConfig = async () => {
       try {
         const res = await fetch("/api/auth/current-password");
         if (res.ok) {
@@ -24,29 +30,45 @@ export default function ConfigForm() {
             setCurrentPassword(data.passwordPlain);
           }
         }
+        const secRes = await fetch("/api/estudiante/configuracion");
+        if (secRes.ok) {
+          const secData = await secRes.json();
+          if (secData.securityQuestion) {
+            setSecurityQuestion(secData.securityQuestion);
+            setHasExistingQuestion(true);
+          }
+          if (secData.hasPin) {
+            setHasExistingPin(true);
+          }
+        }
       } catch (err) {
-        console.error("Error fetching current password", err);
+        console.error("Error fetching student configuration", err);
       }
     };
-    fetchCurrentPassword();
+    fetchCurrentConfig();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
 
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      setMessage({ type: "danger", text: "Todos los campos son obligatorios." });
-      return;
+    if (newPassword) {
+      if (!currentPassword) {
+        setMessage({ type: "danger", text: "Ingresa tu contraseña actual para cambiarla." });
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        setMessage({ type: "danger", text: "La nueva contraseña y su confirmación no coinciden." });
+        return;
+      }
+      if (newPassword.length < 6) {
+        setMessage({ type: "danger", text: "La nueva contraseña debe tener al menos 6 caracteres." });
+        return;
+      }
     }
 
-    if (newPassword !== confirmPassword) {
-      setMessage({ type: "danger", text: "La nueva contraseña y su confirmación no coinciden." });
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      setMessage({ type: "danger", text: "La nueva contraseña debe tener al menos 6 caracteres." });
+    if (securityPin && !/^\d{4}$/.test(securityPin.trim())) {
+      setMessage({ type: "danger", text: "El PIN de seguridad debe tener exactamente 4 dígitos numéricos (ej. 1234)." });
       return;
     }
 
@@ -56,17 +78,21 @@ export default function ConfigForm() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          currentPassword,
-          newPassword,
+          currentPassword: newPassword ? currentPassword : undefined,
+          newPassword: newPassword || undefined,
+          securityQuestion: securityQuestion || undefined,
+          securityAnswer: securityAnswer || undefined,
+          securityPin: securityPin || undefined,
         }),
       });
 
       const data = await res.json();
       if (res.ok) {
-        setMessage({ type: "success", text: "Contraseña actualizada correctamente." });
-        setCurrentPassword("");
+        setMessage({ type: "success", text: "Configuración y datos de seguridad actualizados correctamente." });
         setNewPassword("");
         setConfirmPassword("");
+        setSecurityAnswer("");
+        setSecurityPin("");
         setShowCurrent(false);
         setShowNew(false);
         setShowConfirm(false);
@@ -211,10 +237,65 @@ export default function ConfigForm() {
         </div>
       </div>
 
+      {/* Recovery Security Options */}
+      <div className="pt-4 border-t border-gray-200 dark:border-gray-800 flex flex-col gap-4">
+        <div>
+          <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200 mb-1">🔐 Pregunta de Seguridad y PIN (Para recuperar clave si la olvidas)</h3>
+          <p className="text-xs text-muted">Configura una pregunta secreta o un PIN de 4 dígitos para recuperar tu contraseña automáticamente en la pantalla de inicio de sesión.</p>
+        </div>
+
+        <div className="input-group">
+          <label className="font-semibold text-sm mb-1 block" style={{ color: "var(--text-secondary)" }}>
+            Pregunta de Seguridad
+          </label>
+          <select
+            className="input-field text-sm"
+            value={securityQuestion}
+            onChange={(e) => setSecurityQuestion(e.target.value)}
+          >
+            <option value="">-- Selecciona una pregunta --</option>
+            <option value="¿Nombre de tu primera mascota?">¿Nombre de tu primera mascota?</option>
+            <option value="¿Nombre de tu primera escuela o colegio?">¿Nombre de tu primera escuela o colegio?</option>
+            <option value="¿Ciudad donde naciste?">¿Ciudad donde naciste?</option>
+            <option value="¿Nombre de tu deporte o juego favorito?">¿Nombre de tu deporte o juego favorito?</option>
+            <option value="¿Nombre de tu mejor amigo de la infancia?">¿Nombre de tu mejor amigo de la infancia?</option>
+          </select>
+        </div>
+
+        {securityQuestion && (
+          <div className="input-group">
+            <label className="font-semibold text-sm mb-1 block" style={{ color: "var(--text-secondary)" }}>
+              Respuesta Secreta
+            </label>
+            <input
+              type="text"
+              className="input-field"
+              value={securityAnswer}
+              onChange={(e) => setSecurityAnswer(e.target.value)}
+              placeholder="Escribe tu respuesta aquí"
+            />
+          </div>
+        )}
+
+        <div className="input-group">
+          <label className="font-semibold text-sm mb-1 block" style={{ color: "var(--text-secondary)" }}>
+            PIN Secreto (4 dígitos numéricos) {hasExistingPin && <span className="text-xs font-normal text-emerald-600">(✓ PIN configurado)</span>}
+          </label>
+          <input
+            type="password"
+            maxLength={4}
+            className="input-field w-36 text-center font-mono tracking-widest font-bold"
+            value={securityPin}
+            onChange={(e) => setSecurityPin(e.target.value.replace(/\D/g, ''))}
+            placeholder="Ej. 1234"
+          />
+        </div>
+      </div>
+
       <div className="pt-4 border-t" style={{ borderColor: "var(--border-color)" }}>
         <button type="submit" className="btn btn-primary" disabled={loading}>
           {loading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-          {loading ? "Guardando..." : "Cambiar Contraseña"}
+          {loading ? "Guardando..." : "Guardar Cambios y Configuración"}
         </button>
       </div>
     </form>

@@ -651,6 +651,23 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
     setShowGroupModal(true);
   };
 
+  const [resetRequests, setResetRequests] = useState<any[]>([]);
+
+  const fetchResetRequests = useCallback(async () => {
+    try {
+      const res = await fetch("/api/auth/recover-password");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.requests) setResetRequests(data.requests);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    fetchGrades();
+    fetchResetRequests();
+  }, [fetchGrades, fetchResetRequests]);
+
   return (
     <div className="flex flex-col gap-6 animate-fade-in">
       <div className="flex justify-between items-center border-b pb-4" style={{ borderColor: "var(--border-color)" }}>
@@ -662,6 +679,37 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
           <Plus size={18} /> Nuevo Grado
         </button>
       </div>
+
+      {resetRequests.length > 0 && (
+        <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 flex flex-col gap-2 shadow-sm animate-fade-in">
+          <div className="flex items-center justify-between font-bold text-sm">
+            <span className="flex items-center gap-2">
+              <span>🔔</span> Solicitudes de Restablecimiento de Contraseña Pendientes ({resetRequests.length})
+            </span>
+          </div>
+          <div className="flex flex-col gap-1.5 mt-1">
+            {resetRequests.map(req => (
+              <div key={req.id} className="flex items-center justify-between bg-white dark:bg-gray-800 p-2.5 rounded-lg border border-amber-200 dark:border-amber-900/40 text-xs">
+                <div>
+                  <strong className="text-slate-900 dark:text-slate-100">{req.student?.name}</strong> ({req.student?.username}) — <span className="text-muted">{req.student?.grade || ""} {req.student?.groupName || ""}</span>
+                </div>
+                <button
+                  onClick={() => {
+                    setEditingStudent(req.student);
+                    setEditStudentName(req.student.name);
+                    setEditStudentPassword("123456");
+                    setStudentError("");
+                    setShowEditStudentModal(true);
+                  }}
+                  className="btn btn-primary py-1 px-2.5 text-xs flex items-center gap-1"
+                >
+                  🔑 Restablecer Clave (Ej. 123456)
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {error && <div className="alert alert-danger">{error}</div>}
 
