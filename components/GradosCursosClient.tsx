@@ -74,6 +74,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
   const [students, setStudents] = useState<Student[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [showStudentListModal, setShowStudentListModal] = useState(false);
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
 
   // Create student form states
   const [showCreateStudentInGroupModal, setShowCreateStudentInGroupModal] = useState(false);
@@ -138,6 +139,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
       setStudentError("Error de conexión al obtener los estudiantes");
     } finally {
       setLoadingStudents(false);
+      setSelectedStudents([]);
     }
   }, [selectedGroupForStudents, role]);
 
@@ -486,6 +488,43 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
     }
   };
 
+  const handleBulkDeleteStudents = async () => {
+    if (selectedStudents.length === 0) return;
+    const ok = await confirm({
+      title: "Eliminar Estudiantes Seleccionados",
+      message: `¿Estás seguro de que deseas eliminar ${selectedStudents.length} estudiantes? Esta acción no se puede deshacer y se perderán todas sus calificaciones.`,
+      confirmText: "Eliminar Todos",
+      type: "danger"
+    });
+    if (!ok) return;
+
+    setStudentError("");
+    setLoadingStudents(true);
+    try {
+      const endpoint = role === "admin" ? "/api/admin/estudiantes" : "/api/docente/estudiantes";
+      let failCount = 0;
+      for (const id of selectedStudents) {
+        const res = await fetch(endpoint, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id })
+        });
+        if (!res.ok) failCount++;
+      }
+      
+      if (failCount > 0) {
+        setStudentError(`Hubo un error al eliminar ${failCount} estudiantes.`);
+      }
+      
+      setSelectedStudents([]);
+      fetchStudents();
+      fetchGrades();
+    } catch {
+      setStudentError("Error de conexión al eliminar estudiantes");
+      setLoadingStudents(false);
+    }
+  };
+
   const handleBulkImportStudents = async () => {
     if (detectedNames.length === 0 || !selectedGroupForStudents) return;
     setImportingStudents(true);
@@ -827,6 +866,19 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
               </button>
             </div>
 
+            {selectedStudents.length > 0 && !showCreateStudentInGroupModal && (
+              <div className="flex justify-between items-center bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/30 text-red-800 dark:text-red-300 p-3 rounded-xl mb-4">
+                <span className="font-semibold text-sm">{selectedStudents.length} estudiante(s) seleccionado(s)</span>
+                <button 
+                  type="button"
+                  onClick={handleBulkDeleteStudents}
+                  className="btn btn-primary bg-red-600 hover:bg-red-700 text-white border-none py-1.5 px-3 text-xs flex items-center gap-1.5"
+                >
+                  <Trash2 size={14} /> Eliminar Seleccionados
+                </button>
+              </div>
+            )}
+
             {studentError && <div className="alert alert-danger mb-4 py-2 px-3 text-sm">{studentError}</div>}
 
             {/* Main content split: List or Create Form */}
@@ -1025,7 +1077,18 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                       <table className="w-full text-left border-collapse" style={{ minWidth: "600px" }}>
                         <thead>
                           <tr className="bg-gray-50 dark:bg-gray-900/60 text-xs font-bold text-muted border-b" style={{ borderColor: "var(--border-color)" }}>
-                            <th className="p-3" style={{ paddingLeft: "16px" }}>Nombre</th>
+                            <th className="p-3 w-10 text-center">
+                              <input 
+                                type="checkbox"
+                                checked={students.length > 0 && selectedStudents.length === students.length}
+                                onChange={(e) => {
+                                  if (e.target.checked) setSelectedStudents(students.map(s => s.id));
+                                  else setSelectedStudents([]);
+                                }}
+                                className="rounded border-gray-300 text-[#f98012] focus:ring-[#f98012] cursor-pointer"
+                              />
+                            </th>
+                            <th className="p-3" style={{ paddingLeft: "8px" }}>Nombre</th>
                             <th className="p-3">Usuario</th>
                             <th className="p-3">Contraseña</th>
                             <th className="p-3 text-center">Acciones</th>
@@ -1033,8 +1096,19 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                         </thead>
                         <tbody className="divide-y text-sm" style={{ borderColor: "var(--border-color)" }}>
                           {students.map((student) => (
-                            <tr key={student.id} className="hover:bg-gray-50/55 dark:hover:bg-gray-900/20">
-                              <td className="p-3 font-semibold" style={{ paddingLeft: "16px" }}>{student.name}</td>
+                            <tr key={student.id} className={`hover:bg-gray-50/55 dark:hover:bg-gray-900/20 ${selectedStudents.includes(student.id) ? 'bg-orange-50/30 dark:bg-orange-900/10' : ''}`}>
+                              <td className="p-3 text-center">
+                                <input 
+                                  type="checkbox"
+                                  checked={selectedStudents.includes(student.id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) setSelectedStudents([...selectedStudents, student.id]);
+                                    else setSelectedStudents(selectedStudents.filter(id => id !== student.id));
+                                  }}
+                                  className="rounded border-gray-300 text-[#f98012] focus:ring-[#f98012] cursor-pointer"
+                                />
+                              </td>
+                              <td className="p-3 font-semibold" style={{ paddingLeft: "8px" }}>{student.name}</td>
                               <td className="p-3 font-mono text-xs">{student.username}</td>
                               <td className="p-3">
                                 <div className="flex items-center gap-1.5">
