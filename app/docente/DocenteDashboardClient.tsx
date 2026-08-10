@@ -322,7 +322,7 @@ export default function DocenteDashboardClient({
                           👥 Ver Estudiantes ({cg.studentsCount})
                         </Link>
                         <Link
-                          href={`/docente/cursos/${cg.courseId}/calificaciones`}
+                          href={`/docente/planillas`}
                           className="btn btn-primary text-[11px] flex-1 justify-center py-1.5"
                         >
                           📊 Calificaciones

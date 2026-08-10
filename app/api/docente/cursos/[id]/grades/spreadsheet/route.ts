@@ -82,20 +82,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       orderBy: { createdAt: 'asc' }
     });
 
-    // Auto-create default SER tasks if none exist for this period
-    if (!tasks.some(t => t.type === "SER") && course.groups.length > 0) {
-      const groupConnect = course.groups.map(g => ({ id: g.id }));
-      for (const title of ["Autoevaluación", "Coevaluación", "Heteroevaluación"]) {
-        const newTask = await prisma.task.create({
-          data: {
-            title, type: "SER", period, courseId,
-            dueDate: new Date(), isExternal: true, active: true, weight: 0,
-            groups: { connect: groupConnect }
-          }
-        });
-        tasks.push({ id: newTask.id, title: newTask.title, type: newTask.type, dueDate: newTask.dueDate, duration: newTask.duration, submissions: [] });
-      }
-    }
+    // removed auto-creation of default SER tasks
 
     // Auto-create FINAL task if needed
     const finalPercent = (course as any).finalPercent ?? 0;
