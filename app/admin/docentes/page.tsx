@@ -379,23 +379,17 @@ export default function DocentesPage() {
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <span style={{ fontFamily: "monospace", fontSize: "0.95rem", color: "var(--text-primary)" }}>
-                            {teacher.passwordPlain ? (
-                              visiblePasswords[teacher.id] ? teacher.passwordPlain : "••••••••"
-                            ) : (
-                              <span className="text-muted italic text-xs">No disponible</span>
-                            )}
+                            {visiblePasswords[teacher.id] ? (teacher.passwordPlain || "(Sin clave reg.)") : "••••••••"}
                           </span>
-                          {teacher.passwordPlain && (
-                            <button
-                              type="button"
-                              onClick={() => setVisiblePasswords(prev => ({ ...prev, [teacher.id]: !prev[teacher.id] }))}
-                              className="p-1 rounded text-muted hover:text-primary hover:bg-gray-100 transition-colors"
-                              style={{ background: "none", border: "none", cursor: "pointer", display: "flex", padding: "0.25rem" }}
-                              title={visiblePasswords[teacher.id] ? "Ocultar contraseña" : "Mostrar contraseña"}
-                            >
-                              {visiblePasswords[teacher.id] ? <EyeOff size={15} /> : <Eye size={15} />}
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => setVisiblePasswords(prev => ({ ...prev, [teacher.id]: !prev[teacher.id] }))}
+                            className="p-1 rounded text-muted hover:text-primary hover:bg-gray-100 transition-colors"
+                            style={{ background: "none", border: "none", cursor: "pointer", display: "flex", padding: "0.25rem" }}
+                            title={visiblePasswords[teacher.id] ? "Ocultar contraseña" : "Mostrar contraseña"}
+                          >
+                            {visiblePasswords[teacher.id] ? <EyeOff size={15} /> : <Eye size={15} />}
+                          </button>
                         </div>
                       </td>
                       <td className="py-3 px-4 text-sm text-muted">

@@ -1138,33 +1138,32 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                                 <div className="flex items-center gap-1.5">
                                   <span className="font-mono text-xs select-all">
                                     {visiblePasswords[student.id] 
-                                      ? (student.passwordPlain || "********") 
+                                      ? (student.passwordPlain || "(Sin clave reg.)") 
                                       : "••••••••"}
                                   </span>
-                                  {student.passwordPlain && (
-                                    <button
-                                      onClick={() => setVisiblePasswords(prev => ({ ...prev, [student.id]: !prev[student.id] }))}
-                                      className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-muted"
-                                      title={visiblePasswords[student.id] ? "Ocultar" : "Mostrar"}
-                                    >
-                                      {visiblePasswords[student.id] ? <EyeOff size={13} /> : <Eye size={13} />}
-                                    </button>
-                                  )}
+                                  <button
+                                    onClick={() => setVisiblePasswords(prev => ({ ...prev, [student.id]: !prev[student.id] }))}
+                                    className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-muted"
+                                    title={visiblePasswords[student.id] ? "Ocultar" : "Mostrar"}
+                                  >
+                                    {visiblePasswords[student.id] ? <EyeOff size={13} /> : <Eye size={13} />}
+                                  </button>
                                 </div>
                               </td>
                               <td className="p-3">
                                 <div className="flex justify-center items-center gap-2">
-                                  {student.passwordPlain && (
-                                    <button
-                                      onClick={() => {
-                                        navigator.clipboard.writeText(`Usuario: ${student.username}\nContraseña: ${student.passwordPlain}`);
-                                      }}
-                                      className="p-1 rounded hover:bg-orange-50 dark:hover:bg-orange-900/20 text-[#f98012]"
-                                      title="Copiar credenciales"
-                                    >
-                                      <Copy size={14} />
-                                    </button>
-                                  )}
+                                  <button
+                                    onClick={() => {
+                                      const text = student.passwordPlain 
+                                        ? `Usuario: ${student.username}\nContraseña: ${student.passwordPlain}`
+                                        : `Usuario: ${student.username}`;
+                                      navigator.clipboard.writeText(text);
+                                    }}
+                                    className="p-1 rounded hover:bg-orange-50 dark:hover:bg-orange-900/20 text-[#f98012]"
+                                    title="Copiar credenciales"
+                                  >
+                                    <Copy size={14} />
+                                  </button>
                                   <button
                                     onClick={() => {
                                       setEditingStudent(student);

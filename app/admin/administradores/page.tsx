@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -257,23 +257,17 @@ export default function AdministradoresPage() {
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2">
                             <span style={{ fontFamily: "monospace", fontSize: "0.95rem", color: "var(--text-primary)" }}>
-                              {admin.passwordPlain ? (
-                                visiblePasswords[admin.id] ? admin.passwordPlain : "••••••••"
-                              ) : (
-                                <span className="text-muted italic text-xs">No disponible</span>
-                              )}
+                              {visiblePasswords[admin.id] ? (admin.passwordPlain || "(Sin clave reg.)") : "••••••••"}
                             </span>
-                            {admin.passwordPlain && (
-                              <button
-                                type="button"
-                                onClick={() => setVisiblePasswords(prev => ({ ...prev, [admin.id]: !prev[admin.id] }))}
-                                className="p-1 rounded text-muted hover:text-primary hover:bg-gray-100 transition-colors"
-                                style={{ background: "none", border: "none", cursor: "pointer", display: "flex", padding: "0.25rem" }}
-                                title={visiblePasswords[admin.id] ? "Ocultar contraseña" : "Mostrar contraseña"}
-                              >
-                                {visiblePasswords[admin.id] ? <EyeOff size={15} /> : <Eye size={15} />}
-                              </button>
-                            )}
+                            <button
+                              type="button"
+                              onClick={() => setVisiblePasswords(prev => ({ ...prev, [admin.id]: !prev[admin.id] }))}
+                              className="p-1 rounded text-muted hover:text-primary hover:bg-gray-100 transition-colors"
+                              style={{ background: "none", border: "none", cursor: "pointer", display: "flex", padding: "0.25rem" }}
+                              title={visiblePasswords[admin.id] ? "Ocultar contraseña" : "Mostrar contraseña"}
+                            >
+                              {visiblePasswords[admin.id] ? <EyeOff size={15} /> : <Eye size={15} />}
+                            </button>
                           </div>
                         </td>
                         <td className="py-3 px-4 text-sm text-muted">
