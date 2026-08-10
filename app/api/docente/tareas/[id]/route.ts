@@ -125,6 +125,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const isExternalRaw = formData.get('isExternal') as string | null;
     const isExternal = isExternalRaw === 'true';
 
+    const allowLateSubmissionRaw = formData.get('allowLateSubmission') as string | null;
+    const allowLateSubmission = allowLateSubmissionRaw === 'true';
+    const lateSubmissionUntilRaw = formData.get('lateSubmissionUntil') as string | null;
+    const lateSubmissionUntil = allowLateSubmission ? fromColombiaLocalStringToDate(lateSubmissionUntilRaw) : null;
+
     let groupIds: string[] = [];
     if (groupIdsJson) {
       try {
@@ -233,7 +238,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         weight: isNaN(weight) ? 0 : weight,
         duration: duration && !isNaN(duration) ? duration : null,
         type: type || undefined,
-        isExternal: isExternal
+        isExternal: isExternal,
+        allowLateSubmission,
+        lateSubmissionUntil
       }
     });
 

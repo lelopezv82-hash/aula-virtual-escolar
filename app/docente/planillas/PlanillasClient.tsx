@@ -165,6 +165,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [planillasThemes, setPlanillasThemes] = useState<{id: string, title: string}[]>([]);
   const [newTaskPublishAt, setNewTaskPublishAt] = useState("");
   const [newTaskAllowLateSubmission, setNewTaskAllowLateSubmission] = useState(false);
+  const [newTaskLateSubmissionUntil, setNewTaskLateSubmissionUntil] = useState("");
   const [newTaskExternalUrl, setNewTaskExternalUrl] = useState("");
   const [newTaskFile, setNewTaskFile] = useState<File | null>(null);
   const [addingTask,  setAddingTask]  = useState(false);
@@ -538,6 +539,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     setNewTaskSelectedThemes([]);
     setNewTaskPublishAt("");
     setNewTaskAllowLateSubmission(false);
+    setNewTaskLateSubmissionUntil("");
     setNewTaskExternalUrl("");
     setNewTaskFile(null);
     setNewTaskResourceIds([]);
@@ -580,6 +582,11 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     if (addModal.type !== "SER") {
       if (newTaskPublishAt) fd.append("publishAt", newTaskPublishAt);
       fd.append("allowLateSubmission", String(newTaskAllowLateSubmission));
+      if (newTaskAllowLateSubmission && newTaskLateSubmissionUntil) {
+        fd.append("lateSubmissionUntil", newTaskLateSubmissionUntil);
+      } else {
+        fd.append("lateSubmissionUntil", "");
+      }
       if (newTaskExternalUrl.trim()) fd.append("externalUrl", newTaskExternalUrl.trim());
       if (newTaskFile) fd.append("file", newTaskFile);
       if (newTaskResourceIds.length > 0) fd.append("resourceIds", JSON.stringify(newTaskResourceIds));
@@ -630,6 +637,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       );
       setNewTaskPublishAt(toLocal(t.publishAt));
       setNewTaskAllowLateSubmission(!!t.allowLateSubmission);
+      setNewTaskLateSubmissionUntil(toLocal(t.lateSubmissionUntil));
       setNewTaskExternalUrl(t.attachmentUrl || "");
       setNewTaskFile(null);
       setNewTaskResourceIds((t.resources || []).map((r: any) => r.id));
@@ -2322,17 +2330,36 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     </div>
 
                     {/* Checkbox 2: allowLateSubmission */}
-                    <div className="border border-gray-300 dark:border-gray-750 rounded-lg p-3 bg-white dark:bg-gray-900 flex items-center gap-3">
-                      <input
-                        id="allowLateCheck"
-                        type="checkbox"
-                        checked={newTaskAllowLateSubmission}
-                        onChange={e => setNewTaskAllowLateSubmission(e.target.checked)}
-                        className="w-4 h-4 rounded text-[#f97316] focus:ring-[#f97316] cursor-pointer"
-                      />
-                      <label htmlFor="allowLateCheck" className="font-bold text-xs text-gray-800 dark:text-gray-200 cursor-pointer select-none">
-                        Permitir entregas tardías (Prórroga)
-                      </label>
+                    <div className="border border-gray-300 dark:border-gray-750 rounded-lg p-3 bg-white dark:bg-gray-900 flex flex-col gap-2">
+                      <div className="flex items-center gap-3">
+                        <input
+                          id="allowLateCheck"
+                          type="checkbox"
+                          checked={newTaskAllowLateSubmission}
+                          onChange={e => setNewTaskAllowLateSubmission(e.target.checked)}
+                          className="w-4 h-4 rounded text-[#f97316] focus:ring-[#f97316] cursor-pointer"
+                        />
+                        <label htmlFor="allowLateCheck" className="font-bold text-xs text-gray-800 dark:text-gray-200 cursor-pointer select-none">
+                          Permitir entregas tardías (Prórroga)
+                        </label>
+                      </div>
+
+                      {newTaskAllowLateSubmission && (
+                        <div className="mt-2 pl-7 flex flex-col gap-1 animate-fade-in">
+                          <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300">
+                            Fecha y hora límite de prórroga (Opcional):
+                          </label>
+                          <input
+                            type="datetime-local"
+                            value={newTaskLateSubmissionUntil}
+                            onChange={e => setNewTaskLateSubmissionUntil(e.target.value)}
+                            className="w-full px-3 py-1.5 text-xs rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#f97316]"
+                          />
+                          <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                            * Si se deja vacío, la prórroga será sin fecha límite de expiración.
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </>
