@@ -128,6 +128,19 @@ export async function DELETE(request: Request) {
     const { id } = await request.json();
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
 
+    const courses = await prisma.course.findMany({ where: { teacherId: id }, select: { id: true } });
+    const courseIds = courses.map(c => c.id);
+
+    if (courseIds.length > 0) {
+      await prisma.resource.deleteMany({ where: { courseId: { in: courseIds } } });
+      await prisma.task.deleteMany({ where: { courseId: { in: courseIds } } });
+      await prisma.theme.deleteMany({ where: { courseId: { in: courseIds } } });
+      await prisma.additionalGrade.deleteMany({ where: { courseId: { in: courseIds } } });
+      await prisma.course.deleteMany({ where: { teacherId: id } });
+    }
+
+    await prisma.googleDriveAccount.deleteMany({ where: { userId: id } });
+    await prisma.driveUploadQueue.deleteMany({ where: { teacherId: id } });
     await prisma.user.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error) {

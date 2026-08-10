@@ -161,6 +161,9 @@ export async function DELETE(request: Request) {
     const { id } = await request.json();
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
 
+    await prisma.submission.deleteMany({ where: { studentId: id } });
+    await prisma.additionalGrade.deleteMany({ where: { studentId: id } });
+    await prisma.googleDriveAccount.deleteMany({ where: { userId: id } });
     await prisma.user.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error) {
