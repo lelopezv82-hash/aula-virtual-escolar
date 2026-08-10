@@ -257,7 +257,7 @@ export default function AdministradoresPage() {
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2">
                             <span style={{ fontFamily: "monospace", fontSize: "0.95rem", color: "var(--text-primary)" }}>
-                              {visiblePasswords[admin.id] ? (admin.passwordPlain || "(Sin clave reg.)") : "••••••••"}
+                              {visiblePasswords[admin.id] ? (admin.passwordPlain || "(Cambiada por el usuario)") : "••••••••"}
                             </span>
                             <button
                               type="button"

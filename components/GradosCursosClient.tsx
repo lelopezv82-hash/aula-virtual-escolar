@@ -1138,7 +1138,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                                 <div className="flex items-center gap-1.5">
                                   <span className="font-mono text-xs select-all">
                                     {visiblePasswords[student.id] 
-                                      ? (student.passwordPlain || "(Sin clave reg.)") 
+                                      ? (student.passwordPlain || "(Cambiada por el estudiante)") 
                                       : "••••••••"}
                                   </span>
                                   <button
@@ -1154,9 +1154,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                                 <div className="flex justify-center items-center gap-2">
                                   <button
                                     onClick={() => {
-                                      const text = student.passwordPlain 
-                                        ? `Usuario: ${student.username}\nContraseña: ${student.passwordPlain}`
-                                        : `Usuario: ${student.username}`;
+                                      const text = `Usuario: ${student.username}\nContraseña: ${student.passwordPlain || "(Cambiada por el estudiante)"}`;
                                       navigator.clipboard.writeText(text);
                                     }}
                                     className="p-1 rounded hover:bg-orange-50 dark:hover:bg-orange-900/20 text-[#f98012]"
