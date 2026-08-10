@@ -471,16 +471,36 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
             </div>
 
             {/* Footer */}
-            <div className="flex justify-end gap-3 border-t pt-4 mt-4" style={{ borderColor: "var(--border-color)", flexShrink: 0 }}>
-              <button className="btn btn-secondary" onClick={() => setGradingTask(null)}>Cerrar</button>
-              <button
-                className="btn btn-primary"
-                disabled={savingGrades || loadingStudents}
-                onClick={saveManualGrades}
-              >
-                {savingGrades ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                Guardar Calificaciones
-              </button>
+            <div className="flex items-center justify-between border-t pt-4 mt-4" style={{ borderColor: "var(--border-color)", flexShrink: 0 }}>
+              <div>
+                {gradingSaved && (
+                  <div className="flex items-center gap-2 text-sm font-bold text-emerald-600 bg-emerald-50 border border-emerald-300 px-3 py-1 rounded-lg animate-fade-in">
+                    <CheckCircle size={18} /> ¡Calificaciones guardadas exitosamente!
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <button className="btn btn-secondary" onClick={() => setGradingTask(null)}>Cerrar</button>
+                <button
+                  className={`btn ${gradingSaved ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "btn-primary"}`}
+                  disabled={savingGrades || loadingStudents}
+                  onClick={saveManualGrades}
+                >
+                  {savingGrades ? (
+                    <>
+                      <Loader2 className="animate-spin" size={18} /> Guardando...
+                    </>
+                  ) : gradingSaved ? (
+                    <>
+                      <CheckCircle size={18} /> ¡Guardado con éxito!
+                    </>
+                  ) : (
+                    <>
+                      <Save size={18} /> Guardar Calificaciones
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>,

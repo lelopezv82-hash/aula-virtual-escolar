@@ -896,10 +896,12 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         );
       await Promise.all(promises);
       setGradingSaved(true);
-      setTimeout(() => setGradingSaved(false), 2500);
+      setTimeout(() => setGradingSaved(false), 3500);
       fetchData();
+      alert("¡Calificaciones guardadas exitosamente!");
     } catch {
       setGradingError("Error al guardar calificaciones");
+      alert("Error al guardar calificaciones.");
     } finally {
       setSavingGrades(false);
     }
@@ -2656,16 +2658,41 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             </div>
 
             {/* Footer */}
-            <div className="flex justify-end gap-3 border-t p-5 flex-shrink-0" style={{ borderColor: "var(--border-color)" }}>
-              <button className="btn btn-secondary" onClick={() => setGradingTask(null)}>Cerrar</button>
-              <button
-                className="btn btn-primary"
-                disabled={savingGrades || loadingStudents}
-                onClick={saveManualGrades}
-              >
-                {savingGrades ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                Guardar Calificaciones
-              </button>
+            <div className="flex items-center justify-between border-t p-5 flex-shrink-0" style={{ borderColor: "var(--border-color)" }}>
+              <div>
+                {gradingSaved && (
+                  <div className="flex items-center gap-2 text-sm font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 px-3 py-1.5 rounded-lg animate-fade-in">
+                    <CheckCircle size={18} /> ¡Calificaciones guardadas exitosamente!
+                  </div>
+                )}
+                {gradingError && (
+                  <div className="text-sm font-bold text-red-600 bg-red-50 px-3 py-1.5 rounded-lg animate-fade-in">
+                    {gradingError}
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <button className="btn btn-secondary" onClick={() => setGradingTask(null)}>Cerrar</button>
+                <button
+                  className={`btn ${gradingSaved ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "btn-primary"}`}
+                  disabled={savingGrades || loadingStudents}
+                  onClick={saveManualGrades}
+                >
+                  {savingGrades ? (
+                    <>
+                      <Loader2 className="animate-spin" size={18} /> Guardando...
+                    </>
+                  ) : gradingSaved ? (
+                    <>
+                      <CheckCircle size={18} /> ¡Guardado con éxito!
+                    </>
+                  ) : (
+                    <>
+                      <Save size={18} /> Guardar Calificaciones
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
