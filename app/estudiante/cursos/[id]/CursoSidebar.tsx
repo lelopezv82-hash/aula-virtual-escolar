@@ -62,7 +62,7 @@ export default function CursoSidebar({ courseId, courseName, periods = [], hidde
             }}
           >
             <BookOpen size={18} color={isRecursosActive ? "#ea580c" : "#64748b"} />
-            <span style={{ color: isRecursosActive ? "#ea580c" : "#334155" }}>Recursos y Materiales</span>
+            <span style={{ color: isRecursosActive ? "#ea580c" : "#334155" }}>Recursos</span>
           </Link>
         )}
 
