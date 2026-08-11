@@ -84,6 +84,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
   const [studentError, setStudentError] = useState("");
   const [newStudentCredentials, setNewStudentCredentials] = useState<{ username: string; plainPassword: string } | null>(null);
   const [copiedStudent, setCopiedStudent] = useState(false);
+  const [copiedStudentId, setCopiedStudentId] = useState<string | null>(null);
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
 
   // Edit student states
@@ -1204,11 +1205,22 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                                     onClick={() => {
                                       const text = `Usuario: ${student.username}\nContraseña: ${student.passwordPlain || "(Cambiada por el estudiante)"}`;
                                       navigator.clipboard.writeText(text);
+                                      setCopiedStudentId(student.id);
+                                      setTimeout(() => setCopiedStudentId(null), 2000);
                                     }}
-                                    className="p-1 rounded hover:bg-orange-50 dark:hover:bg-orange-900/20 text-[#f98012]"
+                                    className="p-1.5 rounded hover:bg-orange-50 dark:hover:bg-orange-900/20 text-[#f98012] relative group transition-colors cursor-pointer"
                                     title="Copiar credenciales"
                                   >
-                                    <Copy size={14} />
+                                    {copiedStudentId === student.id ? (
+                                      <Check size={16} className="text-emerald-500 animate-scale-in" />
+                                    ) : (
+                                      <Copy size={16} />
+                                    )}
+                                    {copiedStudentId === student.id && (
+                                      <span className="absolute -top-7 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded font-bold whitespace-nowrap shadow-md animate-fade-in z-10">
+                                        ¡Copiado!
+                                      </span>
+                                    )}
                                   </button>
                                   <button
                                     onClick={() => {
@@ -1218,10 +1230,10 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                                       setStudentError("");
                                       setShowEditStudentModal(true);
                                     }}
-                                    className="p-1 rounded hover:bg-orange-50 dark:hover:bg-orange-900/20 text-[#f98012]"
+                                    className="p-1.5 rounded hover:bg-orange-50 dark:hover:bg-orange-900/20 text-[#f98012] transition-colors cursor-pointer"
                                     title="Editar estudiante"
                                   >
-                                    <Edit2 size={14} />
+                                    <Edit2 size={16} />
                                   </button>
                                   <button
                                     onClick={async () => {
@@ -1251,10 +1263,10 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                                         setStudentError("Error de conexión");
                                       }
                                     }}
-                                    className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600"
+                                    className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 transition-colors cursor-pointer"
                                     title="Eliminar estudiante"
                                   >
-                                    <Trash2 size={14} />
+                                    <Trash2 size={16} />
                                   </button>
                                 </div>
                               </td>
@@ -1370,7 +1382,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
       {showEditStudentModal && editingStudent && selectedGroupForStudents && (
         <div
           className="modal-overlay"
-          style={{ zIndex: 110 }}
+          style={{ zIndex: 100005 }}
           onClick={(e) => e.target === e.currentTarget && setShowEditStudentModal(false)}
         >
           <form onSubmit={handleEditStudent} className="modal-content" style={{ maxWidth: "440px" }}>
