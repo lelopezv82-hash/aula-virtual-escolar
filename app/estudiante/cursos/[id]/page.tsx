@@ -201,6 +201,8 @@ export default async function CursoDescripcionPage({
 
   return (
     <div>
+      <h2 className="text-lg font-bold mb-4 text-slate-800 dark:text-slate-100">Actividades en plataforma</h2>
+
       {/* Render theme sections */}
       {allThemeTitles.map((themeName) => {
         const themeItems = themeMap.get(themeName) || [];
