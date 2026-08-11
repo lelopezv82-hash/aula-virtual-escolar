@@ -72,7 +72,7 @@ export default async function DocenteLayout({ children }: { children: React.Reac
     <DashboardShell
       user={user}
       roleTitle="Docente"
-      sidebarTitle="Aula Docente"
+      sidebarTitle="Aula Virtual"
       links={links}
     >
       {children}
