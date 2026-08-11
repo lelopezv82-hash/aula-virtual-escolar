@@ -46,47 +46,80 @@ export default function CursoSidebar({ courseId, courseName, periods = [], hidde
         )}
       </div>
 
-      {/* Distinct Framed Button Bar */}
+      {/* High-Contrast Clear Navigation Tabs */}
       <div className="flex items-center gap-3 overflow-x-auto pt-1 pb-1">
         {showRecursos && (
           <Link
             href={`${base}/recursos`}
-            className={`flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-bold border transition-all whitespace-nowrap cursor-pointer ${
-              isRecursosActive
-                ? "bg-[#f98012] border-[#e06d09] text-white shadow-md shadow-orange-500/20"
-                : "bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-orange-50 dark:hover:bg-orange-950/30 hover:border-orange-300 hover:text-orange-600"
-            }`}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.6rem",
+              padding: "0.7rem 1.25rem",
+              fontSize: "0.95rem",
+              fontWeight: 800,
+              textDecoration: "none",
+              borderRadius: "12px",
+              whiteSpace: "nowrap",
+              transition: "all 0.15s ease-in-out",
+              border: isRecursosActive ? "2px solid #f98012" : "1.5px solid #cbd5e1",
+              backgroundColor: isRecursosActive ? "#fff7ed" : "#f8fafc",
+              color: isRecursosActive ? "#ea580c" : "#334155",
+              boxShadow: isRecursosActive ? "0 2px 8px rgba(249, 128, 18, 0.15)" : "none"
+            }}
           >
-            <BookOpen size={18} className={isRecursosActive ? "text-white" : "text-orange-500"} />
-            <span>Recursos y Materiales</span>
+            <BookOpen size={18} color={isRecursosActive ? "#ea580c" : "#64748b"} />
+            <span style={{ color: isRecursosActive ? "#ea580c" : "#334155" }}>Recursos y Materiales</span>
           </Link>
         )}
 
         {showActividades && (
           <Link
             href={base}
-            className={`flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-bold border transition-all whitespace-nowrap cursor-pointer ${
-              isHomeActive
-                ? "bg-[#f98012] border-[#e06d09] text-white shadow-md shadow-orange-500/20"
-                : "bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-orange-50 dark:hover:bg-orange-950/30 hover:border-orange-300 hover:text-orange-600"
-            }`}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.6rem",
+              padding: "0.7rem 1.25rem",
+              fontSize: "0.95rem",
+              fontWeight: 800,
+              textDecoration: "none",
+              borderRadius: "12px",
+              whiteSpace: "nowrap",
+              transition: "all 0.15s ease-in-out",
+              border: isHomeActive ? "2px solid #f98012" : "1.5px solid #cbd5e1",
+              backgroundColor: isHomeActive ? "#fff7ed" : "#f8fafc",
+              color: isHomeActive ? "#ea580c" : "#334155",
+              boxShadow: isHomeActive ? "0 2px 8px rgba(249, 128, 18, 0.15)" : "none"
+            }}
           >
-            <Home size={18} className={isHomeActive ? "text-white" : "text-blue-500"} />
-            <span>Actividades en plataforma</span>
+            <Home size={18} color={isHomeActive ? "#ea580c" : "#64748b"} />
+            <span style={{ color: isHomeActive ? "#ea580c" : "#334155" }}>Actividades en plataforma</span>
           </Link>
         )}
 
         {showCalificaciones && (
           <Link
             href={`${base}/calificaciones`}
-            className={`flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-bold border transition-all whitespace-nowrap cursor-pointer ${
-              isCalifActive
-                ? "bg-[#f98012] border-[#e06d09] text-white shadow-md shadow-orange-500/20"
-                : "bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-orange-50 dark:hover:bg-orange-950/30 hover:border-orange-300 hover:text-orange-600"
-            }`}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.6rem",
+              padding: "0.7rem 1.25rem",
+              fontSize: "0.95rem",
+              fontWeight: 800,
+              textDecoration: "none",
+              borderRadius: "12px",
+              whiteSpace: "nowrap",
+              transition: "all 0.15s ease-in-out",
+              border: isCalifActive ? "2px solid #f98012" : "1.5px solid #cbd5e1",
+              backgroundColor: isCalifActive ? "#fff7ed" : "#f8fafc",
+              color: isCalifActive ? "#ea580c" : "#334155",
+              boxShadow: isCalifActive ? "0 2px 8px rgba(249, 128, 18, 0.15)" : "none"
+            }}
           >
-            <Award size={18} className={isCalifActive ? "text-white" : "text-emerald-500"} />
-            <span>Calificaciones</span>
+            <Award size={18} color={isCalifActive ? "#ea580c" : "#64748b"} />
+            <span style={{ color: isCalifActive ? "#ea580c" : "#334155" }}>Calificaciones</span>
           </Link>
         )}
       </div>
