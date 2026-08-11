@@ -133,20 +133,21 @@ export default function DashboardShell({
           <div className="relative" ref={dropdownRef}>
             <button 
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-2 p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
+              style={{ outline: "none" }}
             >
-              <div className="bg-primary/10 text-primary rounded-full p-1.5">
-                <UserCircle size={20} />
+              <div className="bg-primary/10 text-primary rounded-full p-1">
+                <UserCircle size={18} />
               </div>
               <div className="user-text hidden md:block text-left">
-                <span className="user-name text-sm font-semibold">{user?.name || "Usuario"}</span>
+                <span className="user-name text-sm font-semibold text-gray-700">{user?.name || "Usuario"}</span>
               </div>
-              <ChevronDown size={16} className={`text-gray-500 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`} />
+              <ChevronDown size={14} className={`text-gray-400 transition-transform duration-300 ${dropdownOpen ? "-rotate-180" : ""}`} />
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-900 ring-1 ring-black ring-opacity-5 dark:ring-gray-700 z-50">
-                <div className="py-1 px-1">
+              <div className="absolute right-0 mt-3 w-48 bg-white rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] border border-gray-100 overflow-hidden transform origin-top-right z-50 animate-scale-in">
+                <div className="p-1.5">
                   <LogoutButton />
                 </div>
               </div>
