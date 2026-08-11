@@ -23,41 +23,61 @@ export default function CursoSidebar({ courseId, courseName, periods = [], hidde
   const showCalificaciones = !hiddenSections.includes("calificaciones");
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 shadow-sm flex flex-col gap-6">
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm flex flex-col gap-5">
       {/* Header Banner: Back button, Course Title & Period Badge */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-gray-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-gray-100 dark:border-gray-800">
         <div>
           <Link
             href="/estudiante"
-            className="inline-flex items-center gap-2 text-xs font-bold text-orange-600 hover:text-orange-700 mb-2 transition-colors group"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-orange-600 hover:text-orange-700 mb-1.5 transition-colors group"
           >
-            <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+            <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
             Volver a Asignaturas
           </Link>
-          <h1 className="text-3xl font-black text-slate-800 dark:text-slate-100 capitalize tracking-tight leading-tight">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-800 dark:text-slate-100 capitalize tracking-tight leading-tight">
             {courseName}
           </h1>
         </div>
 
         {periods.length > 0 && (
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900/50 text-orange-700 dark:text-orange-300 text-sm font-extrabold w-fit shadow-xs">
-            <span className="text-base">📅</span> {periods.join(" · ")}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900/50 text-orange-700 dark:text-orange-300 text-xs font-bold w-fit shadow-xs">
+            <span>📅</span> {periods.join(" · ")}
           </div>
         )}
       </div>
 
-      {/* Prominent & Large Navigation Tabs Bar */}
-      <div className="bg-slate-100/90 dark:bg-gray-800/90 p-1.5 rounded-2xl flex items-center gap-2 overflow-x-auto">
+      {/* Clean Horizontal Tab Bar */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+          borderBottom: "2px solid var(--border-color, #e2e8f0)",
+          paddingBottom: "0px",
+          overflowX: "auto"
+        }}
+      >
         {showRecursos && (
           <Link
             href={`${base}/recursos`}
-            className={`flex items-center gap-2.5 px-6 py-3 text-sm sm:text-base font-extrabold rounded-xl transition-all whitespace-nowrap ${
-              isRecursosActive
-                ? "bg-[#f98012] text-white shadow-md shadow-orange-500/20 scale-[1.02]"
-                : "text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-gray-700/80 hover:text-slate-900 dark:hover:text-white"
-            }`}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              padding: "0.75rem 1.25rem",
+              fontSize: "0.95rem",
+              fontWeight: 700,
+              textDecoration: "none",
+              color: isRecursosActive ? "#f98012" : "#4b5563",
+              borderBottom: isRecursosActive ? "3px solid #f98012" : "3px solid transparent",
+              backgroundColor: isRecursosActive ? "rgba(249, 128, 18, 0.08)" : "transparent",
+              borderRadius: "8px 8px 0 0",
+              transition: "all 0.2s ease",
+              marginBottom: "-2px",
+              whiteSpace: "nowrap"
+            }}
           >
-            <BookOpen size={20} />
+            <BookOpen size={18} color={isRecursosActive ? "#f98012" : "#4b5563"} />
             Recursos y Materiales
           </Link>
         )}
@@ -65,13 +85,24 @@ export default function CursoSidebar({ courseId, courseName, periods = [], hidde
         {showActividades && (
           <Link
             href={base}
-            className={`flex items-center gap-2.5 px-6 py-3 text-sm sm:text-base font-extrabold rounded-xl transition-all whitespace-nowrap ${
-              isHomeActive
-                ? "bg-[#f98012] text-white shadow-md shadow-orange-500/20 scale-[1.02]"
-                : "text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-gray-700/80 hover:text-slate-900 dark:hover:text-white"
-            }`}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              padding: "0.75rem 1.25rem",
+              fontSize: "0.95rem",
+              fontWeight: 700,
+              textDecoration: "none",
+              color: isHomeActive ? "#f98012" : "#4b5563",
+              borderBottom: isHomeActive ? "3px solid #f98012" : "3px solid transparent",
+              backgroundColor: isHomeActive ? "rgba(249, 128, 18, 0.08)" : "transparent",
+              borderRadius: "8px 8px 0 0",
+              transition: "all 0.2s ease",
+              marginBottom: "-2px",
+              whiteSpace: "nowrap"
+            }}
           >
-            <Home size={20} />
+            <Home size={18} color={isHomeActive ? "#f98012" : "#4b5563"} />
             Actividades en plataforma
           </Link>
         )}
@@ -79,13 +110,24 @@ export default function CursoSidebar({ courseId, courseName, periods = [], hidde
         {showCalificaciones && (
           <Link
             href={`${base}/calificaciones`}
-            className={`flex items-center gap-2.5 px-6 py-3 text-sm sm:text-base font-extrabold rounded-xl transition-all whitespace-nowrap ${
-              isCalifActive
-                ? "bg-[#f98012] text-white shadow-md shadow-orange-500/20 scale-[1.02]"
-                : "text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-gray-700/80 hover:text-slate-900 dark:hover:text-white"
-            }`}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              padding: "0.75rem 1.25rem",
+              fontSize: "0.95rem",
+              fontWeight: 700,
+              textDecoration: "none",
+              color: isCalifActive ? "#f98012" : "#4b5563",
+              borderBottom: isCalifActive ? "3px solid #f98012" : "3px solid transparent",
+              backgroundColor: isCalifActive ? "rgba(249, 128, 18, 0.08)" : "transparent",
+              borderRadius: "8px 8px 0 0",
+              transition: "all 0.2s ease",
+              marginBottom: "-2px",
+              whiteSpace: "nowrap"
+            }}
           >
-            <Award size={20} />
+            <Award size={18} color={isCalifActive ? "#f98012" : "#4b5563"} />
             Calificaciones
           </Link>
         )}
