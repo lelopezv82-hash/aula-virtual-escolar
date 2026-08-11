@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, X, BookOpen, Clock } from "lucide-react";
+import { Menu, X, BookOpen, Clock, ChevronDown, UserCircle } from "lucide-react";
 import LogoutButton from "./LogoutButton";
 import ActiveLink from "./ActiveLink";
 
@@ -36,6 +36,18 @@ export default function DashboardShell({
   const [isMobile, setIsMobile] = useState(false);
   const pathname = usePathname();
   const [timeStr, setTimeStr] = useState("");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const updateTime = () => {
@@ -118,15 +130,38 @@ export default function DashboardShell({
             </div>
           )}
           
-          <div className="navbar-user flex items-center gap-2">
-            <div className="user-text hidden md:block">
-              <span className="user-name">{user?.name || "Usuario"}</span>
-            </div>
-            <span className="text-gray-300 dark:text-gray-600 hidden md:inline select-none">|</span>
-          </div>
-          
-          <div className="navbar-actions">
-            <LogoutButton />
+          <div className="relative" ref={dropdownRef}>
+            <button 
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="flex items-center gap-2 p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              <div className="bg-primary/10 text-primary rounded-full p-1.5">
+                <UserCircle size={20} />
+              </div>
+              <div className="user-text hidden md:block text-left">
+                <span className="user-name text-sm font-semibold">{user?.name || "Usuario"}</span>
+              </div>
+              <ChevronDown size={16} className={`text-gray-500 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`} />
+            </button>
+
+            {dropdownOpen && (
+              <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white dark:bg-gray-900 ring-1 ring-black ring-opacity-5 dark:ring-gray-700 divide-y divide-gray-100 dark:divide-gray-800 z-50">
+                <div className="px-4 py-3">
+                  <p className="text-sm">Conectado como</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                    {user?.name || "Usuario"}
+                  </p>
+                  <p className="text-xs font-semibold text-primary mt-1 uppercase tracking-wider">
+                    {roleTitle}
+                  </p>
+                </div>
+                <div className="py-1">
+                  <div className="px-2 w-full">
+                    <LogoutButton />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </header>

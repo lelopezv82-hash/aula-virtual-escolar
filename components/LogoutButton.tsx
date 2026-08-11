@@ -41,25 +41,34 @@ export default function LogoutButton() {
   return (
     <button
       onClick={handleLogout}
-      className="logout-btn font-medium text-sm text-slate-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+      className="flex w-full items-center justify-start gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-red-600 dark:hover:text-red-400 transition-colors"
       disabled={loading}
       title="Cerrar sesión"
-      style={{
-        border: "none",
-        background: "none",
-        cursor: "pointer",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "0.25rem 0.5rem",
-      }}
     >
       {loading ? (
         <span className="flex items-center gap-1.5">
           <Loader2 size={14} className="animate-spin" /> Cerrando...
         </span>
       ) : (
-        "Cerrar sesión"
+        <>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="lucide lucide-log-out"
+          >
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" x2="9" y1="12" y2="12" />
+          </svg>
+          Cerrar sesión
+        </>
       )}
     </button>
   );
