@@ -67,25 +67,15 @@ export default async function CursoLayout({
   const periodNames = periodsDb.map(p => p.name);
 
   return (
-    <div className="animate-fade-in">
-      {/* Back button */}
-      <div className="mb-5">
-        <Link href="/estudiante" className="inline-flex items-center gap-2 text-sm text-muted hover:text-primary transition-colors">
-          <ArrowLeft size={16} /> Volver a Asignaturas
-        </Link>
-      </div>
+    <div className="animate-fade-in flex flex-col gap-6">
+      {/* Top Banner: Asignatura, Periodo y Navegación Horizontal */}
+      <Suspense fallback={<div className="card p-6 text-muted">Cargando asignatura...</div>}>
+        <CursoSidebar courseId={id} courseName={course.name} periods={periodNames} hiddenSections={hiddenSections} />
+      </Suspense>
 
-      {/* Two-column layout: sidebar + content */}
-      <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: "1.5rem", alignItems: "start" }}>
-        {/* Sidebar */}
-        <Suspense fallback={<div className="card p-6 text-muted">Cargando menú...</div>}>
-          <CursoSidebar courseId={id} courseName={course.name} periods={periodNames} hiddenSections={hiddenSections} />
-        </Suspense>
-
-        {/* Main content */}
-        <div>
-          {children}
-        </div>
+      {/* Main content */}
+      <div>
+        {children}
       </div>
     </div>
   );

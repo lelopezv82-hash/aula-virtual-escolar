@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ArrowLeft, BookOpen, Home, Award } from "lucide-react";
 
 interface CursoSidebarProps {
   courseId: string;
@@ -13,107 +14,81 @@ export default function CursoSidebar({ courseId, courseName, periods = [], hidde
   const pathname = usePathname();
   const base = `/estudiante/cursos/${courseId}`;
 
-  const isHomeActive   = pathname === base;
-  const isCalifActive  = pathname.includes("/calificaciones");
-
-  const linkBase = {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.5rem",
-    padding: "0.6rem 1.25rem",
-    fontSize: "0.9rem",
-    fontWeight: 500,
-    color: "#444",
-    textDecoration: "none",
-    borderLeft: "4px solid transparent",
-    transition: "background 0.15s, color 0.15s",
-  } as const;
-
-  const activeStyle = {
-    ...linkBase,
-    background: "#f0f0f0",
-    color: "#222",
-    fontWeight: 700,
-    borderLeft: "4px solid #f98012",
-    paddingLeft: "1rem",
-  } as const;
+  const isHomeActive = pathname === base;
+  const isRecursosActive = pathname.includes("/recursos");
+  const isCalifActive = pathname.includes("/calificaciones");
 
   const showRecursos = !hiddenSections.includes("recursos");
   const showActividades = !hiddenSections.includes("descripcion");
   const showCalificaciones = !hiddenSections.includes("calificaciones");
 
   return (
-    <div style={{
-      background: "#fff",
-      border: "1px solid #dee2e6",
-      borderRadius: "4px",
-      overflow: "hidden",
-      position: "sticky",
-      top: "1.5rem",
-    }}>
-      {/* Course Name */}
-      <div style={{
-        background: "#f8f9fa",
-        borderBottom: "1px solid #dee2e6",
-        padding: "1rem 1.25rem",
-      }}>
-        <Link href={base} style={{ textDecoration: "none" }}>
-          <div style={{ fontWeight: 700, fontSize: "1rem", color: "#333", textTransform: "capitalize", lineHeight: 1.3 }}>
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm flex flex-col gap-5">
+      {/* Top row: Back button & Course title */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-gray-100 dark:border-gray-800">
+        <div>
+          <Link
+            href="/estudiante"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-orange-600 hover:text-orange-700 mb-2 transition-colors"
+          >
+            <ArrowLeft size={14} /> Volver a Asignaturas
+          </Link>
+          <h1 className="text-2xl font-extrabold text-slate-800 dark:text-slate-100 capitalize leading-tight">
             {courseName}
+          </h1>
+        </div>
+
+        {periods.length > 0 && (
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/40 text-orange-700 dark:text-orange-300 text-xs font-bold w-fit">
+            <span>📅</span> {periods.join(" · ")}
           </div>
-          {periods.length > 0 && (
-            <div style={{ fontSize: "0.8rem", color: "#6c757d", marginTop: "0.2rem" }}>
-              {periods.join(" · ")}
-            </div>
-          )}
-        </Link>
+        )}
       </div>
 
-      {/* Navigation */}
-      <nav style={{ padding: "0.5rem 0" }}>
-
-        {/* Recursos y Materiales */}
+      {/* Horizontal Tab Bar */}
+      <div className="flex items-center gap-2 overflow-x-auto border-b border-gray-200 dark:border-gray-800 pb-0 pt-1">
         {showRecursos && (
-          <Link href={`${base}/recursos`} style={pathname.includes("/recursos") ? activeStyle : linkBase}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
-              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
-            </svg>
+          <Link
+            href={`${base}/recursos`}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold border-b-2 transition-all whitespace-nowrap ${
+              isRecursosActive
+                ? "border-[#f98012] text-[#f98012] bg-orange-50/50 dark:bg-orange-950/20 rounded-t-lg"
+                : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:border-gray-300"
+            }`}
+          >
+            <BookOpen size={16} />
             Recursos y Materiales
           </Link>
         )}
 
-        {showRecursos && (showActividades || showCalificaciones) && (
-          <div style={{ height: 1, background: "#dee2e6", margin: "0.35rem 1rem" }} />
-        )}
-
-        {/* Contenido del curso (home) */}
         {showActividades && (
-          <Link href={base} style={isHomeActive ? activeStyle : linkBase}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-              <polyline points="9 22 9 12 15 12 15 22"/>
-            </svg>
+          <Link
+            href={base}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold border-b-2 transition-all whitespace-nowrap ${
+              isHomeActive
+                ? "border-[#f98012] text-[#f98012] bg-orange-50/50 dark:bg-orange-950/20 rounded-t-lg"
+                : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:border-gray-300"
+            }`}
+          >
+            <Home size={16} />
             Actividades en plataforma
           </Link>
         )}
 
-        {showActividades && showCalificaciones && (
-          <div style={{ height: 1, background: "#dee2e6", margin: "0.35rem 1rem" }} />
-        )}
-
-        {/* Calificaciones */}
         {showCalificaciones && (
-          <Link href={`${base}/calificaciones`} style={isCalifActive ? activeStyle : linkBase}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="8" r="6"/>
-              <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>
-            </svg>
+          <Link
+            href={`${base}/calificaciones`}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold border-b-2 transition-all whitespace-nowrap ${
+              isCalifActive
+                ? "border-[#f98012] text-[#f98012] bg-orange-50/50 dark:bg-orange-950/20 rounded-t-lg"
+                : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:border-gray-300"
+            }`}
+          >
+            <Award size={16} />
             Calificaciones
           </Link>
         )}
-
-      </nav>
+      </div>
     </div>
   );
 }
