@@ -438,19 +438,19 @@ export default async function CursoCalificacionesPage({
                   )}
 
                   {/* Ser — Actitudinal */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <Star size={14} style={{ color: "#0d9488" }} />
-                      <span style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#0d9488" }}>Ser — Actitudinal</span>
-                    </div>
-                    {serSubs.length > 0 ? (
-                      <div className="flex flex-col gap-3">{serSubs.map(renderCard)}</div>
-                    ) : (
-                      additionalGrade !== null ? (
+                  {(serSubs.length > 0 || additionalGrade !== null) && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <Star size={14} style={{ color: "#0d9488" }} />
+                        <span style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#0d9488" }}>Ser — Actitudinal</span>
+                      </div>
+                      {serSubs.length > 0 ? (
+                        <div className="flex flex-col gap-3">{serSubs.map(renderCard)}</div>
+                      ) : (
                         <div
                           style={{
                             background: "var(--bg-primary)",
-                            borderLeft: `4px solid ${gradeColor(additionalGrade)}`,
+                            borderLeft: `4px solid ${gradeColor(additionalGrade!)}`,
                             display: "flex",
                             flexDirection: "row",
                             alignItems: "center",
@@ -480,45 +480,15 @@ export default async function CursoCalificacionesPage({
                             </p>
                           </div>
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "0.25rem", minWidth: "110px", textAlign: "center" }}>
-                            <div style={{ fontSize: "2rem", fontWeight: 800, color: gradeColor(additionalGrade), lineHeight: 1 }}>
-                              {additionalGrade.toFixed(1)}
+                            <div style={{ fontSize: "2rem", fontWeight: 800, color: gradeColor(additionalGrade!), lineHeight: 1 }}>
+                              {additionalGrade!.toFixed(1)}
                             </div>
                             <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>nota</div>
                           </div>
                         </div>
-                      ) : (
-                        <div
-                          style={{
-                            background: "var(--bg-primary)",
-                            borderLeft: "4px solid var(--border-color)",
-                            display: "flex",
-                            flexDirection: "row",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: "1rem",
-                            padding: "1rem",
-                            borderRadius: "var(--radius-lg)",
-                            border: "1px solid var(--border-color)",
-                            borderLeftWidth: "4px",
-                            boxShadow: "var(--shadow-sm)",
-                            opacity: 0.7,
-                          }}
-                        >
-                          <div style={{ flex: 1 }}>
-                            <h4 className="font-bold text-base mb-0.5" style={{ color: "#0d9488" }}>
-                              Nota Actitudinal — {periodName}
-                            </h4>
-                            <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
-                              Tu docente aún no ha registrado la nota actitudinal para este período.
-                            </p>
-                          </div>
-                          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontStyle: "italic", minWidth: "110px", textAlign: "center" }}>
-                            Pendiente
-                          </div>
-                        </div>
-                      )
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Examen Final */}
                   {finalSubs.length > 0 && (
