@@ -23,40 +23,41 @@ export default function CursoSidebar({ courseId, courseName, periods = [], hidde
   const showCalificaciones = !hiddenSections.includes("calificaciones");
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm flex flex-col gap-5">
-      {/* Top row: Back button & Course title */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-gray-100 dark:border-gray-800">
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 shadow-sm flex flex-col gap-6">
+      {/* Header Banner: Back button, Course Title & Period Badge */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-gray-800">
         <div>
           <Link
             href="/estudiante"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-orange-600 hover:text-orange-700 mb-2 transition-colors"
+            className="inline-flex items-center gap-2 text-xs font-bold text-orange-600 hover:text-orange-700 mb-2 transition-colors group"
           >
-            <ArrowLeft size={14} /> Volver a Asignaturas
+            <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+            Volver a Asignaturas
           </Link>
-          <h1 className="text-2xl font-extrabold text-slate-800 dark:text-slate-100 capitalize leading-tight">
+          <h1 className="text-3xl font-black text-slate-800 dark:text-slate-100 capitalize tracking-tight leading-tight">
             {courseName}
           </h1>
         </div>
 
         {periods.length > 0 && (
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/40 text-orange-700 dark:text-orange-300 text-xs font-bold w-fit">
-            <span>📅</span> {periods.join(" · ")}
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900/50 text-orange-700 dark:text-orange-300 text-sm font-extrabold w-fit shadow-xs">
+            <span className="text-base">📅</span> {periods.join(" · ")}
           </div>
         )}
       </div>
 
-      {/* Horizontal Tab Bar */}
-      <div className="flex items-center gap-2 overflow-x-auto border-b border-gray-200 dark:border-gray-800 pb-0 pt-1">
+      {/* Prominent & Large Navigation Tabs Bar */}
+      <div className="bg-slate-100/90 dark:bg-gray-800/90 p-1.5 rounded-2xl flex items-center gap-2 overflow-x-auto">
         {showRecursos && (
           <Link
             href={`${base}/recursos`}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold border-b-2 transition-all whitespace-nowrap ${
+            className={`flex items-center gap-2.5 px-6 py-3 text-sm sm:text-base font-extrabold rounded-xl transition-all whitespace-nowrap ${
               isRecursosActive
-                ? "border-[#f98012] text-[#f98012] bg-orange-50/50 dark:bg-orange-950/20 rounded-t-lg"
-                : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:border-gray-300"
+                ? "bg-[#f98012] text-white shadow-md shadow-orange-500/20 scale-[1.02]"
+                : "text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-gray-700/80 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
-            <BookOpen size={16} />
+            <BookOpen size={20} />
             Recursos y Materiales
           </Link>
         )}
@@ -64,13 +65,13 @@ export default function CursoSidebar({ courseId, courseName, periods = [], hidde
         {showActividades && (
           <Link
             href={base}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold border-b-2 transition-all whitespace-nowrap ${
+            className={`flex items-center gap-2.5 px-6 py-3 text-sm sm:text-base font-extrabold rounded-xl transition-all whitespace-nowrap ${
               isHomeActive
-                ? "border-[#f98012] text-[#f98012] bg-orange-50/50 dark:bg-orange-950/20 rounded-t-lg"
-                : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:border-gray-300"
+                ? "bg-[#f98012] text-white shadow-md shadow-orange-500/20 scale-[1.02]"
+                : "text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-gray-700/80 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
-            <Home size={16} />
+            <Home size={20} />
             Actividades en plataforma
           </Link>
         )}
@@ -78,13 +79,13 @@ export default function CursoSidebar({ courseId, courseName, periods = [], hidde
         {showCalificaciones && (
           <Link
             href={`${base}/calificaciones`}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold border-b-2 transition-all whitespace-nowrap ${
+            className={`flex items-center gap-2.5 px-6 py-3 text-sm sm:text-base font-extrabold rounded-xl transition-all whitespace-nowrap ${
               isCalifActive
-                ? "border-[#f98012] text-[#f98012] bg-orange-50/50 dark:bg-orange-950/20 rounded-t-lg"
-                : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:border-gray-300"
+                ? "bg-[#f98012] text-white shadow-md shadow-orange-500/20 scale-[1.02]"
+                : "text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-gray-700/80 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
-            <Award size={16} />
+            <Award size={20} />
             Calificaciones
           </Link>
         )}
