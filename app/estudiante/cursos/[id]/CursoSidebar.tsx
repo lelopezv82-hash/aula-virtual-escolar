@@ -24,16 +24,9 @@ export default function CursoSidebar({ courseId, courseName, periods = [], hidde
 
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm flex flex-col gap-5">
-      {/* Header Banner: Back button, Course Title & Period Badge */}
+      {/* Header Banner: Course Title & Period Badge */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-gray-100 dark:border-gray-800">
         <div>
-          <Link
-            href="/estudiante"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-orange-600 hover:text-orange-700 mb-1.5 transition-colors group"
-          >
-            <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
-            Volver a Asignaturas
-          </Link>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-800 dark:text-slate-100 capitalize tracking-tight leading-tight">
             {courseName}
           </h1>
