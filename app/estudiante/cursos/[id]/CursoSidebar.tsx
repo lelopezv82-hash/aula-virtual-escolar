@@ -87,7 +87,7 @@ export default function CursoSidebar({ courseId, courseName, periods = [], hidde
             }}
           >
             <Home size={18} color={isHomeActive ? "#ea580c" : "#64748b"} />
-            <span style={{ color: isHomeActive ? "#ea580c" : "#334155" }}>Actividades en plataforma</span>
+            <span style={{ color: isHomeActive ? "#ea580c" : "#334155" }}>Actividades</span>
           </Link>
         )}
 
