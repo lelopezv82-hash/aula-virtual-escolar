@@ -145,20 +145,9 @@ export default function DashboardShell({
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white dark:bg-gray-900 ring-1 ring-black ring-opacity-5 dark:ring-gray-700 divide-y divide-gray-100 dark:divide-gray-800 z-50">
-                <div className="px-4 py-3">
-                  <p className="text-sm">Conectado como</p>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                    {user?.name || "Usuario"}
-                  </p>
-                  <p className="text-xs font-semibold text-primary mt-1 uppercase tracking-wider">
-                    {roleTitle}
-                  </p>
-                </div>
-                <div className="py-1">
-                  <div className="px-2 w-full">
-                    <LogoutButton />
-                  </div>
+              <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-900 ring-1 ring-black ring-opacity-5 dark:ring-gray-700 z-50">
+                <div className="py-1 px-1">
+                  <LogoutButton />
                 </div>
               </div>
             )}
