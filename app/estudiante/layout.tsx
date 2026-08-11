@@ -50,11 +50,6 @@ export default async function EstudianteLayout({ children }: { children: React.R
   });
 
   const links = [
-    {
-      href: "/estudiante",
-      label: "Panel Principal",
-      icon: <Home size={20} />,
-    },
     ...courses.map(c => ({
       href: `/estudiante/cursos/${c.id}`,
       label: c.name,
