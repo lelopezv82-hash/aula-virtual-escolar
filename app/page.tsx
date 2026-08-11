@@ -197,7 +197,7 @@ export default function Home() {
     <div className="landing-container flex flex-col items-center justify-center">
       <div className="glass-panel landing-card animate-fade-in">
         <div className="logo-container">
-          <h1 className="logo-text">Aula Virtual</h1>
+          <h1 className="logo-text">Aula</h1>
           <p className="subtitle">
             Conectando conocimiento, innovación y aprendizaje.
           </p>

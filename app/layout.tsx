@@ -3,7 +3,7 @@ import "./globals.css";
 import { ConfirmProvider } from "@/components/ConfirmProvider";
 
 export const metadata: Metadata = {
-  title: "Aula Virtual",
+  title: "Aula",
   description: "Plataforma educativa moderna para instituciones de secundaria en Colombia.",
 };
 
