@@ -300,14 +300,6 @@ export default async function CursoCalificacionesPage({
 
             return (
               <div key={periodName}>
-                {/* Period header */}
-                <div className="flex items-center gap-3 mb-4">
-                  <div style={{ height: "1px", flex: 1, background: "var(--border-color)" }} />
-                  <span style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)" }}>
-                    {periodName}
-                  </span>
-                  <div style={{ height: "1px", flex: 1, background: "var(--border-color)" }} />
-                </div>
 
                 {/* Period Summary Card */}
                 {(avgTareas !== null || avgExamenes !== null || effectiveSerGrade !== null) && (
