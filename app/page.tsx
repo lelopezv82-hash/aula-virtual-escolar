@@ -356,7 +356,6 @@ export default function Home() {
                     type="text"
                     required
                     className="input-field text-sm"
-                    placeholder="Ej. richard.alvarez"
                     value={recUsername}
                     onChange={e => setRecUsername(e.target.value)}
                   />
