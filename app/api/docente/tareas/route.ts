@@ -130,9 +130,8 @@ export async function POST(request: Request) {
 
         const { error: uploadError } = await supabase.storage
           .from('aula-virtual')
-          .upload(uniqueFilename, buffer, {
-            contentType: file.type,
-            duplex: 'half'
+          .upload(uniqueFilename, file, {
+            contentType: file.type
           });
 
         if (uploadError) {

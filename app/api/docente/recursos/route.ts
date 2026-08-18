@@ -118,9 +118,8 @@ export async function POST(request: Request) {
         
         const { error } = await supabase.storage
           .from('aula-virtual')
-          .upload(uniqueName, buffer, {
-            contentType: file.type,
-            duplex: 'half'
+          .upload(uniqueName, file, {
+            contentType: file.type
           });
 
         if (error) {
@@ -300,9 +299,8 @@ export async function PATCH(request: Request) {
         
         const { error } = await supabase.storage
           .from('aula-virtual')
-          .upload(uniqueName, buffer, {
-            contentType: file.type,
-            duplex: 'half'
+          .upload(uniqueName, file, {
+            contentType: file.type
           });
 
         if (error) {
