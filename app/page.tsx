@@ -521,15 +521,17 @@ export default function Home() {
                 </div>
 
                 <div className="input-group">
-                  <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 block">
-                    Código de 6 Dígitos
+                  <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 flex justify-between items-center">
+                    <span>Código de 6 Dígitos recibido</span>
+                    <span className="text-[10px] text-muted">Escribe los 6 números</span>
                   </label>
                   <input
                     type="text"
                     required
                     maxLength={6}
-                    className="input-field text-center font-mono font-bold tracking-widest text-lg"
-                    placeholder="123456"
+                    autoFocus
+                    className="input-field text-center font-mono font-bold tracking-widest text-xl bg-gray-50 dark:bg-gray-800"
+                    placeholder="· · · · · ·"
                     value={recEmailCode}
                     onChange={e => setRecEmailCode(e.target.value.replace(/\D/g, ''))}
                   />
