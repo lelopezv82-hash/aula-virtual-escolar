@@ -197,7 +197,8 @@ export default async function CursoDescripcionPage({
   const allThemeTitles = [...themeTitles, ...extraThemeTitles];
 
   const hasGeneral = generalItems.length > 0;
-  const hasRealContent = allThemeTitles.length > 0 || hasGeneral;
+  // We don't include hasGeneral here because we are hiding the General section
+  const hasRealContent = allThemeTitles.length > 0;
 
   return (
     <div>
@@ -216,14 +217,7 @@ export default async function CursoDescripcionPage({
         );
       })}
 
-      {/* General section for items without a theme */}
-      {hasGeneral && (
-        <MoodleSection
-          title="General"
-          items={generalItems}
-          defaultOpen={false}
-        />
-      )}
+      {/* General section for items without a theme is hidden per user request */}
 
       {/* Empty course state */}
       {!hasRealContent && (
