@@ -92,6 +92,7 @@ export async function POST(request: Request) {
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
 
+      let driveErrorMessage = "No Drive account";
       // Try uploading to Google Drive first if teacher has it connected
       const gAccessToken = await getGoogleAccessToken(teacherId);
       if (gAccessToken) {
@@ -106,8 +107,9 @@ export async function POST(request: Request) {
           const uploadResult = await uploadToGoogleDrive(buffer, file.name, file.type, teacherId, folderPath);
           url = uploadResult.url;
           gdriveEmail = uploadResult.email;
-        } catch (driveError) {
+        } catch (driveError: any) {
           console.error("Google Drive upload error, falling back to Supabase:", driveError);
+          driveErrorMessage = driveError.message || String(driveError);
         }
       }
 
@@ -124,7 +126,7 @@ export async function POST(request: Request) {
 
         if (error) {
           console.error("Supabase upload error:", error);
-          return NextResponse.json({ error: 'Error al subir el archivo a almacenamiento en la nube' }, { status: 500 });
+          return NextResponse.json({ error: `[GDRIVE]: ${driveErrorMessage} | [SUPABASE]: ${error.message || JSON.stringify(error)}` }, { status: 500 });
         }
 
         const { data: { publicUrl } } = supabase.storage
