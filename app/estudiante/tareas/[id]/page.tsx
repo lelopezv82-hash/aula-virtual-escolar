@@ -408,23 +408,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
           </div>
         )}
 
-        {/* Normal file link styled in Moodle style */}
-        {task.attachmentUrl && !isGoogleForm && (
-          <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg flex items-center gap-3">
-            <span className="text-xl shrink-0">{getFileIcon(task.attachmentUrl)}</span>
-            <a 
-              href={task.attachmentUrl} 
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800 hover:underline font-medium text-sm break-all"
-            >
-              {getFileNameFromUrl(task.attachmentUrl)}
-            </a>
-            <span className="text-gray-500 text-xs ml-auto shrink-0">
-              {formatMoodleDate(task.createdAt || task.updatedAt)}
-            </span>
-          </div>
-        )}
+
       </div>
 
       {/* Editing / Uploading form */}
