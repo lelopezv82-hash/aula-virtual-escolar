@@ -487,6 +487,8 @@ export default function Home() {
                     type="password"
                     required
                     minLength={6}
+                    autoComplete="new-password"
+                    name="rec_new_password_security"
                     className="input-field text-sm"
                     placeholder="Mínimo 6 caracteres"
                     value={recNewPassword}
@@ -515,7 +517,7 @@ export default function Home() {
 
             {/* STEP 3B: Enter 6-Digit Email Code Form */}
             {recStep === "email-code" && (
-              <form onSubmit={handleVerifyEmailCode} className="flex flex-col gap-3">
+              <form onSubmit={handleVerifyEmailCode} className="flex flex-col gap-3" autoComplete="off">
                 <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 rounded-xl text-xs text-emerald-800 dark:text-emerald-300">
                   {recEmailNotice || `Revisa tu correo ${recUserInfo?.maskedEmail}. Te enviamos un código de 6 dígitos válido por 15 minutos.`}
                 </div>
@@ -530,6 +532,7 @@ export default function Home() {
                     required
                     maxLength={6}
                     autoFocus
+                    autoComplete="off"
                     className="input-field text-center font-mono font-bold tracking-widest text-xl bg-gray-50 dark:bg-gray-800"
                     placeholder="· · · · · ·"
                     value={recEmailCode}
@@ -545,6 +548,8 @@ export default function Home() {
                     type="password"
                     required
                     minLength={6}
+                    autoComplete="new-password"
+                    name="rec_new_password_email"
                     className="input-field text-sm"
                     placeholder="Mínimo 6 caracteres"
                     value={recNewPassword}
