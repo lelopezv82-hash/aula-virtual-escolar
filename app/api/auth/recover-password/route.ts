@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
+import { sendRecoveryEmail } from "@/lib/email";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
@@ -209,7 +210,7 @@ export async function POST(request: Request) {
       });
     }
 
-    // Legacy: Send Email Reset Token / Code (Opción 3)
+    // 3. Send Email Reset Token / Code (Envío Real)
     if (action === "send-email-token") {
       if (!cleanUsername) return NextResponse.json({ error: "Usuario requerido" }, { status: 400 });
 
@@ -238,11 +239,23 @@ export async function POST(request: Request) {
         }
       });
 
+      // Enviar correo transaccional real
+      const emailResult = await sendRecoveryEmail({
+        to: user.recoveryEmail,
+        userName: user.name,
+        code
+      });
+
+      if (!emailResult.success) {
+        return NextResponse.json({
+          error: emailResult.error || "No se pudo enviar el correo de recuperación. Revisa la configuración del servicio."
+        }, { status: 500 });
+      }
+
       return NextResponse.json({
         success: true,
-        code,
         maskedEmail: maskEmail(user.recoveryEmail),
-        message: `Se ha generado el código de recuperación de 6 dígitos para tu correo ${maskEmail(user.recoveryEmail)}.`
+        message: `Hemos enviado un código de 6 dígitos a tu correo ${maskEmail(user.recoveryEmail)}. Revisa tu bandeja de entrada o spam.`
       });
     }
 

@@ -16,16 +16,17 @@ export default function Home() {
 
   // Password Recovery state
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
-  const [recStep, setRecStep] = useState<"user" | "options" | "security" | "email" | "success">("user");
+  const [recStep, setRecStep] = useState<"user" | "options" | "security" | "email-code" | "success">("user");
   const [recUsername, setRecUsername] = useState("");
   const [recUserInfo, setRecUserInfo] = useState<any>(null);
   const [recAnswer, setRecAnswer] = useState("");
   const [recPin, setRecPin] = useState("");
-  const [recEmailInput, setRecEmailInput] = useState("");
+  const [recEmailCode, setRecEmailCode] = useState("");
   const [recNewPassword, setRecNewPassword] = useState("");
   const [recError, setRecError] = useState("");
   const [recSuccess, setRecSuccess] = useState("");
   const [recLoading, setRecLoading] = useState(false);
+  const [recEmailNotice, setRecEmailNotice] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,6 +89,63 @@ export default function Home() {
     }
   };
 
+  const handleSendEmailToken = async () => {
+    setRecError("");
+    setRecLoading(true);
+    try {
+      const res = await fetch("/api/auth/recover-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "send-email-token",
+          username: recUsername
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setRecEmailNotice(data.message);
+        setRecEmailCode("");
+        setRecNewPassword("");
+        setRecStep("email-code");
+      } else {
+        setRecError(data.error || "Error enviando el código a tu correo.");
+      }
+    } catch {
+      setRecError("Error de conexión con el servidor.");
+    } finally {
+      setRecLoading(false);
+    }
+  };
+
+  const handleVerifyEmailCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRecError("");
+    setRecLoading(true);
+    try {
+      const res = await fetch("/api/auth/recover-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "verify-email-token",
+          username: recUsername,
+          emailCode: recEmailCode,
+          newPassword: recNewPassword
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setRecSuccess(data.message);
+        setRecStep("success");
+      } else {
+        setRecError(data.error || "El código ingresado es incorrecto o ha expirado.");
+      }
+    } catch {
+      setRecError("Error de conexión con el servidor.");
+    } finally {
+      setRecLoading(false);
+    }
+  };
+
   const handleVerifySecurity = async (e: React.FormEvent) => {
     e.preventDefault();
     setRecError("");
@@ -110,35 +168,6 @@ export default function Home() {
         setRecStep("success");
       } else {
         setRecError(data.error || "Respuesta o PIN incorrecto");
-      }
-    } catch {
-      setRecError("Error de conexión");
-    } finally {
-      setRecLoading(false);
-    }
-  };
-
-  const handleVerifyRecoveryEmail = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setRecError("");
-    setRecLoading(true);
-    try {
-      const res = await fetch("/api/auth/recover-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "verify-recovery-email",
-          username: recUsername,
-          email: recEmailInput,
-          newPassword: recNewPassword
-        })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setRecSuccess(data.message);
-        setRecStep("success");
-      } else {
-        setRecError(data.error || "El correo ingresado no coincide con el registrado");
       }
     } catch {
       setRecError("Error de conexión");
@@ -379,19 +408,15 @@ export default function Home() {
 
                 {recUserInfo?.hasEmail && (
                   <button
-                    onClick={() => {
-                      setRecError("");
-                      setRecEmailInput("");
-                      setRecNewPassword("");
-                      setRecStep("email");
-                    }}
+                    onClick={handleSendEmailToken}
+                    disabled={recLoading}
                     className="p-3 rounded-xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/50 dark:bg-emerald-950/20 text-left hover:border-emerald-500 transition-all flex flex-col gap-1 group"
                   >
                     <span className="font-bold text-xs text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
-                      📧 Validar Correo de Recuperación ({recUserInfo.maskedEmail})
+                      📧 Enviar Código de 6 Dígitos a mi Correo ({recUserInfo.maskedEmail})
                     </span>
                     <span className="text-[11px] text-slate-600 dark:text-slate-400">
-                      Restablece tu contraseña confirmando tu correo registrado directamente en la plataforma.
+                      Te enviaremos un código de seguridad de 6 dígitos a tu bandeja de entrada para verificar tu cuenta.
                     </span>
                   </button>
                 )}
@@ -488,24 +513,25 @@ export default function Home() {
               </form>
             )}
 
-            {/* STEP 3B: Email Verification Form (Option 3) */}
-            {recStep === "email" && (
-              <form onSubmit={handleVerifyRecoveryEmail} className="flex flex-col gap-3">
+            {/* STEP 3B: Enter 6-Digit Email Code Form */}
+            {recStep === "email-code" && (
+              <form onSubmit={handleVerifyEmailCode} className="flex flex-col gap-3">
                 <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 rounded-xl text-xs text-emerald-800 dark:text-emerald-300">
-                  📧 Ingresa el correo de recuperación registrado en tu perfil (<strong>{recUserInfo?.maskedEmail}</strong>) para validar tu identidad.
+                  {recEmailNotice || `Revisa tu correo ${recUserInfo?.maskedEmail}. Te enviamos un código de 6 dígitos válido por 15 minutos.`}
                 </div>
 
                 <div className="input-group">
                   <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 block">
-                    Correo Electrónico de Recuperación
+                    Código de 6 Dígitos
                   </label>
                   <input
-                    type="email"
+                    type="text"
                     required
-                    className="input-field text-sm"
-                    placeholder="ejemplo@gmail.com"
-                    value={recEmailInput}
-                    onChange={e => setRecEmailInput(e.target.value)}
+                    maxLength={6}
+                    className="input-field text-center font-mono font-bold tracking-widest text-lg"
+                    placeholder="123456"
+                    value={recEmailCode}
+                    onChange={e => setRecEmailCode(e.target.value.replace(/\D/g, ''))}
                   />
                 </div>
 
@@ -524,6 +550,17 @@ export default function Home() {
                   />
                 </div>
 
+                <div className="flex items-center justify-between mt-1">
+                  <button
+                    type="button"
+                    onClick={handleSendEmailToken}
+                    disabled={recLoading}
+                    className="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline"
+                  >
+                    ¿No te llegó? Reenviar código
+                  </button>
+                </div>
+
                 <div className="flex justify-between items-center mt-2">
                   <button
                     type="button"
@@ -534,10 +571,10 @@ export default function Home() {
                   </button>
                   <button
                     type="submit"
-                    disabled={recLoading || !recEmailInput.trim() || !recNewPassword}
+                    disabled={recLoading || recEmailCode.length !== 6 || !recNewPassword}
                     className="btn btn-primary text-xs flex items-center gap-1"
                   >
-                    {recLoading ? <Loader2 className="animate-spin" size={14} /> : "Validar y Cambiar Clave"}
+                    {recLoading ? <Loader2 className="animate-spin" size={14} /> : "Verificar y Cambiar Clave"}
                   </button>
                 </div>
               </form>
