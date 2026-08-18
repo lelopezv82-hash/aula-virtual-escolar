@@ -170,20 +170,26 @@ export async function getAccountsWithSpace(teacherId: string): Promise<AccountSp
         }
 
         const data = await res.json();
-        const apiLimit = parseInt(data.storageQuota.limit || '0', 10);
+        const storageQuota = data.storageQuota || {};
+        const apiLimitStr = storageQuota.limit;
+        
+        // Google Workspace Education/Enterprise with pooled or unlimited storage often omit the limit field.
+        // If missing, we assume 100 TB to allow uploads and display properly.
+        const isUnlimited = !apiLimitStr;
+        const apiLimit = isUnlimited ? 109951162777600 : parseInt(apiLimitStr, 10);
         const limit = account.customLimit ? Number(account.customLimit) : apiLimit;
         
         // Google Workspace pooled storage reports total domain usage in storageQuota.usage.
         // We use usageInDrive + usageInDriveTrash to get the individual user's file usage in their Drive.
-        const usageInDrive = parseInt(data.storageQuota.usageInDrive || '0', 10);
-        const usageInTrash = parseInt(data.storageQuota.usageInDriveTrash || '0', 10);
+        const usageInDrive = parseInt(storageQuota.usageInDrive || '0', 10);
+        const usageInTrash = parseInt(storageQuota.usageInDriveTrash || '0', 10);
         const userUsage = usageInDrive + usageInTrash;
 
-        const apiUsage = parseInt(data.storageQuota.usage || '0', 10);
+        const apiUsage = parseInt(storageQuota.usage || '0', 10);
         
         // Personal gmail.com accounts should show their total account usage (Drive + Gmail + Photos).
         // Workspace pooled storage accounts should show userUsage (Drive files only) to avoid domain total leak.
-        const isWorkspace = !account.email.endsWith('@gmail.com') && (account.customLimit || apiLimit > 1099511627776);
+        const isWorkspace = !account.email.endsWith('@gmail.com') && (account.customLimit || apiLimit > 1099511627776 || isUnlimited);
         const usage = isWorkspace ? userUsage : apiUsage;
         const freeSpace = limit - usage;
 
