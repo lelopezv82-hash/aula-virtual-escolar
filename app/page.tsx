@@ -21,7 +21,7 @@ export default function Home() {
   const [recUserInfo, setRecUserInfo] = useState<any>(null);
   const [recAnswer, setRecAnswer] = useState("");
   const [recPin, setRecPin] = useState("");
-  const [recEmailCode, setRecEmailCode] = useState("");
+  const [recEmailInput, setRecEmailInput] = useState("");
   const [recNewPassword, setRecNewPassword] = useState("");
   const [recError, setRecError] = useState("");
   const [recSuccess, setRecSuccess] = useState("");
@@ -118,30 +118,7 @@ export default function Home() {
     }
   };
 
-  const handleSendEmailToken = async () => {
-    setRecError("");
-    setRecLoading(true);
-    try {
-      const res = await fetch("/api/auth/recover-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "send-email-token", username: recUsername })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setRecStep("email");
-        if (data.code) setRecEmailCode(data.code);
-      } else {
-        setRecError(data.error || "Error enviando correo de recuperación");
-      }
-    } catch {
-      setRecError("Error de conexión");
-    } finally {
-      setRecLoading(false);
-    }
-  };
-
-  const handleVerifyEmailToken = async (e: React.FormEvent) => {
+  const handleVerifyRecoveryEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     setRecError("");
     setRecLoading(true);
@@ -150,9 +127,9 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: "verify-email-token",
+          action: "verify-recovery-email",
           username: recUsername,
-          emailCode: recEmailCode,
+          email: recEmailInput,
           newPassword: recNewPassword
         })
       });
@@ -161,7 +138,7 @@ export default function Home() {
         setRecSuccess(data.message);
         setRecStep("success");
       } else {
-        setRecError(data.error || "Código incorrecto o expirado");
+        setRecError(data.error || "El correo ingresado no coincide con el registrado");
       }
     } catch {
       setRecError("Error de conexión");
@@ -402,15 +379,19 @@ export default function Home() {
 
                 {recUserInfo?.hasEmail && (
                   <button
-                    onClick={handleSendEmailToken}
-                    disabled={recLoading}
+                    onClick={() => {
+                      setRecError("");
+                      setRecEmailInput("");
+                      setRecNewPassword("");
+                      setRecStep("email");
+                    }}
                     className="p-3 rounded-xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/50 dark:bg-emerald-950/20 text-left hover:border-emerald-500 transition-all flex flex-col gap-1 group"
                   >
                     <span className="font-bold text-xs text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
-                      📧 Enviar Código a mi Correo de Recuperación ({recUserInfo.maskedEmail})
+                      📧 Validar Correo de Recuperación ({recUserInfo.maskedEmail})
                     </span>
                     <span className="text-[11px] text-slate-600 dark:text-slate-400">
-                      Utiliza el correo registrado en tu configuración para recibir un código de verificación.
+                      Restablece tu contraseña confirmando tu correo registrado directamente en la plataforma.
                     </span>
                   </button>
                 )}
@@ -507,25 +488,24 @@ export default function Home() {
               </form>
             )}
 
-            {/* STEP 3B: Email Verification Code Form (Option 3) */}
+            {/* STEP 3B: Email Verification Form (Option 3) */}
             {recStep === "email" && (
-              <form onSubmit={handleVerifyEmailToken} className="flex flex-col gap-3">
+              <form onSubmit={handleVerifyRecoveryEmail} className="flex flex-col gap-3">
                 <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 rounded-xl text-xs text-emerald-800 dark:text-emerald-300">
-                  📩 Código generado para <strong>{recUserInfo?.maskedEmail}</strong>. Ingresa el código de 6 dígitos para continuar.
+                  📧 Ingresa el correo de recuperación registrado en tu perfil (<strong>{recUserInfo?.maskedEmail}</strong>) para validar tu identidad.
                 </div>
 
                 <div className="input-group">
                   <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 block">
-                    Código de 6 dígitos
+                    Correo Electrónico de Recuperación
                   </label>
                   <input
-                    type="text"
-                    maxLength={6}
+                    type="email"
                     required
-                    className="input-field text-sm tracking-widest text-center font-mono font-bold w-40 mx-auto"
-                    placeholder="123456"
-                    value={recEmailCode}
-                    onChange={e => setRecEmailCode(e.target.value)}
+                    className="input-field text-sm"
+                    placeholder="ejemplo@gmail.com"
+                    value={recEmailInput}
+                    onChange={e => setRecEmailInput(e.target.value)}
                   />
                 </div>
 
@@ -554,10 +534,10 @@ export default function Home() {
                   </button>
                   <button
                     type="submit"
-                    disabled={recLoading || !recEmailCode || !recNewPassword}
+                    disabled={recLoading || !recEmailInput.trim() || !recNewPassword}
                     className="btn btn-primary text-xs flex items-center gap-1"
                   >
-                    {recLoading ? <Loader2 className="animate-spin" size={14} /> : "Verificar y Cambiar Clave"}
+                    {recLoading ? <Loader2 className="animate-spin" size={14} /> : "Validar y Cambiar Clave"}
                   </button>
                 </div>
               </form>

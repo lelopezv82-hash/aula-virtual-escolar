@@ -304,7 +304,7 @@ export default function ConfigForm() {
             onChange={(e) => setRecoveryEmail(e.target.value)}
             placeholder="ejemplo@estudiante.edu.co"
           />
-          <p className="text-[11px] text-muted mt-1">Si olvidas tu clave en el login, podrás solicitar un código o enlace de recuperación enviado a este correo.</p>
+          <p className="text-[11px] text-muted mt-1">Si olvidas tu clave en el login, podrás restablecer tu contraseña confirmando este correo directamente en la plataforma.</p>
         </div>
       </div>
 

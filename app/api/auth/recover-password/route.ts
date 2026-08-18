@@ -75,7 +75,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { action, username, answer, pin, newPassword, emailCode } = body;
+    const { action, username, answer, pin, newPassword, emailCode, email } = body;
 
     if (!action) return NextResponse.json({ error: "Acción requerida" }, { status: 400 });
 
@@ -161,7 +161,55 @@ export async function POST(request: Request) {
       });
     }
 
-    // 3. Send Email Reset Token / Code (Opción 3)
+    // 3. Verify Recovery Email and Reset Password directly in platform (Opción 3)
+    if (action === "verify-recovery-email") {
+      if (!cleanUsername) return NextResponse.json({ error: "Usuario requerido" }, { status: 400 });
+      if (!email || !email.trim()) {
+        return NextResponse.json({ error: "Ingresa tu correo de recuperación registrado." }, { status: 400 });
+      }
+      if (!newPassword || newPassword.length < 6) {
+        return NextResponse.json({ error: "La nueva contraseña debe tener al menos 6 caracteres." }, { status: 400 });
+      }
+
+      const user = await prisma.user.findFirst({
+        where: { username: { equals: cleanUsername, mode: "insensitive" } }
+      });
+
+      if (!user || !user.recoveryEmail) {
+        return NextResponse.json({ error: "Este usuario no tiene un correo de recuperación registrado." }, { status: 400 });
+      }
+
+      if (user.recoveryEmail.trim().toLowerCase() !== email.trim().toLowerCase()) {
+        return NextResponse.json({ error: "El correo ingresado no coincide con el registrado en tu cuenta." }, { status: 400 });
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          password: hashedPassword,
+          passwordPlain: newPassword,
+          mustChangePassword: false
+        }
+      });
+
+      await prisma.passwordResetToken.deleteMany({
+        where: { studentId: user.id }
+      });
+
+      await prisma.passwordResetRequest.updateMany({
+        where: { studentId: user.id, status: "PENDING" },
+        data: { status: "RESOLVED" }
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: "¡Contraseña restablecida exitosamente! Ya puedes iniciar sesión con tu nueva clave."
+      });
+    }
+
+    // Legacy: Send Email Reset Token / Code (Opción 3)
     if (action === "send-email-token") {
       if (!cleanUsername) return NextResponse.json({ error: "Usuario requerido" }, { status: 400 });
 
