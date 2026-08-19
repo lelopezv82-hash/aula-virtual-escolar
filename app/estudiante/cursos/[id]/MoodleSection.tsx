@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { Folder, ChevronDown } from "lucide-react";
 import { formatToColombiaString, getTaskDeadlineStatus } from "@/lib/dateUtils";
 
 export type MoodleResource = {
@@ -110,43 +111,83 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
 
   return (
     <div style={{
-      background: "#fff",
+      background: "#ffffff",
       border: "1px solid #dee2e6",
-      borderRadius: "6px",
+      borderRadius: "10px",
       overflow: "hidden",
-      marginBottom: "1rem",
+      marginBottom: "1.25rem",
+      boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
     }}>
       {/* Section header */}
       <button
+        type="button"
         onClick={() => setOpen(o => !o)}
         style={{
           width: "100%",
           display: "flex",
           alignItems: "center",
-          gap: "0.75rem",
-          padding: "0.9rem 1.25rem",
-          background: "none",
+          justifyContent: "space-between",
+          padding: "1rem 1.25rem",
+          background: open ? "#f8f9fa" : "#ffffff",
           border: "none",
+          borderBottom: open ? "1px solid #dee2e6" : "none",
           cursor: "pointer",
           textAlign: "left",
+          transition: "background 0.2s ease"
         }}
       >
-        <div style={{
-          width: 28, height: 28, borderRadius: "50%",
-          border: "2px solid #0066cc",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          flexShrink: 0, background: open ? "#e8f0fe" : "#fff",
-          transition: "background 0.2s",
-        }}>
-          <svg
-            width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke="#0066cc" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-            style={{ transform: open ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.2s" }}
-          >
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.85rem", minWidth: 0 }}>
+          <div style={{
+            width: 36,
+            height: 36,
+            borderRadius: "8px",
+            background: "#fff3e0",
+            border: "1px solid #ffe0b2",
+            color: "#e65100",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0
+          }}>
+            <Folder size={20} color="#e65100" />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <h3 style={{
+              fontSize: "1.05rem",
+              fontWeight: 700,
+              color: "#212529",
+              margin: 0,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap"
+            }}>
+              {title}
+            </h3>
+            <p style={{
+              fontSize: "0.8rem",
+              color: "#6c757d",
+              margin: "2px 0 0 0"
+            }}>
+              {sortedItems.length} {sortedItems.length === 1 ? "actividad disponible" : "actividades disponibles"}
+            </p>
+          </div>
         </div>
-        <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#222" }}>{title}</span>
+
+        <div style={{
+          width: 28,
+          height: 28,
+          borderRadius: "50%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#ffffff",
+          border: "1px solid #ced4da",
+          transform: open ? "rotate(180deg)" : "rotate(0deg)",
+          transition: "transform 0.2s ease",
+          flexShrink: 0
+        }}>
+          <ChevronDown size={16} color="#495057" />
+        </div>
       </button>
 
       {/* Section body */}

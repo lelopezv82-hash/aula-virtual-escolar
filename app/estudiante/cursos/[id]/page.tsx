@@ -224,7 +224,7 @@ export default async function CursoDescripcionPage({
             key={themeName}
             title={themeName}
             items={themeItems}
-            defaultOpen={false}
+            defaultOpen={true}
           />
         );
       })}
