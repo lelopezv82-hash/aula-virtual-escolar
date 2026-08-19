@@ -196,16 +196,20 @@ export default async function CursoDescripcionPage({
 
   const allThemeTitles = [...themeTitles, ...extraThemeTitles];
 
-  const hasGeneral = generalItems.length > 0;
-  // We don't include hasGeneral here because we are hiding the General section
-  const hasRealContent = allThemeTitles.length > 0;
+  // Only display themes that actually contain items visible to this student (filtered by group/period)
+  const visibleThemeTitles = allThemeTitles.filter(themeName => {
+    const items = themeMap.get(themeName);
+    return items && items.length > 0;
+  });
+
+  const hasRealContent = visibleThemeTitles.length > 0;
 
   return (
     <div>
       <h2 className="text-lg font-bold mb-4 text-slate-800 dark:text-slate-100">Actividades</h2>
 
       {/* Render theme sections */}
-      {allThemeTitles.map((themeName) => {
+      {visibleThemeTitles.map((themeName) => {
         const themeItems = themeMap.get(themeName) || [];
         return (
           <MoodleSection
