@@ -478,14 +478,12 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                     </h2>
 
                     <div className="flex flex-col gap-5">
-                      {[...periods.map(p => p.name), "Otros"].map(periodName => {
+                      {periods.map(p => p.name).map(periodName => {
                         const periodRes = course.resources.filter(r => {
                           if (r.type === "PLAN") return false;
                           if (r.type === "THEME") return false;
-                          if (periodName === "Otros") return !r.period || !periods.map(p => p.name).includes(r.period);
                           return r.period === periodName;
                         });
-                        if (periodName === "Otros" && periodRes.length === 0) return null;
                         const isActive = isPeriodActiveHelper(periodName);
 
                         return periodSectionWrapper(
@@ -623,16 +621,14 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                     </p>
 
                     <div className="flex flex-col gap-5">
-                      {[...periods.map(p => p.name), "Otros"].map(periodName => {
+                      {periods.map(p => p.name).map(periodName => {
                         // 1. Recursos y tareas de este periodo en la asignatura
                         const periodResources = course.resources.filter(r => {
                           if (r.type === "PLAN" || r.type === "THEME") return false;
-                          if (periodName === "Otros") return !r.period || !periods.map(p => p.name).includes(r.period);
                           return r.period === periodName;
                         });
 
                         const periodTasks = (course.tasks || []).filter(t => {
-                          if (periodName === "Otros") return !t.period || !periods.map(p => p.name).includes(t.period);
                           return t.period === periodName;
                         });
 
