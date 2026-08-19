@@ -7,6 +7,16 @@ import { sendRecoveryEmail } from "@/lib/email";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
+const normalizeAnswer = (str: string) => {
+  if (!str) return "";
+  return str
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ");
+};
+
 const maskEmail = (email: string) => {
   if (!email || !email.includes("@")) return "";
   const [local, domain] = email.split("@");
@@ -124,7 +134,7 @@ export async function POST(request: Request) {
       let isMatch = false;
 
       if (answer && user.securityAnswer) {
-        if (answer.trim().toLowerCase() === user.securityAnswer.trim().toLowerCase()) {
+        if (normalizeAnswer(answer) === normalizeAnswer(user.securityAnswer)) {
           isMatch = true;
         }
       }

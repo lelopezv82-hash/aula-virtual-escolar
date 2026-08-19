@@ -245,10 +245,15 @@ export default function ConfigForm() {
           >
             <option value="">-- Selecciona una pregunta --</option>
             <option value="¿Nombre de tu primera mascota?">¿Nombre de tu primera mascota?</option>
-            <option value="¿Nombre de tu primera escuela o colegio?">¿Nombre de tu primera escuela o colegio?</option>
             <option value="¿Ciudad donde naciste?">¿Ciudad donde naciste?</option>
+            <option value="¿Nombre de tu primera escuela o preescolar?">¿Nombre de tu primera escuela o preescolar?</option>
             <option value="¿Nombre de tu deporte o juego favorito?">¿Nombre de tu deporte o juego favorito?</option>
-            <option value="¿Nombre de tu mejor amigo de la infancia?">¿Nombre de tu mejor amigo de la infancia?</option>
+            <option value="¿Nombre de tu mejor amigo o amiga de la infancia?">¿Nombre de tu mejor amigo o amiga de la infancia?</option>
+            <option value="¿Segundo nombre de tu mamá o papá?">¿Segundo nombre de tu mamá o papá?</option>
+            <option value="¿Nombre de tu abuela o abuelo materno?">¿Nombre de tu abuela o abuelo materno?</option>
+            <option value="¿Nombre de tu comida o plato favorito?">¿Nombre de tu comida o plato favorito?</option>
+            <option value="¿Nombre del barrio donde creciste o vives?">¿Nombre del barrio donde creciste o vives?</option>
+            <option value="¿Nombre de tu película o serie favorita?">¿Nombre de tu película o serie favorita?</option>
           </select>
         </div>
 
