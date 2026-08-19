@@ -74,6 +74,30 @@ export async function processDriveQueue(teacherId?: string): Promise<ProcessResu
     result.processed++;
 
     try {
+      // 0. Verificar si el registro padre (recurso, tarea o entrega) aún existe en la base de datos
+      let recordExists = true;
+      if (item.recordType === 'RESOURCE') {
+        const found = await prisma.resource.findUnique({ where: { id: item.recordId } });
+        recordExists = !!found;
+      } else if (item.recordType === 'SUBMISSION') {
+        const found = await prisma.submission.findUnique({ where: { id: item.recordId } });
+        recordExists = !!found;
+      } else if (item.recordType === 'TASK') {
+        const found = await prisma.task.findUnique({ where: { id: item.recordId } });
+        recordExists = !!found;
+      }
+
+      if (!recordExists) {
+        console.log(`[DriveQueue] El registro ${item.recordType}:${item.recordId} ya no existe en la base de datos. Limpiando de la cola.`);
+        // Limpiar archivo de Supabase si existe
+        try {
+          await supabase.storage.from('aula-virtual').remove([item.supabasePath]);
+        } catch {}
+        await prisma.driveUploadQueue.delete({ where: { id: item.id } });
+        result.succeeded++;
+        continue;
+      }
+
       // 1. Descargar el archivo desde Supabase
       const fileResponse = await fetch(item.supabaseUrl);
       if (!fileResponse.ok) {
