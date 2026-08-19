@@ -2,13 +2,10 @@ import prisma from '@/lib/prisma';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import Link from "next/link";
-import { BookOpen, Download, Link as LinkIcon, FileText, Calendar, Tag } from "lucide-react";
+import { BookOpen } from "lucide-react";
+import RecursosTemaSection, { ResourceItem } from "./RecursosTemaSection";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
-
-const TYPE_ICONS: Record<string, string> = {
-  PDF: "📄", WORD: "📝", PPT: "📊", IMAGE: "🖼️", VIDEO: "🎬", LINK: "🔗"
-};
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -64,6 +61,12 @@ export default async function CursoRecursosPage({
   const activePeriodNames = periodsDb.filter(p => p.active).map(p => p.name);
   const allPeriodNames = periodsDb.map(p => p.name);
 
+  // Fetch course themes
+  const themes = await prisma.theme.findMany({
+    where: { courseId: id },
+    orderBy: { order: "asc" }
+  });
+
   const now = new Date();
 
   // Fetch standalone course resources
@@ -105,20 +108,7 @@ export default async function CursoRecursosPage({
     orderBy: { createdAt: "desc" }
   });
 
-  // Map task attachments to resource items
-  type UnifiedResource = {
-    id: string;
-    title: string;
-    type: string;
-    url: string;
-    period: string | null;
-    themeTitle?: string | null;
-    sourceType: "MATERIAL" | "TASK_GUIDE" | "TASK_RESOURCE";
-    taskTitle?: string;
-    createdAt: Date;
-  };
-
-  const unifiedList: UnifiedResource[] = [];
+  const unifiedList: ResourceItem[] = [];
   const seenUrls = new Set<string>();
 
   // Add standalone resources
@@ -134,7 +124,7 @@ export default async function CursoRecursosPage({
         period: r.period || null,
         themeTitle,
         sourceType: "MATERIAL",
-        createdAt: r.createdAt
+        createdAt: r.createdAt.toISOString()
       });
     }
   }
@@ -153,7 +143,7 @@ export default async function CursoRecursosPage({
         themeTitle: t.themes?.[0]?.title || t.theme || null,
         sourceType: "TASK_GUIDE",
         taskTitle: t.title,
-        createdAt: t.createdAt
+        createdAt: t.createdAt.toISOString()
       });
     }
     for (const res of t.resources) {
@@ -168,7 +158,7 @@ export default async function CursoRecursosPage({
           themeTitle: t.themes?.[0]?.title || t.theme || null,
           sourceType: "TASK_RESOURCE",
           taskTitle: t.title,
-          createdAt: res.createdAt
+          createdAt: res.createdAt.toISOString()
         });
       }
     }
@@ -186,7 +176,35 @@ export default async function CursoRecursosPage({
     filtered = activeFiltered.length > 0 ? activeFiltered : unifiedList;
   }
 
-  const allEmpty = filtered.length === 0;
+  // Group filtered resources by Theme
+  const themeMap = new Map<string, ResourceItem[]>();
+  const generalResources: ResourceItem[] = [];
+
+  for (const item of filtered) {
+    const rawTheme = item.themeTitle?.trim();
+    if (rawTheme) {
+      if (!themeMap.has(rawTheme)) {
+        themeMap.set(rawTheme, []);
+      }
+      themeMap.get(rawTheme)!.push(item);
+    } else {
+      generalResources.push(item);
+    }
+  }
+
+  // Get theme order from DB themes
+  const dbThemeTitles = themes.map(t => t.title);
+  const dbThemeSet = new Set(dbThemeTitles);
+  const extraThemeTitles = Array.from(themeMap.keys())
+    .filter(t => !dbThemeSet.has(t))
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+  const orderedThemes = [...dbThemeTitles, ...extraThemeTitles].filter(themeName => {
+    const list = themeMap.get(themeName);
+    return list && list.length > 0;
+  });
+
+  const hasContent = orderedThemes.length > 0 || generalResources.length > 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -198,7 +216,7 @@ export default async function CursoRecursosPage({
             Recursos y Materiales de Estudio
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Archivos, guías y enlaces compartidos por el docente para complementar tu aprendizaje.
+            Archivos, guías y enlaces organizados por tema para complementar tu aprendizaje.
           </p>
         </div>
 
@@ -242,79 +260,37 @@ export default async function CursoRecursosPage({
         )}
       </div>
 
-      {/* Resources list */}
-      {allEmpty ? (
+      {/* Resources grouped by Theme */}
+      {!hasContent ? (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-12 text-center shadow-xs">
           <BookOpen size={48} className="mx-auto mb-3 text-slate-300 dark:text-slate-600" />
           <h3 className="text-base font-bold text-slate-700 dark:text-slate-300 mb-1">
             No hay materiales disponibles {periodo && periodo !== "TODOS" ? `para ${periodo}` : "en esta asignatura"}
           </h3>
           <p className="text-xs text-slate-500 max-w-md mx-auto">
-            Los documentos, guías de actividades y enlaces que asigne el docente aparecerán aquí.
+            Los documentos, guías de actividades y enlaces que asigne el docente aparecerán organizados por temas aquí.
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filtered.map(resource => {
-            const isLink = resource.type.toUpperCase() === "LINK" || resource.url.startsWith("http");
-            return (
-              <div
-                key={resource.id}
-                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex items-start gap-4"
-              >
-                <div className="w-12 h-12 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900/50 flex items-center justify-center text-2xl shrink-0">
-                  {TYPE_ICONS[resource.type.toUpperCase()] || "📁"}
-                </div>
+        <div>
+          {/* Render each theme section */}
+          {orderedThemes.map((themeName) => (
+            <RecursosTemaSection
+              key={themeName}
+              title={themeName}
+              resources={themeMap.get(themeName) || []}
+              defaultOpen={true}
+            />
+          ))}
 
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-slate-800 dark:text-slate-100 text-sm leading-snug break-words" title={resource.title}>
-                    {resource.title}
-                  </h4>
-
-                  {/* Badges metadata */}
-                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                      {resource.type.toUpperCase()}
-                    </span>
-
-                    {resource.period && (
-                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50 flex items-center gap-1">
-                        <Calendar size={11} />
-                        {resource.period}
-                      </span>
-                    )}
-
-                    {resource.themeTitle && (
-                      <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900/50 flex items-center gap-1 max-w-[200px] truncate" title={resource.themeTitle}>
-                        <Tag size={11} />
-                        {resource.themeTitle}
-                      </span>
-                    )}
-
-                    {resource.sourceType === "TASK_GUIDE" && (
-                      <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-900/50 flex items-center gap-1">
-                        <FileText size={11} />
-                        Guía de actividad
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="shrink-0 self-center">
-                  <a
-                    href={resource.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-orange-500 hover:bg-orange-600 text-white shadow-xs transition-colors"
-                    title={isLink ? "Abrir enlace" : "Descargar o ver archivo"}
-                  >
-                    {isLink ? <LinkIcon size={14} /> : <Download size={14} />}
-                    <span className="hidden sm:inline">{isLink ? "Abrir" : "Descargar"}</span>
-                  </a>
-                </div>
-              </div>
-            );
-          })}
+          {/* Render general resources if any without specific theme */}
+          {generalResources.length > 0 && (
+            <RecursosTemaSection
+              title="Materiales Generales"
+              resources={generalResources}
+              defaultOpen={orderedThemes.length === 0}
+            />
+          )}
         </div>
       )}
     </div>
