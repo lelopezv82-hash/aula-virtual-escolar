@@ -336,6 +336,51 @@ export async function POST(request: Request) {
       });
     }
 
+    // 6. Teacher/Admin resolves password reset request
+    if (action === "teacher-resolve-reset") {
+      const cookieStore = await cookies();
+      const token = cookieStore.get("auth_token")?.value;
+      if (!token) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+      const { payload } = await jwtVerify(token, JWT_SECRET);
+      if (payload.role !== "TEACHER" && payload.role !== "ADMIN" && payload.role !== "SUPER_ADMIN") {
+        return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+      }
+
+      const { studentId, requestId, newPassword: customNewPassword } = body;
+      const finalPassword = customNewPassword?.trim() || "123456";
+      
+      let targetUserId = studentId;
+      if (!targetUserId && requestId) {
+        const reqItem = await prisma.passwordResetRequest.findUnique({ where: { id: requestId } });
+        if (reqItem) targetUserId = reqItem.studentId;
+      }
+
+      if (!targetUserId) {
+        return NextResponse.json({ error: "Estudiante no encontrado" }, { status: 404 });
+      }
+
+      const hashedPassword = await bcrypt.hash(finalPassword, 10);
+
+      await prisma.user.update({
+        where: { id: targetUserId },
+        data: {
+          password: hashedPassword,
+          passwordPlain: finalPassword,
+          mustChangePassword: false
+        }
+      });
+
+      await prisma.passwordResetRequest.updateMany({
+        where: { studentId: targetUserId, status: "PENDING" },
+        data: { status: "RESOLVED" }
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: `Contraseña restablecida exitosamente a "${finalPassword}".`
+      });
+    }
+
     return NextResponse.json({ error: "Acción inválida" }, { status: 400 });
   } catch (error) {
     console.error("Error in recover-password API:", error);

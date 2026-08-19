@@ -94,6 +94,13 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
   const [editStudentPassword, setEditStudentPassword] = useState("");
   const [savingEditStudent, setSavingEditStudent] = useState(false);
 
+  // Reset request states
+  const [showResetReqModal, setShowResetReqModal] = useState(false);
+  const [selectedResetReq, setSelectedResetReq] = useState<any>(null);
+  const [resetReqPassword, setResetReqPassword] = useState("123456");
+  const [savingResetReq, setSavingResetReq] = useState(false);
+  const [resetReqError, setResetReqError] = useState("");
+
   // Bulk import states
   const [showImportModal, setShowImportModal] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -347,7 +354,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
 
   const handleEditStudent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editStudentName.trim() || !editingStudent || !selectedGroupForStudents) return;
+    if (!editStudentName.trim() || !editingStudent) return;
     setSavingEditStudent(true);
     setStudentError("");
     try {
@@ -358,7 +365,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
         body: JSON.stringify({
           id: editingStudent.id,
           name: editStudentName.trim(),
-          groupId: selectedGroupForStudents.id,
+          groupId: selectedGroupForStudents?.id || editingStudent.groupId,
           password: editStudentPassword.trim() || undefined
         })
       });
@@ -368,8 +375,9 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
         setEditingStudent(null);
         setEditStudentName("");
         setEditStudentPassword("");
-        fetchStudents();
+        if (selectedGroupForStudents) fetchStudents();
         fetchGrades();
+        fetchResetRequests();
       } else {
         setStudentError(data.error || "Error al actualizar el estudiante");
       }
@@ -377,6 +385,48 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
       setStudentError("Error de conexión");
     } finally {
       setSavingEditStudent(false);
+    }
+  };
+
+  const handleConfirmResetReq = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedResetReq || !resetReqPassword.trim()) return;
+    setSavingResetReq(true);
+    setResetReqError("");
+    try {
+      const res = await fetch("/api/auth/recover-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "teacher-resolve-reset",
+          requestId: selectedResetReq.id,
+          studentId: selectedResetReq.student?.id,
+          newPassword: resetReqPassword.trim()
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const studentName = selectedResetReq.student?.name;
+        const studentUser = selectedResetReq.student?.username;
+        const assignedPwd = resetReqPassword.trim();
+        setShowResetReqModal(false);
+        setSelectedResetReq(null);
+        fetchResetRequests();
+        fetchGrades();
+        if (selectedGroupForStudents) fetchStudents();
+        await confirm({
+          title: "¡Contraseña Restablecida!",
+          message: `La contraseña del estudiante ${studentName} (${studentUser}) ha sido actualizada a: "${assignedPwd}". Ya puede ingresar al aula virtual con su nueva clave.`,
+          confirmText: "Aceptar",
+          type: "info"
+        });
+      } else {
+        setResetReqError(data.error || "Error al restablecer la contraseña");
+      }
+    } catch {
+      setResetReqError("Error de conexión");
+    } finally {
+      setSavingResetReq(false);
     }
   };
 
@@ -696,13 +746,12 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                 </div>
                 <button
                   onClick={() => {
-                    setEditingStudent(req.student);
-                    setEditStudentName(req.student.name);
-                    setEditStudentPassword("123456");
-                    setStudentError("");
-                    setShowEditStudentModal(true);
+                    setSelectedResetReq(req);
+                    setResetReqPassword("123456");
+                    setResetReqError("");
+                    setShowResetReqModal(true);
                   }}
-                  className="btn btn-primary py-1 px-2.5 text-xs flex items-center gap-1"
+                  className="btn btn-primary py-1 px-2.5 text-xs flex items-center gap-1 cursor-pointer"
                 >
                   🔑 Restablecer Clave (Ej. 123456)
                 </button>
@@ -1379,7 +1428,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
       )}
 
       {/* Edit Student Modal */}
-      {showEditStudentModal && editingStudent && selectedGroupForStudents && (
+      {showEditStudentModal && editingStudent && (
         <div
           className="modal-overlay"
           style={{ zIndex: 100005 }}
@@ -1435,6 +1484,61 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
               <button type="submit" className="btn btn-primary" disabled={savingEditStudent}>
                 {savingEditStudent ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
                 Guardar Cambios
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Reset Password Request Modal */}
+      {showResetReqModal && selectedResetReq && (
+        <div
+          className="modal-overlay"
+          style={{ zIndex: 100010 }}
+          onClick={(e) => e.target === e.currentTarget && !savingResetReq && setShowResetReqModal(false)}
+        >
+          <form onSubmit={handleConfirmResetReq} className="modal-content" style={{ maxWidth: "440px" }}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Key className="text-[#f98012]" size={20} />
+                Restablecer Contraseña
+              </h2>
+              <button type="button" onClick={() => setShowResetReqModal(false)} className="p-1 rounded-lg hover:bg-gray-100">
+                <X size={20} />
+              </button>
+            </div>
+
+            {resetReqError && (
+              <div className="alert alert-danger text-xs p-2.5 rounded-lg mb-3">
+                {resetReqError}
+              </div>
+            )}
+
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl text-xs text-amber-900 dark:text-amber-200 mb-3">
+              Estudiante: <strong>{selectedResetReq.student?.name}</strong> ({selectedResetReq.student?.username})
+            </div>
+
+            <div className="input-group mb-4">
+              <label className="font-semibold text-xs mb-1 block">Nueva Contraseña para el Estudiante *</label>
+              <input
+                type="text"
+                required
+                minLength={6}
+                className="input-field font-mono font-bold"
+                value={resetReqPassword}
+                onChange={(e) => setResetReqPassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres"
+              />
+              <p className="text-[11px] text-muted mt-1">Puedes dejar <strong>123456</strong> o escribir cualquier otra contraseña temporal.</p>
+            </div>
+
+            <div className="flex justify-end gap-3 border-t pt-4" style={{ borderColor: "var(--border-color)" }}>
+              <button type="button" className="btn btn-secondary" disabled={savingResetReq} onClick={() => setShowResetReqModal(false)}>
+                Cancelar
+              </button>
+              <button type="submit" className="btn btn-primary" disabled={savingResetReq || !resetReqPassword.trim()}>
+                {savingResetReq ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />}
+                Confirmar y Asignar Clave
               </button>
             </div>
           </form>
