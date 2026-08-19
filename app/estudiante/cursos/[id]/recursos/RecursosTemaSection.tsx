@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { ChevronDown, Folder, Download, Link as LinkIcon, FileText } from "lucide-react";
+import { ChevronDown, Folder, Download, Link as LinkIcon } from "lucide-react";
 
 export type ResourceItem = {
   id: string;
@@ -155,7 +155,7 @@ export default function RecursosTemaSection({
                   alignItems: "center",
                   justifyContent: "space-between",
                   gap: "1rem",
-                  padding: "0.85rem 1rem",
+                  padding: "0.85rem 1.15rem",
                   borderRadius: "8px",
                   border: "1px solid #e9ecef",
                   background: "#fcfcfd"
@@ -184,44 +184,13 @@ export default function RecursosTemaSection({
                         fontSize: "0.95rem",
                         fontWeight: 600,
                         color: "#1e293b",
-                        lineHeight: 1.35,
+                        lineHeight: 1.4,
                         wordBreak: "break-word"
                       }}
                       title={resource.title}
                     >
                       {resource.title}
                     </h4>
-
-                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.4rem", marginTop: "0.35rem" }}>
-                      <span style={{
-                        fontSize: "0.7rem",
-                        fontWeight: 700,
-                        padding: "2px 6px",
-                        borderRadius: "4px",
-                        background: "#e2e8f0",
-                        color: "#334155"
-                      }}>
-                        {resource.type.toUpperCase()}
-                      </span>
-
-                      {resource.sourceType === "TASK_GUIDE" && (
-                        <span style={{
-                          fontSize: "0.7rem",
-                          fontWeight: 600,
-                          padding: "2px 6px",
-                          borderRadius: "4px",
-                          background: "#f3e8ff",
-                          color: "#7e22ce",
-                          border: "1px solid #e9d5ff",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "3px"
-                        }}>
-                          <FileText size={10} />
-                          Guía de actividad
-                        </span>
-                      )}
-                    </div>
                   </div>
                 </div>
 
