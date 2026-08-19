@@ -16,10 +16,8 @@ export default function ConfigForm() {
 
   const [securityQuestion, setSecurityQuestion] = useState("");
   const [securityAnswer, setSecurityAnswer] = useState("");
-  const [securityPin, setSecurityPin] = useState("");
   const [recoveryEmail, setRecoveryEmail] = useState("");
   const [hasExistingQuestion, setHasExistingQuestion] = useState(false);
-  const [hasExistingPin, setHasExistingPin] = useState(false);
 
   useEffect(() => {
     const fetchCurrentConfig = async () => {
@@ -37,9 +35,6 @@ export default function ConfigForm() {
           if (secData.securityQuestion) {
             setSecurityQuestion(secData.securityQuestion);
             setHasExistingQuestion(true);
-          }
-          if (secData.hasPin) {
-            setHasExistingPin(true);
           }
           if (secData.recoveryEmail) {
             setRecoveryEmail(secData.recoveryEmail);
@@ -71,11 +66,6 @@ export default function ConfigForm() {
       }
     }
 
-    if (securityPin && !/^\d{4}$/.test(securityPin.trim())) {
-      setMessage({ type: "danger", text: "El PIN de seguridad debe tener exactamente 4 dígitos numéricos (ej. 1234)." });
-      return;
-    }
-
     setLoading(true);
     try {
       const res = await fetch("/api/estudiante/configuracion", {
@@ -86,18 +76,16 @@ export default function ConfigForm() {
           newPassword: newPassword || undefined,
           securityQuestion: securityQuestion || undefined,
           securityAnswer: securityAnswer || undefined,
-          securityPin: securityPin || undefined,
           recoveryEmail: recoveryEmail,
         }),
       });
 
       const data = await res.json();
       if (res.ok) {
-        setMessage({ type: "success", text: "Configuración, correo de recuperación y datos de seguridad actualizados correctamente." });
+        setMessage({ type: "success", text: "Configuración, pregunta de seguridad y correo de recuperación actualizados correctamente." });
         setNewPassword("");
         setConfirmPassword("");
         setSecurityAnswer("");
-        setSecurityPin("");
         setShowCurrent(false);
         setShowNew(false);
         setShowConfirm(false);
@@ -242,8 +230,8 @@ export default function ConfigForm() {
       {/* Recovery Security Options */}
       <div className="pt-4 border-t border-gray-200 dark:border-gray-800 flex flex-col gap-4">
         <div>
-          <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200 mb-1">🔐 Pregunta de Seguridad y PIN (Para recuperar clave si la olvidas)</h3>
-          <p className="text-xs text-muted">Configura una pregunta secreta o un PIN de 4 dígitos para recuperar tu contraseña automáticamente en la pantalla de inicio de sesión.</p>
+          <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200 mb-1">🔐 Pregunta de Seguridad y Correo de Recuperación</h3>
+          <p className="text-xs text-muted">Configura una pregunta secreta o tu correo para restablecer tu contraseña si la llegas a olvidar.</p>
         </div>
 
         <div className="input-group">
@@ -281,30 +269,16 @@ export default function ConfigForm() {
 
         <div className="input-group">
           <label className="font-semibold text-sm mb-1 block" style={{ color: "var(--text-secondary)" }}>
-            PIN Secreto (4 dígitos numéricos) {hasExistingPin && <span className="text-xs font-normal text-emerald-600">(✓ PIN configurado)</span>}
-          </label>
-          <input
-            type="password"
-            maxLength={4}
-            className="input-field w-36 text-center font-mono tracking-widest font-bold"
-            value={securityPin}
-            onChange={(e) => setSecurityPin(e.target.value.replace(/\D/g, ''))}
-            placeholder="Ej. 1234"
-          />
-        </div>
-
-        <div className="input-group">
-          <label className="font-semibold text-sm mb-1 block" style={{ color: "var(--text-secondary)" }}>
-            📧 Correo Electrónico de Recuperación (Opción 3)
+            📧 Correo Electrónico de Recuperación
           </label>
           <input
             type="email"
             className="input-field"
             value={recoveryEmail}
             onChange={(e) => setRecoveryEmail(e.target.value)}
-            placeholder="ejemplo@estudiante.edu.co"
+            placeholder="ejemplo@gmail.com"
           />
-          <p className="text-[11px] text-muted mt-1">Si olvidas tu clave en el login, podrás restablecer tu contraseña confirmando este correo directamente en la plataforma.</p>
+          <p className="text-[11px] text-muted mt-1">Si olvidas tu clave, recibirás un código de seguridad de 6 dígitos a este correo para restablecerla.</p>
         </div>
       </div>
 

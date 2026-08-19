@@ -99,15 +99,14 @@ export async function POST(request: Request) {
         userId: user.id,
         name: user.name,
         username: user.username,
-        hasSecurity: !!(user.securityQuestion || user.securityPin),
+        hasSecurityQuestion: !!(user.securityQuestion && user.securityAnswer),
         securityQuestion: user.securityQuestion || null,
-        hasPin: !!user.securityPin,
         hasEmail: !!user.recoveryEmail,
         maskedEmail: user.recoveryEmail ? maskEmail(user.recoveryEmail) : null
       });
     }
 
-    // 2. Verify security question or PIN and update password
+    // 2. Verify security question and update password
     if (action === "verify-security") {
       if (!cleanUsername) return NextResponse.json({ error: "Usuario requerido" }, { status: 400 });
       if (!newPassword || newPassword.length < 6) {
@@ -130,14 +129,8 @@ export async function POST(request: Request) {
         }
       }
 
-      if (pin && user.securityPin) {
-        if (pin.trim() === user.securityPin.trim()) {
-          isMatch = true;
-        }
-      }
-
       if (!isMatch) {
-        return NextResponse.json({ error: "La respuesta o el PIN de seguridad es incorrecto." }, { status: 400 });
+        return NextResponse.json({ error: "La respuesta a la pregunta secreta es incorrecta." }, { status: 400 });
       }
 
       const hashedPassword = await bcrypt.hash(newPassword, 10);

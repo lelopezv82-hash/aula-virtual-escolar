@@ -20,7 +20,6 @@ export default function Home() {
   const [recUsername, setRecUsername] = useState("");
   const [recUserInfo, setRecUserInfo] = useState<any>(null);
   const [recAnswer, setRecAnswer] = useState("");
-  const [recPin, setRecPin] = useState("");
   const [recEmailCode, setRecEmailCode] = useState("");
   const [recNewPassword, setRecNewPassword] = useState("");
   const [recError, setRecError] = useState("");
@@ -158,7 +157,6 @@ export default function Home() {
           action: "verify-security",
           username: recUsername,
           answer: recAnswer,
-          pin: recPin,
           newPassword: recNewPassword
         })
       });
@@ -167,7 +165,7 @@ export default function Home() {
         setRecSuccess(data.message);
         setRecStep("success");
       } else {
-        setRecError(data.error || "Respuesta o PIN incorrecto");
+        setRecError(data.error || "Respuesta incorrecta");
       }
     } catch {
       setRecError("Error de conexión");
@@ -313,7 +311,6 @@ export default function Home() {
                 setRecError("");
                 setRecSuccess("");
                 setRecAnswer("");
-                setRecPin("");
                 setRecEmailCode("");
                 setRecNewPassword("");
               }}
@@ -385,23 +382,23 @@ export default function Home() {
               </form>
             )}
 
-            {/* STEP 2: Choose Method (Option 1 vs Option 2 vs Option 3) */}
+            {/* STEP 2: Choose Method */}
             {recStep === "options" && (
               <div className="flex flex-col gap-3">
                 <p className="text-xs text-slate-700 dark:text-slate-300">
                   Hola <strong className="text-orange-600">{recUserInfo?.name}</strong>. Elige cómo deseas restablecer tu clave:
                 </p>
 
-                {recUserInfo?.hasSecurity && (
+                {recUserInfo?.hasSecurityQuestion && (
                   <button
                     onClick={() => setRecStep("security")}
                     className="p-3 rounded-xl border border-orange-200 dark:border-orange-900/40 bg-orange-50/50 dark:bg-orange-950/20 text-left hover:border-orange-500 transition-all flex flex-col gap-1 group"
                   >
                     <span className="font-bold text-xs text-orange-700 dark:text-orange-300 flex items-center gap-1.5">
-                      🔐 Responder Pregunta Secreta / PIN
+                      🔐 Responder Pregunta Secreta
                     </span>
                     <span className="text-[11px] text-slate-600 dark:text-slate-400">
-                      Restablece tu contraseña de forma inmediata respondiendo tu pregunta o PIN.
+                      Restablece tu contraseña respondiendo la pregunta secreta configurada en tu cuenta.
                     </span>
                   </button>
                 )}
@@ -445,7 +442,7 @@ export default function Home() {
               </div>
             )}
 
-            {/* STEP 3A: Security Question / PIN Answer Form */}
+            {/* STEP 3A: Security Question Answer Form */}
             {recStep === "security" && (
               <form onSubmit={handleVerifySecurity} className="flex flex-col gap-3">
                 {recUserInfo?.securityQuestion && (
@@ -455,26 +452,11 @@ export default function Home() {
                     </label>
                     <input
                       type="text"
+                      required
                       className="input-field text-sm"
                       placeholder="Tu respuesta secreta"
                       value={recAnswer}
                       onChange={e => setRecAnswer(e.target.value)}
-                    />
-                  </div>
-                )}
-
-                {recUserInfo?.hasPin && (
-                  <div className="input-group">
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 block">
-                      O tu PIN Secreto (4 dígitos)
-                    </label>
-                    <input
-                      type="password"
-                      maxLength={4}
-                      className="input-field text-sm w-32 tracking-widest text-center font-bold font-mono"
-                      placeholder="Ej. 1234"
-                      value={recPin}
-                      onChange={e => setRecPin(e.target.value.replace(/\D/g, ''))}
                     />
                   </div>
                 )}
@@ -506,7 +488,7 @@ export default function Home() {
                   </button>
                   <button
                     type="submit"
-                    disabled={recLoading || (!recAnswer && !recPin) || !recNewPassword}
+                    disabled={recLoading || !recAnswer.trim() || !recNewPassword}
                     className="btn btn-primary text-xs flex items-center gap-1"
                   >
                     {recLoading ? <Loader2 className="animate-spin" size={14} /> : "Restablecer Clave"}
