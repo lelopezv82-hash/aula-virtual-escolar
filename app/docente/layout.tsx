@@ -53,7 +53,7 @@ export default async function DocenteLayout({ children }: { children: React.Reac
     },
     {
       href: "/docente/planillas",
-      label: "Gestión Notas",
+      label: "Gestión Actividades",
       icon: <ClipboardList size={20} />,
     },
     {
