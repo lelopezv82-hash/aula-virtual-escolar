@@ -615,102 +615,195 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
 
                 return (
                   <div key={course.id} className="card w-full">
-                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
                       <BookMarked className="text-[#f98012]" /> {course.name}
                     </h2>
-                    
-                    <div className="mb-4 flex flex-col gap-3">
-                      <p className="text-sm text-muted">Administra los temas de esta asignatura.</p>
-                      <div className="flex flex-col gap-4">
-                        {courseThemes.length === 0 && themeInputCourseId !== course.id && (
-                          <span className="text-sm italic" style={{ color: 'var(--text-muted)' }}>Sin temas creados.</span>
-                        )}
-                        {courseThemes.map(t => {
-                          const linkedResources = course.resources.filter(r => r.themes && r.themes.includes(t.title));
-                          return (
-                            <div key={t.id} className="border rounded-lg p-4" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
-                              <div className="flex justify-between items-center mb-2">
-                                <h3 className="font-bold text-lg" style={{ color: '#1a56db' }}>{t.title}</h3>
-                                <div className="flex gap-2 items-center">
-                                  <button
-                                    type="button"
-                                    onClick={() => openLinkMaterialsModal(course.id, t)}
-                                    className="btn btn-primary py-1 px-3 text-xs flex items-center gap-1"
-                                  >
-                                    <BookMarked size={14} /> Vincular Materiales
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeleteTheme(t.id)}
-                                    className="p-1.5 rounded hover:bg-red-50 text-red-600 transition-colors"
-                                    title="Eliminar tema"
-                                  >
-                                    <Trash2 size={16} />
-                                  </button>
-                                </div>
-                              </div>
-                              {linkedResources.length > 0 ? (
-                                <ul className="flex flex-col gap-1.5 mt-3 pl-3 border-l-2 border-[#1a56db]">
-                                  {linkedResources.map(r => (
-                                    <li key={r.id} className="text-sm flex items-center gap-2 text-slate-700">
-                                      <span>{TYPE_ICONS[r.type] || "📁"}</span>
-                                      <span className="font-semibold">{r.title}</span>
-                                      <span className="text-[10px] text-muted uppercase ml-2 bg-slate-200 px-1.5 py-0.5 rounded">
-                                        {r.period}
-                                      </span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              ) : (
-                                <p className="text-xs text-muted italic mt-2">No hay materiales vinculados a este tema.</p>
-                              )}
-                            </div>
-                          );
-                        })}
-                        {themeInputCourseId === course.id ? (
-                          <div className="flex items-center gap-2 mt-2">
-                            <input
-                              autoFocus
-                              type="text"
-                              className="input-field py-1 px-3 text-sm"
-                              style={{ width: 250, height: 34 }}
-                              placeholder="Nombre del tema..."
-                              value={themeInputValue}
-                              onChange={e => setThemeInputValue(e.target.value)}
-                              onKeyDown={e => {
-                                if (e.key === 'Enter') { e.preventDefault(); handleCreateTheme(course.id); }
-                                if (e.key === 'Escape') { setThemeInputCourseId(null); setThemeInputValue(''); }
+                    <p className="text-sm text-muted mb-5">
+                      Administra y organiza los temas de esta asignatura agrupados por cada periodo académico.
+                    </p>
+
+                    <div className="flex flex-col gap-5">
+                      {[...periods.map(p => p.name), "Otros"].map(periodName => {
+                        // 1. Recursos y tareas de este periodo en la asignatura
+                        const periodResources = course.resources.filter(r => {
+                          if (r.type === "PLAN" || r.type === "THEME") return false;
+                          if (periodName === "Otros") return !r.period || !periods.map(p => p.name).includes(r.period);
+                          return r.period === periodName;
+                        });
+
+                        const periodTasks = (course.tasks || []).filter(t => {
+                          if (periodName === "Otros") return !t.period || !periods.map(p => p.name).includes(t.period);
+                          return t.period === periodName;
+                        });
+
+                        // 2. Temas que tienen materiales o tareas en este periodo
+                        const themesWithItemsInPeriod = courseThemes.filter(t => {
+                          const hasRes = periodResources.some(r => r.themes && r.themes.includes(t.title));
+                          const hasTask = periodTasks.some(tsk => (tsk.themes && tsk.themes.some(th => th.title === t.title)) || tsk.theme === t.title);
+                          return hasRes || hasTask;
+                        });
+
+                        // Temas sin materiales en ningún periodo (se muestran en el periodo activo o primero)
+                        const unassignedThemes = courseThemes.filter(t => {
+                          const hasAnyRes = course.resources.some(r => r.themes && r.themes.includes(t.title));
+                          const hasAnyTask = (course.tasks || []).some(tsk => (tsk.themes && tsk.themes.some(th => th.title === t.title)) || tsk.theme === t.title);
+                          return !hasAnyRes && !hasAnyTask;
+                        });
+
+                        const isFirstActivePeriod = periods.find(p => p.active)?.name === periodName || (periods.length > 0 && periods[0].name === periodName);
+
+                        const displayedThemes = [
+                          ...themesWithItemsInPeriod,
+                          ...(isFirstActivePeriod ? unassignedThemes : [])
+                        ];
+
+                        const uniqueDisplayedThemes = Array.from(new Set(displayedThemes.map(t => t.id)))
+                          .map(id => displayedThemes.find(t => t.id === id)!);
+
+                        const isActive = isPeriodActiveHelper(periodName);
+                        const inputKey = `${course.id}-${periodName}`;
+
+                        return periodSectionWrapper(
+                          periodName,
+                          isActive,
+                          periodName !== "Otros" && (
+                            <button
+                              onClick={() => {
+                                setThemeInputCourseId(inputKey);
+                                setThemeInputValue("");
                               }}
-                            />
-                            <button
-                              type="button"
-                              disabled={creatingTheme || !themeInputValue.trim()}
-                              onClick={() => handleCreateTheme(course.id)}
-                              className="btn btn-primary flex items-center gap-1"
-                              style={{ padding: '4px 12px', fontSize: '13px', height: 34 }}
+                              className="btn btn-primary py-1 px-2.5 text-[11px] h-auto flex items-center gap-1"
                             >
-                              {creatingTheme ? <Loader2 size={14} className="animate-spin" /> : 'Guardar'}
+                              <Plus size={12} /> Nuevo Tema
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => { setThemeInputCourseId(null); setThemeInputValue(''); }}
-                              className="btn btn-secondary flex items-center"
-                              style={{ padding: '4px 8px', height: 34 }}
-                            >
-                              <X size={14} />
-                            </button>
+                          ),
+                          <div className="flex flex-col gap-3">
+                            {uniqueDisplayedThemes.length === 0 && themeInputCourseId !== inputKey ? (
+                              <p className="text-muted text-xs italic p-2">No hay temas con contenido en este periodo.</p>
+                            ) : (
+                              uniqueDisplayedThemes.map(t => {
+                                const linkedPeriodRes = periodResources.filter(r => r.themes && r.themes.includes(t.title));
+                                const linkedPeriodTasks = periodTasks.filter(tsk => (tsk.themes && tsk.themes.some(th => th.title === t.title)) || tsk.theme === t.title);
+
+                                return (
+                                  <div
+                                    key={t.id}
+                                    className="border rounded-lg p-4"
+                                    style={{ borderColor: "var(--border-color)", background: "var(--bg-primary)" }}
+                                  >
+                                    <div className="flex justify-between items-center mb-2">
+                                      <h3 className="font-bold text-base" style={{ color: "#1a56db" }}>
+                                        {t.title}
+                                      </h3>
+                                      <div className="flex gap-2 items-center">
+                                        <button
+                                          type="button"
+                                          onClick={() => openLinkMaterialsModal(course.id, t)}
+                                          className="btn btn-primary py-1 px-3 text-xs flex items-center gap-1"
+                                        >
+                                          <BookMarked size={14} /> Vincular Materiales
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDeleteTheme(t.id)}
+                                          className="p-1.5 rounded hover:bg-red-50 text-red-600 transition-colors"
+                                          title="Eliminar tema"
+                                        >
+                                          <Trash2 size={16} />
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    {linkedPeriodRes.length > 0 || linkedPeriodTasks.length > 0 ? (
+                                      <ul className="flex flex-col gap-1.5 mt-2.5 pl-3 border-l-2 border-[#1a56db]">
+                                        {linkedPeriodRes.map(r => (
+                                          <li key={r.id} className="text-sm flex items-center gap-2 text-slate-700 dark:text-slate-200">
+                                            <span>{TYPE_ICONS[r.type] || "📁"}</span>
+                                            <span className="font-semibold">{r.title}</span>
+                                            <span className="text-[10px] text-muted uppercase ml-2 bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded">
+                                              {r.period}
+                                            </span>
+                                          </li>
+                                        ))}
+                                        {linkedPeriodTasks.map(tsk => (
+                                          <li key={tsk.id} className="text-sm flex items-center gap-2 text-slate-700 dark:text-slate-200">
+                                            <span>📝</span>
+                                            <span className="font-semibold">{tsk.title}</span>
+                                            <span className="text-[10px] text-purple-700 bg-purple-100 dark:bg-purple-900/40 px-1.5 py-0.5 rounded ml-2">
+                                              Actividad
+                                            </span>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    ) : (
+                                      <p className="text-xs text-muted italic mt-1">
+                                        No hay materiales vinculados a este tema en este periodo.
+                                      </p>
+                                    )}
+                                  </div>
+                                );
+                              })
+                            )}
+
+                            {/* Input para agregar nuevo tema en este periodo */}
+                            {themeInputCourseId === inputKey ? (
+                              <div className="flex items-center gap-2 mt-2">
+                                <input
+                                  autoFocus
+                                  type="text"
+                                  className="input-field py-1 px-3 text-sm"
+                                  style={{ width: 250, height: 34 }}
+                                  placeholder="Nombre del nuevo tema..."
+                                  value={themeInputValue}
+                                  onChange={e => setThemeInputValue(e.target.value)}
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      handleCreateTheme(course.id);
+                                    }
+                                    if (e.key === 'Escape') {
+                                      setThemeInputCourseId(null);
+                                      setThemeInputValue('');
+                                    }
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  disabled={creatingTheme || !themeInputValue.trim()}
+                                  onClick={() => handleCreateTheme(course.id)}
+                                  className="btn btn-primary flex items-center gap-1"
+                                  style={{ padding: '4px 12px', fontSize: '13px', height: 34 }}
+                                >
+                                  {creatingTheme ? <Loader2 size={14} className="animate-spin" /> : 'Guardar'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setThemeInputCourseId(null);
+                                    setThemeInputValue('');
+                                  }}
+                                  className="btn btn-secondary flex items-center"
+                                  style={{ padding: '4px 8px', height: 34 }}
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setThemeInputCourseId(inputKey);
+                                  setThemeInputValue('');
+                                }}
+                                className="flex items-center justify-center gap-1 px-3 py-1.5 mt-1 rounded-lg text-xs font-semibold border border-dashed transition-colors hover:border-[#f98012] hover:text-[#f98012]"
+                                style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)', width: 'fit-content' }}
+                              >
+                                <Plus size={13} /> + Nuevo Tema
+                              </button>
+                            )}
                           </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => { setThemeInputCourseId(course.id); setThemeInputValue(''); }}
-                            className="flex items-center justify-center gap-1 px-3 py-2 mt-2 rounded-lg text-sm font-semibold border border-dashed transition-colors hover:border-[#f98012] hover:text-[#f98012]"
-                            style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)', maxWidth: '250px' }}
-                          >
-                            <Plus size={14} /> Nuevo Tema
-                          </button>
-                        )}
-                      </div>
+                        );
+                      })}
                     </div>
                   </div>
                 );
