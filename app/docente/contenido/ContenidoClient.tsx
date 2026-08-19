@@ -639,14 +639,14 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                         // 2. Temas que tienen materiales o tareas en este periodo
                         const themesWithItemsInPeriod = courseThemes.filter(t => {
                           const hasRes = periodResources.some(r => r.themes && r.themes.includes(t.title));
-                          const hasTask = periodTasks.some(tsk => (tsk.themes && tsk.themes.some(th => th.title === t.title)) || tsk.theme === t.title);
+                          const hasTask = periodTasks.some(tsk => (tsk.themes && tsk.themes.some(th => th === t.title)) || tsk.theme === t.title);
                           return hasRes || hasTask;
                         });
 
                         // Temas sin materiales en ningún periodo (se muestran en el periodo activo o primero)
                         const unassignedThemes = courseThemes.filter(t => {
                           const hasAnyRes = course.resources.some(r => r.themes && r.themes.includes(t.title));
-                          const hasAnyTask = (course.tasks || []).some(tsk => (tsk.themes && tsk.themes.some(th => th.title === t.title)) || tsk.theme === t.title);
+                          const hasAnyTask = (course.tasks || []).some(tsk => (tsk.themes && tsk.themes.some(th => th === t.title)) || tsk.theme === t.title);
                           return !hasAnyRes && !hasAnyTask;
                         });
 
@@ -683,7 +683,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                             ) : (
                               uniqueDisplayedThemes.map(t => {
                                 const linkedPeriodRes = periodResources.filter(r => r.themes && r.themes.includes(t.title));
-                                const linkedPeriodTasks = periodTasks.filter(tsk => (tsk.themes && tsk.themes.some(th => th.title === t.title)) || tsk.theme === t.title);
+                                const linkedPeriodTasks = periodTasks.filter(tsk => (tsk.themes && tsk.themes.some(th => th === t.title)) || tsk.theme === t.title);
 
                                 return (
                                   <div
