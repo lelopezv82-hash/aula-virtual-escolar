@@ -419,10 +419,9 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                 <label className="text-xs font-bold mb-1">Periodo *</label>
                 <select className="input-field py-1.5 px-3 text-xs" value={resourceForm.period}
                   onChange={e => setResourceForm({ ...resourceForm, period: e.target.value })} required>
-                  {periods.filter(p => p.active).map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
-                  {resourceForm.period && !periods.find(p => p.name === resourceForm.period)?.active && (
-                    <option value={resourceForm.period}>{resourceForm.period}</option>
-                  )}
+                  {periods.map(p => (
+                    <option key={p.id} value={p.name}>{p.name}</option>
+                  ))}
                 </select>
               </div>
             </div>
