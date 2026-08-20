@@ -62,7 +62,7 @@ export async function POST(request: Request) {
 
     // Clear any pending password reset requests so the teacher's banner disappears
     await prisma.passwordResetRequest.updateMany({
-      where: { userId: user.id, status: 'PENDING' },
+      where: { studentId: user.id, status: 'PENDING' },
       data: { status: 'COMPLETED' }
     });
 
