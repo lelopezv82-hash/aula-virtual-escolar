@@ -188,21 +188,6 @@ export default async function CursoRecursosPage({
     }
   }
 
-  for (const t of tasksWithAttachment) {
-    if (t.attachmentUrl && !seenUrls.has(t.attachmentUrl)) {
-      seenUrls.add(t.attachmentUrl);
-      const cleanType = getCleanFileType(t.attachmentUrl, "GUIA");
-      unifiedList.push({
-        id: `task-att-${t.id}`,
-        title: `Guía: ${t.title}`,
-        type: cleanType,
-        url: t.attachmentUrl,
-        createdAt: t.createdAt,
-        isLink: false  // task guide attachments are always downloadable
-      });
-    }
-  }
-
   unifiedList.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
   return (
@@ -315,7 +300,7 @@ export default async function CursoRecursosPage({
                       borderRadius: "6px",
                       fontSize: "0.82rem",
                       fontWeight: 700,
-                      backgroundColor: resource.isLink ? "#0284c7" : "#16a34a",
+                      backgroundColor: resource.isLink ? "#0284c7" : "#f97316",
                       color: "#ffffff",
                       textDecoration: "none",
                       border: "none",
