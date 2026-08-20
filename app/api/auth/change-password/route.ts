@@ -60,6 +60,12 @@ export async function POST(request: Request) {
       }
     });
 
+    // Clear any pending password reset requests so the teacher's banner disappears
+    await prisma.passwordResetRequest.updateMany({
+      where: { userId: user.id, status: 'PENDING' },
+      data: { status: 'COMPLETED' }
+    });
+
     // Create a new JWT with updated mustChangePassword status
     const newToken = await new SignJWT({
       id: user.id,
