@@ -223,35 +223,6 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
 
-        <div className="input-group">
-          <label className="font-semibold text-xs mb-1.5 block">Vincular con Contenido / Materiales</label>
-          {allResources.length === 0 ? (
-            <p className="text-xs text-muted italic">No hay recursos de contenido creados en esta asignatura.</p>
-          ) : (
-            <div className="border rounded-lg p-3 max-h-[160px] overflow-y-auto flex flex-col gap-2 bg-slate-50 dark:bg-slate-900" style={{ borderColor: 'var(--border-color)' }}>
-              {allResources.filter(r => r.type !== 'THEME').map(r => {
-                const isChecked = selectedResourceIds.includes(r.id);
-                return (
-                  <label key={r.id} className="flex items-center gap-2 text-sm font-medium cursor-pointer hover:text-primary">
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => {
-                        const newIds = isChecked
-                          ? selectedResourceIds.filter(id => id !== r.id)
-                          : [...selectedResourceIds, r.id];
-                        setSelectedResourceIds(newIds);
-                      }}
-                      className="rounded text-[#f98012] focus:ring-[#f98012]"
-                    />
-                    <span>{r.title} ({r.type})</span>
-                  </label>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
         <div className="flex gap-4">
           <div className="input-group flex-1">
             <label htmlFor="period">Periodo *</label>

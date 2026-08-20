@@ -2426,52 +2426,6 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 </>
               )}
 
-              {/* Vincular con Recursos/Guías — hidden for SER */}
-              {addModal.type !== "SER" && (
-                <div className="input-group">
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1.5">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                    Vincular con Recurso o Guía (Opcional)
-                  </label>
-                  {loadingResources ? (
-                    <div className="flex items-center gap-2 text-xs text-gray-400 py-2">
-                      <Loader2 size={13} className="animate-spin" /> Cargando recursos...
-                    </div>
-                  ) : modalResources.length === 0 ? (
-                    <div className="border border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-3 text-center">
-                      <p className="text-[11px] text-gray-400 dark:text-gray-500">
-                        No hay recursos creados para esta asignatura. Ve a{" "}
-                        <a href="/docente/contenido" target="_blank" className="text-[#f97316] hover:underline font-bold">Gestión Contenido</a>{" "}
-                        para agregar materiales.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg max-h-[140px] overflow-y-auto flex flex-col divide-y divide-gray-100 dark:divide-gray-800">
-                      {modalResources.map(r => {
-                        const isChecked = newTaskResourceIds.includes(r.id);
-                        const typeLabel = r.type === "GUIDE" ? "Guía" : r.type === "VIDEO" ? "Video" : r.type === "LINK" ? "Enlace" : r.type;
-                        return (
-                          <label key={r.id} className={`flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-orange-50 dark:hover:bg-orange-900/10 transition-colors ${ isChecked ? "bg-orange-50 dark:bg-orange-900/10" : "" }`}>
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() => {
-                                setNewTaskResourceIds(prev =>
-                                  isChecked ? prev.filter(id => id !== r.id) : [...prev, r.id]
-                                );
-                              }}
-                              className="w-3.5 h-3.5 rounded text-[#f97316] focus:ring-[#f97316] cursor-pointer"
-                            />
-                            <span className="text-[11px] font-semibold text-gray-800 dark:text-gray-200 flex-1 truncate">{r.title}</span>
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300">{typeLabel}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-
             </div>
 
             {/* Footer Buttons */}
