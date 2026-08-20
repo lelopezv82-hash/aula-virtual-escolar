@@ -110,13 +110,13 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
 
   const openNewResourceModal = (courseId?: string, periodName?: string, defaultType?: string) => {
     setError("");
-    setEditingResource(null);
+    const activePeriodName = periods.find(p => p.active)?.name || periods[0]?.name || "Periodo 1";
     setResourceForm({
       courseId: courseId || courses[0]?.id || "",
       title: "",
       type: defaultType || "PDF",
       link: "",
-      period: periodName || periods[0]?.name || "Periodo 1",
+      period: periodName || activePeriodName,
       groupIds: [],
       publishAt: ""
     });
@@ -270,7 +270,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                   </h3>
 
                   <div className="flex flex-col gap-5">
-                    {periods.map(p => p.name).map(periodName => {
+                    {(periods.filter(p => p.active).length > 0 ? periods.filter(p => p.active) : periods).map(p => p.name).map(periodName => {
                       const periodRes = course.resources.filter(r => {
                         if (r.type === "PLAN") return false;
                         if (r.type === "THEME") return false;
@@ -419,7 +419,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                 <label className="text-xs font-bold mb-1">Periodo *</label>
                 <select className="input-field py-1.5 px-3 text-xs" value={resourceForm.period}
                   onChange={e => setResourceForm({ ...resourceForm, period: e.target.value })} required>
-                  {periods.map(p => (
+                  {(periods.filter(p => p.active).length > 0 ? periods.filter(p => p.active) : periods).map(p => (
                     <option key={p.id} value={p.name}>{p.name}</option>
                   ))}
                 </select>
