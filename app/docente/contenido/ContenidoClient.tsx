@@ -247,7 +247,6 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
               <FileText className="text-[#f98012]" /> Recursos y Guías de Asignatura
             </h2>
             <div className="flex items-center gap-4 flex-wrap">
-              <GDriveEmailDisplay context="materials" />
               <GDriveVisibilityToggle context="materials" />
               <button
                 id="btn-nuevo-recurso"
