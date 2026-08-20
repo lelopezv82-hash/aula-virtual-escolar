@@ -168,6 +168,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [newTaskLateSubmissionUntil, setNewTaskLateSubmissionUntil] = useState("");
   const [newTaskExternalUrl, setNewTaskExternalUrl] = useState("");
   const [newTaskFile, setNewTaskFile] = useState<File | null>(null);
+  const [existingAttachmentUrl, setExistingAttachmentUrl] = useState<string | null>(null);
   const [addingTask,  setAddingTask]  = useState(false);
 
   // ── Resource linking in modal ──
@@ -541,6 +542,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     setNewTaskAllowLateSubmission(false);
     setNewTaskLateSubmissionUntil("");
     setNewTaskExternalUrl("");
+    setExistingAttachmentUrl(null);
     setNewTaskFile(null);
     setNewTaskResourceIds([]);
     // Fetch resources and themes for the selected course
@@ -638,7 +640,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       setNewTaskPublishAt(toLocal(t.publishAt));
       setNewTaskAllowLateSubmission(!!t.allowLateSubmission);
       setNewTaskLateSubmissionUntil(toLocal(t.lateSubmissionUntil));
-      setNewTaskExternalUrl(t.attachmentUrl || "");
+      setExistingAttachmentUrl(t.attachmentUrl || null);
+      setNewTaskExternalUrl("");
       setNewTaskFile(null);
       setNewTaskResourceIds((t.resources || []).map((r: any) => r.id));
       // Fetch available resources and themes for course
@@ -2405,6 +2408,21 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                       Archivo Adjunto (Opcional)
                     </label>
+                    {existingAttachmentUrl && !newTaskFile && (
+                      <div className="flex items-center justify-between p-2.5 mb-2 rounded-lg bg-orange-50/50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 text-xs">
+                        <span className="font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-1.5 truncate">
+                          📎 Guía adjunta actual
+                        </span>
+                        <a
+                          href={existingAttachmentUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[#f97316] hover:underline font-bold"
+                        >
+                          Ver archivo
+                        </a>
+                      </div>
+                    )}
                     <div 
                       className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-4 text-center hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors cursor-pointer relative"
                       onClick={() => document.getElementById("modal-file-upload")?.click()}
@@ -2419,7 +2437,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                       </svg>
                       <span className="text-xs font-bold text-gray-650 dark:text-gray-350 block">
-                        {newTaskFile ? newTaskFile.name : "Selecciona una guía o archivo"}
+                        {newTaskFile ? newTaskFile.name : (existingAttachmentUrl ? "Cambiar guía o archivo..." : "Selecciona una guía o archivo")}
                       </span>
                     </div>
                   </div>
