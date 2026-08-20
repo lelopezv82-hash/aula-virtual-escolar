@@ -254,31 +254,6 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
 
         <div className="flex gap-4">
           <div className="input-group flex-1">
-            <label className="font-semibold text-xs mb-1.5 block">Temas Asociados</label>
-            <div className="border rounded-lg p-2.5 max-h-[120px] overflow-y-auto flex flex-col gap-1.5 bg-slate-50 dark:bg-slate-900" style={{ borderColor: 'var(--border-color)' }}>
-              {[...courseThemes].sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' })).map(t => {
-                const isChecked = selectedThemes.includes(t.title);
-                return (
-                  <label key={t.id} className="flex items-center gap-2 text-sm font-medium cursor-pointer hover:text-primary">
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => {
-                        const newThemes = isChecked
-                          ? selectedThemes.filter(title => title !== t.title)
-                          : [...selectedThemes, t.title];
-                        setSelectedThemes(newThemes);
-                      }}
-                      className="rounded text-[#f98012] focus:ring-[#f98012]"
-                    />
-                    <span>{t.title}</span>
-                  </label>
-                );
-              })}
-              {courseThemes.length === 0 && <span className="text-xs text-muted italic">No hay temas creados en esta asignatura.</span>}
-            </div>
-          </div>
-          <div className="input-group flex-1">
             <label htmlFor="period">Periodo *</label>
             <select
               id="period"

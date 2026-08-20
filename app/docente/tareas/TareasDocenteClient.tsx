@@ -157,23 +157,9 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
   return (
     <div className="flex flex-col gap-6">
       {/* Global Filter Toolbar */}
-      {allTasks.length > 0 && (uniqueThemes.length > 0 || uniquePeriods.length > 0) && (
+      {allTasks.length > 0 && uniquePeriods.length > 0 && (
         <div className="card p-4 flex flex-wrap gap-4 items-center" style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-color)" }}>
           <span className="font-semibold text-sm text-muted">Filtrar Tareas:</span>
-          {uniqueThemes.length > 0 && (
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-muted font-medium">Tema:</label>
-              <select 
-                className="input-field py-1 px-3 text-xs h-auto" 
-                value={selectedTheme} 
-                onChange={e => setSelectedTheme(e.target.value)}
-                style={{ width: "160px" }}
-              >
-                <option value="">Todos los temas</option>
-                {uniqueThemes.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-          )}
           {uniquePeriods.length > 0 && (
             <div className="flex items-center gap-2">
               <label className="text-xs text-muted font-medium">Periodo:</label>
@@ -252,7 +238,6 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                                 <th className="py-2 px-4 font-medium text-xs">Título</th>
                                 <th className="py-2 px-4 font-medium text-xs">Grado</th>
                                 <th className="py-2 px-4 font-medium text-xs">Grupo</th>
-                                <th className="py-2 px-4 font-medium text-xs">Tema</th>
                                 <th className="py-2 px-4 font-medium text-xs">Porcentaje</th>
                                 <th className="py-2 px-4 font-medium text-xs">Fecha Límite</th>
                                 <th className="py-2.5 px-4 font-bold text-center text-xs">Estado</th>
@@ -283,15 +268,6 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                                   </td>
                                   <td className="py-3 px-4 text-xs text-slate-600 dark:text-slate-400">{(task as any).groups?.[0]?.grade?.name || "Sin Grado"}</td>
                                   <td className="py-3 px-4 text-xs text-slate-600 dark:text-slate-400">{(task as any).groups?.map((g: any) => g.name).join(", ") || "Sin Grupo"}</td>
-                                  <td className="py-3 px-4">
-                                    {task.theme ? (
-                                      <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: 'rgba(37, 99, 235, 0.1)', color: 'var(--primary-color)' }}>
-                                        {task.theme}
-                                      </span>
-                                    ) : (
-                                      <span className="text-xs text-muted italic">-</span>
-                                    )}
-                                  </td>
                                   <td className="py-3 px-4">
                                     <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
                                       {task.weight !== undefined && task.weight !== null ? task.weight : 0}%

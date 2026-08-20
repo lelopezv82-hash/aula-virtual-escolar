@@ -2181,68 +2181,38 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 </div>
               </div>
 
-              {/* Row 2: Título & Temas */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="input-group">
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    {addModal.type === "SER"
-                      ? "Nombre de la Evaluación Actitudinal *"
+              {/* Row 2: Título */}
+              <div className="input-group">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  {addModal.type === "SER"
+                    ? "Nombre de la Evaluación Actitudinal *"
+                    : addModal.type === "EXAM"
+                    ? "Título del Examen *"
+                    : addModal.type === "TASK"
+                    ? "Título de la Tarea *"
+                    : addModal.type === "FINAL"
+                    ? "Título del Examen Final *"
+                    : "Título de la Evaluación *"}
+                </label>
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder={
+                    addModal.type === "SER"
+                      ? "Ej. Coevaluación, Autoevaluación"
                       : addModal.type === "EXAM"
-                      ? "Título del Examen *"
+                      ? "Ej. Taller de cinemática"
                       : addModal.type === "TASK"
-                      ? "Título de la Tarea *"
+                      ? "Ej. Taller de Comprensión"
                       : addModal.type === "FINAL"
-                      ? "Título del Examen Final *"
-                      : "Título de la Evaluación *"}
-                  </label>
-                  <input
-                    type="text"
-                    autoFocus
-                    placeholder={
-                      addModal.type === "SER"
-                        ? "Ej. Coevaluación, Autoevaluación"
-                        : addModal.type === "EXAM"
-                        ? "Ej. Taller de cinemática"
-                        : addModal.type === "TASK"
-                        ? "Ej. Taller de Comprensión"
-                        : addModal.type === "FINAL"
-                        ? "Ej. Examen Final"
-                        : "Ej. Asistencia Semana 1"
-                    }
-                    value={newTaskName}
-                    onChange={e => setNewTaskName(e.target.value)}
-                    className="input-field w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
-                    required
-                  />
-                </div>
-                <div className="input-group">
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Temas Asociados</label>
-                  <div className="border rounded-lg p-2 max-h-[90px] overflow-y-auto flex flex-col gap-1.5 bg-slate-50 dark:bg-slate-900" style={{ borderColor: "var(--border-color)" }}>
-                    {[...planillasThemes].sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: "base" })).map(t => {
-                      const isChecked = newTaskSelectedThemes.includes(t.title);
-                      return (
-                        <label key={t.id} className="flex items-center gap-2 text-[11px] font-bold cursor-pointer hover:text-primary">
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => {
-                              setNewTaskSelectedThemes(isChecked
-                                ? newTaskSelectedThemes.filter(title => title !== t.title)
-                                : [...newTaskSelectedThemes, t.title]
-                              );
-                            }}
-                            className="rounded w-3.5 h-3.5"
-                            style={{ accentColor: "#f98012" }}
-                          />
-                          <span>{t.title}</span>
-                        </label>
-                      );
-                    })}
-                    {planillasThemes.length === 0 && (
-                      <span className="text-[10px] text-gray-400 italic">No hay temas creados en esta asignatura.<br/>Créalos desde Gestión de Contenido.</span>
-                    )}
-                  </div>
-                </div>
+                      ? "Ej. Examen Final"
+                      : "Ej. Asistencia Semana 1"
+                  }
+                  value={newTaskName}
+                  onChange={e => setNewTaskName(e.target.value)}
+                  className="input-field w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
+                  required
+                />
               </div>
 
               {/* Row 3: Porcentaje & Fecha */}
