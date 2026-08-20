@@ -73,8 +73,8 @@ export async function POST(request: Request) {
       }
     }
 
-    if (!courseId || !title || !type || !theme || !period || !groupIds || groupIds.length === 0) {
-      return NextResponse.json({ error: 'Faltan datos obligatorios (título, tipo, tema, periodo y al menos un grupo)' }, { status: 400 });
+    if (!courseId || !title || !type || !period || !groupIds || groupIds.length === 0) {
+      return NextResponse.json({ error: 'Faltan datos obligatorios (título, tipo, periodo y al menos un grupo)' }, { status: 400 });
     }
 
     const course = await prisma.course.findFirst({
@@ -253,8 +253,8 @@ export async function PATCH(request: Request) {
       }
     }
 
-    if (!id || !title || !type || !theme || !period || !groupIds || groupIds.length === 0) {
-      return NextResponse.json({ error: 'Faltan datos obligatorios (id, título, tipo, tema, periodo y al menos un grupo)' }, { status: 400 });
+    if (!id || !title || !type || !period || !groupIds || groupIds.length === 0) {
+      return NextResponse.json({ error: 'Faltan datos obligatorios (id, título, tipo, periodo y al menos un grupo)' }, { status: 400 });
     }
 
     const existingResource = await prisma.resource.findUnique({
