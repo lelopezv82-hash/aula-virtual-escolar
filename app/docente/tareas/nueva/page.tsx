@@ -318,12 +318,9 @@ export default function NuevaTareaPage() {
                 required
               >
                 <option value="" disabled>Selecciona periodo</option>
-                {activePeriods.map(p => (
+                {periods.filter(p => p.active || p.name === period).map(p => (
                   <option key={p.id} value={p.name}>{p.name}</option>
                 ))}
-                {period && !activePeriods.find(p => p.name === period) && (
-                  <option value={period}>{period}</option>
-                )}
               </select>
             )}
           </div>
