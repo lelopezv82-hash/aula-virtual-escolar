@@ -199,9 +199,6 @@ export default async function CursoRecursosPage({
         </h2>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
           Archivos, guías y enlaces compartidos para apoyar tu aprendizaje.
-          {activePeriodName && (
-            <span className="ml-2 font-semibold text-orange-600">📅 {activePeriodName}</span>
-          )}
         </p>
       </div>
 
