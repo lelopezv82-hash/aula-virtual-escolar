@@ -26,6 +26,7 @@ const TYPE_ICONS: Record<string, string> = {
   LINK: "🔗",
   ENLACE: "🔗",
   DRIVE: "📁",
+  GUIA: "📋",
   ZIP: "📦",
   RAR: "📦"
 };
@@ -39,7 +40,7 @@ function getCleanFileType(url: string, rawType?: string): string {
     if (upperUrl.includes("PRESENTATION")) return "PPT";
     return "DRIVE";
   }
-  if (upperUrl.includes("YOUTUBE.COM") || upperUrl.includes("YOU_TU.BE")) return "VIDEO";
+  if (upperUrl.includes("YOUTUBE.COM") || upperUrl.includes("YOUTU.BE")) return "VIDEO";
   if (rawType && rawType.length <= 6 && !rawType.includes("/") && !rawType.includes(".")) {
     return rawType.toUpperCase();
   }
@@ -50,6 +51,28 @@ function getCleanFileType(url: string, rawType?: string): string {
   }
   if (url.startsWith("http")) return "ENLACE";
   return (rawType && rawType.length <= 6) ? rawType.toUpperCase() : "ARCHIVO";
+}
+
+// Returns true if the URL should be "Abrir enlace", false if it should be "Descargar"
+function isPureLink(url: string, rawType?: string): boolean {
+  const type = (rawType || "").toUpperCase();
+  if (type === "LINK" || type === "ENLACE") return true;
+  if (type === "VIDEO") return true;
+  const upperUrl = url.toUpperCase();
+  // Google Drive file links are downloadable
+  if (upperUrl.includes("DRIVE.GOOGLE.COM/FILE/D/") || upperUrl.includes("DRIVE.GOOGLE.COM/UC?")) return false;
+  // Docs/Sheets/Slides are opened in the browser
+  if (upperUrl.includes("DOCS.GOOGLE.COM") || upperUrl.includes("SHEETS.GOOGLE.COM") || upperUrl.includes("SLIDES.GOOGLE.COM")) return true;
+  if (upperUrl.includes("YOUTUBE.COM") || upperUrl.includes("YOUTU.BE")) return true;
+  // Supabase storage = downloadable file
+  if (upperUrl.includes("SUPABASE") || upperUrl.includes("/STORAGE/V1/")) return false;
+  if (url.startsWith("http")) {
+    const ext = url.split("?")[0].split(".").pop()?.toUpperCase();
+    const knownExts = ["PDF","DOCX","DOC","PPTX","PPT","XLSX","XLS","PNG","JPG","JPEG","ZIP","RAR","MP4","MP3"];
+    if (ext && knownExts.includes(ext)) return false;
+    return true;
+  }
+  return false;
 }
 
 export default async function CursoRecursosPage({
@@ -95,13 +118,21 @@ export default async function CursoRecursosPage({
     );
   }
 
+  // Get the currently active period
+  const activePeriod = await prisma.period.findFirst({
+    where: { active: true },
+    select: { name: true }
+  });
+  const activePeriodName = activePeriod?.name || null;
+
   const now = new Date();
 
-  // Fetch standalone course resources
+  // Fetch standalone resources for this course filtered to active period
   const standaloneResources = await prisma.resource.findMany({
     where: {
       courseId: id,
       active: true,
+      ...(activePeriodName ? { period: activePeriodName } : {}),
       AND: [
         { OR: [{ publishAt: null }, { publishAt: { lte: now } }] },
         ...(studentGroupId
@@ -113,24 +144,19 @@ export default async function CursoRecursosPage({
     include: { groups: true },
   });
 
-  // Fetch tasks with attached resources or guides
-  const tasksWithMaterials = await prisma.task.findMany({
+  // Fetch tasks that have an attached guide file, filtered to active period
+  const tasksWithAttachment = await prisma.task.findMany({
     where: {
       courseId: id,
       active: true,
-      OR: [
-        { attachmentUrl: { not: null } },
-        { resources: { some: {} } }
-      ],
+      ...(activePeriodName ? { period: activePeriodName } : {}),
+      attachmentUrl: { not: null },
       AND: [
         { OR: [{ publishAt: null }, { publishAt: { lte: now } }] },
         ...(studentGroupId
           ? [{ OR: [{ groups: { none: {} } }, { groups: { some: { id: studentGroupId } } }] }]
           : [])
       ]
-    },
-    include: {
-      resources: true
     },
     orderBy: { createdAt: "desc" }
   });
@@ -141,12 +167,12 @@ export default async function CursoRecursosPage({
     type: string;
     url: string;
     createdAt: Date;
+    isLink: boolean;
   };
 
   const unifiedList: SimpleResource[] = [];
   const seenUrls = new Set<string>();
 
-  // Add standalone resources
   for (const r of standaloneResources) {
     if (r.url && !seenUrls.has(r.url)) {
       seenUrls.add(r.url);
@@ -156,13 +182,13 @@ export default async function CursoRecursosPage({
         title: r.title,
         type: cleanType,
         url: r.url,
-        createdAt: r.createdAt
+        createdAt: r.createdAt,
+        isLink: isPureLink(r.url, r.type)
       });
     }
   }
 
-  // Add task materials / guides
-  for (const t of tasksWithMaterials) {
+  for (const t of tasksWithAttachment) {
     if (t.attachmentUrl && !seenUrls.has(t.attachmentUrl)) {
       seenUrls.add(t.attachmentUrl);
       const cleanType = getCleanFileType(t.attachmentUrl, "GUIA");
@@ -171,27 +197,16 @@ export default async function CursoRecursosPage({
         title: `Guía: ${t.title}`,
         type: cleanType,
         url: t.attachmentUrl,
-        createdAt: t.createdAt
+        createdAt: t.createdAt,
+        isLink: false  // task guide attachments are always downloadable
       });
-    }
-    for (const res of t.resources) {
-      if (res.url && !seenUrls.has(res.url)) {
-        seenUrls.add(res.url);
-        const cleanType = getCleanFileType(res.url, res.type);
-        unifiedList.push({
-          id: `task-res-${res.id}`,
-          title: res.title,
-          type: cleanType,
-          url: res.url,
-          createdAt: res.createdAt
-        });
-      }
     }
   }
 
+  unifiedList.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
   return (
     <div className="flex flex-col gap-5">
-      {/* Section Header */}
       <div>
         <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
           <BookOpen size={22} className="text-orange-600" />
@@ -199,10 +214,12 @@ export default async function CursoRecursosPage({
         </h2>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
           Archivos, guías y enlaces compartidos para apoyar tu aprendizaje.
+          {activePeriodName && (
+            <span className="ml-2 font-semibold text-orange-600">📅 {activePeriodName}</span>
+          )}
         </p>
       </div>
 
-      {/* Direct Resources List */}
       {unifiedList.length === 0 ? (
         <div style={{
           background: "#fff",
@@ -215,7 +232,7 @@ export default async function CursoRecursosPage({
         }}>
           <BookOpen size={44} style={{ margin: "0 auto 0.75rem auto", opacity: 0.4 }} />
           <h3 style={{ fontSize: "1rem", fontWeight: 700, color: "#333", marginBottom: "0.25rem" }}>
-            No hay materiales disponibles en esta asignatura
+            No hay materiales disponibles en este periodo
           </h3>
           <p style={{ fontSize: "0.85rem", margin: 0 }}>
             Los documentos, guías de actividades y enlaces que asigne el docente aparecerán aquí.
@@ -234,13 +251,7 @@ export default async function CursoRecursosPage({
           boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
         }}>
           {unifiedList.map((resource) => {
-            const isLink = resource.type.toUpperCase() === "LINK" ||
-              resource.type.toUpperCase() === "ENLACE" ||
-              resource.type.toUpperCase() === "DRIVE" ||
-              resource.url.startsWith("http");
-
             const iconChar = TYPE_ICONS[resource.type.toUpperCase()] || "📄";
-
             return (
               <div
                 key={resource.id}
@@ -270,7 +281,6 @@ export default async function CursoRecursosPage({
                   }}>
                     {iconChar}
                   </div>
-
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <h4
                       style={{
@@ -285,6 +295,9 @@ export default async function CursoRecursosPage({
                     >
                       {resource.title}
                     </h4>
+                    <p style={{ margin: 0, fontSize: "0.75rem", color: "#94a3b8", marginTop: "0.15rem" }}>
+                      {resource.type}
+                    </p>
                   </div>
                 </div>
 
@@ -302,7 +315,7 @@ export default async function CursoRecursosPage({
                       borderRadius: "6px",
                       fontSize: "0.82rem",
                       fontWeight: 700,
-                      backgroundColor: "#0284c7",
+                      backgroundColor: resource.isLink ? "#0284c7" : "#16a34a",
                       color: "#ffffff",
                       textDecoration: "none",
                       border: "none",
@@ -310,10 +323,10 @@ export default async function CursoRecursosPage({
                       cursor: "pointer",
                       whiteSpace: "nowrap"
                     }}
-                    title={isLink ? "Abrir enlace" : "Descargar archivo"}
+                    title={resource.isLink ? "Abrir enlace" : "Descargar archivo"}
                   >
-                    {isLink ? <LinkIcon size={14} color="#ffffff" /> : <Download size={14} color="#ffffff" />}
-                    <span style={{ color: "#ffffff" }}>{isLink ? "Abrir enlace" : "Descargar"}</span>
+                    {resource.isLink ? <LinkIcon size={14} color="#ffffff" /> : <Download size={14} color="#ffffff" />}
+                    <span style={{ color: "#ffffff" }}>{resource.isLink ? "Abrir enlace" : "Descargar"}</span>
                   </a>
                 </div>
               </div>
