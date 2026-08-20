@@ -56,24 +56,6 @@ export default async function CursoDescripcionPage({
 
   const now = new Date();
 
-  // Fetch all resources
-  const resources = await prisma.resource.findMany({
-    where: {
-      courseId: id,
-      active: true,
-      AND: [
-        { OR: [{ publishAt: null }, { publishAt: { lte: now } }] },
-        ...(studentGroupId
-          ? [{ OR: [{ groups: { none: {} } }, { groups: { some: { id: studentGroupId } } }] }]
-          : [])
-      ],
-    },
-    include: {
-      themes: true
-    },
-    orderBy: { createdAt: "asc" },
-  });
-
   // Fetch all tasks and exams (active periods only)
   const tasks = await prisma.task.findMany({
     where: {
@@ -102,25 +84,6 @@ export default async function CursoDescripcionPage({
     where: { courseId: id },
     orderBy: { order: "asc" }
   });
-
-  // Collect linked resource IDs to avoid duplicates on the main sections
-  const linkedResourceIds = new Set<string>();
-  tasks.forEach(t => {
-    t.resources.forEach(r => linkedResourceIds.add(r.id));
-  });
-
-  // Standalone resources (not connected directly to tasks)
-  const standaloneResources = resources.filter(r => !linkedResourceIds.has(r.id));
-
-  // Build MoodleItem representation
-  const resourceItems: MoodleItem[] = standaloneResources.map(r => ({
-    isResource: true as const,
-    id: r.id,
-    title: r.title,
-    type: r.type,
-    url: r.url,
-    createdAt: r.createdAt.toISOString()
-  }));
 
   const taskItems: MoodleItem[] = tasks.map(t => {
     const submission = t.submissions[0];
@@ -153,26 +116,17 @@ export default async function CursoDescripcionPage({
     };
   });
 
-  const allItems = [...resourceItems, ...taskItems];
+  const allItems = taskItems;
 
-  // Group all items by their themes (many-to-many)
+  // Group all tasks by their themes (many-to-many)
   const themeMap = new Map<string, MoodleItem[]>();
   const generalItems: MoodleItem[] = [];
 
   allItems.forEach(item => {
-    let itemThemes: string[] = [];
-    if (item.isResource) {
-      const originalResource = standaloneResources.find(r => r.id === item.id);
-      itemThemes = originalResource?.themes.map(t => t.title) || [];
-      if (itemThemes.length === 0 && originalResource?.theme?.trim()) {
-        itemThemes = [originalResource.theme.trim()];
-      }
-    } else {
-      const originalTask = tasks.find(t => t.id === item.id);
-      itemThemes = originalTask?.themes.map(t => t.title) || [];
-      if (itemThemes.length === 0 && originalTask?.theme?.trim()) {
-        itemThemes = [originalTask.theme.trim()];
-      }
+    const originalTask = tasks.find(t => t.id === item.id);
+    let itemThemes = originalTask?.themes.map(t => t.title) || [];
+    if (itemThemes.length === 0 && originalTask?.theme?.trim()) {
+      itemThemes = [originalTask.theme.trim()];
     }
 
     if (itemThemes.length > 0) {
