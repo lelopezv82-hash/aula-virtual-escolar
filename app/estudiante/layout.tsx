@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { jwtVerify } from "jose";
-import { Book, Settings, Home } from "lucide-react";
+import { Book, Settings, Home, LayoutDashboard } from "lucide-react";
 import DashboardShell from "@/components/DashboardShell";
 import prisma from "@/lib/prisma";
 import "../docente/docente.css";
@@ -50,6 +50,11 @@ export default async function EstudianteLayout({ children }: { children: React.R
   });
 
   const links = [
+    {
+      href: "/estudiante/tablero",
+      label: "Tablero Virtual",
+      icon: <LayoutDashboard size={20} />,
+    },
     ...courses.map(c => ({
       href: `/estudiante/cursos/${c.id}`,
       label: c.name,

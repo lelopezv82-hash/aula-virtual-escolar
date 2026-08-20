@@ -45,9 +45,7 @@ export default async function EstudianteDashboard() {
     }
   });
 
-  if (courses.length > 0) {
-    redirect(`/estudiante/cursos/${courses[0].id}`);
-  }
+  redirect("/estudiante/tablero");
 
   const coursesWithCount = courses.map(c => {
     const { tasks, resources, ...courseData } = c;
