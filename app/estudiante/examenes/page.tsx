@@ -47,13 +47,14 @@ export default async function ExamenesEstudiantePage() {
             { publishAt: null },
             { publishAt: { lte: now } }
           ]
+        },
+        {
+          OR: [
+            ...(studentGroupId ? [{ groups: { some: { id: studentGroupId } } }] : []),
+            { assignedStudents: { some: { id: studentId } } }
+          ]
         }
-      ],
-      groups: studentGroupId ? {
-        some: {
-          id: studentGroupId
-        }
-      } : { none: {} }
+      ]
     },
     include: {
       course: true,

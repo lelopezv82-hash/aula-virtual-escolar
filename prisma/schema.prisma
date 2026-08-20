@@ -30,6 +30,7 @@ model User {
   googleDriveAccounts GoogleDriveAccount[]
   submissions         Submission[]
   group               GradeGroup?          @relation("GroupStudents", fields: [groupId], references: [id])
+  assignedTasks       Task[]               @relation("TaskAssignedStudents")
   securityQuestion      String?
   securityAnswer        String?
   securityPin           String?
@@ -141,6 +142,7 @@ model Task {
   groups              GradeGroup[] @relation("GroupTasks")
   resources           Resource[]   @relation("TaskResources")
   themes              Theme[]      @relation("ThemeTasks")
+  assignedStudents    User[]       @relation("TaskAssignedStudents")
 
   @@index([courseId])
   @@index([active])

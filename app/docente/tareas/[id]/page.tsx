@@ -32,6 +32,14 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
           grade: true
         }
       },
+      assignedStudents: {
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          groupName: true
+        }
+      },
       submissions: {
         include: { student: true }
       }
@@ -52,15 +60,24 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
     }
   });
 
-  // Get students who belong to any of the task's groups
-  const studentWhereClause: any = { role: "STUDENT" };
+  // Get students who belong to any of the task's groups OR are specifically assigned
+  const studentOrConditions: any[] = [];
   if (task.groups && task.groups.length > 0) {
-    studentWhereClause.groupId = {
-      in: task.groups.map(g => g.id)
-    };
+    studentOrConditions.push({
+      groupId: { in: task.groups.map(g => g.id) }
+    });
   }
+  if (task.assignedStudents && task.assignedStudents.length > 0) {
+    studentOrConditions.push({
+      id: { in: task.assignedStudents.map(s => s.id) }
+    });
+  }
+
   const allStudents = await prisma.user.findMany({ 
-    where: studentWhereClause,
+    where: {
+      role: "STUDENT",
+      ...(studentOrConditions.length > 0 ? { OR: studentOrConditions } : {})
+    },
     orderBy: { name: 'asc' }
   });
 

@@ -32,6 +32,9 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
   const [allResources, setAllResources] = useState<{id: string, title: string, type: string}[]>([]);
   const [selectedResourceIds, setSelectedResourceIds] = useState<string[]>([]);
   const [courseThemes, setCourseThemes] = useState<{id: string, title: string}[]>([]);
+  const [allStudents, setAllStudents] = useState<{id: string, name: string, groupName?: string, grade?: string}[]>([]);
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [studentSearch, setStudentSearch] = useState("");
 
   useEffect(() => {
     if (!courseId) {
@@ -74,6 +77,14 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
       })
       .catch(() => console.error("Failed to load periods"));
 
+    // Fetch students
+    fetch("/api/docente/estudiantes")
+      .then(res => res.json())
+      .then(data => {
+        if (data.students) setAllStudents(data.students);
+      })
+      .catch(() => console.error("Failed to load students"));
+
     fetch(`/api/docente/tareas/${taskId}`)
       .then(res => res.json())
       .then(data => {
@@ -91,6 +102,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
           setExistingAttachment(data.task.attachmentUrl || null);
           setCourseId(data.task.courseId || "");
           setSelectedResourceIds(data.task.resources ? data.task.resources.map((r: any) => r.id) : []);
+          setSelectedStudentIds(data.task.assignedStudents ? data.task.assignedStudents.map((s: any) => s.id) : []);
         } else {
           setError("No se pudo cargar la tarea");
         }
@@ -126,6 +138,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
     formData.append("weight", weight);
     if (duration) formData.append("duration", duration);
     formData.append("groupIds", JSON.stringify(groupIds));
+    formData.append("studentIds", JSON.stringify(selectedStudentIds));
     formData.append("resourceIds", JSON.stringify(selectedResourceIds));
     formData.append("type", type);
     formData.append("isExternal", String(isExternal));
@@ -220,6 +233,65 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
                 </label>
               );
             })}
+          </div>
+        </div>
+
+        {/* Asignación a Estudiantes Específicos */}
+        <div className="input-group">
+          <div className="flex justify-between items-center mb-1">
+            <label className="text-sm font-semibold flex items-center gap-1.5">
+              <span>Estudiantes Específicos</span>
+              <span className="text-xs font-normal text-muted">(Opcional: asignación individual adicional)</span>
+            </label>
+            {selectedStudentIds.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setSelectedStudentIds([])}
+                className="text-xs text-red-500 hover:underline"
+              >
+                Limpiar ({selectedStudentIds.length} seleccionados)
+              </button>
+            )}
+          </div>
+          <input
+            type="text"
+            className="input-field mb-2 text-sm py-1.5"
+            placeholder="Buscar estudiante por nombre..."
+            value={studentSearch}
+            onChange={(e) => setStudentSearch(e.target.value)}
+          />
+          <div className="border rounded-lg p-3 max-h-[160px] overflow-y-auto flex flex-col gap-2 bg-slate-50 dark:bg-slate-900" style={{ borderColor: 'var(--border-color)' }}>
+            {allStudents
+              .filter(s => s.name.toLowerCase().includes(studentSearch.toLowerCase()) || (s.groupName && s.groupName.toLowerCase().includes(studentSearch.toLowerCase())))
+              .map(s => {
+                const isChecked = selectedStudentIds.includes(s.id);
+                return (
+                  <label key={s.id} className="flex items-center justify-between gap-2 text-sm cursor-pointer hover:text-primary py-0.5">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          const newIds = isChecked
+                            ? selectedStudentIds.filter(id => id !== s.id)
+                            : [...selectedStudentIds, s.id];
+                          setSelectedStudentIds(newIds);
+                        }}
+                        className="rounded text-[#f98012] focus:ring-[#f98012]"
+                      />
+                      <span className="font-medium">{s.name}</span>
+                    </div>
+                    {s.groupName && (
+                      <span className="text-xs px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                        {s.groupName}
+                      </span>
+                    )}
+                  </label>
+                );
+              })}
+            {allStudents.length === 0 && (
+              <p className="text-xs text-muted text-center py-2">No hay estudiantes cargados.</p>
+            )}
           </div>
         </div>
 

@@ -34,6 +34,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       where: { id: resolvedParams.id },
       include: {
         groups: true,
+        assignedStudents: {
+          select: { id: true }
+        },
         resources: true,
         course: {
           include: {
@@ -83,8 +86,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       }
     }
 
-    if (!isTeacher && task.groups.length > 0 && !task.groups.some(g => g.id === student?.groupId)) {
-      return NextResponse.json({ error: 'Tarea no encontrada' }, { status: 404 });
+    if (!isTeacher) {
+      const hasGroupAccess = task.groups.length === 0 || (student?.groupId ? task.groups.some(g => g.id === student.groupId) : false);
+      const hasDirectAccess = task.assignedStudents?.some(s => s.id === studentId);
+      if (!hasGroupAccess && !hasDirectAccess) {
+        return NextResponse.json({ error: 'Tarea no encontrada' }, { status: 404 });
+      }
     }
 
     // Fetch feedbackTemplate if the student has finished and unlocked answers

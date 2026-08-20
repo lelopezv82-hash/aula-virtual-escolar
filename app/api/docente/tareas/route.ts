@@ -83,6 +83,17 @@ export async function POST(request: Request) {
       }
     }
 
+    const studentIdsJson = formData.get('studentIds') as string | null;
+    let studentIds: string[] = [];
+    if (studentIdsJson) {
+      try {
+        studentIds = JSON.parse(studentIdsJson);
+        if (!Array.isArray(studentIds)) studentIds = [];
+      } catch {
+        studentIds = [];
+      }
+    }
+
     if (!title || (!isExternal && !dueDate) || !courseId || !theme || !period || !groupIds || groupIds.length === 0) {
       return NextResponse.json({ error: 'Faltan datos obligatorios (título, fecha límite, curso, tema, periodo y al menos un grupo)' }, { status: 400 });
     }
@@ -176,6 +187,9 @@ export async function POST(request: Request) {
             }
           })).map(t => ({ id: t.id }))
         },
+        assignedStudents: studentIds.length > 0
+          ? { connect: studentIds.map(id => ({ id })) }
+          : undefined,
         weight: isNaN(weight) ? 0 : weight,
         duration: duration && !isNaN(duration) ? duration : null,
         type: type || "TASK",

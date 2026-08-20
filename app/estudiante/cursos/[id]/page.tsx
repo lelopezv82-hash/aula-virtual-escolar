@@ -112,9 +112,13 @@ export default async function CursoDescripcionPage({
       OR: [{ period: null }, { period: { in: activePeriodNames } }],
       AND: [
         { OR: [{ publishAt: null }, { publishAt: { lte: now } }] },
-        ...(studentGroupId
-          ? [{ OR: [{ groups: { none: {} } }, { groups: { some: { id: studentGroupId } } }] }]
-          : [])
+        {
+          OR: [
+            { groups: { none: {} } },
+            ...(studentGroupId ? [{ groups: { some: { id: studentGroupId } } }] : []),
+            { assignedStudents: { some: { id: studentId } } }
+          ]
+        }
       ],
     },
     include: {

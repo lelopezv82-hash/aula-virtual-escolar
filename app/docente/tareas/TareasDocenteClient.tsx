@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ClipboardList, Plus, Pencil, X, Save, Loader2, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { ClipboardList, Plus, Pencil, X, Save, Loader2, CheckCircle, Clock, AlertCircle, Users, Search, UserCheck } from "lucide-react";
 import TaskActions from "./TaskActions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -67,6 +67,69 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
   const [savingGrades, setSavingGrades] = useState(false);
   const [gradingError, setGradingError] = useState("");
   const [gradingSaved, setGradingSaved] = useState(false);
+
+  // Assign Students Modal state
+  const [assigningTask, setAssigningTask] = useState<Task | null>(null);
+  const [availableStudents, setAvailableStudents] = useState<{ id: string; name: string; username: string; groupName?: string; grade?: string; group?: any }[]>([]);
+  const [assignedStudentIds, setAssignedStudentIds] = useState<string[]>([]);
+  const [loadingAssign, setLoadingAssign] = useState(false);
+  const [savingAssign, setSavingAssign] = useState(false);
+  const [assignError, setAssignError] = useState("");
+  const [assignSaved, setAssignSaved] = useState(false);
+  const [assignSearch, setAssignSearch] = useState("");
+
+  const openAssignModal = async (task: Task) => {
+    setAssigningTask(task);
+    setAssignError("");
+    setAssignSaved(false);
+    setLoadingAssign(true);
+    setAssignSearch("");
+    setAvailableStudents([]);
+    setAssignedStudentIds([]);
+    try {
+      const res = await fetch(`/api/docente/tareas/${task.id}/assigned-students`);
+      const data = await res.json();
+      if (res.ok) {
+        setAvailableStudents(data.availableStudents || []);
+        setAssignedStudentIds((data.assignedStudents || []).map((s: any) => s.id));
+      } else {
+        setAssignError(data.error || "Error al cargar estudiantes");
+      }
+    } catch {
+      setAssignError("Error de conexión");
+    } finally {
+      setLoadingAssign(false);
+    }
+  };
+
+  const saveAssignedStudents = async () => {
+    if (!assigningTask) return;
+    setSavingAssign(true);
+    setAssignError("");
+    setAssignSaved(false);
+    try {
+      const res = await fetch(`/api/docente/tareas/${assigningTask.id}/assigned-students`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentIds: assignedStudentIds }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAssignSaved(true);
+        setTimeout(() => {
+          setAssignSaved(false);
+          setAssigningTask(null);
+        }, 1200);
+        router.refresh();
+      } else {
+        setAssignError(data.error || "Error al guardar asignaciones");
+      }
+    } catch {
+      setAssignError("Error de conexión al guardar");
+    } finally {
+      setSavingAssign(false);
+    }
+  };
 
   const toggleTaskActive = async (task: Task) => {
     const newVal = task.active !== false ? false : true;
@@ -312,6 +375,14 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                                   </td>
                                   <td className="py-3 px-4 text-right">
                                     <div className="flex items-center justify-end gap-2">
+                                      {/* Assign specific students button */}
+                                      <button
+                                        title="Asignar estudiantes específicos"
+                                        onClick={() => openAssignModal(task)}
+                                        className="p-1.5 rounded-lg hover:bg-blue-50 text-muted hover:text-blue-600 transition-colors"
+                                      >
+                                        <Users size={15} />
+                                      </button>
                                       {/* Manual grade button */}
                                       <button
                                         title="Calificar manualmente (trabajo fuera de plataforma)"
@@ -473,6 +544,202 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                   ) : (
                     <>
                       <Save size={18} /> Guardar Calificaciones
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Assign Specific Students Modal */}
+      {assigningTask && typeof window !== "undefined" && createPortal(
+        <div
+          className="modal-overlay"
+          onClick={e => e.target === e.currentTarget && setAssigningTask(null)}
+        >
+          <div className="modal-content" style={{ maxWidth: "620px", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
+            {/* Modal header */}
+            <div className="flex justify-between items-start mb-3" style={{ flexShrink: 0 }}>
+              <div>
+                <h2 className="text-xl font-bold flex items-center gap-2">
+                  <Users size={20} className="text-blue-600" />
+                  Asignar a Estudiantes Específicos
+                </h2>
+                <p className="text-sm text-muted mt-0.5">{assigningTask.title}</p>
+                <p className="text-xs text-muted mt-0.5">
+                  Selecciona los estudiantes individuales que tendrán acceso a esta actividad además de los grupos asignados.
+                </p>
+              </div>
+              <button onClick={() => setAssigningTask(null)} className="p-1 rounded-lg hover:bg-gray-100 flex-shrink-0">
+                <X size={20} />
+              </button>
+            </div>
+
+            {assignError && <div className="alert alert-danger mb-3">{assignError}</div>}
+            {assignSaved && (
+              <div className="alert alert-success mb-3 flex items-center gap-2">
+                <CheckCircle size={16} /> Asignaciones guardadas correctamente.
+              </div>
+            )}
+
+            {/* Search and selection toolbar */}
+            <div className="flex flex-col gap-2 mb-3" style={{ flexShrink: 0 }}>
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+                  <input
+                    type="text"
+                    placeholder="Buscar estudiante por nombre o grupo..."
+                    value={assignSearch}
+                    onChange={e => setAssignSearch(e.target.value)}
+                    className="input-field pl-8 text-sm py-1.5"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const filtered = availableStudents.filter(s =>
+                      s.name.toLowerCase().includes(assignSearch.toLowerCase()) ||
+                      (s.groupName && s.groupName.toLowerCase().includes(assignSearch.toLowerCase())) ||
+                      (s.group?.name && s.group.name.toLowerCase().includes(assignSearch.toLowerCase()))
+                    );
+                    const allFilteredIds = filtered.map(s => s.id);
+                    const allSelected = allFilteredIds.every(id => assignedStudentIds.includes(id));
+                    if (allSelected) {
+                      setAssignedStudentIds(prev => prev.filter(id => !allFilteredIds.includes(id)));
+                    } else {
+                      setAssignedStudentIds(prev => Array.from(new Set([...prev, ...allFilteredIds])));
+                    }
+                  }}
+                  className="btn btn-secondary text-xs whitespace-nowrap py-1.5"
+                >
+                  {availableStudents.filter(s =>
+                    s.name.toLowerCase().includes(assignSearch.toLowerCase()) ||
+                    (s.groupName && s.groupName.toLowerCase().includes(assignSearch.toLowerCase())) ||
+                    (s.group?.name && s.group.name.toLowerCase().includes(assignSearch.toLowerCase()))
+                  ).every(s => assignedStudentIds.includes(s.id)) && availableStudents.length > 0
+                    ? "Deseleccionar filtrados"
+                    : "Seleccionar filtrados"}
+                </button>
+              </div>
+
+              <div className="flex justify-between items-center text-xs text-muted px-1">
+                <span>
+                  <strong>{assignedStudentIds.length}</strong> de <strong>{availableStudents.length}</strong> estudiantes asignados
+                </span>
+                {assignedStudentIds.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setAssignedStudentIds([])}
+                    className="text-red-500 hover:underline"
+                  >
+                    Deseleccionar todos
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Students list */}
+            <div style={{ overflowY: "auto", flex: 1, paddingRight: "2px" }}>
+              {loadingAssign ? (
+                <div className="flex justify-center py-10">
+                  <Loader2 className="animate-spin text-blue-600" size={32} />
+                </div>
+              ) : availableStudents.length === 0 ? (
+                <div className="text-center py-8 text-muted text-sm">No hay estudiantes disponibles en este curso.</div>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  {availableStudents
+                    .filter(s =>
+                      s.name.toLowerCase().includes(assignSearch.toLowerCase()) ||
+                      (s.groupName && s.groupName.toLowerCase().includes(assignSearch.toLowerCase())) ||
+                      (s.group?.name && s.group.name.toLowerCase().includes(assignSearch.toLowerCase())) ||
+                      (s.group?.grade?.name && s.group.grade.name.toLowerCase().includes(assignSearch.toLowerCase()))
+                    )
+                    .map(student => {
+                      const isChecked = assignedStudentIds.includes(student.id);
+                      const groupLabel = student.group?.grade?.name
+                        ? `${student.group.grade.name} - ${student.group.name}`
+                        : (student.groupName || "Sin grupo");
+
+                      return (
+                        <label
+                          key={student.id}
+                          className={`flex items-center justify-between gap-3 p-2.5 rounded-xl cursor-pointer transition-all ${
+                            isChecked
+                              ? "bg-blue-50/80 dark:bg-blue-950/30 border-blue-300 dark:border-blue-800"
+                              : "bg-slate-50 dark:bg-slate-900/50 border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800"
+                          } border`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                setAssignedStudentIds(prev =>
+                                  isChecked ? prev.filter(id => id !== student.id) : [...prev, student.id]
+                                );
+                              }}
+                              className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4"
+                            />
+                            <div
+                              className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs text-white ${
+                                isChecked ? "bg-blue-600" : "bg-gray-400"
+                              }`}
+                            >
+                              {student.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <p className={`font-semibold text-sm truncate ${isChecked ? "text-blue-900 dark:text-blue-200" : ""}`}>
+                                {student.name}
+                              </p>
+                              <p className="text-[11px] text-muted truncate">@{student.username}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-xs px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium">
+                              {groupLabel}
+                            </span>
+                            {isChecked && (
+                              <span className="text-xs text-blue-600 font-semibold flex items-center gap-1">
+                                <UserCheck size={14} /> Asignado
+                              </span>
+                            )}
+                          </div>
+                        </label>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+
+            {/* Modal footer */}
+            <div className="flex items-center justify-between border-t pt-4 mt-4" style={{ borderColor: "var(--border-color)", flexShrink: 0 }}>
+              <div className="text-xs text-muted">
+                {assignedStudentIds.length} estudiante(s) seleccionado(s)
+              </div>
+              <div className="flex items-center gap-3">
+                <button className="btn btn-secondary" onClick={() => setAssigningTask(null)}>Cancelar</button>
+                <button
+                  className="btn btn-primary bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
+                  disabled={savingAssign || loadingAssign}
+                  onClick={saveAssignedStudents}
+                >
+                  {savingAssign ? (
+                    <>
+                      <Loader2 className="animate-spin" size={16} /> Guardando...
+                    </>
+                  ) : assignSaved ? (
+                    <>
+                      <CheckCircle size={16} /> ¡Guardado!
+                    </>
+                  ) : (
+                    <>
+                      <Save size={16} /> Guardar Asignaciones
                     </>
                   )}
                 </button>

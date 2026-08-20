@@ -30,7 +30,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         course: true,
         groups: true,
         resources: true,
-        themes: true
+        themes: true,
+        assignedStudents: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            groupName: true,
+            groupId: true
+          }
+        }
       }
     });
 
@@ -77,17 +86,33 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     const contentType = request.headers.get("content-type") || "";
     if (contentType.includes("application/json")) {
-      const { active, allowLateSubmission, lateSubmissionUntil } = await request.json();
+      const { active, allowLateSubmission, lateSubmissionUntil, studentIds } = await request.json();
       const dataToUpdate: any = {};
       if (active !== undefined) dataToUpdate.active = !!active;
       if (allowLateSubmission !== undefined) dataToUpdate.allowLateSubmission = !!allowLateSubmission;
       if (lateSubmissionUntil !== undefined) {
         dataToUpdate.lateSubmissionUntil = fromColombiaLocalStringToDate(lateSubmissionUntil);
       }
+      if (studentIds !== undefined && Array.isArray(studentIds)) {
+        dataToUpdate.assignedStudents = {
+          set: studentIds.map((id: string) => ({ id }))
+        };
+      }
       
       const updatedTask = await prisma.task.update({
         where: { id: resolvedParams.id },
-        data: dataToUpdate
+        data: dataToUpdate,
+        include: {
+          assignedStudents: {
+            select: {
+              id: true,
+              name: true,
+              username: true,
+              groupName: true,
+              groupId: true
+            }
+          }
+        }
       });
       return NextResponse.json({ success: true, task: updatedTask });
     }
@@ -145,6 +170,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         resourceIds = JSON.parse(resourceIdsJson);
       } catch {
         resourceIds = [resourceIdsJson];
+      }
+    }
+
+    const studentIdsJson = formData.get('studentIds') as string | null;
+    let studentIds: string[] | undefined = undefined;
+    if (studentIdsJson !== null) {
+      try {
+        const parsed = JSON.parse(studentIdsJson);
+        if (Array.isArray(parsed)) {
+          studentIds = parsed;
+        }
+      } catch {
+        studentIds = [];
       }
     }
 
@@ -227,6 +265,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         resources: {
           set: resourceIds.map(id => ({ id }))
         },
+        ...(studentIds !== undefined ? {
+          assignedStudents: {
+            set: studentIds.map(id => ({ id }))
+          }
+        } : {}),
         themes: {
           set: (await prisma.theme.findMany({
             where: {

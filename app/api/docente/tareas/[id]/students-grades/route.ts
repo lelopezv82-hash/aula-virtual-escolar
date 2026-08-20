@@ -28,6 +28,19 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
             grade: { select: { name: true } },
           }
         },
+        assignedStudents: {
+          select: {
+            id: true,
+            name: true,
+            groupName: true,
+            group: {
+              select: {
+                name: true,
+                grade: { select: { name: true } }
+              }
+            }
+          }
+        },
         submissions: {
           select: { 
             id: true, 
@@ -49,12 +62,22 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: 'Tarea no encontrada' }, { status: 404 });
     }
 
-    // Collect all students across groups (deduplicated)
+    // Collect all students across groups and assignedStudents (deduplicated)
     const studentMap = new Map<string, { id: string; name: string; groupName: string }>();
     for (const group of task.groups) {
       for (const student of group.students) {
         if (!studentMap.has(student.id)) {
           const gradeLabel = group.grade?.name ? `${group.grade.name} - ${group.name}` : group.name;
+          studentMap.set(student.id, { id: student.id, name: student.name, groupName: gradeLabel });
+        }
+      }
+    }
+
+    if (task.assignedStudents) {
+      for (const student of task.assignedStudents) {
+        if (!studentMap.has(student.id)) {
+          const group = student.group;
+          const gradeLabel = group?.grade?.name ? `${group.grade.name} - ${group.name}` : (student.groupName || "Asignación Individual");
           studentMap.set(student.id, { id: student.id, name: student.name, groupName: gradeLabel });
         }
       }
