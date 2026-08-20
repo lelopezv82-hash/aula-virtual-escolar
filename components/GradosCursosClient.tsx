@@ -388,6 +388,17 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
     }
   };
 
+  const handleDismissResetReq = async (reqId: string) => {
+    try {
+      await fetch("/api/auth/recover-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "dismiss-reset", requestId: reqId })
+      });
+      fetchResetRequests();
+    } catch { /* silent */ }
+  };
+
   const handleConfirmResetReq = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedResetReq || !resetReqPassword.trim()) return;
@@ -744,17 +755,26 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                 <div>
                   <strong className="text-slate-900 dark:text-slate-100">{req.student?.name}</strong> ({req.student?.username}) — <span className="text-muted">{req.student?.grade || ""} {req.student?.groupName || ""}</span>
                 </div>
-                <button
-                  onClick={() => {
-                    setSelectedResetReq(req);
-                    setResetReqPassword("123456");
-                    setResetReqError("");
-                    setShowResetReqModal(true);
-                  }}
-                  className="btn btn-primary py-1 px-2.5 text-xs flex items-center gap-1 cursor-pointer"
-                >
-                  🔑 Restablecer Clave (Ej. 123456)
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleDismissResetReq(req.id)}
+                    className="py-1 px-2.5 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                    title="Marcar como resuelta (la contraseña ya fue cambiada por el estudiante)"
+                  >
+                    ✓ Ya Resuelta
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedResetReq(req);
+                      setResetReqPassword("123456");
+                      setResetReqError("");
+                      setShowResetReqModal(true);
+                    }}
+                    className="btn btn-primary py-1 px-2.5 text-xs flex items-center gap-1 cursor-pointer"
+                  >
+                    🔑 Restablecer Clave (Ej. 123456)
+                  </button>
+                </div>
               </div>
             ))}
           </div>

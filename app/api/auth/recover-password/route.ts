@@ -391,6 +391,24 @@ export async function POST(request: Request) {
       });
     }
 
+    // 7. Teacher/Admin dismisses a reset request (student already changed their password on their own)
+    if (action === "dismiss-reset") {
+      const cookieStore = await cookies();
+      const token = cookieStore.get("auth_token")?.value;
+      if (!token) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+      const { payload } = await jwtVerify(token, JWT_SECRET);
+      if (payload.role !== "TEACHER" && payload.role !== "ADMIN" && payload.role !== "SUPER_ADMIN") {
+        return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+      }
+      const { requestId } = body;
+      if (!requestId) return NextResponse.json({ error: "requestId requerido" }, { status: 400 });
+      await prisma.passwordResetRequest.update({
+        where: { id: requestId },
+        data: { status: "COMPLETED" }
+      });
+      return NextResponse.json({ success: true });
+    }
+
     return NextResponse.json({ error: "Acción inválida" }, { status: 400 });
   } catch (error) {
     console.error("Error in recover-password API:", error);
