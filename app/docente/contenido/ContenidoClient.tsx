@@ -22,8 +22,6 @@ interface Resource {
   title: string;
   type: string;
   url: string;
-  theme?: string | null;
-  themes?: string[];
   period?: string | null;
   active?: boolean;
   publishAt?: string | null;
@@ -36,19 +34,11 @@ interface Task {
   title: string;
   description?: string | null;
   dueDate: string;
-  theme?: string | null;
-  themes?: string[];
   period?: string | null;
   type?: string;
   active?: boolean;
   weight?: number | null;
   groups: Group[];
-}
-
-interface Theme {
-  id: string;
-  title: string;
-  order: number;
 }
 
 interface Course {
@@ -58,7 +48,6 @@ interface Course {
   groups: Group[];
   resources: Resource[];
   tasks: Task[];
-  themes: Theme[];
 }
 
 interface Period {
@@ -76,18 +65,12 @@ const TYPE_ICONS: Record<string, string> = {
   PDF: "📄", WORD: "📝", PPT: "📊", IMAGE: "🖼️", VIDEO: "🎬", LINK: "🔗", PLAN: "📋"
 };
 
-const TAB_LABEL: Record<string, string> = {
-  materiales: "Recursos y Guías"
-};
-
 export default function ContenidoClient({ courses, initialPeriods }: ContenidoClientProps) {
   const router = useRouter();
   const confirm = useConfirm();
 
-  const [activeTab, setActiveTab] = useState("materiales");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
   const [periods, setPeriods] = useState<Period[]>(initialPeriods);
 
   useEffect(() => {
@@ -101,74 +84,6 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       .catch(() => {});
   }, []);
 
-  /* ─── Period CRUD ─────────────────────────────────────── */
-  const [showPeriodModal, setShowPeriodModal] = useState(false);
-  const [editingPeriod, setEditingPeriod] = useState<Period | null>(null);
-  const [periodForm, setPeriodForm] = useState({ name: "" });
-
-  const handleCreateOrUpdatePeriod = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    if (!periodForm.name.trim()) { setError("El nombre es obligatorio"); setLoading(false); return; }
-    try {
-      const method = editingPeriod ? "PATCH" : "POST";
-      const body = editingPeriod
-        ? JSON.stringify({ id: editingPeriod.id, name: periodForm.name })
-        : JSON.stringify({ name: periodForm.name });
-      const res = await fetch("/api/docente/periodos", { method, headers: { "Content-Type": "application/json" }, body });
-      const data = await res.json();
-      if (res.ok) {
-        setShowPeriodModal(false);
-        const fresh = await fetch("/api/docente/periodos");
-        const fd = await fresh.json();
-        if (fd.periods) setPeriods(fd.periods);
-        router.refresh();
-      } else {
-        setError(data.error || "Error al guardar el periodo");
-      }
-    } catch { setError("Error de conexión al guardar el periodo"); }
-    finally { setLoading(false); }
-  };
-
-  const handleTogglePeriodActive = async (period: Period) => {
-    try {
-      const res = await fetch("/api/docente/periodos", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: period.id, active: !period.active })
-      });
-      if (res.ok) {
-        const fresh = await fetch("/api/docente/periodos");
-        const fd = await fresh.json();
-        if (fd.periods) setPeriods(fd.periods);
-        router.refresh();
-      }
-    } catch { console.error("Failed to toggle period"); }
-  };
-
-  const handleDeletePeriod = async (period: Period) => {
-    const ok = await confirm({
-      title: "Eliminar Periodo",
-      message: `¿Eliminar "${period.name}"? Las tareas y recursos perderán su asignación.`,
-      confirmText: "Eliminar", type: "danger"
-    });
-    if (!ok) return;
-    try {
-      const res = await fetch("/api/docente/periodos", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: period.id })
-      });
-      if (res.ok) {
-        const fresh = await fetch("/api/docente/periodos");
-        const fd = await fresh.json();
-        if (fd.periods) setPeriods(fd.periods);
-        router.refresh();
-      }
-    } catch { console.error("Failed to delete period"); }
-  };
-
   /* ─── Resource CRUD ───────────────────────────────────── */
   const [showResourceModal, setShowResourceModal] = useState(false);
   const [editingResource, setEditingResource] = useState<Resource | null>(null);
@@ -177,61 +92,11 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     title: "",
     type: "PDF",
     link: "",
-    theme: "",
-    themes: [] as string[],
     period: initialPeriods[0]?.name || "Periodo 1",
     groupIds: [] as string[],
     publishAt: ""
   });
   const [resourceFile, setResourceFile] = useState<File | null>(null);
-
-  /* ─── Theme state ─────────────────────────────────────── */
-  const [themeInputCourseId, setThemeInputCourseId] = useState<string | null>(null);
-  const [themeInputValue, setThemeInputValue] = useState("");
-  const [creatingTheme, setCreatingTheme] = useState(false);
-
-  /* ─── Link Materials state ─────────────────────────────── */
-  const [showLinkMaterialsModal, setShowLinkMaterialsModal] = useState(false);
-  const [selectedThemeForLink, setSelectedThemeForLink] = useState<{ courseId: string; theme: Theme } | null>(null);
-  const [linkMaterialsSelection, setLinkMaterialsSelection] = useState<string[]>([]);
-  const [linkingMaterials, setLinkingMaterials] = useState(false);
-
-  const openLinkMaterialsModal = (courseId: string, theme: Theme) => {
-    const course = courses.find(c => c.id === courseId);
-    if (!course) return;
-    const preselected = course.resources.filter(r => r.themes && r.themes.includes(theme.title)).map(r => r.id);
-    setSelectedThemeForLink({ courseId, theme });
-    setLinkMaterialsSelection(preselected);
-    setShowLinkMaterialsModal(true);
-  };
-
-  const handleSaveLinkMaterials = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedThemeForLink) return;
-    setLinkingMaterials(true);
-    setError("");
-    try {
-      const res = await fetch("/api/docente/temas", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: selectedThemeForLink.theme.id,
-          resourceIds: linkMaterialsSelection
-        })
-      });
-      if (res.ok) {
-        setShowLinkMaterialsModal(false);
-        router.refresh();
-      } else {
-        const data = await res.json();
-        setError(data.error || "Error al vincular materiales");
-      }
-    } catch {
-      setError("Error de conexión");
-    } finally {
-      setLinkingMaterials(false);
-    }
-  };
 
   const [availableGroups, setAvailableGroups] = useState<Group[]>([]);
   useEffect(() => {
@@ -243,7 +108,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     }
   }, [resourceForm.courseId, courses]);
 
-  const openNewResourceModal = (courseId?: string, periodName?: string, defaultType?: string, preselectedTheme?: string) => {
+  const openNewResourceModal = (courseId?: string, periodName?: string, defaultType?: string) => {
     setError("");
     setEditingResource(null);
     setResourceForm({
@@ -251,8 +116,6 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       title: "",
       type: defaultType || "PDF",
       link: "",
-      theme: "",
-      themes: preselectedTheme ? [preselectedTheme] : [],
       period: periodName || periods[0]?.name || "Periodo 1",
       groupIds: [],
       publishAt: ""
@@ -271,8 +134,6 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       title: resource.title,
       type: resource.type,
       link: resource.type === "LINK" ? resource.url : "",
-      theme: resource.theme || "",
-      themes: resource.themes || (resource.theme ? [resource.theme] : []),
       period: resource.period || "Periodo 1",
       groupIds: resource.groups.map(g => g.id),
       publishAt: formattedPublishAt
@@ -294,7 +155,6 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     fd.append("title", resourceForm.title);
     fd.append("type", resourceForm.type);
     fd.append("period", resourceForm.period);
-    fd.append("theme", JSON.stringify(resourceForm.themes));
     if (resourceForm.type === "LINK") { fd.append("link", resourceForm.link); }
     else if (resourceFile) { fd.append("file", resourceFile); }
     fd.append("groupIds", JSON.stringify(resourceForm.groupIds));
@@ -338,54 +198,7 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
     } catch { console.error("Failed to toggle resource status"); }
   };
 
-  /* ─── Theme CRUD ──────────────────────────────────────── */
-  const handleCreateTheme = async (courseId: string) => {
-    if (!themeInputValue.trim()) return;
-    setCreatingTheme(true);
-    try {
-      const res = await fetch('/api/docente/temas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ courseId, title: themeInputValue.trim() })
-      });
-      if (res.ok) {
-        setThemeInputCourseId(null);
-        setThemeInputValue('');
-        router.refresh();
-      } else {
-        const data = await res.json();
-        setError(data.error || 'Error al crear el tema');
-      }
-    } catch { setError('Error de conexión'); }
-    finally { setCreatingTheme(false); }
-  };
-
-  const handleDeleteTheme = async (id: string) => {
-    const ok = await confirm({
-      title: 'Eliminar Tema',
-      message: '¿Eliminar este tema? Los recursos y tareas asignados perderán su asignación de tema.',
-      confirmText: 'Eliminar',
-      type: 'danger'
-    });
-    if (!ok) return;
-    try {
-      const res = await fetch('/api/docente/temas', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id })
-      });
-      if (res.ok) router.refresh();
-    } catch { console.error('Failed to delete theme'); }
-  };
-
   /* ─── Helpers ─────────────────────────────────────────── */
-  const tabClass = (tab: string) =>
-    `flex items-center gap-2 px-5 py-3 font-semibold transition-colors border-b-2 ${
-      activeTab === tab
-        ? "text-[#f98012] border-[#f98012]"
-        : "text-muted border-transparent hover:text-foreground"
-    }`;
-
   const periodSectionWrapper = (periodName: string, isPeriodActive: boolean, addButton: React.ReactNode, children: React.ReactNode) => (
     <div
       className="p-3 rounded-lg border"
@@ -411,7 +224,6 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
   );
 
   const isPeriodActiveHelper = (periodName: string) => {
-    if (periodName === "Otros") return true;
     const p = periods.find(p => p.name === periodName);
     return p ? p.active : true;
   };
@@ -429,76 +241,57 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
       ) : (
         <div className="flex flex-col gap-6">
 
-          {/* ── Tabs ── */}
-          <div className="flex border-b" style={{ borderColor: "var(--border-color)" }}>
-            <button
-              className={`px-5 py-3 font-semibold transition-colors border-b-2 flex items-center gap-2 ${
-                activeTab === "materiales" ? "text-[#f98012] border-[#f98012]" : "text-muted border-transparent hover:text-foreground"
-              }`}
-              onClick={() => setActiveTab("materiales")}
-            >
-              <FileText size={18} /> Recursos y Guías
-            </button>
-            <button
-              className={`px-5 py-3 font-semibold transition-colors border-b-2 flex items-center gap-2 ${
-                activeTab === "temas" ? "text-[#f98012] border-[#f98012]" : "text-muted border-transparent hover:text-foreground"
-              }`}
-              onClick={() => setActiveTab("temas")}
-            >
-              <BookMarked size={18} /> Temas de Asignatura
-            </button>
+          {/* ── Header Actions ── */}
+          <div className="flex justify-between items-center flex-wrap gap-4">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <FileText className="text-[#f98012]" /> Recursos y Guías de Asignatura
+            </h2>
+            <div className="flex items-center gap-4 flex-wrap">
+              <GDriveEmailDisplay context="materials" />
+              <GDriveVisibilityToggle context="materials" />
+              <button
+                id="btn-nuevo-recurso"
+                onClick={() => openNewResourceModal(undefined, undefined, undefined)}
+                className="btn btn-primary px-4 py-2 text-sm flex items-center gap-2"
+              >
+                <Plus size={18} /> Subir Recurso
+              </button>
+            </div>
           </div>
 
-          {/* ── Header Actions ── */}
-          <div className="flex justify-end items-center flex-wrap gap-4">
-            {activeTab === "materiales" && (
-              <div className="flex items-center gap-4 flex-wrap">
-                <GDriveVisibilityToggle context="materials" />
-                <button
-                  id="btn-nuevo-recurso"
-                  onClick={() => openNewResourceModal(undefined, undefined, undefined)}
-                  className="btn btn-primary px-4 py-2 text-sm flex items-center gap-2"
-                >
-                  <Plus size={18} /> Subir Recurso
-                </button>
-              </div>
-            )}
-          </div>          {/* ══════════════════════════════════════
-              TAB: RECURSOS Y GUÍAS
-              Archivos, PDFs, videos, enlaces
-              (excluye tipo PLAN)
+          {/* ══════════════════════════════════════
+              LISTA DE RECURSOS Y GUÍAS
               ══════════════════════════════════════ */}
-          {activeTab === "materiales" && (
-            <div className="flex flex-col gap-6">
-              {courses.map(course => {
-                return (
-                  <div key={course.id} className="card w-full">
-                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                      <BookMarked className="text-[#f98012]" /> {course.name}
-                    </h2>
+          <div className="flex flex-col gap-6">
+            {courses.map(course => {
+              return (
+                <div key={course.id} className="card w-full">
+                  <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                    <BookMarked className="text-[#f98012]" /> {course.name}
+                  </h3>
 
-                    <div className="flex flex-col gap-5">
-                      {periods.map(p => p.name).map(periodName => {
-                        const periodRes = course.resources.filter(r => {
-                          if (r.type === "PLAN") return false;
-                          if (r.type === "THEME") return false;
-                          return r.period === periodName;
-                        });
-                        const isActive = isPeriodActiveHelper(periodName);
+                  <div className="flex flex-col gap-5">
+                    {periods.map(p => p.name).map(periodName => {
+                      const periodRes = course.resources.filter(r => {
+                        if (r.type === "PLAN") return false;
+                        if (r.type === "THEME") return false;
+                        return r.period === periodName;
+                      });
+                      const isActive = isPeriodActiveHelper(periodName);
 
-                        return periodSectionWrapper(
-                          periodName,
-                          isActive,
-                          periodName !== "Otros" && (
-                            <button
-                              onClick={() => openNewResourceModal(course.id, periodName)}
-                              className="btn btn-primary py-1 px-2.5 text-[11px] h-auto flex items-center gap-1"
-                            >
-                              <Plus size={12} /> Subir Recurso
-                            </button>
-                          ),
-                          <>
-                            {periodRes.length === 0 ? (
+                      return periodSectionWrapper(
+                        periodName,
+                        isActive,
+                        (
+                          <button
+                            onClick={() => openNewResourceModal(course.id, periodName)}
+                            className="btn btn-primary py-1 px-2.5 text-[11px] h-auto flex items-center gap-1"
+                          >
+                            <Plus size={12} /> Subir Recurso
+                          </button>
+                        ),
+                        <>
+                          {periodRes.length === 0 ? (
                             <p className="text-muted text-xs italic p-2">No hay recursos en este periodo.</p>
                           ) : (
                             <div className="overflow-x-auto">
@@ -509,7 +302,6 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                                     <th className="py-2 px-4 font-medium text-xs">Tipo</th>
                                     <th className="py-2 px-4 font-medium text-xs">Grado</th>
                                     <th className="py-2 px-4 font-medium text-xs">Grupo</th>
-                                    <th className="py-2 px-4 font-medium text-xs">Tema</th>
                                     <th className="py-2.5 px-4 font-bold text-center text-xs">Estado</th>
                                     <th className="py-2 px-4 font-medium text-xs text-right">Acciones</th>
                                   </tr>
@@ -532,9 +324,6 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                                       </td>
                                       <td className="py-3 px-4 text-xs" style={{ color: "var(--text-muted)" }}>
                                         {res.groups.map(g => g.name).join(", ") || "Sin Grupo"}
-                                      </td>
-                                      <td className="py-3 px-4 text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
-                                        {res.themes && res.themes.length > 0 ? res.themes.join(", ") : res.theme || "-"}
                                       </td>
                                       <td className="py-3 px-4 text-center">
                                         <div className="flex flex-col items-center gap-1">
@@ -585,232 +374,26 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
                                 </tbody>
                               </table>
                             </div>
-                          )
-                          }</>
-                        );
-                      })}
-                    </div>
+                          )}
+                        </>
+                      );
+                    })}
                   </div>
-                );
-              })}
-              {courses.every(c => c.resources.filter(r => r.type !== "PLAN").length === 0) && (
-                <div className="card text-center py-12 text-muted">
-                  <FileText size={40} className="mx-auto mb-3 opacity-30" />
-                  <p className="text-sm font-semibold">No has subido ningún recurso aún.</p>
                 </div>
-              )}
-            </div>
-          )}
-
-          {/* ══════════════════════════════════════
-              TAB: TEMAS DE ASIGNATURA
-              ══════════════════════════════════════ */}
-          {activeTab === "temas" && (
-            <div className="flex flex-col gap-6">
-              {courses.map(course => {
-                const courseThemes = [...(course.themes || [])]
-                  .sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }));
-
-                return (
-                  <div key={course.id} className="card w-full">
-                    <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
-                      <BookMarked className="text-[#f98012]" /> {course.name}
-                    </h2>
-                    <p className="text-sm text-muted mb-5">
-                      Administra y organiza los temas de esta asignatura agrupados por cada periodo académico.
-                    </p>
-
-                    <div className="flex flex-col gap-5">
-                      {periods.map(p => p.name).map(periodName => {
-                        // 1. Recursos y tareas de este periodo en la asignatura
-                        const periodResources = course.resources.filter(r => {
-                          if (r.type === "PLAN" || r.type === "THEME") return false;
-                          return r.period === periodName;
-                        });
-
-                        const periodTasks = (course.tasks || []).filter(t => {
-                          return t.period === periodName;
-                        });
-
-                        // 2. Temas que tienen materiales o tareas en este periodo
-                        const themesWithItemsInPeriod = courseThemes.filter(t => {
-                          const hasRes = periodResources.some(r => r.themes && r.themes.includes(t.title));
-                          const hasTask = periodTasks.some(tsk => (tsk.themes && tsk.themes.some(th => th === t.title)) || tsk.theme === t.title);
-                          return hasRes || hasTask;
-                        });
-
-                        // Temas sin materiales en ningún periodo (se muestran en el periodo activo o primero)
-                        const unassignedThemes = courseThemes.filter(t => {
-                          const hasAnyRes = course.resources.some(r => r.themes && r.themes.includes(t.title));
-                          const hasAnyTask = (course.tasks || []).some(tsk => (tsk.themes && tsk.themes.some(th => th === t.title)) || tsk.theme === t.title);
-                          return !hasAnyRes && !hasAnyTask;
-                        });
-
-                        const isFirstActivePeriod = periods.find(p => p.active)?.name === periodName || (periods.length > 0 && periods[0].name === periodName);
-
-                        const displayedThemes = [
-                          ...themesWithItemsInPeriod,
-                          ...(isFirstActivePeriod ? unassignedThemes : [])
-                        ];
-
-                        const uniqueDisplayedThemes = Array.from(new Set(displayedThemes.map(t => t.id)))
-                          .map(id => displayedThemes.find(t => t.id === id)!);
-
-                        const isActive = isPeriodActiveHelper(periodName);
-                        const inputKey = `${course.id}-${periodName}`;
-
-                        return periodSectionWrapper(
-                          periodName,
-                          isActive,
-                          periodName !== "Otros" && (
-                            <button
-                              onClick={() => {
-                                setThemeInputCourseId(inputKey);
-                                setThemeInputValue("");
-                              }}
-                              className="btn btn-primary py-1 px-2.5 text-[11px] h-auto flex items-center gap-1"
-                            >
-                              <Plus size={12} /> Nuevo Tema
-                            </button>
-                          ),
-                          <div className="flex flex-col gap-3">
-                            {uniqueDisplayedThemes.length === 0 && themeInputCourseId !== inputKey ? (
-                              <p className="text-muted text-xs italic p-2">No hay temas con contenido en este periodo.</p>
-                            ) : (
-                              uniqueDisplayedThemes.map(t => {
-                                const linkedPeriodRes = periodResources.filter(r => r.themes && r.themes.includes(t.title));
-                                const linkedPeriodTasks = periodTasks.filter(tsk => (tsk.themes && tsk.themes.some(th => th === t.title)) || tsk.theme === t.title);
-
-                                return (
-                                  <div
-                                    key={t.id}
-                                    className="border rounded-lg p-4"
-                                    style={{ borderColor: "var(--border-color)", background: "var(--bg-primary)" }}
-                                  >
-                                    <div className="flex justify-between items-center mb-2">
-                                      <h3 className="font-bold text-base" style={{ color: "#1a56db" }}>
-                                        {t.title}
-                                      </h3>
-                                      <div className="flex gap-2 items-center">
-                                        <button
-                                          type="button"
-                                          onClick={() => openLinkMaterialsModal(course.id, t)}
-                                          className="btn btn-primary py-1 px-3 text-xs flex items-center gap-1"
-                                        >
-                                          <BookMarked size={14} /> Vincular Materiales
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => handleDeleteTheme(t.id)}
-                                          className="p-1.5 rounded hover:bg-red-50 text-red-600 transition-colors"
-                                          title="Eliminar tema"
-                                        >
-                                          <Trash2 size={16} />
-                                        </button>
-                                      </div>
-                                    </div>
-
-                                    {linkedPeriodRes.length > 0 || linkedPeriodTasks.length > 0 ? (
-                                      <ul className="flex flex-col gap-1.5 mt-2.5 pl-3 border-l-2 border-[#1a56db]">
-                                        {linkedPeriodRes.map(r => (
-                                          <li key={r.id} className="text-sm flex items-center gap-2 text-slate-700 dark:text-slate-200">
-                                            <span>{TYPE_ICONS[r.type] || "📁"}</span>
-                                            <span className="font-semibold">{r.title}</span>
-                                            <span className="text-[10px] text-muted uppercase ml-2 bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded">
-                                              {r.period}
-                                            </span>
-                                          </li>
-                                        ))}
-                                        {linkedPeriodTasks.map(tsk => (
-                                          <li key={tsk.id} className="text-sm flex items-center gap-2 text-slate-700 dark:text-slate-200">
-                                            <span>📝</span>
-                                            <span className="font-semibold">{tsk.title}</span>
-                                            <span className="text-[10px] text-purple-700 bg-purple-100 dark:bg-purple-900/40 px-1.5 py-0.5 rounded ml-2">
-                                              Actividad
-                                            </span>
-                                          </li>
-                                        ))}
-                                      </ul>
-                                    ) : (
-                                      <p className="text-xs text-muted italic mt-1">
-                                        No hay materiales vinculados a este tema en este periodo.
-                                      </p>
-                                    )}
-                                  </div>
-                                );
-                              })
-                            )}
-
-                            {/* Input para agregar nuevo tema en este periodo */}
-                            {themeInputCourseId === inputKey ? (
-                              <div className="flex items-center gap-2 mt-2">
-                                <input
-                                  autoFocus
-                                  type="text"
-                                  className="input-field py-1 px-3 text-sm"
-                                  style={{ width: 250, height: 34 }}
-                                  placeholder="Nombre del nuevo tema..."
-                                  value={themeInputValue}
-                                  onChange={e => setThemeInputValue(e.target.value)}
-                                  onKeyDown={e => {
-                                    if (e.key === 'Enter') {
-                                      e.preventDefault();
-                                      handleCreateTheme(course.id);
-                                    }
-                                    if (e.key === 'Escape') {
-                                      setThemeInputCourseId(null);
-                                      setThemeInputValue('');
-                                    }
-                                  }}
-                                />
-                                <button
-                                  type="button"
-                                  disabled={creatingTheme || !themeInputValue.trim()}
-                                  onClick={() => handleCreateTheme(course.id)}
-                                  className="btn btn-primary flex items-center gap-1"
-                                  style={{ padding: '4px 12px', fontSize: '13px', height: 34 }}
-                                >
-                                  {creatingTheme ? <Loader2 size={14} className="animate-spin" /> : 'Guardar'}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setThemeInputCourseId(null);
-                                    setThemeInputValue('');
-                                  }}
-                                  className="btn btn-secondary flex items-center"
-                                  style={{ padding: '4px 8px', height: 34 }}
-                                >
-                                  <X size={14} />
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setThemeInputCourseId(inputKey);
-                                  setThemeInputValue('');
-                                }}
-                                className="flex items-center justify-center gap-1 px-3 py-1.5 mt-1 rounded-lg text-xs font-semibold border border-dashed transition-colors hover:border-[#f98012] hover:text-[#f98012]"
-                                style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)', width: 'fit-content' }}
-                              >
-                                <Plus size={13} /> + Nuevo Tema
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+              );
+            })}
+            {courses.every(c => c.resources.filter(r => r.type !== "PLAN").length === 0) && (
+              <div className="card text-center py-12 text-muted">
+                <FileText size={40} className="mx-auto mb-3 opacity-30" />
+                <p className="text-sm font-semibold">No has subido ningún recurso aún.</p>
+              </div>
+            )}
+          </div>
 
         </div>
       )}
 
-      {/* ══ Modal: Recurso / Plan de Clase ══ */}
+      {/* ══ Modal: Recurso ══ */}
       {showResourceModal && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowResourceModal(false)}>
           <form onSubmit={handleSaveResource} className="modal-content w-full max-w-lg" style={{ borderRadius: "1rem" }}>
@@ -926,107 +509,6 @@ export default function ContenidoClient({ courses, initialPeriods }: ContenidoCl
               <button type="submit" className="btn btn-primary text-xs" disabled={loading}>
                 {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
                 {editingResource ? "Guardar Cambios" : "Subir Material"}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* ══ Modal: Periodo ══ */}
-      {showPeriodModal && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowPeriodModal(false)}>
-          <form onSubmit={handleCreateOrUpdatePeriod} className="modal-content w-full max-w-md" style={{ borderRadius: "1rem" }}>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold">{editingPeriod ? "Editar Periodo" : "Nuevo Periodo"}</h2>
-              <button type="button" onClick={() => setShowPeriodModal(false)} className="p-1 rounded hover:bg-slate-100">
-                <X size={20} />
-              </button>
-            </div>
-            {error && <div className="alert alert-danger mb-4 text-xs font-bold">{error}</div>}
-            <div className="input-group mb-4">
-              <label className="text-xs font-bold mb-1">Nombre del Periodo *</label>
-              <input
-                type="text" className="input-field py-1.5 px-3 text-xs"
-                placeholder="Ej. Periodo 5, Semestre 1"
-                value={periodForm.name}
-                onChange={e => setPeriodForm({ name: e.target.value })}
-                required
-              />
-            </div>
-            <div className="flex justify-end gap-3 border-t pt-4" style={{ borderColor: "var(--border-color)" }}>
-              <button type="button" className="btn btn-secondary text-xs" onClick={() => setShowPeriodModal(false)}>Cancelar</button>
-              <button type="submit" className="btn btn-primary text-xs" disabled={loading}>
-                {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
-                {editingPeriod ? "Guardar Cambios" : "Crear Periodo"}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* ══ Modal: Vincular Materiales a Tema ══ */}
-      {showLinkMaterialsModal && selectedThemeForLink && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowLinkMaterialsModal(false)}>
-          <form onSubmit={handleSaveLinkMaterials} className="modal-content w-full max-w-lg" style={{ borderRadius: "1rem" }}>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold flex items-center gap-2">
-                <BookMarked className="text-[#f98012]" size={20} />
-                Vincular a: {selectedThemeForLink.theme.title}
-              </h2>
-              <button type="button" onClick={() => setShowLinkMaterialsModal(false)} className="p-1 rounded hover:bg-slate-100">
-                <X size={20} />
-              </button>
-            </div>
-            {error && <div className="alert alert-danger mb-4 text-xs font-bold">{error}</div>}
-            
-            <p className="text-sm text-muted mb-4">Selecciona los materiales que deseas vincular a este tema.</p>
-            
-            <div className="border rounded-lg p-3 max-h-[350px] overflow-y-auto flex flex-col gap-2 bg-slate-50" style={{ borderColor: "var(--border-color)" }}>
-              {(() => {
-                const course = courses.find(c => c.id === selectedThemeForLink.courseId);
-                const materials = course?.resources.filter(r => r.type !== "PLAN" && r.type !== "THEME") || [];
-                
-                if (materials.length === 0) {
-                  return <p className="text-xs text-muted italic">No hay materiales en esta asignatura.</p>;
-                }
-
-                return materials.map(res => {
-                  const isChecked = linkMaterialsSelection.includes(res.id);
-                  return (
-                    <label key={res.id} className="flex items-start gap-3 p-2 rounded hover:bg-white cursor-pointer transition-colors border border-transparent hover:border-slate-200">
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => {
-                          if (isChecked) {
-                            setLinkMaterialsSelection(prev => prev.filter(id => id !== res.id));
-                          } else {
-                            setLinkMaterialsSelection(prev => [...prev, res.id]);
-                          }
-                        }}
-                        className="rounded mt-0.5"
-                        style={{ accentColor: "#f98012" }}
-                      />
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-sm font-bold flex items-center gap-1.5 text-slate-800">
-                          {TYPE_ICONS[res.type] || "📁"} {res.title}
-                        </span>
-                        <div className="flex items-center gap-2 text-[10px] uppercase font-bold text-muted">
-                          <span className="bg-slate-200 px-1.5 py-0.5 rounded">{res.period}</span>
-                          <span>{res.type}</span>
-                        </div>
-                      </div>
-                    </label>
-                  );
-                });
-              })()}
-            </div>
-
-            <div className="flex justify-end gap-3 border-t pt-4 mt-4" style={{ borderColor: "var(--border-color)" }}>
-              <button type="button" className="btn btn-secondary text-xs" onClick={() => setShowLinkMaterialsModal(false)}>Cancelar</button>
-              <button type="submit" className="btn btn-primary text-xs" disabled={linkingMaterials}>
-                {linkingMaterials ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
-                Guardar Cambios
               </button>
             </div>
           </form>

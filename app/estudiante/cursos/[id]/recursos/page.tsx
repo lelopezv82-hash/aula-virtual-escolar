@@ -1,13 +1,34 @@
 import prisma from '@/lib/prisma';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
-import { BookOpen } from "lucide-react";
-import RecursosTemaSection, { ResourceItem } from "./RecursosTemaSection";
+import { BookOpen, Download, Link as LinkIcon } from "lucide-react";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+
+const TYPE_ICONS: Record<string, string> = {
+  PDF: "📄",
+  WORD: "📝",
+  DOC: "📝",
+  DOCX: "📝",
+  PPT: "📊",
+  PPTX: "📊",
+  EXCEL: "📈",
+  XLS: "📈",
+  XLSX: "📈",
+  IMAGE: "🖼️",
+  PNG: "🖼️",
+  JPG: "🖼️",
+  JPEG: "🖼️",
+  VIDEO: "🎬",
+  LINK: "🔗",
+  ENLACE: "🔗",
+  DRIVE: "📁",
+  ZIP: "📦",
+  RAR: "📦"
+};
 
 function getCleanFileType(url: string, rawType?: string): string {
   if (!url) return (rawType && rawType.length <= 6) ? rawType.toUpperCase() : "ARCHIVO";
@@ -74,12 +95,6 @@ export default async function CursoRecursosPage({
     );
   }
 
-  // Fetch course themes
-  const themes = await prisma.theme.findMany({
-    where: { courseId: id },
-    orderBy: { order: "asc" }
-  });
-
   const now = new Date();
 
   // Fetch standalone course resources
@@ -95,7 +110,7 @@ export default async function CursoRecursosPage({
       ],
     },
     orderBy: { createdAt: "desc" },
-    include: { groups: true, themes: true },
+    include: { groups: true },
   });
 
   // Fetch tasks with attached resources or guides
@@ -115,30 +130,33 @@ export default async function CursoRecursosPage({
       ]
     },
     include: {
-      resources: true,
-      themes: true
+      resources: true
     },
     orderBy: { createdAt: "desc" }
   });
 
-  const unifiedList: ResourceItem[] = [];
+  type SimpleResource = {
+    id: string;
+    title: string;
+    type: string;
+    url: string;
+    createdAt: Date;
+  };
+
+  const unifiedList: SimpleResource[] = [];
   const seenUrls = new Set<string>();
 
   // Add standalone resources
   for (const r of standaloneResources) {
     if (r.url && !seenUrls.has(r.url)) {
       seenUrls.add(r.url);
-      const themeTitle = r.themes?.[0]?.title || r.theme || null;
       const cleanType = getCleanFileType(r.url, r.type);
       unifiedList.push({
         id: r.id,
         title: r.title,
         type: cleanType,
         url: r.url,
-        period: r.period || null,
-        themeTitle,
-        sourceType: "MATERIAL",
-        createdAt: r.createdAt.toISOString()
+        createdAt: r.createdAt
       });
     }
   }
@@ -153,11 +171,7 @@ export default async function CursoRecursosPage({
         title: `Guía: ${t.title}`,
         type: cleanType,
         url: t.attachmentUrl,
-        period: t.period || null,
-        themeTitle: t.themes?.[0]?.title || t.theme || null,
-        sourceType: "TASK_GUIDE",
-        taskTitle: t.title,
-        createdAt: t.createdAt.toISOString()
+        createdAt: t.createdAt
       });
     }
     for (const res of t.resources) {
@@ -169,45 +183,11 @@ export default async function CursoRecursosPage({
           title: res.title,
           type: cleanType,
           url: res.url,
-          period: res.period || t.period || null,
-          themeTitle: t.themes?.[0]?.title || t.theme || null,
-          sourceType: "TASK_RESOURCE",
-          taskTitle: t.title,
-          createdAt: res.createdAt.toISOString()
+          createdAt: res.createdAt
         });
       }
     }
   }
-
-  // Group resources by Theme
-  const themeMap = new Map<string, ResourceItem[]>();
-  const generalResources: ResourceItem[] = [];
-
-  for (const item of unifiedList) {
-    const rawTheme = item.themeTitle?.trim();
-    if (rawTheme) {
-      if (!themeMap.has(rawTheme)) {
-        themeMap.set(rawTheme, []);
-      }
-      themeMap.get(rawTheme)!.push(item);
-    } else {
-      generalResources.push(item);
-    }
-  }
-
-  // Get theme order from DB themes
-  const dbThemeTitles = themes.map(t => t.title);
-  const dbThemeSet = new Set(dbThemeTitles);
-  const extraThemeTitles = Array.from(themeMap.keys())
-    .filter(t => !dbThemeSet.has(t))
-    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
-
-  const orderedThemes = [...dbThemeTitles, ...extraThemeTitles].filter(themeName => {
-    const list = themeMap.get(themeName);
-    return list && list.length > 0;
-  });
-
-  const hasContent = orderedThemes.length > 0 || generalResources.length > 0;
 
   return (
     <div className="flex flex-col gap-5">
@@ -218,48 +198,127 @@ export default async function CursoRecursosPage({
           Recursos y Materiales de Estudio
         </h2>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-          Archivos, guías y enlaces organizados por tema para complementar tu aprendizaje.
+          Archivos, guías y enlaces compartidos para apoyar tu aprendizaje.
         </p>
       </div>
 
-      {/* Resources grouped by Theme */}
-      {!hasContent ? (
+      {/* Direct Resources List */}
+      {unifiedList.length === 0 ? (
         <div style={{
           background: "#fff",
           border: "1px solid #dee2e6",
-          borderRadius: "8px",
+          borderRadius: "10px",
           padding: "3rem",
           textAlign: "center",
-          color: "#6c757d"
+          color: "#6c757d",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
         }}>
           <BookOpen size={44} style={{ margin: "0 auto 0.75rem auto", opacity: 0.4 }} />
           <h3 style={{ fontSize: "1rem", fontWeight: 700, color: "#333", marginBottom: "0.25rem" }}>
             No hay materiales disponibles en esta asignatura
           </h3>
           <p style={{ fontSize: "0.85rem", margin: 0 }}>
-            Los documentos, guías de actividades y enlaces que asigne el docente aparecerán organizados por temas aquí.
+            Los documentos, guías de actividades y enlaces que asigne el docente aparecerán aquí.
           </p>
         </div>
       ) : (
-        <div>
-          {/* Render each theme section */}
-          {orderedThemes.map((themeName) => (
-            <RecursosTemaSection
-              key={themeName}
-              title={themeName}
-              resources={themeMap.get(themeName) || []}
-              defaultOpen={true}
-            />
-          ))}
+        <div style={{
+          background: "#ffffff",
+          border: "1px solid #dee2e6",
+          borderRadius: "10px",
+          overflow: "hidden",
+          padding: "1rem 1.25rem",
+          display: "flex",
+          flexDirection: "column",
+          gap: "0.75rem",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
+        }}>
+          {unifiedList.map((resource) => {
+            const isLink = resource.type.toUpperCase() === "LINK" ||
+              resource.type.toUpperCase() === "ENLACE" ||
+              resource.type.toUpperCase() === "DRIVE" ||
+              resource.url.startsWith("http");
 
-          {/* Render general resources if any without specific theme */}
-          {generalResources.length > 0 && (
-            <RecursosTemaSection
-              title="Materiales Generales"
-              resources={generalResources}
-              defaultOpen={orderedThemes.length === 0}
-            />
-          )}
+            const iconChar = TYPE_ICONS[resource.type.toUpperCase()] || "📄";
+
+            return (
+              <div
+                key={resource.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "1rem",
+                  padding: "0.85rem 1.15rem",
+                  borderRadius: "8px",
+                  border: "1px solid #e9ecef",
+                  background: "#fcfcfd"
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "0.85rem", minWidth: 0, flex: 1 }}>
+                  <div style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: "8px",
+                    background: "#f1f5f9",
+                    border: "1px solid #cbd5e1",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "1.25rem",
+                    flexShrink: 0
+                  }}>
+                    {iconChar}
+                  </div>
+
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <h4
+                      style={{
+                        margin: 0,
+                        fontSize: "0.95rem",
+                        fontWeight: 600,
+                        color: "#1e293b",
+                        lineHeight: 1.4,
+                        wordBreak: "break-word"
+                      }}
+                      title={resource.title}
+                    >
+                      {resource.title}
+                    </h4>
+                  </div>
+                </div>
+
+                <div style={{ flexShrink: 0 }}>
+                  <a
+                    href={resource.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "0.45rem",
+                      padding: "0.5rem 0.95rem",
+                      borderRadius: "6px",
+                      fontSize: "0.82rem",
+                      fontWeight: 700,
+                      backgroundColor: "#0284c7",
+                      color: "#ffffff",
+                      textDecoration: "none",
+                      border: "none",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+                      cursor: "pointer",
+                      whiteSpace: "nowrap"
+                    }}
+                    title={isLink ? "Abrir enlace" : "Descargar archivo"}
+                  >
+                    {isLink ? <LinkIcon size={14} color="#ffffff" /> : <Download size={14} color="#ffffff" />}
+                    <span style={{ color: "#ffffff" }}>{isLink ? "Abrir enlace" : "Descargar"}</span>
+                  </a>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
