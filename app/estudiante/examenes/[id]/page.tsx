@@ -98,6 +98,8 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
         ? "No respondiste ninguna pregunta"
         : null;
 
+  const hasFinishedExam = (submission?.status === "SUBMITTED" || (submission?.status === "GRADED" && (submission?.submittedAt || hasAnswers || hasUploadedFile))) && !virtualSubmission;
+
   // Polling to check if webhook has graded the exam
   useEffect(() => {
     if (!task || !isGoogleForm) return;
@@ -529,9 +531,32 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                 <tr className="border-b border-gray-100">
                   <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Estado de la entrega</td>
                   <td className="p-4 align-middle">
-                    <span className="px-3 py-1 bg-[#d4edda] text-[#155724] rounded-sm text-xs font-semibold uppercase">
-                      Finalizado
-                    </span>
+                    {task.isExternal ? (
+                      isGraded ? (
+                        <span className="px-3 py-1 bg-[#d4edda] text-[#155724] border border-[#c3e6cb] rounded-sm text-xs font-bold uppercase w-max inline-flex items-center gap-1">
+                          ✅ Registrado por el docente
+                        </span>
+                      ) : (
+                        <div className="flex flex-col gap-1">
+                          <span className="px-3 py-1 bg-gray-100 text-gray-600 border border-gray-200 rounded-sm text-xs font-bold uppercase w-max inline-flex items-center gap-1">
+                            ⏳ Pendiente de validación
+                          </span>
+                          <span className="text-xs text-gray-500 italic">Esta actividad es de entrega física. El docente registrará tu calificación.</span>
+                        </div>
+                      )
+                    ) : hasFinishedExam ? (
+                      <span className="px-3 py-1 bg-[#d4edda] text-[#155724] rounded-sm text-xs font-semibold uppercase">
+                        Finalizado
+                      </span>
+                    ) : (isClosed || timerHasExpired || virtualSubmission || isOverdue) ? (
+                      <span className="px-3 py-1 bg-[#f8d7da] text-[#721c24] border border-[#f5c6cb] rounded-sm text-xs font-bold uppercase">
+                        No presentado (Plazo vencido)
+                      </span>
+                    ) : (
+                      <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-sm text-xs font-semibold uppercase">
+                        Sin presentar
+                      </span>
+                    )}
                   </td>
                 </tr>
                 
@@ -611,28 +636,34 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                       </td>
                     </tr>
                     
-                    {/* Comentarios de retroalimentación — only shown if it's a real human comment, not auto-grade JSON */}
-                    {activeSubmission.feedback && !activeSubmission.feedback.trim().startsWith('[') && !activeSubmission.feedback.trim().startsWith('{') && (
-                      <tr>
-                        <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Comentarios de retroalimentación</td>
-                        <td className="p-4 align-middle text-gray-800 whitespace-pre-wrap leading-relaxed">
-                          {activeSubmission.feedback}
-                        </td>
-                      </tr>
-                    )}
+                    {/* Comentarios de retroalimentación */}
+                    <tr>
+                      <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Comentarios de retroalimentación</td>
+                      <td className="p-4 align-middle text-gray-800 whitespace-pre-wrap leading-relaxed">
+                        {activeSubmission.feedback && !activeSubmission.feedback.trim().startsWith('[') && !activeSubmission.feedback.trim().startsWith('{') ? (
+                          activeSubmission.feedback
+                        ) : (!hasFinishedExam && !task.isExternal && (isClosed || timerHasExpired || virtualSubmission || isOverdue)) ? (
+                          <span className="text-gray-500 italic">
+                            {gradeReason || "Examen no presentado dentro del plazo establecido."}
+                          </span>
+                        ) : (
+                          "-"
+                        )}
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
             </div>
           )}
 
-          {/* Graded messages if applicable */}
-          {gradeReason && (
+          {/* Graded / Expired messages if applicable */}
+          {(!hasFinishedExam && !task.isExternal && (isClosed || timerHasExpired || virtualSubmission || gradeReason)) && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800 mb-8 animate-scale-in">
               <h3 className="font-bold flex items-center gap-2">
-                <AlertTriangle size={18} /> {gradeReason}
+                <AlertTriangle size={18} /> {gradeReason || "Examen no presentado a tiempo"}
               </h3>
-              <p className="text-sm mt-1">Se ha asignado la nota mínima (1.0) de forma automática.</p>
+              <p className="text-sm mt-1">El tiempo límite o plazo para realizar este examen ha vencido. Se ha asignado la nota mínima (1.0) por falta de presentación.</p>
             </div>
           )}
 
