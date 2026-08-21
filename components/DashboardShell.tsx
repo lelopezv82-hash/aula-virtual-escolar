@@ -190,6 +190,19 @@ export default function DashboardShell({
             <ul className="nav-list">
               {roleTitle === "Estudiante" && links.some(l => l.href.startsWith("/estudiante/cursos/")) ? (
                 <>
+                  {/* Non-course links first (Tablero Virtual, etc.) */}
+                  {links.filter(l => !l.href.startsWith("/estudiante/cursos/") && l.href !== "/estudiante/configuracion").map((link) => (
+                    <li key={link.href} className="nav-item-container">
+                      <ActiveLink href={link.href}>
+                        {link.icon}
+                        <span className="nav-label">{link.label}</span>
+                      </ActiveLink>
+                    </li>
+                  ))}
+                  {/* Separator + ASIGNATURAS */}
+                  <li style={{ padding: "0.25rem 2rem" }}>
+                    <div style={{ height: "1px", background: "var(--border-color)", margin: "0.25rem 0" }} />
+                  </li>
                   <li style={{ 
                     padding: "0.5rem 2rem 0.25rem", 
                     fontSize: "0.75rem", 
@@ -208,12 +221,11 @@ export default function DashboardShell({
                       </ActiveLink>
                     </li>
                   ))}
-                  {links.some(l => !l.href.startsWith("/estudiante/cursos/")) && (
-                    <li style={{ padding: "0.25rem 2rem" }}>
-                      <div style={{ height: "1px", background: "var(--border-color)", margin: "0.25rem 0" }} />
-                    </li>
-                  )}
-                  {links.filter(l => !l.href.startsWith("/estudiante/cursos/")).map((link) => (
+                  {/* Separator + Configuración */}
+                  <li style={{ padding: "0.25rem 2rem" }}>
+                    <div style={{ height: "1px", background: "var(--border-color)", margin: "0.25rem 0" }} />
+                  </li>
+                  {links.filter(l => l.href === "/estudiante/configuracion").map((link) => (
                     <li key={link.href} className="nav-item-container">
                       <ActiveLink href={link.href}>
                         {link.icon}
