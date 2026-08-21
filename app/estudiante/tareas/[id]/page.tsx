@@ -657,7 +657,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                     <tr>
                       <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Comentarios de retroalimentación</td>
                       <td className="p-4 align-middle text-gray-800 whitespace-pre-wrap leading-relaxed">
-                        {submission.feedback || "Excelente actividad"}
+                        {submission.feedback || "-"}
                       </td>
                     </tr>
                   </tbody>
