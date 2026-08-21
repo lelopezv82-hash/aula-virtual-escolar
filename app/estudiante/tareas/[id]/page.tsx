@@ -327,7 +327,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const teacherName = task.course?.teacher?.name || "Docente";
   const initials = teacherName.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase();
 
-  const canEditOrDelete = (!isGraded || isAutomaticGrade1) && !isSubmissionBlocked && (!isTimerExpired || hasActiveExtension) && !task.isExternal && !isGoogleForm;
+  const canEditOrDelete = (!isGraded || isAutomaticGrade1 || hasActiveExtension) && !isSubmissionBlocked && (!isTimerExpired || hasActiveExtension) && !task.isExternal && !isGoogleForm;
 
   return (
     <div className="animate-fade-in max-w-4xl mx-auto px-4 py-6">

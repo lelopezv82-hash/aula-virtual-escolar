@@ -81,12 +81,14 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const hasUploadedFile = !!(submission?.fileUrl && submission.fileUrl.trim() !== "");
   const isAutomaticGrade1 = (submission?.grade === 1 || submission?.grade === 1.0) && hasActiveExtension && !hasUploadedFile;
 
+  const hasAnswers = submission?.answers && Object.keys(submission.answers as Record<string, unknown>).length > 0;
+  const hasFinishedExam = (submission?.status === "SUBMITTED" || (submission?.status === "GRADED" && (submission?.submittedAt || hasAnswers || hasUploadedFile))) && !virtualSubmission;
+
   const isGraded = activeSubmission?.status === "GRADED" && !isAutomaticGrade1;
-  const isSubmitted = hasUploadedFile || activeSubmission?.status === "SUBMITTED" || (isGraded && !isAutomaticGrade1);
+  const isSubmitted = hasFinishedExam || (isGraded && !isAutomaticGrade1 && !hasActiveExtension);
 
   // Determine the reason for minimum grade (1.0)
   const neverStarted = !submission || (submission.status === "PENDING" && !submission.startedAt);
-  const hasAnswers = submission?.answers && Object.keys(submission.answers as Record<string, unknown>).length > 0;
   const startedButEmpty = submission && submission.startedAt && submission.status !== "PENDING"
     && submission.grade !== null && submission.grade <= 1.0
     && !hasAnswers;
@@ -97,8 +99,6 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
       : startedButEmpty
         ? "No respondiste ninguna pregunta"
         : null;
-
-  const hasFinishedExam = (submission?.status === "SUBMITTED" || (submission?.status === "GRADED" && (submission?.submittedAt || hasAnswers || hasUploadedFile))) && !virtualSubmission;
 
   // Polling to check if webhook has graded the exam
   useEffect(() => {
