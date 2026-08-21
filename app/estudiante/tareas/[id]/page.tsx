@@ -51,12 +51,12 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const hasUploadedFile = !!(submission?.fileUrl && submission.fileUrl.trim() !== "");
   const isAutomaticGrade1 = (submission?.grade === 1 || submission?.grade === 1.0) && hasActiveExtension && !hasUploadedFile;
 
-  const isGraded = (submission?.status === "GRADED" && !isAutomaticGrade1) || (submission?.grade != null && submission?.grade !== 1.0 && submission?.status === "PENDING");
-  const isSubmitted = hasUploadedFile || submission?.status === "SUBMITTED" || (isGraded && !isAutomaticGrade1);
+  const isGraded = (submission?.status === "GRADED" && !isAutomaticGrade1) || (submission?.grade != null && !isAutomaticGrade1);
+  const isSubmitted = hasUploadedFile || (task?.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")) && submission?.status === "SUBMITTED");
 
   // Check deadline status for grade reason
   const { isClosed: isDeadlinePassed } = task ? getTaskDeadlineStatus(task, submission) : { isClosed: false };
-  const neverSubmitted = (!submission || (submission.status === "PENDING" && submission.grade == null)) && !hasUploadedFile;
+  const neverSubmitted = !hasUploadedFile && !isSubmitted;
   const virtualGraded = neverSubmitted && isDeadlinePassed;
   const gradeReason = virtualGraded ? "No entregaste la tarea a tiempo" : null;
 
@@ -519,6 +519,10 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                       <span className="px-3 py-1 bg-[#d4edda] text-[#155724] rounded-sm text-xs font-semibold uppercase">
                         Enviado para calificar
                       </span>
+                    ) : (isDeadlinePassed || isSubmissionBlocked || isTimerExpired) ? (
+                      <span className="px-3 py-1 bg-[#f8d7da] text-[#721c24] border border-[#f5c6cb] rounded-sm text-xs font-bold uppercase">
+                        No entregado (Plazo vencido)
+                      </span>
                     ) : (
                       <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-sm text-xs font-semibold uppercase">
                         No entregado
@@ -582,13 +586,13 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
           </div>
 
           {/* Overdue/Closed/Grace messages if not submitted */}
-          {!isSubmitted && (isSubmissionBlocked || (isTimerExpired && !submission?.allowLateSubmission)) && !task.isExternal && (
+          {!isSubmitted && (isSubmissionBlocked || isDeadlinePassed || (isTimerExpired && !submission?.allowLateSubmission)) && !task.isExternal && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800 flex flex-col gap-1 mb-8 animate-scale-in">
               <h3 className="font-bold flex items-center gap-2">
                 <Clock size={18} /> Plazo de Entrega Vencido / Tiempo Agotado
               </h3>
               <p className="text-sm">
-                El tiempo límite ha expirado o el plazo original ha vencido. La entrega se ha deshabilitado.
+                El tiempo límite ha expirado o el plazo original ha vencido sin registrarse ninguna entrega de archivos. La entrega se encuentra deshabilitada.
               </p>
             </div>
           )}
@@ -657,7 +661,13 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                     <tr>
                       <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Comentarios de retroalimentación</td>
                       <td className="p-4 align-middle text-gray-800 whitespace-pre-wrap leading-relaxed">
-                        {submission.feedback || "-"}
+                        {submission?.feedback ? (
+                          submission.feedback
+                        ) : (!isSubmitted && !task.isExternal && (isDeadlinePassed || isSubmissionBlocked || isTimerExpired)) ? (
+                          <span className="text-gray-500 italic">Actividad no entregada dentro del plazo establecido.</span>
+                        ) : (
+                          "-"
+                        )}
                       </td>
                     </tr>
                   </tbody>
