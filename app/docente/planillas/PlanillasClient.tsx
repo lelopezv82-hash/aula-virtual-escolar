@@ -2492,7 +2492,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 </h2>
                 <p className="text-sm text-muted mt-0.5 font-semibold">{gradingTask.title}</p>
                 <p className="text-xs text-muted mt-0.5">
-                  Asigna notas a trabajos realizados <strong>fuera de la plataforma</strong> (
+                  Asigna la calificación manual para esta actividad (
                   {gradingTask.type === "EXAM" ? "Examen — Nota del Saber" : gradingTask.type === "SER" ? "Actitudinal — Nota del Ser" : "Tarea — Nota del Hacer"})
                 </p>
               </div>

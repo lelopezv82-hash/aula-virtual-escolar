@@ -432,7 +432,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                 </h2>
                 <p className="text-sm text-muted mt-0.5">{gradingTask.title}</p>
                 <p className="text-xs text-muted mt-0.5">
-                  Asigna notas a trabajos realizados <strong>fuera de la plataforma</strong> (
+                  Asigna la calificación manual para esta actividad (
                   {gradingTask.type === "EXAM" ? "Examen — Nota del Saber" : "Tarea — Nota del Hacer"})
                 </p>
               </div>
