@@ -1,7 +1,17 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { jwtVerify } from "jose";
-import { BookOpen, LayoutDashboard, Settings, ClipboardList, Layers, CalendarDays } from "lucide-react";
+import {
+  LayoutDashboard,
+  Settings,
+  BookOpen,
+  ClipboardList,
+  CalendarDays,
+  Layers,
+  FileText,
+  TableProperties,
+  CalendarClock,
+} from "lucide-react";
 import DashboardShell from "@/components/DashboardShell";
 import "./docente.css";
 
@@ -36,35 +46,53 @@ export default async function DocenteLayout({ children }: { children: React.Reac
       icon: <LayoutDashboard size={20} />,
     },
     {
-      href: "/docente/grados",
-      label: "Gestión Grados",
-      icon: <Layers size={20} />,
-    },
-    {
-      href: "/docente/cursos",
-      label: "Gestión Asignaturas",
-      icon: <BookOpen size={20} />,
-    },
-
-    {
-      href: "/docente/contenido",
-      label: "Gestión Recursos",
-      icon: <ClipboardList size={20} />,
-    },
-    {
       href: "/docente/planillas",
-      label: "Gestión Actividades",
-      icon: <ClipboardList size={20} />,
+      label: "Planillas",
+      icon: <TableProperties size={20} />,
     },
     {
-      href: "/docente/gestion-periodos",
-      label: "Gestión Periodos",
-      icon: <CalendarDays size={20} />,
+      href: "/docente/asignaturas-group",
+      label: "Asignaturas",
+      icon: <BookOpen size={20} />,
+      children: [
+        {
+          href: "/docente/cursos",
+          label: "Gestión Asignaturas",
+          icon: <BookOpen size={16} />,
+        },
+        {
+          href: "/docente/planillas",
+          label: "Actividades",
+          icon: <ClipboardList size={16} />,
+        },
+        {
+          href: "/docente/contenido",
+          label: "Recursos",
+          icon: <FileText size={16} />,
+        },
+        {
+          href: "/docente/grados",
+          label: "Grados",
+          icon: <Layers size={16} />,
+        },
+      ],
     },
     {
-      href: "/docente/configuracion",
+      href: "/docente/configuracion-group",
       label: "Configuración",
       icon: <Settings size={20} />,
+      children: [
+        {
+          href: "/docente/gestion-periodos",
+          label: "Periodos",
+          icon: <CalendarClock size={16} />,
+        },
+        {
+          href: "/docente/configuracion",
+          label: "Configuración",
+          icon: <Settings size={16} />,
+        },
+      ],
     },
   ];
 

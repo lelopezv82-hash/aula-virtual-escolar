@@ -10,6 +10,7 @@ interface NavLink {
   href: string;
   label: string;
   icon: React.ReactNode;
+  children?: { href: string; label: string; icon: React.ReactNode }[];
 }
 
 interface DashboardShellProps {
@@ -22,6 +23,62 @@ interface DashboardShellProps {
   links: NavLink[];
   children: React.ReactNode;
   themeColor?: string;
+}
+
+function CollapsibleNavItem({ link, pathname }: { link: NavLink; pathname: string }) {
+  const isChildActive = link.children?.some(c => pathname.startsWith(c.href)) ?? false;
+  const [open, setOpen] = useState(isChildActive);
+
+  useEffect(() => {
+    if (isChildActive) setOpen(true);
+  }, [isChildActive]);
+
+  return (
+    <li className="nav-item-container" style={{ flexDirection: "column", alignItems: "stretch", padding: 0 }}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.75rem",
+          width: "100%",
+          padding: "0.6rem 1.5rem",
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          color: isChildActive ? "var(--primary-color)" : "var(--text-secondary)",
+          fontWeight: isChildActive ? 700 : 500,
+          fontSize: "0.92rem",
+          borderRadius: "0.5rem",
+          transition: "background 0.15s, color 0.15s",
+        }}
+        className="hover:bg-orange-50 dark:hover:bg-orange-900/10"
+      >
+        <span style={{ color: isChildActive ? "var(--primary-color)" : "inherit" }}>{link.icon}</span>
+        <span style={{ flex: 1, textAlign: "left" }}>{link.label}</span>
+        <ChevronDown
+          size={15}
+          style={{
+            transition: "transform 0.2s",
+            transform: open ? "rotate(-180deg)" : "rotate(0deg)",
+            opacity: 0.5,
+          }}
+        />
+      </button>
+      {open && (
+        <ul style={{ paddingLeft: "1rem", marginBottom: "0.25rem" }}>
+          {link.children!.map(child => (
+            <li key={child.href} className="nav-item-container" style={{ marginBottom: "0.1rem" }}>
+              <ActiveLink href={child.href}>
+                {child.icon}
+                <span className="nav-label">{child.label}</span>
+              </ActiveLink>
+            </li>
+          ))}
+        </ul>
+      )}
+    </li>
+  );
 }
 
 export default function DashboardShell({
@@ -236,12 +293,16 @@ export default function DashboardShell({
                 </>
               ) : (
                 links.map((link) => (
-                  <li key={link.href} className="nav-item-container">
-                    <ActiveLink href={link.href}>
-                      {link.icon}
-                      <span className="nav-label">{link.label}</span>
-                    </ActiveLink>
-                  </li>
+                  link.children ? (
+                    <CollapsibleNavItem key={link.href} link={link} pathname={pathname} />
+                  ) : (
+                    <li key={link.href} className="nav-item-container">
+                      <ActiveLink href={link.href}>
+                        {link.icon}
+                        <span className="nav-label">{link.label}</span>
+                      </ActiveLink>
+                    </li>
+                  )
                 ))
               )}
             </ul>
