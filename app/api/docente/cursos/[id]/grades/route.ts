@@ -71,7 +71,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         groups: { select: { id: true } },
         submissions: {
           where: { studentId: { in: studentIds } },
-          select: { studentId: true, status: true, grade: true, startedAt: true, submittedAt: true },
+          select: { studentId: true, status: true, grade: true, startedAt: true, submittedAt: true, fileUrl: true },
         },
       },
     });
@@ -100,22 +100,40 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         const serTasks = periodTasks.filter(t => t.type === 'SER');
         const finalTasks = periodTasks.filter(t => t.type === 'FINAL');
 
-        // For EXAM: auto-assign 1.0 when closed without submission.
-        // For TASK (HACER): only return grade if explicitly entered by the teacher (no auto-1.0).
-        // For SER/FINAL/ATTEND: only return grade if explicitly entered (no auto-1.0).
+        // Para EXAM: auto 1.0 cuando cierra sin entrega.
+        // Para TASK (HACER): auto 1.0 solo si el estudiante NO entregó nada.
+        //   Si el estudiante sí entregó, el profesor la califica manualmente.
+        // Para SER/FINAL/ATTEND: solo nota si el profesor la ingresó explícitamente.
         const getGrade = (task: typeof tasks[0]) => {
-          const isManual = ['SER', 'FINAL', 'ATTEND', 'TASK'].includes(task.type);
+          const isFullyManual = ['SER', 'FINAL', 'ATTEND'].includes(task.type);
           const sub = task.submissions.find(s => s.studentId === student.id);
           const isClosed = task.dueDate ? new Date(task.dueDate) < now : false;
           const isTimerExpired = sub?.startedAt && task.duration
             ? (new Date(sub.startedAt).getTime() + task.duration * 60 * 1000 + 30000 < now.getTime())
             : false;
-          if (sub) {
-            if (sub.status === 'GRADED') return sub.grade ?? null;
-            if (!isManual && sub.status === 'PENDING' && (isClosed || isTimerExpired)) return 1.0;
+
+          if (isFullyManual) {
+            // SER/FINAL/ATTEND: solo cuenta si fue ingresada explícitamente
+            if (sub?.status === 'GRADED') return sub.grade ?? null;
             return null;
           }
-          if (!isManual && isClosed) return 1.0;
+
+          if (task.type === 'TASK') {
+            // HACER: si el estudiante entregó → esperar al profesor (null)
+            //        si NO entregó y la fecha cerró → 1.0 automático
+            if (sub?.status === 'GRADED') return sub.grade ?? null;
+            const studentSubmitted = sub && sub.status !== 'PENDING' && (sub as any).fileUrl;
+            if (!studentSubmitted && isClosed) return 1.0;
+            return null;
+          }
+
+          // EXAM y otros: auto 1.0 al cerrar sin entrega calificada
+          if (sub) {
+            if (sub.status === 'GRADED') return sub.grade ?? null;
+            if (sub.status === 'PENDING' && (isClosed || isTimerExpired)) return 1.0;
+            return null;
+          }
+          if (isClosed) return 1.0;
           return null;
         };
 
