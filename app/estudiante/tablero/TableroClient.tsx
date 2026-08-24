@@ -95,13 +95,12 @@ export default function TableroClient({
     const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
     const isSubmitted = !!(task.submission && task.submission.status !== "PENDING");
-    const isGraded = !!(task.submission && (task.submission.status === "GRADED" || task.submission.grade != null));
-    const grade = task.submission?.grade ?? null;
-
     const isLateAllowed = task.allowLateSubmission && task.lateSubmissionUntil && new Date(task.lateSubmissionUntil) > now;
     const isExpired = diffMs < 0 && !isLateAllowed;
     const isDueToday = diffHours > 0 && diffHours <= 24;
     const isUrgent = diffHours > 0 && diffHours <= 48;
+    const isGraded = !!(task.submission && (task.submission.status === "GRADED" || task.submission.grade != null)) || (isExpired && !isSubmitted);
+    const grade = task.submission?.grade ?? (isExpired && !isSubmitted ? 1.0 : null);
 
     let timeText = "";
     if (diffMs < 0) {
@@ -875,12 +874,12 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
                   : info.isUrgent
                   ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
                   : info.isExpired
-                  ? "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                  ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border border-red-200 dark:border-red-900/50"
                   : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/40"
               }`}
             >
               <Clock size={12} />
-              {info.timeText}
+              {info.isExpired ? "Cerrada · Nota: 1.0" : info.timeText}
             </span>
           )}
 

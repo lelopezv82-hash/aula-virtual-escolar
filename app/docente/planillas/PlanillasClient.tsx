@@ -409,7 +409,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         });
       }
 
-      // Build grid from existing submissions
+      // Build grid from existing submissions and apply auto 1.0 for expired non-submitted tasks
       const grid: Record<string, Record<string, string>> = {};
       const now = new Date();
       for (const s of fStudents) {
@@ -417,7 +417,32 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         for (const t of fTasks) {
           const sub = t.submissions.find(x => x.studentId === s.id);
           const hasRealGrade = sub?.grade !== null && sub?.grade !== undefined;
-          grid[s.id][t.id] = hasRealGrade ? String(sub.grade) : "";
+          
+          let defaultVal = "";
+          if (!t.isExternal) {
+            const { isClosed } = getTaskDeadlineStatus(t as any, sub as any);
+            const isTimerExpired = sub?.startedAt && t.duration &&
+              (new Date(sub.startedAt).getTime() + t.duration * 60 * 1000 + 30000 < now.getTime());
+
+            if (t.type === "TASK") {
+              const studentSubmitted = !!sub && ((sub as any).fileUrl || sub.status === "SUBMITTED" || sub.status === "GRADED");
+              if (isClosed && !studentSubmitted) {
+                defaultVal = "1.0";
+              }
+            } else if (t.type === "EXAM" || t.type === "FINAL") {
+              if (isClosed || isTimerExpired) {
+                defaultVal = "1.0";
+              }
+            }
+          }
+
+          if (hasRealGrade) {
+            grid[s.id][t.id] = String(sub.grade);
+          } else if (defaultVal) {
+            grid[s.id][t.id] = defaultVal;
+          } else {
+            grid[s.id][t.id] = "";
+          }
         }
       }
       setGradesGrid(grid);
