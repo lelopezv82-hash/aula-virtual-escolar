@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Loader2, Save, FileText, Download } from "lucide-react";
+import { ArrowLeft, Loader2, Save, FileText, Download, Clock } from "lucide-react";
 import Link from "next/link";
 import GDriveEmailDisplay from "@/components/GDriveEmailDisplay";
 
@@ -104,25 +104,35 @@ export default function CalificarPage({
         >
           <FileText size={40} className="text-[#f98012] shrink-0" />
           <div className="flex-1">
-            <p className="font-semibold">Archivo entregado</p>
-            <p className="text-xs text-muted">
-              Enviado el{" "}
+            <p className="font-semibold text-sm">Archivo entregado por el estudiante</p>
+            <p className="text-xs text-muted flex items-center gap-1 mt-0.5">
+              <Clock size={12} className="text-[#f97316]" />
+              <strong>Fecha y hora de envío:</strong>{" "}
               {submission.submittedAt
-                ? new Date(submission.submittedAt).toLocaleString()
+                ? new Date(submission.submittedAt).toLocaleString('es-CO', { dateStyle: 'full', timeStyle: 'short' })
                 : "—"}
             </p>
             {submission.gdriveEmail && (
               <GDriveEmailDisplay email={submission.gdriveEmail} label="Almacenado en: " className="mt-1" context="task_details" />
             )}
           </div>
-          <a
-            href={submission.fileUrl}
-            download
-            target="_blank"
-            className="btn btn-secondary flex items-center gap-2"
-          >
-            <Download size={16} /> Descargar
-          </a>
+          <div className="flex items-center gap-2">
+            <a
+              href={submission.fileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-secondary flex items-center gap-1 text-sm"
+            >
+              Ver Archivo
+            </a>
+            <a
+              href={submission.fileUrl}
+              download
+              className="btn btn-primary flex items-center gap-1 text-sm"
+            >
+              <Download size={14} /> Descargar
+            </a>
+          </div>
         </div>
       )}
 

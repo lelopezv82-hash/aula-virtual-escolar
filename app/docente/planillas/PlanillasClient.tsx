@@ -2559,6 +2559,12 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                           <p className="font-semibold text-sm truncate">{student.name}</p>
                           <p className="text-[10px] text-muted">{student.groupName}</p>
                           <div className="mt-0.5">{statusBadge(student.submission)}</div>
+                          {student.submission?.submittedAt && (
+                            <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
+                              <Clock size={10} className="text-[#f97316]" />
+                              <span>Entregado: {new Date(student.submission.submittedAt).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                            </div>
+                          )}
                           {student.submission?.fileUrl && (
                             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                               <a
@@ -2569,7 +2575,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                                 title="Ver archivo"
                               >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                                Ver
+                                Ver Archivo
                               </a>
                               <a
                                 href={student.submission.fileUrl}

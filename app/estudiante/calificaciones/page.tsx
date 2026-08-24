@@ -322,6 +322,17 @@ export default async function CalificacionesEstudiantePage() {
                                   {isPending && <span className="badge badge-info flex items-center gap-1"><Clock size={12} /> En revisión</span>}
                                 </div>
                                 <h3 style={{ fontWeight: 700, fontSize: "1.1rem", margin: "0 0 0.25rem" }}>{sub.task.title}</h3>
+                                {sub.submittedAt && (
+                                  <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", margin: "0.35rem 0", display: "flex", alignItems: "center", gap: "0.35rem", flexWrap: "wrap" }}>
+                                    <Clock size={12} className="text-[#f97316]" />
+                                    <span><strong>Entregado:</strong> {new Date(sub.submittedAt).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                                    {sub.fileUrl && (
+                                      <a href={sub.fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#2563eb", fontWeight: 600, marginLeft: "0.5rem", display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                                        📎 Ver archivo entregado
+                                      </a>
+                                    )}
+                                  </div>
+                                )}
                                 {isGraded && sub.feedback && !sub.feedback.includes("Calificado automáticamente por Google Forms") && !sub.feedback.trim().startsWith("[") && (
                                   <div style={{ marginTop: "0.5rem", padding: "0.75rem", borderRadius: "0.5rem", fontSize: "0.875rem", fontStyle: "italic", background: "var(--bg-secondary)", color: "var(--text-secondary)", borderLeft: "3px solid var(--primary-color)" }}>
                                     💬 &quot;{sub.feedback}&quot;

@@ -170,12 +170,23 @@ export default async function TareasEstudiantePage() {
                       ? task.description.replace(/Importado desde Excel\s*([—–-]\s*columna\s*[A-Z]+)?/gi, "").trim()
                       : ""}
                   </p>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.75rem", color: "var(--text-muted)", flexWrap: "wrap" }}>
                     <Clock size={12} />
-                  {activeDeadline && new Date(activeDeadline).getFullYear() < 9000 && (
-                    <span>Vence: {formatToColombiaString(activeDeadline)} {hasExtension && "(Prórroga)"}</span>
-                  )}
+                    {activeDeadline && new Date(activeDeadline).getFullYear() < 9000 && (
+                      <span>Vence: {formatToColombiaString(activeDeadline)} {hasExtension && "(Prórroga)"}</span>
+                    )}
                   </div>
+                  {submission?.submittedAt && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "0.75rem", color: "#16a34a", marginTop: "0.35rem", fontWeight: 600, flexWrap: "wrap" }}>
+                      <CheckCircle size={12} />
+                      <span>Entregada el: {new Date(submission.submittedAt).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                      {submission.fileUrl && (
+                        <a href={submission.fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#2563eb", fontWeight: 600, marginLeft: "0.5rem", display: "inline-flex", alignItems: "center", gap: "2px" }}>
+                          📎 Ver archivo
+                        </a>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Right: grade + action */}
