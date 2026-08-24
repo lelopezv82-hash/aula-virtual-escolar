@@ -954,12 +954,10 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
 
         <Link
           href={href}
-          className={`btn text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all shadow-sm ${
-            info.isSubmitted
-              ? "btn-secondary !text-slate-700 dark:!text-slate-200 hover:!text-slate-800"
-              : isExam
-              ? "bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 !text-white hover:!text-white"
-              : "btn-primary !text-white hover:!text-white"
+          className={`btn text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all shadow-sm !text-white hover:!text-white ${
+            isExam
+              ? "bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700"
+              : "btn-primary"
           }`}
         >
           {info.isSubmitted ? (
