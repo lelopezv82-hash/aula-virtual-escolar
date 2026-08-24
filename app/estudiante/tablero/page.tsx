@@ -90,6 +90,9 @@ export default async function TableroVirtualPage() {
           }
         }
       },
+      resources: {
+        select: { id: true, title: true, type: true, url: true }
+      },
       assignedStudents: {
         where: { id: studentId },
         select: { id: true }
@@ -116,6 +119,8 @@ export default async function TableroVirtualPage() {
       courseId: t.courseId,
       courseName: t.course.name,
       teacherName: t.course.teacher.name,
+      attachmentUrl: t.attachmentUrl || null,
+      resources: t.resources || [],
       isExternal: t.isExternal || false,
       allowLateSubmission: t.allowLateSubmission || false,
       lateSubmissionUntil: t.lateSubmissionUntil ? t.lateSubmissionUntil.toISOString() : null,
