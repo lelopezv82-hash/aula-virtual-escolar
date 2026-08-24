@@ -416,15 +416,21 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
         )}
       </div>
 
-      {/* Manual Grading Modal */}
+      {/* Manual Grading Drawer */}
       {gradingTask && typeof window !== "undefined" && createPortal(
-        <div
-          className="modal-overlay"
-          onClick={e => e.target === e.currentTarget && setGradingTask(null)}
-        >
-          <div className="modal-content" style={{ maxWidth: "600px", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
-            {/* Modal header */}
-            <div className="flex justify-between items-start mb-3" style={{ flexShrink: 0 }}>
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/30 z-40 animate-fade-in"
+            onClick={() => setGradingTask(null)}
+          />
+          {/* Drawer lateral derecho */}
+          <div
+            className="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl z-50 flex flex-col"
+            style={{ width: "min(520px, 95vw)", animation: "slideInRight 0.25s ease-out" }}
+          >
+            {/* Drawer header */}
+            <div className="flex justify-between items-start p-5 border-b border-gray-200 dark:border-gray-800" style={{ flexShrink: 0 }}>
               <div>
                 <h2 className="text-xl font-bold flex items-center gap-2">
                   <Pencil size={18} style={{ color: "#f98012" }} />
@@ -436,20 +442,22 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                   {gradingTask.type === "EXAM" ? "Examen — Nota del Saber" : "Tarea — Nota del Hacer"})
                 </p>
               </div>
-              <button onClick={() => setGradingTask(null)} className="p-1 rounded-lg hover:bg-gray-100 flex-shrink-0">
+              <button onClick={() => setGradingTask(null)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex-shrink-0">
                 <X size={20} />
               </button>
             </div>
 
-            {gradingError && <div className="alert alert-danger mb-3">{gradingError}</div>}
-            {gradingSaved && (
-              <div className="alert alert-success mb-3 flex items-center gap-2">
-                <CheckCircle size={16} /> Calificaciones guardadas correctamente.
-              </div>
-            )}
+            <div className="px-5 pt-4 flex-shrink-0">
+              {gradingError && <div className="alert alert-danger mb-3">{gradingError}</div>}
+              {gradingSaved && (
+                <div className="alert alert-success mb-3 flex items-center gap-2">
+                  <CheckCircle size={16} /> Calificaciones guardadas correctamente.
+                </div>
+              )}
+            </div>
 
             {/* Student list */}
-            <div style={{ overflowY: "auto", flex: 1, paddingRight: "2px" }}>
+            <div style={{ overflowY: "auto", flex: 1, padding: "0 1.25rem 0.5rem" }}>
               {loadingStudents ? (
                 <div className="flex justify-center py-10">
                   <Loader2 className="animate-spin text-[#f98012]" size={32} />
@@ -518,7 +526,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between border-t pt-4 mt-4" style={{ borderColor: "var(--border-color)", flexShrink: 0 }}>
+            <div className="flex items-center justify-between border-t p-5" style={{ borderColor: "var(--border-color)", flexShrink: 0 }}>
               <div>
                 {gradingSaved && (
                   <div className="flex items-center gap-2 text-sm font-bold text-emerald-600 bg-emerald-50 border border-emerald-300 px-3 py-1 rounded-lg animate-fade-in">
@@ -550,7 +558,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
               </div>
             </div>
           </div>
-        </div>,
+        </>,
         document.body
       )}
 

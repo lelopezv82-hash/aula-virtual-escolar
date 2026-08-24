@@ -2486,13 +2486,19 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         </div>
       )}
 
-      {/* ── Manual Grading Modal ─────────────────────────────────────────── */}
+      {/* ── Manual Grading Drawer ─────────────────────────────────────────── */}
       {gradingTask && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4 animate-fade-in"
-          onClick={e => e.target === e.currentTarget && setGradingTask(null)}
-        >
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col animate-scale-in" style={{ maxHeight: "90vh" }}>
+        <>
+          {/* Backdrop semitransparente clickeable para cerrar */}
+          <div
+            className="fixed inset-0 bg-black/30 z-40 animate-fade-in"
+            onClick={() => setGradingTask(null)}
+          />
+          {/* Drawer lateral derecho */}
+          <div
+            className="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl z-50 flex flex-col"
+            style={{ width: "min(520px, 95vw)", animation: "slideInRight 0.25s ease-out" }}
+          >
 
             {/* Header */}
             <div className="flex justify-between items-start p-5 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
@@ -2659,7 +2665,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               </div>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* Exam / Task Management Modal */}
