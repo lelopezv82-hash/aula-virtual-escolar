@@ -93,6 +93,8 @@ export async function GET(req: Request) {
             studentId: true, 
             grade: true, 
             status: true,
+            fileUrl: true,
+            submittedAt: true,
             allowLateSubmission: true,
             lateSubmissionUntil: true,
             startedAt: true

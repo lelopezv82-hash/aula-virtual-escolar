@@ -395,8 +395,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               (new Date(sub.startedAt).getTime() + t.duration * 60 * 1000 + 30000 < now.getTime());
 
             if (t.type === "TASK") {
-              // HACER: auto 1.0 solo si NO entregó nada. Si entregó, el profesor la califica.
-              const studentSubmitted = !!sub && sub.status !== "PENDING" && (sub as any).fileUrl;
+              // HACER: auto 1.0 solo si NO entregó nada.
+              // Un estudiante "entregó" si tiene fileUrl O si su status es SUBMITTED.
+              // NO se basa en status !== PENDING porque un estudiante con GRADED+fileUrl también entregó.
+              const studentSubmitted = !!sub && ((sub as any).fileUrl || sub.status === "SUBMITTED");
               if (isClosed && !studentSubmitted) {
                 defaultVal = "1.0";
               }
