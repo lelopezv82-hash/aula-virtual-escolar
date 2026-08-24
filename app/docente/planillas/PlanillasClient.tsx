@@ -207,6 +207,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [duplicateTargetGroupIds, setDuplicateTargetGroupIds] = useState<string[]>([]);
   const [duplicateTargetPeriod, setDuplicateTargetPeriod] = useState<string>("");
   const [duplicateTitle, setDuplicateTitle] = useState<string>("");
+  const [duplicateDueDate, setDuplicateDueDate] = useState<string>("");
   const [duplicating, setDuplicating] = useState<boolean>(false);
   const [duplicateSuccess, setDuplicateSuccess] = useState<string>("");
   const [duplicateError, setDuplicateError] = useState<string>("");
@@ -832,6 +833,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     setDuplicateTargetCourseId(selectedCourseId);
     setDuplicateTargetPeriod(selectedPeriod);
     setDuplicateTitle(task.title);
+    setDuplicateDueDate(getDefaultDueDate());
     setDuplicateSuccess("");
     setDuplicateError("");
     const crs = courses.find(c => c.id === selectedCourseId);
@@ -859,11 +861,12 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           targetGroupIds: duplicateTargetGroupIds,
           targetPeriod: duplicateTargetPeriod,
           title: duplicateTitle,
+          dueDate: duplicateDueDate || undefined,
         })
       });
       const data = await res.json();
       if (res.ok && data.task) {
-        setDuplicateSuccess("¡Actividad clonada con éxito con planilla de notas 100% limpia!");
+        setDuplicateSuccess("¡Actividad clonada con éxito con planilla de notas 100% limpia y nueva fecha!");
         setTimeout(() => {
           setDuplicateModalTask(null);
           setDuplicateSuccess("");
@@ -915,6 +918,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           targetGroupIds: targetGroups,
           targetPeriod: selectedPeriod,
           title: newTaskName.trim() || undefined,
+          dueDate: newTaskDueDate || undefined,
         })
       });
       const data = await res.json();
@@ -2952,6 +2956,19 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                   </div>
                 )}
 
+                <div className="input-group">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                    Nueva Fecha y Hora de Vencimiento *
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={newTaskDueDate}
+                    onChange={e => setNewTaskDueDate(e.target.value)}
+                    className="input-field w-full text-xs font-semibold py-2 px-3 border rounded-lg"
+                  />
+                  <p className="text-[10px] text-muted mt-0.5">Por defecto se configura para mañana a las 23:59 para evitar que quede vencida.</p>
+                </div>
+
                 <div className="flex justify-end gap-3 pt-3 border-t border-gray-200 dark:border-gray-800 mt-2">
                   <button
                     type="button"
@@ -3868,6 +3885,20 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                   className="input-field w-full text-xs font-semibold py-2 px-3 border rounded-lg"
                   placeholder={duplicateModalTask.title}
                 />
+              </div>
+
+              {/* Fecha y Hora de Vencimiento */}
+              <div className="input-group">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  Nueva Fecha y Hora de Vencimiento *
+                </label>
+                <input
+                  type="datetime-local"
+                  value={duplicateDueDate}
+                  onChange={e => setDuplicateDueDate(e.target.value)}
+                  className="input-field w-full text-xs font-semibold py-2 px-3 border rounded-lg"
+                />
+                <p className="text-[10px] text-muted mt-0.5">Por defecto configurado para mañana a las 23:59.</p>
               </div>
             </div>
 

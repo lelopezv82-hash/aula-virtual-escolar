@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import prisma from '@/lib/prisma';
+import { fromColombiaLocalStringToDate } from '@/lib/dateUtils';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
@@ -16,7 +17,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     const teacherId = payload.id as string;
     const body = await request.json();
-    const { targetCourseId, targetGroupIds, targetPeriod, title } = body;
+    const { targetCourseId, targetGroupIds, targetPeriod, title, dueDate } = body;
 
     if (!targetCourseId || !targetGroupIds || !Array.isArray(targetGroupIds) || targetGroupIds.length === 0) {
       return NextResponse.json({ error: 'Debes seleccionar la asignatura y al menos un grupo de destino' }, { status: 400 });
@@ -52,6 +53,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const newPeriod = targetPeriod || sourceTask.period || "Periodo 1";
     const newTitle = (title && title.trim()) ? title.trim() : sourceTask.title;
 
+    // Determine clean new due date: use provided dueDate, or default to tomorrow at 23:59
+    let newDueDate: Date;
+    const defaultDue = new Date();
+    defaultDue.setDate(defaultDue.getDate() + 1);
+    defaultDue.setHours(23, 59, 0, 0);
+
+    if (dueDate) {
+      const parsed = typeof dueDate === "string" ? fromColombiaLocalStringToDate(dueDate) : new Date(dueDate);
+      newDueDate = parsed || defaultDue;
+    } else {
+      newDueDate = defaultDue;
+    }
+
     // 3. Find matching themes in target course if any
     const sourceThemeTitles = sourceTask.themes.map(t => t.title);
     const targetThemes = sourceThemeTitles.length > 0
@@ -65,7 +79,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       data: {
         title: newTitle,
         description: sourceTask.description,
-        dueDate: sourceTask.dueDate,
+        dueDate: newDueDate,
         courseId: targetCourseId,
         theme: sourceTask.theme,
         period: newPeriod,
