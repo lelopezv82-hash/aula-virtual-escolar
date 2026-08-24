@@ -412,57 +412,16 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       // Build grid from existing submissions
       const grid: Record<string, Record<string, string>> = {};
       const now = new Date();
-      const autoSaveSubmissions: { studentId: string; taskId: string; grade: string }[] = [];
-
       for (const s of fStudents) {
         grid[s.id] = {};
         for (const t of fTasks) {
           const sub = t.submissions.find(x => x.studentId === s.id);
-          
-          let defaultVal = "";
-          if (!t.isExternal) {
-            const { isClosed } = getTaskDeadlineStatus(t as any, sub as any);
-            const isTimerExpired = sub?.startedAt && t.duration &&
-              (new Date(sub.startedAt).getTime() + t.duration * 60 * 1000 + 30000 < now.getTime());
-
-            if (t.type === "TASK") {
-              // HACER: auto 1.0 solo si NO entregó nada.
-              // Un estudiante "entregó" si tiene fileUrl O si su status es SUBMITTED.
-              // NO se basa en status !== PENDING porque un estudiante con GRADED+fileUrl también entregó.
-              const studentSubmitted = !!sub && ((sub as any).fileUrl || sub.status === "SUBMITTED");
-              if (isClosed && !studentSubmitted) {
-                defaultVal = "1.0";
-              }
-            } else {
-              // EXAM y otros: auto 1.0 cuando la tarea cierra o expira el timer
-              if (isClosed || isTimerExpired) {
-                defaultVal = "1.0";
-              }
-            }
-          }
-
           const hasRealGrade = sub?.grade !== null && sub?.grade !== undefined;
-          
-          if (hasRealGrade) {
-            grid[s.id][t.id] = String(sub.grade);
-          } else if (defaultVal) {
-            grid[s.id][t.id] = defaultVal;
-            autoSaveSubmissions.push({ studentId: s.id, taskId: t.id, grade: defaultVal });
-          } else {
-            grid[s.id][t.id] = "";
-          }
+          grid[s.id][t.id] = hasRealGrade ? String(sub.grade) : "";
         }
       }
       setGradesGrid(grid);
       setInitialGrid(JSON.parse(JSON.stringify(grid)));
-
-      if (autoSaveSubmissions.length > 0) {
-        fetch("/api/docente/planillas", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ courseId: selectedCourseId, submissions: autoSaveSubmissions })
-        }).catch(err => console.error("Error auto-saving 1.0s:", err));
-      }
 
     } catch { /* silent */ }
     finally   { setLoading(false); }
