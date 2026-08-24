@@ -44,48 +44,34 @@ export default async function DocenteLayout({ children }: { children: React.Reac
       icon: <LayoutDashboard size={20} />,
     },
     {
-      href: "/docente/asignaturas-group",
-      label: "Asignaturas",
+      href: "/docente/cursos",
+      label: "Mis Asignaturas",
       icon: <BookOpen size={20} />,
-      children: [
-        {
-          href: "/docente/cursos",
-          label: "Gestión Asignaturas",
-          icon: <BookOpen size={16} />,
-        },
-        {
-          href: "/docente/planillas",
-          label: "Planillas y Actividades",
-          icon: <ClipboardList size={16} />,
-        },
-        {
-          href: "/docente/contenido",
-          label: "Recursos",
-          icon: <FileText size={16} />,
-        },
-        {
-          href: "/docente/grados",
-          label: "Grados",
-          icon: <Layers size={16} />,
-        },
-      ],
     },
     {
-      href: "/docente/configuracion-group",
+      href: "/docente/planillas",
+      label: "Planillas y Actividades",
+      icon: <ClipboardList size={20} />,
+    },
+    {
+      href: "/docente/contenido",
+      label: "Recursos",
+      icon: <FileText size={20} />,
+    },
+    {
+      href: "/docente/grados",
+      label: "Grados",
+      icon: <Layers size={20} />,
+    },
+    {
+      href: "/docente/gestion-periodos",
+      label: "Periodos",
+      icon: <CalendarClock size={20} />,
+    },
+    {
+      href: "/docente/configuracion",
       label: "Configuración",
       icon: <Settings size={20} />,
-      children: [
-        {
-          href: "/docente/gestion-periodos",
-          label: "Periodos",
-          icon: <CalendarClock size={16} />,
-        },
-        {
-          href: "/docente/configuracion",
-          label: "Configuración",
-          icon: <Settings size={16} />,
-        },
-      ],
     },
   ];
 
