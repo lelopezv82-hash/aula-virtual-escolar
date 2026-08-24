@@ -22,6 +22,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
   const [type, setType] = useState("TASK");
   const [isExternal, setIsExternal] = useState(false);
   const [gradeGroups, setGradeGroups] = useState<{id: string, name: string}[]>([]);
+  const [allCourses, setAllCourses] = useState<{id: string, name: string, groups: {id: string, name: string, grade?: {name: string}}[]}[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [existingAttachment, setExistingAttachment] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -49,25 +50,24 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
       .catch(() => console.error("Failed to load themes for course"));
   }, [courseId]);
 
+  // When courseId changes (set from task data), derive groups from allCourses
   useEffect(() => {
-    // Fetch grade groups
-    fetch("/api/grados")
+    if (!courseId || allCourses.length === 0) return;
+    const course = allCourses.find(c => c.id === courseId);
+    if (course?.groups) {
+      setGradeGroups(course.groups.map(g => ({
+        id: g.id,
+        name: g.grade?.name ? `${g.grade.name} - ${g.name}` : g.name
+      })));
+    }
+  }, [courseId, allCourses]);
+
+  useEffect(() => {
+    // Fetch teacher's courses (includes groups per course)
+    fetch("/api/docente/cursos")
       .then(res => res.json())
-      .then(data => {
-        if (data.grades) {
-          const flatGroups: any[] = [];
-          data.grades.forEach((g: any) => {
-            g.groups.forEach((gp: any) => {
-              flatGroups.push({
-                id: gp.id,
-                name: `${g.name} - ${gp.name}`
-              });
-            });
-          });
-          setGradeGroups(flatGroups);
-        }
-      })
-      .catch(() => console.error("Failed to load grade groups"));
+      .then(data => { if (data.courses) setAllCourses(data.courses); })
+      .catch(() => console.error("Failed to load courses"));
 
     // Fetch active periods
     fetch("/api/docente/periodos")

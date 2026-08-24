@@ -20,7 +20,7 @@ export default function NuevaTareaPage() {
   const [groupIds, setGroupIds] = useState<string[]>([]);
   const [type, setType] = useState("TASK");
   const [isExternal, setIsExternal] = useState(false);
-  const [courses, setCourses] = useState<{id: string, name: string}[]>([]);
+  const [courses, setCourses] = useState<{id: string, name: string, groups: {id: string, name: string, grade?: {name: string}}[]}[]>([]);
   const [gradeGroups, setGradeGroups] = useState<{id: string, name: string}[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -50,8 +50,25 @@ export default function NuevaTareaPage() {
       .catch(() => console.error("Failed to load themes for course"));
   }, [courseId]);
 
+  // Derive groups from selected course (only groups belonging to that course)
   useEffect(() => {
-    // Fetch teacher's courses
+    const selectedCourse = courses.find(c => c.id === courseId);
+    if (selectedCourse && selectedCourse.groups) {
+      const flat = selectedCourse.groups.map(g => ({
+        id: g.id,
+        name: g.grade?.name ? `${g.grade.name} - ${g.name}` : g.name
+      }));
+      setGradeGroups(flat);
+      // Auto-select all groups of the course
+      setGroupIds(flat.map(g => g.id));
+    } else {
+      setGradeGroups([]);
+      setGroupIds([]);
+    }
+  }, [courseId, courses]);
+
+  useEffect(() => {
+    // Fetch teacher's courses (includes groups for each course)
     fetch("/api/docente/cursos")
       .then(res => res.json())
       .then(data => {
@@ -80,25 +97,6 @@ export default function NuevaTareaPage() {
         }
       })
       .catch(() => console.error("Failed to load periods"));
-
-    // Fetch grade groups
-    fetch("/api/grados")
-      .then(res => res.json())
-      .then(data => {
-        if (data.grades) {
-          const flatGroups: any[] = [];
-          data.grades.forEach((g: any) => {
-            g.groups.forEach((gp: any) => {
-              flatGroups.push({
-                id: gp.id,
-                name: `${g.name} - ${gp.name}`
-              });
-            });
-          });
-          setGradeGroups(flatGroups);
-        }
-      })
-      .catch(() => console.error("Failed to load grade groups"));
 
     // Fetch students
     fetch("/api/docente/estudiantes")
