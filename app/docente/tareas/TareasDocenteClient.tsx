@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { ClipboardList, Plus, Pencil, X, Save, Loader2, CheckCircle, Clock, AlertCircle, Users, Search, UserCheck } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ClipboardList, Plus, Pencil, X, Save, Loader2, CheckCircle, Clock, AlertCircle, Users, Search, UserCheck, ArrowLeft, Sparkles } from "lucide-react";
 import TaskActions from "./TaskActions";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import GDriveEmailDisplay from "@/components/GDriveEmailDisplay";
 import { createPortal } from "react-dom";
 
@@ -52,8 +52,16 @@ interface StudentGradeEntry {
   } | null;
 }
 
+const getDesempeno = (g: number) => {
+  if (g >= 4.6) return { label: "SUPERIOR", cls: "text-purple-700 bg-purple-50 dark:bg-purple-900/30 dark:text-purple-300" };
+  if (g >= 4.0) return { label: "ALTO",     cls: "text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-300" };
+  if (g >= 3.0) return { label: "BÁSICO",   cls: "text-green-700 bg-green-50 dark:bg-green-900/30 dark:text-green-300" };
+  return           { label: "BAJO",     cls: "text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-300" };
+};
+
 export default function TareasDocenteClient({ courses, periods }: { courses: Course[], periods: Period[] }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [selectedTheme, setSelectedTheme] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState("");
   const hasFiltersApplied = selectedTheme !== "" || selectedPeriod !== "";
@@ -67,6 +75,17 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
   const [savingGrades, setSavingGrades] = useState(false);
   const [gradingError, setGradingError] = useState("");
   const [gradingSaved, setGradingSaved] = useState(false);
+  const [gradingSearch, setGradingSearch] = useState("");
+  const [gradingStatusFilter, setGradingStatusFilter] = useState<"ALL" | "GRADED" | "SUBMITTED" | "PENDING">("ALL");
+  const [bulkGradeValue, setBulkGradeValue] = useState("");
+
+  const calificarTaskIdParam = searchParams.get("calificarTaskId");
+  useEffect(() => {
+    if (calificarTaskIdParam && (!gradingTask || gradingTask.id !== calificarTaskIdParam)) {
+      openGradingModal({ id: calificarTaskIdParam, title: "Cargando actividad...", dueDate: new Date() });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [calificarTaskIdParam]);
 
   // Assign Students Modal state
   const [assigningTask, setAssigningTask] = useState<Task | null>(null);
@@ -145,8 +164,14 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
     }
   };
 
-  const openGradingModal = async (task: Task) => {
-    setGradingTask(task);
+  const openGradingModal = async (task: { id: string; title?: string; dueDate?: any }) => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      params.set("calificarTaskId", task.id);
+      window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
+    }
+
+    setGradingTask(task as Task);
     setGradingError("");
     setGradingSaved(false);
     setLoadingStudents(true);
@@ -156,6 +181,12 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
       const data = await res.json();
       if (res.ok && data.students) {
         setGradingStudents(data.students);
+        setGradingTask(prev => ({
+          id: task.id,
+          title: data.taskTitle || prev?.title || task.title || "Actividad",
+          type: data.taskType || prev?.type || "TASK",
+          dueDate: prev?.dueDate || new Date()
+        }));
         const inputs: Record<string, string> = {};
         const fInputs: Record<string, string> = {};
         data.students.forEach((s: StudentGradeEntry) => {
@@ -174,6 +205,38 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
     }
   };
 
+  const closeGrading = () => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      params.delete("calificarTaskId");
+      const qs = params.toString();
+      window.history.replaceState({}, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
+    }
+    setGradingTask(null);
+    setGradingSearch("");
+    setBulkGradeValue("");
+    router.refresh();
+  };
+
+  const applyBulkGrade = () => {
+    const num = parseFloat(bulkGradeValue);
+    if (isNaN(num) || num < 1.0 || num > 5.0) {
+      alert("Por favor ingresa una calificación válida entre 1.0 y 5.0");
+      return;
+    }
+    const formatted = num.toFixed(1);
+    setGradeInputs(prev => {
+      const updated = { ...prev };
+      gradingStudents.forEach(s => {
+        if (!updated[s.id] || updated[s.id].trim() === "") {
+          updated[s.id] = formatted;
+        }
+      });
+      return updated;
+    });
+    setBulkGradeValue("");
+  };
+
   const saveManualGrades = async () => {
     if (!gradingTask) return;
     setSavingGrades(true);
@@ -181,7 +244,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
     setGradingSaved(false);
     try {
       const promises = gradingStudents
-        .filter(s => gradeInputs[s.id] !== "")
+        .filter(s => gradeInputs[s.id] !== undefined && gradeInputs[s.id] !== "")
         .map(s =>
           fetch("/api/docente/calificar", {
             method: "PATCH",
@@ -216,6 +279,418 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
     if (sub.status === "SUBMITTED") return <span className="badge badge-info flex items-center gap-1"><Clock size={10} /> Entregada</span>;
     return <span className="badge badge-danger flex items-center gap-1"><AlertCircle size={10} /> Pendiente</span>;
   };
+
+  // ── Full-Screen Manual Grading View ─────────────────────────────────────────
+  if (gradingTask) {
+    const totalCount = gradingStudents.length;
+    const gradedCount = gradingStudents.filter(s => gradeInputs[s.id] !== undefined && gradeInputs[s.id] !== "").length;
+    const pendingCount = totalCount - gradedCount;
+    
+    // Average
+    const validGrades = gradingStudents
+      .map(s => parseFloat(gradeInputs[s.id] || ""))
+      .filter(g => !isNaN(g) && g >= 1.0 && g <= 5.0);
+    const averageGrade = validGrades.length > 0
+      ? (validGrades.reduce((a, b) => a + b, 0) / validGrades.length).toFixed(2)
+      : null;
+
+    const filteredStudents = gradingStudents.filter(s => {
+      const q = gradingSearch.toLowerCase().trim();
+      const matchesSearch = !q || s.name.toLowerCase().includes(q) || (s.groupName && s.groupName.toLowerCase().includes(q));
+      if (!matchesSearch) return false;
+      if (gradingStatusFilter === "GRADED") return gradeInputs[s.id] !== undefined && gradeInputs[s.id] !== "";
+      if (gradingStatusFilter === "SUBMITTED") return (s.submission?.status === "SUBMITTED" || (s.submission as any)?.fileUrl) && (!gradeInputs[s.id] || gradeInputs[s.id] === "");
+      if (gradingStatusFilter === "PENDING") return !gradeInputs[s.id] || gradeInputs[s.id] === "";
+      return true;
+    });
+
+    return (
+      <div className="flex flex-col gap-6 animate-fade-in pb-24">
+        {/* Top Header & Navigation */}
+        <div className="flex items-center justify-between flex-wrap gap-4 bg-white dark:bg-gray-900 p-5 rounded-2xl border shadow-sm" style={{ borderColor: "var(--border-color)" }}>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={closeGrading}
+              className="p-2.5 rounded-xl border hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-700 dark:text-gray-200 flex items-center gap-2 font-semibold text-sm shadow-sm"
+              style={{ borderColor: "var(--border-color)" }}
+              title="Volver a la lista de tareas"
+            >
+              <ArrowLeft size={18} />
+              <span>Volver a Tareas</span>
+            </button>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="px-2.5 py-0.5 rounded-full font-extrabold text-xs uppercase tracking-wider bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300">
+                  {gradingTask.type === "EXAM" ? "Examen — Saber" : "Tarea — Hacer"}
+                </span>
+                {gradingTask.period && (
+                  <span className="text-xs text-muted font-medium">
+                    {gradingTask.period}
+                  </span>
+                )}
+              </div>
+              <h1 className="text-2xl font-black text-gray-900 dark:text-gray-100 mt-1 flex items-center gap-2">
+                <Pencil size={22} className="text-[#f98012]" />
+                {gradingTask.title}
+              </h1>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={closeGrading}
+              className="btn btn-secondary text-sm font-semibold"
+            >
+              Volver a Tareas
+            </button>
+            <button
+              onClick={saveManualGrades}
+              disabled={savingGrades || loadingStudents}
+              className={`btn ${gradingSaved ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "btn-primary"} px-5 py-2.5 font-bold shadow-md flex items-center gap-2`}
+            >
+              {savingGrades ? (
+                <>
+                  <Loader2 className="animate-spin" size={18} />
+                  Guardando...
+                </>
+              ) : gradingSaved ? (
+                <>
+                  <CheckCircle size={18} />
+                  ¡Guardado con Éxito!
+                </>
+              ) : (
+                <>
+                  <Save size={18} />
+                  Guardar Calificaciones
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Notifications */}
+        {gradingSaved && (
+          <div className="flex items-center gap-2 text-sm font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 px-4 py-3 rounded-xl animate-fade-in shadow-sm">
+            <CheckCircle size={20} className="text-emerald-600 shrink-0" />
+            ¡Todas las calificaciones y comentarios fueron guardados correctamente en el sistema!
+          </div>
+        )}
+        {gradingError && (
+          <div className="alert alert-danger font-semibold text-sm">
+            {gradingError}
+          </div>
+        )}
+
+        {/* KPI / Stats Overview Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="card p-4 rounded-xl border bg-white dark:bg-gray-900 flex items-center gap-3 shadow-sm" style={{ borderColor: "var(--border-color)" }}>
+            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+              <Users size={20} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-muted uppercase">Total Estudiantes</p>
+              <p className="text-xl font-black">{totalCount}</p>
+            </div>
+          </div>
+
+          <div className="card p-4 rounded-xl border bg-white dark:bg-gray-900 flex items-center gap-3 shadow-sm" style={{ borderColor: "var(--border-color)" }}>
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <CheckCircle size={20} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-muted uppercase">Calificados</p>
+              <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{gradedCount} / {totalCount}</p>
+            </div>
+          </div>
+
+          <div className="card p-4 rounded-xl border bg-white dark:bg-gray-900 flex items-center gap-3 shadow-sm" style={{ borderColor: "var(--border-color)" }}>
+            <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <Clock size={20} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-muted uppercase">Pendientes</p>
+              <p className="text-xl font-black text-amber-600 dark:text-amber-400">{pendingCount}</p>
+            </div>
+          </div>
+
+          <div className="card p-4 rounded-xl border bg-white dark:bg-gray-900 flex items-center gap-3 shadow-sm" style={{ borderColor: "var(--border-color)" }}>
+            <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+              <Sparkles size={20} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-muted uppercase">Promedio Actual</p>
+              <p className="text-xl font-black text-purple-600 dark:text-purple-400">{averageGrade ?? "—"}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Toolbar & Filters Card */}
+        <div className="card p-4 rounded-xl border bg-white dark:bg-gray-900 flex flex-wrap items-center justify-between gap-4 shadow-sm" style={{ borderColor: "var(--border-color)" }}>
+          <div className="flex items-center gap-3 flex-1 min-w-[260px] flex-wrap">
+            <div className="relative flex-1 min-w-[220px]">
+              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar por nombre de estudiante o grupo..."
+                value={gradingSearch}
+                onChange={e => setGradingSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 rounded-xl border bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                style={{ borderColor: "var(--border-color)" }}
+              />
+              {gradingSearch && (
+                <button
+                  onClick={() => setGradingSearch("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border" style={{ borderColor: "var(--border-color)" }}>
+              {[
+                { key: "ALL", label: "Todos" },
+                { key: "PENDING", label: `Pendientes (${pendingCount})` },
+                { key: "GRADED", label: `Calificados (${gradedCount})` },
+              ].map(tab => (
+                <button
+                  key={tab.key}
+                  onClick={() => setGradingStatusFilter(tab.key as any)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    gradingStatusFilter === tab.key
+                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                      : "text-muted hover:text-gray-800 dark:hover:text-gray-200"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Quick bulk grade tool */}
+          <div className="flex items-center gap-2 bg-orange-50/80 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/40 p-1.5 rounded-xl">
+            <span className="text-xs font-bold text-orange-800 dark:text-orange-300 pl-2">Nota para pendientes:</span>
+            <input
+              type="number"
+              min="1.0"
+              max="5.0"
+              step="0.1"
+              placeholder="5.0"
+              value={bulkGradeValue}
+              onChange={e => setBulkGradeValue(e.target.value)}
+              className="w-16 text-center font-bold text-sm py-1 px-1 rounded-lg border bg-white dark:bg-gray-900"
+              style={{ borderColor: "var(--border-color)" }}
+            />
+            <button
+              onClick={applyBulkGrade}
+              className="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
+            >
+              Aplicar
+            </button>
+          </div>
+        </div>
+
+        {/* Main Students List / Table */}
+        <div className="card rounded-2xl border shadow-sm bg-white dark:bg-gray-900 overflow-hidden" style={{ borderColor: "var(--border-color)" }}>
+          {loadingStudents ? (
+            <div className="flex flex-col items-center justify-center py-24 gap-3">
+              <Loader2 className="animate-spin text-[#f98012]" size={40} />
+              <p className="text-sm font-semibold text-muted">Cargando lista de estudiantes...</p>
+            </div>
+          ) : filteredStudents.length === 0 ? (
+            <div className="text-center py-20 px-4">
+              <p className="text-muted font-medium text-base">No se encontraron estudiantes para los filtros seleccionados.</p>
+              {(gradingSearch || gradingStatusFilter !== "ALL") && (
+                <button
+                  onClick={() => { setGradingSearch(""); setGradingStatusFilter("ALL"); }}
+                  className="mt-3 text-xs font-bold text-[#f98012] underline hover:no-underline"
+                >
+                  Restablecer filtros
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b bg-gray-50/80 dark:bg-gray-800/60 text-xs font-bold uppercase tracking-wider text-muted" style={{ borderColor: "var(--border-color)" }}>
+                    <th className="py-3.5 px-4 w-12 text-center">No.</th>
+                    <th className="py-3.5 px-4 min-w-[220px]">Estudiante</th>
+                    <th className="py-3.5 px-4 min-w-[180px]">Estado de Entrega</th>
+                    <th className="py-3.5 px-4 w-32 text-center">Calificación (1–5)</th>
+                    <th className="py-3.5 px-4 w-28 text-center">Desempeño</th>
+                    <th className="py-3.5 px-4 min-w-[280px]">Retroalimentación / Comentario</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y" style={{ borderColor: "var(--border-color)" }}>
+                  {filteredStudents.map((student, idx) => {
+                    const gradeVal = gradeInputs[student.id] ?? "";
+                    const numGrade = parseFloat(gradeVal);
+                    const hasValidGrade = !isNaN(numGrade) && numGrade >= 1.0 && numGrade <= 5.0;
+                    const desemp = hasValidGrade ? getDesempeno(numGrade) : null;
+
+                    return (
+                      <tr
+                        key={student.id}
+                        className={`hover:bg-orange-50/40 dark:hover:bg-orange-950/10 transition-colors ${
+                          hasValidGrade ? "" : "bg-slate-50/30 dark:bg-slate-900/30"
+                        }`}
+                      >
+                        {/* Index */}
+                        <td className="py-3.5 px-4 text-center font-bold text-xs text-muted">
+                          {idx + 1}
+                        </td>
+
+                        {/* Student Name & Avatar */}
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs text-white shadow-sm"
+                              style={{ background: "linear-gradient(135deg, #f98012, #e06d09)" }}
+                            >
+                              {student.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-bold text-gray-900 dark:text-gray-100 leading-tight truncate">
+                                {student.name}
+                              </p>
+                              <p className="text-xs text-muted mt-0.5 font-medium">{student.groupName}</p>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Submission status & attachments */}
+                        <td className="py-3.5 px-4">
+                          <div className="flex flex-col gap-1 items-start">
+                            <div>{statusBadge(student.submission)}</div>
+                            {student.submission?.submittedAt && (
+                              <div className="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">
+                                <Clock size={11} className="text-[#f97316]" />
+                                <span>{new Date(student.submission.submittedAt).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                              </div>
+                            )}
+                            {(student.submission as any)?.fileUrl && (
+                              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                <a
+                                  href={(student.submission as any).fileUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 transition-colors"
+                                  title="Ver archivo"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                  Ver Archivo
+                                </a>
+                                <a
+                                  href={(student.submission as any).fileUrl}
+                                  download
+                                  className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 transition-colors"
+                                  title="Descargar archivo"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                  Descargar
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Grade Input */}
+                        <td className="py-3.5 px-4 text-center">
+                          <input
+                            type="number"
+                            min="1.0"
+                            max="5.0"
+                            step="0.1"
+                            placeholder="—"
+                            value={gradeVal}
+                            onChange={e => setGradeInputs(prev => ({ ...prev, [student.id]: e.target.value }))}
+                            className={`w-24 text-center font-black rounded-xl border py-1.5 text-base outline-none focus:ring-2 focus:ring-orange-500 transition-all ${
+                              hasValidGrade
+                                ? numGrade < 3.0
+                                  ? "border-red-300 text-red-600 bg-red-50/50 dark:bg-red-950/20"
+                                  : numGrade < 4.0
+                                  ? "border-amber-300 text-amber-600 bg-amber-50/50 dark:bg-amber-950/20"
+                                  : "border-emerald-300 text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20"
+                                : "border-gray-200 dark:border-gray-700 bg-slate-50 dark:bg-slate-800 text-gray-400"
+                            }`}
+                          />
+                        </td>
+
+                        {/* Desempeño */}
+                        <td className="py-3.5 px-4 text-center">
+                          {desemp ? (
+                            <span className={`inline-block px-2.5 py-1 rounded-lg text-xs font-black ${desemp.cls}`}>
+                              {desemp.label}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted font-semibold">—</span>
+                          )}
+                        </td>
+
+                        {/* Feedback / Comentario */}
+                        <td className="py-3.5 px-4">
+                          <input
+                            type="text"
+                            placeholder="Comentario u observación opcional para el estudiante…"
+                            value={feedbackInputs[student.id] ?? ""}
+                            onChange={e => setFeedbackInputs(prev => ({ ...prev, [student.id]: e.target.value }))}
+                            className="w-full py-1.5 px-3 rounded-xl border bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors"
+                            style={{ borderColor: "var(--border-color)" }}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Sticky Bottom Bar for fast saving */}
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md px-6 py-3 rounded-2xl border shadow-xl flex items-center gap-6" style={{ borderColor: "var(--border-color)" }}>
+          <div className="flex items-center gap-3 text-xs font-bold text-muted">
+            <span>Calificados: <strong className="text-emerald-600 text-sm">{gradedCount}</strong>/{totalCount}</span>
+            <span>•</span>
+            <span>Pendientes: <strong className="text-amber-600 text-sm">{pendingCount}</strong></span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={closeGrading}
+              className="btn btn-secondary py-2 px-4 text-xs font-bold"
+            >
+              Volver a Tareas
+            </button>
+            <button
+              onClick={saveManualGrades}
+              disabled={savingGrades || loadingStudents}
+              className={`btn ${gradingSaved ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "btn-primary"} py-2 px-5 text-xs font-bold flex items-center gap-1.5 shadow-md`}
+            >
+              {savingGrades ? (
+                <>
+                  <Loader2 className="animate-spin" size={15} />
+                  Guardando...
+                </>
+              ) : gradingSaved ? (
+                <>
+                  <CheckCircle size={15} />
+                  ¡Guardado!
+                </>
+              ) : (
+                <>
+                  <Save size={15} />
+                  Guardar Calificaciones
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -416,151 +891,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
         )}
       </div>
 
-      {/* Manual Grading Drawer */}
-      {gradingTask && typeof window !== "undefined" && createPortal(
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/30 z-40 animate-fade-in"
-            onClick={() => setGradingTask(null)}
-          />
-          {/* Drawer lateral derecho */}
-          <div
-            className="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl z-50 flex flex-col"
-            style={{ width: "min(520px, 95vw)", animation: "slideInRight 0.25s ease-out" }}
-          >
-            {/* Drawer header */}
-            <div className="flex justify-between items-start p-5 border-b border-gray-200 dark:border-gray-800" style={{ flexShrink: 0 }}>
-              <div>
-                <h2 className="text-xl font-bold flex items-center gap-2">
-                  <Pencil size={18} style={{ color: "#f98012" }} />
-                  Calificación Manual
-                </h2>
-                <p className="text-sm text-muted mt-0.5">{gradingTask.title}</p>
-                <p className="text-xs text-muted mt-0.5">
-                  Asigna la calificación manual para esta actividad (
-                  {gradingTask.type === "EXAM" ? "Examen — Nota del Saber" : "Tarea — Nota del Hacer"})
-                </p>
-              </div>
-              <button onClick={() => setGradingTask(null)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex-shrink-0">
-                <X size={20} />
-              </button>
-            </div>
 
-            <div className="px-5 pt-4 flex-shrink-0">
-              {gradingError && <div className="alert alert-danger mb-3">{gradingError}</div>}
-              {gradingSaved && (
-                <div className="alert alert-success mb-3 flex items-center gap-2">
-                  <CheckCircle size={16} /> Calificaciones guardadas correctamente.
-                </div>
-              )}
-            </div>
-
-            {/* Student list */}
-            <div style={{ overflowY: "auto", flex: 1, padding: "0 1.25rem 0.5rem" }}>
-              {loadingStudents ? (
-                <div className="flex justify-center py-10">
-                  <Loader2 className="animate-spin text-[#f98012]" size={32} />
-                </div>
-              ) : gradingStudents.length === 0 ? (
-                <div className="text-center py-8 text-muted text-sm">No hay estudiantes asignados a esta tarea.</div>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {/* Column headers */}
-                  <div className="grid text-xs font-bold uppercase tracking-wider text-muted px-3 pb-1" style={{ gridTemplateColumns: "1fr 80px 1fr" }}>
-                    <span>Estudiante</span>
-                    <span className="text-center">Nota (1–5)</span>
-                    <span className="pl-2">Comentario</span>
-                  </div>
-
-                  {gradingStudents.map(student => (
-                    <div
-                      key={student.id}
-                      className="grid items-center gap-3 p-3 rounded-xl"
-                      style={{
-                        gridTemplateColumns: "1fr 80px 1fr",
-                        background: "var(--bg-secondary)",
-                        border: "1px solid var(--border-color)",
-                      }}
-                    >
-                      {/* Name + status */}
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div
-                          className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white"
-                          style={{ background: "linear-gradient(135deg, #f98012, #e06d09)" }}
-                        >
-                          {student.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-semibold text-sm truncate">{student.name}</p>
-                          <div className="mt-0.5">{statusBadge(student.submission)}</div>
-                        </div>
-                      </div>
-
-                      {/* Grade input */}
-                      <input
-                        type="number"
-                        min="1"
-                        max="5"
-                        step="0.1"
-                        placeholder="—"
-                        value={gradeInputs[student.id] ?? ""}
-                        onChange={e => setGradeInputs(prev => ({ ...prev, [student.id]: e.target.value }))}
-                        className="input-field text-center font-bold"
-                        style={{ padding: "0.4rem 0.4rem", fontSize: "0.95rem" }}
-                      />
-
-                      {/* Feedback input */}
-                      <input
-                        type="text"
-                        placeholder="Comentario opcional…"
-                        value={feedbackInputs[student.id] ?? ""}
-                        onChange={e => setFeedbackInputs(prev => ({ ...prev, [student.id]: e.target.value }))}
-                        className="input-field text-sm"
-                        style={{ padding: "0.4rem 0.6rem" }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="flex items-center justify-between border-t p-5" style={{ borderColor: "var(--border-color)", flexShrink: 0 }}>
-              <div>
-                {gradingSaved && (
-                  <div className="flex items-center gap-2 text-sm font-bold text-emerald-600 bg-emerald-50 border border-emerald-300 px-3 py-1 rounded-lg animate-fade-in">
-                    <CheckCircle size={18} /> ¡Calificaciones guardadas exitosamente!
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-3">
-                <button className="btn btn-secondary" onClick={() => setGradingTask(null)}>Cerrar</button>
-                <button
-                  className={`btn ${gradingSaved ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "btn-primary"}`}
-                  disabled={savingGrades || loadingStudents}
-                  onClick={saveManualGrades}
-                >
-                  {savingGrades ? (
-                    <>
-                      <Loader2 className="animate-spin" size={18} /> Guardando...
-                    </>
-                  ) : gradingSaved ? (
-                    <>
-                      <CheckCircle size={18} /> ¡Guardado con éxito!
-                    </>
-                  ) : (
-                    <>
-                      <Save size={18} /> Guardar Calificaciones
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </>,
-        document.body
-      )}
 
       {/* Assign Specific Students Modal */}
       {assigningTask && typeof window !== "undefined" && createPortal(
