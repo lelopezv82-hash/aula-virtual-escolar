@@ -6,10 +6,8 @@ import {
   Settings,
   BookOpen,
   ClipboardList,
-  CalendarDays,
   Layers,
   FileText,
-  TableProperties,
   CalendarClock,
 } from "lucide-react";
 import DashboardShell from "@/components/DashboardShell";
@@ -46,11 +44,6 @@ export default async function DocenteLayout({ children }: { children: React.Reac
       icon: <LayoutDashboard size={20} />,
     },
     {
-      href: "/docente/planillas",
-      label: "Planillas",
-      icon: <TableProperties size={20} />,
-    },
-    {
       href: "/docente/asignaturas-group",
       label: "Asignaturas",
       icon: <BookOpen size={20} />,
@@ -62,7 +55,7 @@ export default async function DocenteLayout({ children }: { children: React.Reac
         },
         {
           href: "/docente/planillas",
-          label: "Actividades",
+          label: "Planillas y Actividades",
           icon: <ClipboardList size={16} />,
         },
         {
