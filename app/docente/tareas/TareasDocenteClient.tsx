@@ -78,6 +78,8 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
   const [gradingSearch, setGradingSearch] = useState("");
   const [gradingStatusFilter, setGradingStatusFilter] = useState<"ALL" | "GRADED" | "SUBMITTED" | "PENDING">("ALL");
   const [bulkGradeValue, setBulkGradeValue] = useState("");
+  const [gradingActiveGroupId, setGradingActiveGroupId] = useState<string>("all");
+  const [gradingAvailableGroups, setGradingAvailableGroups] = useState<{ id: string; name: string; gradeName?: string; label?: string }[]>([]);
 
   const calificarTaskIdParam = searchParams.get("calificarTaskId");
   useEffect(() => {
@@ -164,23 +166,29 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
     }
   };
 
-  const openGradingModal = async (task: { id: string; title?: string; dueDate?: any }) => {
+  const openGradingModal = async (task: { id: string; title?: string; dueDate?: any }, targetGroupId?: string) => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       params.set("calificarTaskId", task.id);
       window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
     }
 
+    const gId = targetGroupId !== undefined ? targetGroupId : "all";
+    setGradingActiveGroupId(gId);
     setGradingTask(task as Task);
     setGradingError("");
     setGradingSaved(false);
     setLoadingStudents(true);
     setGradingStudents([]);
     try {
-      const res = await fetch(`/api/docente/tareas/${task.id}/students-grades`);
+      const qp = gId && gId !== "all" ? `?groupId=${encodeURIComponent(gId)}` : "";
+      const res = await fetch(`/api/docente/tareas/${task.id}/students-grades${qp}`);
       const data = await res.json();
       if (res.ok && data.students) {
         setGradingStudents(data.students);
+        if (data.groups) {
+          setGradingAvailableGroups(data.groups);
+        }
         setGradingTask(prev => ({
           id: task.id,
           title: data.taskTitle || prev?.title || task.title || "Actividad",
@@ -203,6 +211,11 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
     } finally {
       setLoadingStudents(false);
     }
+  };
+
+  const changeGradingGroup = (newGroupId: string) => {
+    if (!gradingTask) return;
+    openGradingModal(gradingTask, newGroupId);
   };
 
   const closeGrading = () => {
@@ -466,6 +479,35 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                 </button>
               ))}
             </div>
+
+            {gradingAvailableGroups.length > 1 && (
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border" style={{ borderColor: "var(--border-color)" }}>
+                <span className="text-[11px] font-bold text-muted px-2">Grupo:</span>
+                <button
+                  onClick={() => changeGradingGroup("all")}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                    gradingActiveGroupId === "all"
+                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                      : "text-muted hover:text-gray-800 dark:hover:text-gray-200"
+                  }`}
+                >
+                  Todos ({gradingAvailableGroups.length})
+                </button>
+                {gradingAvailableGroups.map(g => (
+                  <button
+                    key={g.id}
+                    onClick={() => changeGradingGroup(g.id)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                      gradingActiveGroupId === g.id
+                        ? "bg-orange-500 text-white shadow-sm"
+                        : "text-muted hover:text-gray-800 dark:hover:text-gray-200"
+                    }`}
+                  >
+                    {g.name}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Quick bulk grade tool */}

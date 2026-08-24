@@ -6,7 +6,7 @@ import {
   ArrowLeft, FileSpreadsheet, FileText, Loader2,
   Save, Undo2, AlertTriangle, Check, Info,
   Plus, Trash2, X, Pencil, CheckCircle, AlertCircle, Clock,
-  Eye, EyeOff, Users, Search, Sparkles
+  Eye, EyeOff, Users, Search, Sparkles, Copy
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -198,6 +198,24 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [gradingSearch, setGradingSearch] = useState("");
   const [gradingStatusFilter, setGradingStatusFilter] = useState<"ALL" | "GRADED" | "SUBMITTED" | "PENDING">("ALL");
   const [bulkGradeValue, setBulkGradeValue] = useState("");
+  const [gradingActiveGroupId, setGradingActiveGroupId] = useState<string>("all");
+  const [gradingAvailableGroups, setGradingAvailableGroups] = useState<{ id: string; name: string; gradeName?: string; label?: string }[]>([]);
+
+  // ── Duplication / Cloning Modal State ──
+  const [duplicateModalTask, setDuplicateModalTask] = useState<TaskItem | null>(null);
+  const [duplicateTargetCourseId, setDuplicateTargetCourseId] = useState<string>("");
+  const [duplicateTargetGroupIds, setDuplicateTargetGroupIds] = useState<string[]>([]);
+  const [duplicateTargetPeriod, setDuplicateTargetPeriod] = useState<string>("");
+  const [duplicateTitle, setDuplicateTitle] = useState<string>("");
+  const [duplicating, setDuplicating] = useState<boolean>(false);
+  const [duplicateSuccess, setDuplicateSuccess] = useState<string>("");
+  const [duplicateError, setDuplicateError] = useState<string>("");
+
+  // ── Reusable tasks for Add Modal ──
+  const [reusableTasks, setReusableTasks] = useState<any[]>([]);
+  const [loadingReusableTasks, setLoadingReusableTasks] = useState(false);
+  const [selectedReuseTaskId, setSelectedReuseTaskId] = useState<string>("");
+  const [showReusePicker, setShowReusePicker] = useState<boolean>(false);
 
   // ── Exam / Task Management Modal ──
   const [questionsModalTask, setQuestionsModalTask] = useState<TaskItem | null>(null);
@@ -568,6 +586,9 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     setExistingAttachmentUrl(null);
     setNewTaskFile(null);
     setNewTaskResourceIds([]);
+    setShowReusePicker(false);
+    setSelectedReuseTaskId("");
+    fetchReusableTasks(type);
     // Fetch resources and themes for the selected course
     if (selectedCourseId) {
       setLoadingResources(true);
@@ -753,23 +774,29 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   }, [gradesGrid, byType, pctForm]);
 
   // ── Manual grading handlers ──────────────────────────────────────────────────
-  const openGradingModal = async (task: { id: string; title?: string; type?: string; submissions?: any[] }) => {
+  const openGradingModal = async (task: { id: string; title?: string; type?: string; submissions?: any[] }, targetGroupId?: string) => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       params.set("calificarTaskId", task.id);
       window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
     }
 
+    const gId = targetGroupId !== undefined ? targetGroupId : (selectedGroupId || "all");
+    setGradingActiveGroupId(gId);
     setGradingTask(task as TaskItem);
     setGradingError("");
     setGradingSaved(false);
     setLoadingStudents(true);
     setGradingStudents([]);
     try {
-      const res = await fetch(`/api/docente/tareas/${task.id}/students-grades`);
+      const qp = gId && gId !== "all" ? `?groupId=${encodeURIComponent(gId)}` : "";
+      const res = await fetch(`/api/docente/tareas/${task.id}/students-grades${qp}`);
       const data = await res.json();
       if (res.ok && data.students) {
         setGradingStudents(data.students);
+        if (data.groups) {
+          setGradingAvailableGroups(data.groups);
+        }
         setGradingTask(prev => ({
           id: task.id,
           title: data.taskTitle || prev?.title || task.title || "Actividad",
@@ -791,6 +818,118 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       setGradingError("Error de conexión");
     } finally {
       setLoadingStudents(false);
+    }
+  };
+
+  const changeGradingGroup = (newGroupId: string) => {
+    if (!gradingTask) return;
+    openGradingModal(gradingTask, newGroupId);
+  };
+
+  // ── Duplication / Cloning Handlers ──
+  const openDuplicateModal = (task: TaskItem) => {
+    setDuplicateModalTask(task);
+    setDuplicateTargetCourseId(selectedCourseId);
+    setDuplicateTargetPeriod(selectedPeriod);
+    setDuplicateTitle(task.title);
+    setDuplicateSuccess("");
+    setDuplicateError("");
+    const crs = courses.find(c => c.id === selectedCourseId);
+    if (crs && crs.groups.length > 0) {
+      setDuplicateTargetGroupIds(selectedGroupId ? [selectedGroupId] : [crs.groups[0].id]);
+    } else {
+      setDuplicateTargetGroupIds([]);
+    }
+  };
+
+  const handleDuplicateTask = async () => {
+    if (!duplicateModalTask || !duplicateTargetCourseId || duplicateTargetGroupIds.length === 0) {
+      setDuplicateError("Selecciona la asignatura de destino y al menos un grupo.");
+      return;
+    }
+    setDuplicating(true);
+    setDuplicateError("");
+    setDuplicateSuccess("");
+    try {
+      const res = await fetch(`/api/docente/tareas/${duplicateModalTask.id}/duplicate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          targetCourseId: duplicateTargetCourseId,
+          targetGroupIds: duplicateTargetGroupIds,
+          targetPeriod: duplicateTargetPeriod,
+          title: duplicateTitle,
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.task) {
+        setDuplicateSuccess("¡Actividad clonada con éxito con planilla de notas 100% limpia!");
+        setTimeout(() => {
+          setDuplicateModalTask(null);
+          setDuplicateSuccess("");
+          fetchData();
+        }, 1200);
+      } else {
+        setDuplicateError(data.error || "Error al duplicar la actividad");
+      }
+    } catch {
+      setDuplicateError("Error de conexión al duplicar");
+    } finally {
+      setDuplicating(false);
+    }
+  };
+
+  const fetchReusableTasks = async (type?: string) => {
+    setLoadingReusableTasks(true);
+    try {
+      const qp = type ? `?type=${type}` : "";
+      const res = await fetch(`/api/docente/tareas${qp}`);
+      const data = await res.json();
+      if (res.ok && data.tasks) {
+        setReusableTasks(data.tasks);
+      }
+    } catch {
+      console.error("Error loading reusable tasks");
+    } finally {
+      setLoadingReusableTasks(false);
+    }
+  };
+
+  const handleCloneFromPicker = async () => {
+    if (!selectedReuseTaskId || !selectedCourseId) {
+      alert("Selecciona una actividad para clonar.");
+      return;
+    }
+    const targetGroups = newTaskGroupIds.length > 0 ? newTaskGroupIds : (selectedGroupId ? [selectedGroupId] : []);
+    if (targetGroups.length === 0) {
+      alert("Selecciona al menos un grupo de destino.");
+      return;
+    }
+    setAddingTask(true);
+    try {
+      const res = await fetch(`/api/docente/tareas/${selectedReuseTaskId}/duplicate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          targetCourseId: selectedCourseId,
+          targetGroupIds: targetGroups,
+          targetPeriod: selectedPeriod,
+          title: newTaskName.trim() || undefined,
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.task) {
+        setAddModal(null);
+        setShowReusePicker(false);
+        setSelectedReuseTaskId("");
+        fetchData();
+      } else {
+        alert(data.error || "Error al clonar la actividad.");
+      }
+    } catch {
+      alert("Error de conexión al clonar.");
+    } finally {
+      setAddingTask(false);
     }
   };
 
@@ -1983,6 +2122,35 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 </button>
               ))}
             </div>
+
+            {gradingAvailableGroups.length > 1 && (
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border" style={{ borderColor: "var(--border-color)" }}>
+                <span className="text-[11px] font-bold text-muted px-2">Grupo:</span>
+                <button
+                  onClick={() => changeGradingGroup("all")}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                    gradingActiveGroupId === "all"
+                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                      : "text-muted hover:text-gray-800 dark:hover:text-gray-200"
+                  }`}
+                >
+                  Todos ({gradingAvailableGroups.length})
+                </button>
+                {gradingAvailableGroups.map(g => (
+                  <button
+                    key={g.id}
+                    onClick={() => changeGradingGroup(g.id)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                      gradingActiveGroupId === g.id
+                        ? "bg-orange-500 text-white shadow-sm"
+                        : "text-muted hover:text-gray-800 dark:hover:text-gray-200"
+                    }`}
+                  >
+                    {g.name}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Quick bulk grade tool */}
@@ -2598,6 +2766,9 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                         <button onClick={() => openGradingModal(t)} className="p-1 rounded hover:bg-orange-50 dark:hover:bg-orange-900/20 text-gray-400 hover:text-[#f98012] transition-colors" title="Calificar estudiantes">
                           <Pencil size={13} />
                         </button>
+                        <button onClick={() => openDuplicateModal(t)} className="p-1 rounded hover:bg-purple-50 dark:hover:bg-purple-900/20 text-gray-400 hover:text-purple-600 transition-colors" title="Clonar / Duplicar a otro curso o grupo (con notas limpias)">
+                          <Copy size={13} />
+                        </button>
                         <button onClick={() => openEditModal(t)} disabled={loadingEdit} className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-400 hover:text-blue-600 transition-colors" title={t.type === "EXAM" ? "Editar examen" : t.type === "TASK" ? "Editar tarea" : "Editar evaluación"}>
                           {loadingEdit ? <Loader2 size={13} className="animate-spin" /> : <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>}
                         </button>
@@ -2640,12 +2811,169 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                   ? (addModal.type === "EXAM" ? "Editar Examen" : addModal.type === "TASK" ? "Editar Tarea" : addModal.type === "SER" ? "Editar Evaluación Actitudinal" : "Editar Evaluación")
                   : (addModal.type === "EXAM" ? "Nuevo Examen" : addModal.type === "TASK" ? "Nueva Tarea" : addModal.type === "SER" ? "Nueva Evaluación Actitudinal" : "Nueva Evaluación")}
               </h3>
-              <button onClick={() => { setAddModal(null); setEditTaskId(null); }} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
+              <button onClick={() => { setAddModal(null); setEditTaskId(null); setShowReusePicker(false); }} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
                 <X size={24} />
               </button>
             </div>
 
-            <div className="flex flex-col gap-4">
+            {!editTaskId && addModal.type !== "SER" && (
+              <div className="flex items-center gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-gray-750">
+                <button
+                  type="button"
+                  onClick={() => setShowReusePicker(false)}
+                  className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+                    !showReusePicker
+                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                      : "text-muted hover:text-gray-800 dark:hover:text-gray-200"
+                  }`}
+                >
+                  ✨ Crear Desde Cero
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowReusePicker(true);
+                    fetchReusableTasks(addModal.type);
+                  }}
+                  className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                    showReusePicker
+                      ? "bg-orange-500 text-white shadow-sm"
+                      : "text-muted hover:text-gray-800 dark:hover:text-gray-200"
+                  }`}
+                >
+                  <Copy size={13} />
+                  📋 Clonar / Reutilizar Existente
+                </button>
+              </div>
+            )}
+
+            {showReusePicker && !editTaskId ? (
+              <div className="flex flex-col gap-4 py-2">
+                <div className="p-3 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900 rounded-xl text-xs text-orange-800 dark:text-orange-300">
+                  💡 <strong>Clonación Limpia:</strong> Se copiarán todas las preguntas, opciones, adjuntos e instrucciones de la actividad seleccionada a esta asignatura (<strong>{selectedCourse?.name}</strong>), pero las calificaciones empezarán 100% limpias (0 entregas/notas). ¡Nunca se mezclarán con el otro grupo!
+                </div>
+
+                <div className="input-group">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                    Selecciona la actividad a clonar *
+                  </label>
+                  {loadingReusableTasks ? (
+                    <div className="flex items-center gap-2 py-4 text-xs text-muted">
+                      <Loader2 size={16} className="animate-spin text-orange-500" />
+                      Cargando actividades disponibles...
+                    </div>
+                  ) : reusableTasks.length === 0 ? (
+                    <div className="p-4 border rounded-xl text-xs text-muted text-center">
+                      No tienes otras actividades creadas de tipo {addModal.type} para clonar.
+                    </div>
+                  ) : (
+                    <div className="max-h-60 overflow-y-auto border rounded-xl divide-y divide-gray-100 dark:divide-gray-800 bg-slate-50 dark:bg-slate-800/30">
+                      {reusableTasks.map((t: any) => {
+                        const isSelected = selectedReuseTaskId === t.id;
+                        return (
+                          <div
+                            key={t.id}
+                            onClick={() => {
+                              setSelectedReuseTaskId(t.id);
+                              if (!newTaskName) setNewTaskName(t.title);
+                            }}
+                            className={`p-3 cursor-pointer transition-all flex items-start justify-between gap-3 ${
+                              isSelected
+                                ? "bg-orange-100/70 dark:bg-orange-950/40 border-l-4 border-orange-500"
+                                : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                            }`}
+                          >
+                            <div className="min-w-0">
+                              <p className="font-bold text-xs text-gray-900 dark:text-gray-100">{t.title}</p>
+                              <p className="text-[11px] text-muted mt-0.5">
+                                Asignatura origen: <strong>{t.course?.name || "Sin curso"}</strong> • {t.period || "Periodo 1"}
+                                {t._count?.questions > 0 && ` • 📝 ${t._count.questions} preguntas`}
+                              </p>
+                            </div>
+                            <input
+                              type="radio"
+                              name="reuseTask"
+                              checked={isSelected}
+                              onChange={() => {
+                                setSelectedReuseTaskId(t.id);
+                                if (!newTaskName) setNewTaskName(t.title);
+                              }}
+                              className="mt-1 text-orange-500 focus:ring-orange-500 cursor-pointer"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div className="input-group">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                    Título para la nueva copia (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Dejar igual o personalizar título..."
+                    value={newTaskName}
+                    onChange={e => setNewTaskName(e.target.value)}
+                    className="input-field w-full text-xs font-semibold py-2 px-3 border rounded-lg"
+                  />
+                </div>
+
+                {/* Course Groups Assignment Checkboxes */}
+                {groups.length > 0 && (
+                  <div className="input-group">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                      Asignar a Grupos en este Curso *
+                    </label>
+                    <div className="flex flex-col gap-2 p-3 bg-slate-50 dark:bg-slate-800/20 border rounded-lg">
+                      {groups.map(g => {
+                        const label = g.grade?.name ? `${g.grade.name} — ${g.name}` : g.name;
+                        const isChecked = newTaskGroupIds.includes(g.id);
+                        return (
+                          <label key={g.id} className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                if (isChecked) {
+                                  setNewTaskGroupIds(prev => prev.filter(id => id !== g.id));
+                                } else {
+                                  setNewTaskGroupIds(prev => [...prev, g.id]);
+                                }
+                              }}
+                              className="rounded text-[#f97316] focus:ring-[#f97316] w-4 h-4"
+                            />
+                            <span>{label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-3 pt-3 border-t border-gray-200 dark:border-gray-800 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => { setAddModal(null); setShowReusePicker(false); }}
+                    className="btn btn-secondary text-xs"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCloneFromPicker}
+                    disabled={!selectedReuseTaskId || addingTask}
+                    className="btn btn-primary text-xs font-bold flex items-center gap-2"
+                  >
+                    {addingTask ? <Loader2 size={14} className="animate-spin" /> : <Copy size={14} />}
+                    Clonar Actividad (Limpia)
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-col gap-4">
               
               {/* Row 1: Asignatura & Periodo */}
               <div className="grid grid-cols-2 gap-4">
@@ -2948,7 +3276,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 )}
               </button>
             </div>
-
+            </>
+            )}
 
           </div>
         </div>
@@ -3393,6 +3722,180 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                   Entendido ✓
                 </button>
               </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── Duplicate / Clone Task Modal ── */}
+      {isMounted && duplicateModalTask && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] px-4 animate-fade-in">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-lg shadow-2xl animate-scale-in flex flex-col gap-4 border" style={{ borderColor: "var(--border-color)" }}>
+            
+            {/* Header */}
+            <div className="flex justify-between items-center pb-2 border-b" style={{ borderColor: "var(--border-color)" }}>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
+                  <Copy size={16} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-gray-900 dark:text-gray-100">
+                    Clonar / Duplicar Actividad
+                  </h3>
+                  <p className="text-xs text-muted">Copia limpia sin arrastrar calificaciones</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setDuplicateModalTask(null)}
+                className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors p-1 rounded-lg"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {duplicateSuccess && (
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 rounded-xl text-xs font-bold flex items-center gap-2 animate-fade-in">
+                <CheckCircle size={16} className="text-emerald-600 shrink-0" />
+                {duplicateSuccess}
+              </div>
+            )}
+            {duplicateError && (
+              <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-800 text-red-800 dark:text-red-300 rounded-xl text-xs font-bold animate-fade-in">
+                {duplicateError}
+              </div>
+            )}
+
+            <div className="p-3 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/40 rounded-xl text-xs text-purple-900 dark:text-purple-300">
+              💡 <strong>Actividad Original:</strong> &quot;{duplicateModalTask.title}&quot; ({duplicateModalTask.type === "EXAM" ? "Examen" : "Tarea"}).
+              <br />
+              Se copiarán todas sus preguntas, opciones y archivos, pero la planilla de notas empezará <strong>100% limpia (en blanco)</strong>.
+            </div>
+
+            <div className="flex flex-col gap-3 text-xs">
+              {/* Asignatura Destino */}
+              <div className="input-group">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  Asignatura de Destino *
+                </label>
+                <select
+                  value={duplicateTargetCourseId}
+                  onChange={e => {
+                    const newCId = e.target.value;
+                    setDuplicateTargetCourseId(newCId);
+                    const targetC = courses.find(c => c.id === newCId);
+                    if (targetC && targetC.groups.length > 0) {
+                      setDuplicateTargetGroupIds([targetC.groups[0].id]);
+                    } else {
+                      setDuplicateTargetGroupIds([]);
+                    }
+                  }}
+                  className="w-full p-2.5 rounded-lg border bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  style={{ borderColor: "var(--border-color)" }}
+                >
+                  {courses.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Periodo Destino */}
+              <div className="input-group">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  Periodo *
+                </label>
+                <select
+                  value={duplicateTargetPeriod}
+                  onChange={e => setDuplicateTargetPeriod(e.target.value)}
+                  className="w-full p-2.5 rounded-lg border bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  style={{ borderColor: "var(--border-color)" }}
+                >
+                  {periods.map(p => (
+                    <option key={p.name} value={p.name}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Grupos en Asignatura Destino */}
+              {(() => {
+                const targetCourseObj = courses.find(c => c.id === duplicateTargetCourseId);
+                const targetGroups = targetCourseObj?.groups || [];
+                return (
+                  <div className="input-group">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                      Asignar a Grupos en Destino (Múltiple) *
+                    </label>
+                    {targetGroups.length === 0 ? (
+                      <p className="text-xs text-muted italic">Esta asignatura no tiene grupos asociados.</p>
+                    ) : (
+                      <div className="flex flex-col gap-2 p-3 bg-slate-50 dark:bg-slate-800/30 border rounded-lg max-h-36 overflow-y-auto" style={{ borderColor: "var(--border-color)" }}>
+                        {targetGroups.map(g => {
+                          const label = g.grade?.name ? `${g.grade.name} — ${g.name}` : g.name;
+                          const isChecked = duplicateTargetGroupIds.includes(g.id);
+                          return (
+                            <label key={g.id} className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => {
+                                  if (isChecked) {
+                                    setDuplicateTargetGroupIds(prev => prev.filter(id => id !== g.id));
+                                  } else {
+                                    setDuplicateTargetGroupIds(prev => [...prev, g.id]);
+                                  }
+                                }}
+                                className="rounded text-purple-600 focus:ring-purple-500 w-4 h-4"
+                              />
+                              <span>{label}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Título de la copia */}
+              <div className="input-group">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  Título para la nueva copia (Opcional)
+                </label>
+                <input
+                  type="text"
+                  value={duplicateTitle}
+                  onChange={e => setDuplicateTitle(e.target.value)}
+                  className="input-field w-full text-xs font-semibold py-2 px-3 border rounded-lg"
+                  placeholder={duplicateModalTask.title}
+                />
+              </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex justify-end gap-3 pt-3 border-t mt-2" style={{ borderColor: "var(--border-color)" }}>
+              <button
+                onClick={() => setDuplicateModalTask(null)}
+                className="btn btn-secondary text-xs"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDuplicateTask}
+                disabled={duplicating || !duplicateTargetCourseId || duplicateTargetGroupIds.length === 0}
+                className="px-4 py-2 rounded-lg text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+              >
+                {duplicating ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>Clonando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy size={14} />
+                    <span>Clonar Actividad Limpia</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>,

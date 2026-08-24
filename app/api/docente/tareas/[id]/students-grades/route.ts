@@ -35,6 +35,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
             groupName: true,
             group: {
               select: {
+                id: true,
                 name: true,
                 grade: { select: { name: true } }
               }
@@ -62,23 +63,41 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: 'Tarea no encontrada' }, { status: 404 });
     }
 
+    const { searchParams } = new URL(_req.url);
+    const filterGroupId = searchParams.get("groupId");
+
+    // Collect groups metadata
+    const taskGroups = task.groups.map(g => ({
+      id: g.id,
+      name: g.name,
+      gradeName: g.grade?.name || "",
+      label: g.grade?.name ? `${g.grade.name} — ${g.name}` : g.name,
+    }));
+
     // Collect all students across groups and assignedStudents (deduplicated)
-    const studentMap = new Map<string, { id: string; name: string; groupName: string }>();
+    const studentMap = new Map<string, { id: string; name: string; groupName: string; groupId?: string }>();
     for (const group of task.groups) {
+      if (filterGroupId && filterGroupId !== "all" && group.id !== filterGroupId) {
+        continue;
+      }
       for (const student of group.students) {
         if (!studentMap.has(student.id)) {
-          const gradeLabel = group.grade?.name ? `${group.grade.name} - ${group.name}` : group.name;
-          studentMap.set(student.id, { id: student.id, name: student.name, groupName: gradeLabel });
+          const gradeLabel = group.grade?.name ? `${group.grade.name} — ${group.name}` : group.name;
+          studentMap.set(student.id, { id: student.id, name: student.name, groupName: gradeLabel, groupId: group.id });
         }
       }
     }
 
     if (task.assignedStudents) {
       for (const student of task.assignedStudents) {
+        const studentGroupId = (student as any).groupId || student.group?.id;
+        if (filterGroupId && filterGroupId !== "all" && studentGroupId !== filterGroupId) {
+          continue;
+        }
         if (!studentMap.has(student.id)) {
           const group = student.group;
-          const gradeLabel = group?.grade?.name ? `${group.grade.name} - ${group.name}` : (student.groupName || "Asignación Individual");
-          studentMap.set(student.id, { id: student.id, name: student.name, groupName: gradeLabel });
+          const gradeLabel = group?.grade?.name ? `${group.grade.name} — ${group.name}` : (student.groupName || "Asignación Individual");
+          studentMap.set(student.id, { id: student.id, name: student.name, groupName: gradeLabel, groupId: studentGroupId });
         }
       }
     }
@@ -94,6 +113,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       students, 
       taskType: task.type, 
       taskTitle: task.title,
+      groups: taskGroups,
+      courseId: (task as any).courseId,
       allowLateSubmission: task.allowLateSubmission,
       lateSubmissionUntil: task.lateSubmissionUntil ? task.lateSubmissionUntil.toISOString() : null
     });
