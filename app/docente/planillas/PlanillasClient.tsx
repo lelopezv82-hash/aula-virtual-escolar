@@ -389,7 +389,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           const sub = t.submissions.find(x => x.studentId === s.id);
           
           let defaultVal = "";
-          if (!t.isExternal) {
+          // Solo aplicar nota automática de 1.0 a EXAMs (saber/exámenes) cuando el tiempo expira.
+          // Las tareas de tipo TASK (HACER) las califica manualmente el profesor.
+          const isManualGradeType = t.type === "TASK";
+          if (!t.isExternal && !isManualGradeType) {
             const { isClosed } = getTaskDeadlineStatus(t as any, sub as any);
             const isTimerExpired = sub?.startedAt && t.duration && 
               (new Date(sub.startedAt).getTime() + t.duration * 60 * 1000 + 30000 < now.getTime());

@@ -100,17 +100,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         const serTasks = periodTasks.filter(t => t.type === 'SER');
         const finalTasks = periodTasks.filter(t => t.type === 'FINAL');
 
-        // For EXAM/TASK: auto-assign 1.0 when closed without submission.
+        // For EXAM: auto-assign 1.0 when closed without submission.
+        // For TASK (HACER): only return grade if explicitly entered by the teacher (no auto-1.0).
         // For SER/FINAL/ATTEND: only return grade if explicitly entered (no auto-1.0).
         const getGrade = (task: typeof tasks[0]) => {
-          const isManual = ['SER', 'FINAL', 'ATTEND'].includes(task.type);
+          const isManual = ['SER', 'FINAL', 'ATTEND', 'TASK'].includes(task.type);
           const sub = task.submissions.find(s => s.studentId === student.id);
           const isClosed = task.dueDate ? new Date(task.dueDate) < now : false;
           const isTimerExpired = sub?.startedAt && task.duration
             ? (new Date(sub.startedAt).getTime() + task.duration * 60 * 1000 + 30000 < now.getTime())
             : false;
           if (sub) {
-            if (sub.status === 'GRADED') return Math.max(1.0, sub.grade ?? 0);
+            if (sub.status === 'GRADED') return sub.grade ?? null;
             if (!isManual && sub.status === 'PENDING' && (isClosed || isTimerExpired)) return 1.0;
             return null;
           }
