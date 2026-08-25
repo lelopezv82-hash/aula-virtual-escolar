@@ -326,7 +326,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
       : "";
 
     return (
-      <div className="flex flex-col gap-6 animate-fade-in pb-24">
+      <div className="flex flex-col gap-6 animate-fade-in pb-52">
         {/* Top Header & Navigation */}
         <div className="flex items-center justify-between flex-wrap gap-4 bg-white dark:bg-gray-900 p-5 rounded-2xl border shadow-sm" style={{ borderColor: "var(--border-color)" }}>
           <div className="flex items-center gap-4">
