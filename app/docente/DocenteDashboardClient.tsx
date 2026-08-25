@@ -318,7 +318,11 @@ export default function DocenteDashboardClient({
                           <span className="px-3 py-1 rounded-lg border font-semibold text-slate-700 dark:text-slate-300" style={{ background: "var(--bg-card)", borderColor: "var(--border-color)" }}>
                             📝 <strong>{course.totalTasks}</strong> tareas
                           </span>
-                          {course.totalPending > 0 ? (
+                          {course.totalTasks === 0 ? (
+                            <span className="px-3 py-1 rounded-lg font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                              Sin tareas asignadas
+                            </span>
+                          ) : course.totalPending > 0 ? (
                             <span className="px-3 py-1 rounded-lg font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                               ⏳ <strong>{course.totalPending}</strong> por calificar
                             </span>
@@ -332,49 +336,65 @@ export default function DocenteDashboardClient({
 
                       {/* Groups Grid */}
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "0.85rem" }}>
-                        {course.groups.map((cg) => (
-                          <div
-                            key={cg.groupId}
-                            className="p-3.5 rounded-xl border flex flex-col justify-between gap-3 hover:shadow-md transition-all"
-                            style={{ background: "var(--bg-card)", borderColor: "var(--border-color)" }}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="font-bold text-sm text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-                                <span className="w-2 h-2 rounded-full" style={{ background: cg.pendingCount > 0 ? "var(--warning)" : "var(--success)" }}></span>
-                                Grupo {cg.groupName}
-                              </span>
-                              <span className="text-xs text-muted font-medium">
-                                {cg.studentsCount} est.
-                              </span>
-                            </div>
+                        {course.groups.map((cg) => {
+                          const dotColor = cg.tasksCount === 0
+                            ? "var(--text-muted)"
+                            : cg.pendingCount > 0
+                            ? "var(--warning)"
+                            : cg.gradedCount > 0
+                            ? "var(--success)"
+                            : "var(--primary-color)";
 
-                            <div className="flex items-center justify-between text-xs text-muted border-t pt-2" style={{ borderColor: "var(--border-color)" }}>
-                              <span>
-                                {cg.pendingCount > 0 ? (
-                                  <strong className="text-amber-600 dark:text-amber-400">⏳ {cg.pendingCount} por calificar</strong>
-                                ) : (
-                                  <span className="text-emerald-600 dark:text-emerald-400">✓ Calificado</span>
-                                )}
-                              </span>
-                              <span>{cg.tasksCount} tareas</span>
-                            </div>
+                          return (
+                            <div
+                              key={cg.groupId}
+                              className="p-3.5 rounded-xl border flex flex-col justify-between gap-3 hover:shadow-md transition-all"
+                              style={{ background: "var(--bg-card)", borderColor: "var(--border-color)" }}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-sm text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                                  <span className="w-2 h-2 rounded-full" style={{ background: dotColor }}></span>
+                                  Grupo {cg.groupName}
+                                </span>
+                                <span className="text-xs text-muted font-medium">
+                                  {cg.studentsCount} est.
+                                </span>
+                              </div>
 
-                            <div className="grid grid-cols-2 gap-2 pt-1">
-                              <Link
-                                href={`/docente/grados?manageGroupId=${cg.groupId}`}
-                                className="btn btn-secondary text-[11px] font-semibold py-1.5 px-2 justify-center"
-                              >
-                                👥 Estudiantes
-                              </Link>
-                              <Link
-                                href={`/docente/planillas?courseId=${cg.courseId}&groupId=${cg.groupId}`}
-                                className="btn btn-primary text-[11px] font-bold py-1.5 px-2 justify-center !text-white hover:!text-white"
-                              >
-                                📊 Planilla
-                              </Link>
+                              <div className="flex items-center justify-between text-xs text-muted border-t pt-2" style={{ borderColor: "var(--border-color)" }}>
+                                <span>
+                                  {cg.tasksCount === 0 ? (
+                                    <span className="text-slate-400 dark:text-slate-500">Sin tareas</span>
+                                  ) : cg.pendingCount > 0 ? (
+                                    <strong className="text-amber-600 dark:text-amber-400">⏳ {cg.pendingCount} por calificar</strong>
+                                  ) : cg.gradedCount > 0 ? (
+                                    <span className="text-emerald-600 dark:text-emerald-400">✓ Calificado</span>
+                                  ) : (
+                                    <span className="text-slate-400 dark:text-slate-500">Sin entregas</span>
+                                  )}
+                                </span>
+                                <span>
+                                  {cg.tasksCount} {cg.tasksCount === 1 ? "tarea" : "tareas"}
+                                </span>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-2 pt-1">
+                                <Link
+                                  href={`/docente/grados?manageGroupId=${cg.groupId}`}
+                                  className="btn btn-secondary text-[11px] font-semibold py-1.5 px-2 justify-center"
+                                >
+                                  👥 Estudiantes
+                                </Link>
+                                <Link
+                                  href={`/docente/planillas?courseId=${cg.courseId}&groupId=${cg.groupId}`}
+                                  className="btn btn-primary text-[11px] font-bold py-1.5 px-2 justify-center !text-white hover:!text-white"
+                                >
+                                  📊 Planilla
+                                </Link>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   ))}
