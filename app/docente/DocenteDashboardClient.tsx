@@ -144,6 +144,7 @@ export default function DocenteDashboardClient({
       const courseEntry = courseMap.get(cg.courseId)!;
       courseEntry.groups.push(cg);
       courseEntry.totalStudents += cg.studentsCount;
+      courseEntry.totalTasks = Math.max(courseEntry.totalTasks, cg.tasksCount);
       courseEntry.totalPending += cg.pendingCount;
     });
 

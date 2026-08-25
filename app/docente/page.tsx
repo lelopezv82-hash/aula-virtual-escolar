@@ -35,6 +35,8 @@ export default async function DocenteDashboard() {
       tasks: {
         where: { active: true },
         include: {
+          groups: { select: { id: true } },
+          assignedStudents: { select: { id: true } },
           submissions: true
         }
       }
@@ -56,13 +58,25 @@ export default async function DocenteDashboard() {
 
       const studentIds = g.students.map((s) => s.id);
       const studentsCount = studentIds.length;
-      const tasksCount = c.tasks.length;
+
+      // Filter tasks assigned to this group specifically
+      const groupTasks = c.tasks.filter((t) => {
+        if (t.groups && t.groups.length > 0) {
+          return t.groups.some((tg) => tg.id === g.id);
+        }
+        if (t.assignedStudents && t.assignedStudents.length > 0) {
+          return t.assignedStudents.some((st) => studentIds.includes(st.id));
+        }
+        return true;
+      });
+
+      const tasksCount = groupTasks.length;
 
       let pendingCount = 0;
       let gradedCount = 0;
       let sumGrades = 0;
 
-      c.tasks.forEach((t) => {
+      groupTasks.forEach((t) => {
         t.submissions.forEach((sub) => {
           if (studentIds.includes(sub.studentId)) {
             if (sub.status === "SUBMITTED") pendingCount++;
