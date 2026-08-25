@@ -389,19 +389,14 @@ export default function TableroClient({
         </div>
       </div>
 
-      {/* KPI Cards Grid */}
+      {/* KPI Cards Grid (Purely Informative) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Urgent Card */}
         <div
-          onClick={() => setSelectedStatus(selectedStatus === "urgent" ? "all" : "urgent")}
-          className={`cursor-pointer transition-all card p-4 rounded-xl border flex items-center gap-3.5 ${
-            selectedStatus === "urgent"
-              ? "ring-2 ring-red-500 shadow-md bg-red-50/50 dark:bg-red-950/20"
-              : "hover:shadow-md hover:border-red-300"
-          }`}
-          style={{ borderColor: kpis.urgentCount > 0 ? "#fca5a5" : "var(--border-color)" }}
+          className="card p-4 rounded-xl border flex items-center gap-3.5 shadow-sm"
+          style={{ borderColor: "var(--border-color)" }}
         >
-          <div className={`p-3 rounded-xl ${kpis.urgentCount > 0 ? "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300 animate-pulse" : "bg-gray-100 text-gray-500 dark:bg-gray-800"}`}>
+          <div className={`p-3 rounded-xl ${kpis.urgentCount > 0 ? "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300" : "bg-gray-100 text-gray-500 dark:bg-gray-800"}`}>
             <Flame size={22} />
           </div>
           <div>
@@ -412,12 +407,7 @@ export default function TableroClient({
 
         {/* Pending Tasks Card */}
         <div
-          onClick={() => setSelectedStatus(selectedStatus === "pending" ? "all" : "pending")}
-          className={`cursor-pointer transition-all card p-4 rounded-xl border flex items-center gap-3.5 ${
-            selectedStatus === "pending"
-              ? "ring-2 ring-blue-500 shadow-md bg-blue-50/50 dark:bg-blue-950/20"
-              : "hover:shadow-md hover:border-blue-300"
-          }`}
+          className="card p-4 rounded-xl border flex items-center gap-3.5 shadow-sm"
           style={{ borderColor: "var(--border-color)" }}
         >
           <div className="p-3 rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300">
@@ -431,12 +421,7 @@ export default function TableroClient({
 
         {/* Pending Exams Card */}
         <div
-          onClick={() => setSelectedType(selectedType === "EXAM" ? "all" : "EXAM")}
-          className={`cursor-pointer transition-all card p-4 rounded-xl border flex items-center gap-3.5 ${
-            selectedType === "EXAM"
-              ? "ring-2 ring-orange-500 shadow-md bg-orange-50/50 dark:bg-orange-950/20"
-              : "hover:shadow-md hover:border-orange-300"
-          }`}
+          className="card p-4 rounded-xl border flex items-center gap-3.5 shadow-sm"
           style={{ borderColor: "var(--border-color)" }}
         >
           <div className="p-3 rounded-xl bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-300">
@@ -450,12 +435,7 @@ export default function TableroClient({
 
         {/* Completed Card */}
         <div
-          onClick={() => setSelectedStatus(selectedStatus === "submitted" ? "all" : "submitted")}
-          className={`cursor-pointer transition-all card p-4 rounded-xl border flex items-center gap-3.5 ${
-            selectedStatus === "submitted"
-              ? "ring-2 ring-emerald-500 shadow-md bg-emerald-50/50 dark:bg-emerald-950/20"
-              : "hover:shadow-md hover:border-emerald-300"
-          }`}
+          className="card p-4 rounded-xl border flex items-center gap-3.5 shadow-sm"
           style={{ borderColor: "var(--border-color)" }}
         >
           <div className="p-3 rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300">
