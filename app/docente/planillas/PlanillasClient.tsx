@@ -80,9 +80,9 @@ interface CourseWeights {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-// SABER = EXAM (exámenes), HACER = TASK (tareas), SER = SER (actitudinal)
+// SABER = EXAM / TASK_SABER (exámenes / tareas), HACER = TASK (tareas), SER = SER (actitudinal)
 const CATEGORIES = [
-  { type: "EXAM",   label: "SABER",       sublabel: "Exámenes",    pctKey: "saberPercent",  color: { header: "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300", cell: "bg-purple-50/60 dark:bg-purple-900/10", cellBorder: "border-l-purple-300 dark:border-l-purple-700", badge: "bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300", dot: "#a855f7", btn: "hover:bg-purple-200 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300" } },
+  { type: "EXAM",   label: "SABER",       sublabel: "Exámenes / Tareas", pctKey: "saberPercent",  color: { header: "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300", cell: "bg-purple-50/60 dark:bg-purple-900/10", cellBorder: "border-l-purple-300 dark:border-l-purple-700", badge: "bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300", dot: "#a855f7", btn: "hover:bg-purple-200 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300" } },
   { type: "TASK",   label: "HACER",       sublabel: "Tareas",      pctKey: "hacerPercent",  color: { header: "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300", cell: "bg-orange-50/60 dark:bg-orange-900/10", cellBorder: "border-l-orange-300 dark:border-l-orange-700", badge: "bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300", dot: "#d97706", btn: "hover:bg-orange-200 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300" } },
   { type: "SER",    label: "SER",         sublabel: "Actitudinal", pctKey: "serPercent",    color: { header: "bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-300", cell: "bg-teal-50/60 dark:bg-teal-900/10", cellBorder: "border-l-teal-400 dark:border-l-teal-700", badge: "bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-300", dot: "#0d9488", btn: "hover:bg-teal-200 bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300" } },
   { type: "FINAL",  label: "EXAMEN FINAL", sublabel: "",           pctKey: "finalPercent",  color: { header: "bg-sky-100 dark:bg-sky-900/30 text-sky-800 dark:text-sky-300", cell: "bg-sky-50/60 dark:bg-sky-900/10", cellBorder: "border-l-sky-300 dark:border-l-sky-700", badge: "bg-sky-100 text-sky-800 dark:bg-sky-900/50 dark:text-sky-300", dot: "#0ea5e9", btn: "hover:bg-sky-200 bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300" } },
@@ -454,7 +454,15 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
   // ── Category slices ──
   const byType = useCallback(
-    (type: string) => tasks.filter(t => t.type === type),
+    (type: string) => {
+      if (type === "EXAM") {
+        return tasks.filter(t => t.type === "EXAM" || t.type === "TASK_SABER" || t.type === "SABER");
+      }
+      if (type === "TASK") {
+        return tasks.filter(t => t.type === "TASK" || t.type === "TASK_HACER" || t.type === "HACER");
+      }
+      return tasks.filter(t => t.type === type);
+    },
     [tasks]
   );
 
@@ -1948,7 +1956,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       return true;
     });
 
-    const catInfo = CATEGORIES.find(c => c.type === gradingTask.type) ?? CATEGORIES[1];
+    const catInfo = CATEGORIES.find(c => c.type === (gradingTask.type === "TASK_SABER" || gradingTask.type === "SABER" ? "EXAM" : gradingTask.type)) ?? CATEGORIES[1];
     const selectedGroupObj = groups.find(g => g.id === selectedGroupId);
     const activeGroupObj = gradingAvailableGroups.find(g => g.id === gradingActiveGroupId) || selectedGroupObj;
     const activeGradeName = (activeGroupObj as any)?.gradeName || (activeGroupObj as any)?.grade?.name || selectedGroupObj?.grade?.name || students[0]?.group?.grade?.name || "";
@@ -2724,7 +2732,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
             {tasks.map(t => {
-              const cat = CATEGORIES.find(c => c.type === t.type) ?? CATEGORIES[4];
+              const cat = CATEGORIES.find(c => c.type === (t.type === "TASK_SABER" || t.type === "SABER" ? "EXAM" : t.type)) ?? CATEGORIES[4];
               const isActive = t.active !== false;
               return (
                 <div key={t.id} className={`flex flex-col gap-2 p-3 rounded-lg border shadow-sm group transition-opacity ${isActive ? "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700" : "bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 opacity-70"}`}>
@@ -2735,7 +2743,9 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="font-bold text-gray-800 dark:text-gray-200 leading-tight truncate" title={t.title}>{t.title}</p>
-                      <p className="text-gray-400 mt-0.5">{cat.label}{cat.sublabel ? ` — ${cat.sublabel}` : ""}</p>
+                      <p className="text-gray-400 mt-0.5">
+                        {t.type === "TASK_SABER" || t.type === "SABER" ? "SABER — Tarea" : t.type === "EXAM" ? "SABER — Examen" : `${cat.label}${cat.sublabel ? ` — ${cat.sublabel}` : ""}`}
+                      </p>
                       {t.isExternal ? (
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border mt-1 inline-block" style={{ background: "#f1f5f9", color: "#475569", borderColor: "#cbd5e1" }}>📁 Entrega en clase</span>
                       ) : (

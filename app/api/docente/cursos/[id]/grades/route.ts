@@ -95,13 +95,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
           ))
         );
 
-        const examTasks = periodTasks.filter(t => t.type === 'EXAM');
-        const taskTasks = periodTasks.filter(t => t.type === 'TASK');
+        const saberTasksList = periodTasks.filter(t => t.type === 'EXAM' || t.type === 'TASK_SABER' || t.type === 'SABER');
+        const hacerTasksList = periodTasks.filter(t => t.type === 'TASK' || t.type === 'TASK_HACER' || t.type === 'HACER');
         const serTasks = periodTasks.filter(t => t.type === 'SER');
         const finalTasks = periodTasks.filter(t => t.type === 'FINAL');
 
         // Para EXAM: auto 1.0 cuando cierra sin entrega.
-        // Para TASK (HACER): auto 1.0 solo si el estudiante NO entregó nada.
+        // Para TASK / TASK_SABER (HACER/SABER tareas): auto 1.0 solo si el estudiante NO entregó nada.
         //   Si el estudiante sí entregó, el profesor la califica manualmente.
         // Para SER/FINAL/ATTEND: solo nota si el profesor la ingresó explícitamente.
         const getGrade = (task: typeof tasks[0]) => {
@@ -118,9 +118,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
             return null;
           }
 
-          if (task.type === 'TASK') {
-            // HACER: si el estudiante entregó → esperar al profesor (null)
-            //        si NO entregó y la fecha cerró → 1.0 automático
+          if (task.type === 'TASK' || task.type === 'TASK_SABER' || task.type === 'TASK_HACER' || task.type === 'HACER') {
+            // Tareas: si el estudiante entregó → esperar al profesor (null)
+            //         si NO entregó y la fecha cerró → 1.0 automático
             if (sub?.status === 'GRADED') return sub.grade ?? null;
             const studentSubmitted = sub && sub.status !== 'PENDING' && (sub as any).fileUrl;
             if (!studentSubmitted && isClosed) return 1.0;
@@ -137,13 +137,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
           return null;
         };
 
-        const examGrades = examTasks.map(getGrade).filter((g): g is number => g !== null);
-        const taskGrades = taskTasks.map(getGrade).filter((g): g is number => g !== null);
+        const saberGrades = saberTasksList.map(getGrade).filter((g): g is number => g !== null);
+        const hacerGrades = hacerTasksList.map(getGrade).filter((g): g is number => g !== null);
         const serGrades = serTasks.map(getGrade).filter((g): g is number => g !== null);
         const finalGrades = finalTasks.map(getGrade).filter((g): g is number => g !== null);
 
-        const saber = examGrades.length > 0 ? examGrades.reduce((a, b) => a + b, 0) / examGrades.length : null;
-        const hacer = taskGrades.length > 0 ? taskGrades.reduce((a, b) => a + b, 0) / taskGrades.length : null;
+        const saber = saberGrades.length > 0 ? saberGrades.reduce((a, b) => a + b, 0) / saberGrades.length : null;
+        const hacer = hacerGrades.length > 0 ? hacerGrades.reduce((a, b) => a + b, 0) / hacerGrades.length : null;
         const ser = serGrades.length > 0 ? serGrades.reduce((a, b) => a + b, 0) / serGrades.length : null;
         const finalVal = finalGrades.length > 0 ? finalGrades.reduce((a, b) => a + b, 0) / finalGrades.length : null;
 

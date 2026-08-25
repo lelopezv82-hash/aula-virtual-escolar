@@ -218,8 +218,8 @@ export async function POST(request: Request) {
       orderBy: { createdAt: 'asc' }
     });
 
-    const saberTasks = tasks.filter(t => t.type === "EXAM");
-    const hacerTasks = tasks.filter(t => t.type === "TASK");
+    const saberTasks = tasks.filter(t => t.type === "EXAM" || t.type === "TASK_SABER" || t.type === "SABER");
+    const hacerTasks = tasks.filter(t => t.type === "TASK" || t.type === "TASK_HACER" || t.type === "HACER");
     const serTasks   = tasks.filter(t => t.type === "SER");
 
     // Normalize name for fuzzy comparison: lowercase, strip accents, collapse spaces

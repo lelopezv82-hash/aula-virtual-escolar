@@ -144,9 +144,12 @@ export default function TableroClient({
         if (!matchesTitle && !matchesCourse && !matchesDesc) return false;
       }
 
-      if (selectedCourse !== "all" && task.courseId !== selectedCourse) return false;
-      if (selectedType !== "all" && task.type !== selectedType) return false;
-      if (selectedPeriod !== "all" && task.period !== selectedPeriod) return false;
+      if (selectedType !== "all") {
+        if (selectedType === "TASK" && task.type !== "TASK" && task.type !== "TASK_HACER" && task.type !== "HACER") return false;
+        if (selectedType === "TASK_SABER" && task.type !== "TASK_SABER" && task.type !== "SABER") return false;
+        if (selectedType === "EXAM" && task.type !== "EXAM") return false;
+        if (selectedType !== "TASK" && selectedType !== "TASK_SABER" && selectedType !== "EXAM" && task.type !== selectedType) return false;
+      }
 
       if (selectedStatus === "urgent") {
         return !info.isSubmitted && info.isUrgent;
@@ -490,6 +493,7 @@ export default function TableroClient({
           >
             <option value="all">Todo</option>
             <option value="TASK">Tareas (Hacer)</option>
+            <option value="TASK_SABER">Tareas (Saber)</option>
             <option value="EXAM">Exámenes (Saber)</option>
           </select>
         </div>
@@ -793,6 +797,7 @@ export default function TableroClient({
 // Sub-component: Individual Task / Exam Card
 function TaskCard({ task, info }: { task: TableroTask; info: any }) {
   const isExam = task.type === "EXAM" || task.type === "FINAL";
+  const isTaskSaber = task.type === "TASK_SABER" || task.type === "SABER";
   const href = isExam
     ? `/estudiante/examenes/${task.id}`
     : `/estudiante/tareas/${task.id}`;
@@ -830,11 +835,13 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
               className={`text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 ${
                 isExam
                   ? "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300"
+                  : isTaskSaber
+                  ? "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300"
                   : "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
               }`}
             >
               {isExam ? <ClipboardList size={12} /> : <FileText size={12} />}
-              {isExam ? "Examen (Saber)" : "Tarea (Hacer)"}
+              {isExam ? "Examen (Saber)" : isTaskSaber ? "Tarea (Saber)" : "Tarea (Hacer)"}
             </span>
 
             {/* Individual Assignment Badge */}

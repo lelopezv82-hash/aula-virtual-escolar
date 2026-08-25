@@ -173,8 +173,8 @@ export default async function CursoCalificacionesPage({
     const isPending = sub.status === "SUBMITTED";
     const currentGrade = sub.grade !== null && sub.grade !== undefined ? sub.grade : 0;
     const gColor = isGraded ? gradeColor(currentGrade) : "var(--text-muted)";
-    const isExam = sub.task.type === "EXAM";
-    const accentColor = isExam ? "#8b5cf6" : "var(--primary-color)";
+    const isSaber = sub.task.type === "EXAM" || sub.task.type === "TASK_SABER" || sub.task.type === "SABER";
+    const accentColor = isSaber ? "#8b5cf6" : "var(--primary-color)";
 
     return (
       <div
@@ -202,6 +202,21 @@ export default async function CursoCalificacionesPage({
                 : <span className="badge badge-success flex items-center gap-1"><CheckCircle size={12} /> Calificada</span>
             )}
             {isPending && <span className="badge badge-info flex items-center gap-1"><Clock size={12} /> En revisión</span>}
+            {sub.task.type === "TASK_SABER" && (
+              <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f3e8ff", color: "#6b21a8", border: "1px solid #d8b4fe" }}>
+                📖 Tarea (Saber)
+              </span>
+            )}
+            {sub.task.type === "EXAM" && (
+              <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f3e8ff", color: "#6b21a8", border: "1px solid #d8b4fe" }}>
+                📝 Examen (Saber)
+              </span>
+            )}
+            {sub.task.type === "TASK" && (
+              <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#ffedd5", color: "#9a3412", border: "1px solid #fed7aa" }}>
+                📋 Tarea (Hacer)
+              </span>
+            )}
             {sub.task.isExternal ? (
               <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1" }}>
                 📁 Entrega en clase
@@ -272,8 +287,8 @@ export default async function CursoCalificacionesPage({
             });
             if (periodSubs.length === 0 && !additionalGradesMap.has(periodName)) return null;
 
-            const tareas   = periodSubs.filter(s => s.task.type === "TASK");
-            const examenes  = periodSubs.filter(s => s.task.type === "EXAM");
+            const tareas   = periodSubs.filter(s => s.task.type === "TASK" || s.task.type === "TASK_HACER" || s.task.type === "HACER");
+            const examenes = periodSubs.filter(s => s.task.type === "EXAM" || s.task.type === "TASK_SABER" || s.task.type === "SABER");
             const serSubs   = periodSubs.filter(s => s.task.type === "SER");
             const finalSubs = periodSubs.filter(s => s.task.type === "FINAL");
 

@@ -377,6 +377,7 @@ export default function NuevaTareaPage() {
               required
             >
               <option value="TASK">Tarea (Hacer)</option>
+              <option value="TASK_SABER">Tarea (Saber)</option>
               <option value="EXAM">Examen (Saber)</option>
             </select>
           </div>

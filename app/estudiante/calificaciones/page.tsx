@@ -171,8 +171,8 @@ export default async function CalificacionesEstudiantePage() {
     coursesMap.forEach(courseData => {
       const { course, subs } = courseData;
       
-      const saberSubs = subs.filter(s => s.task.type === "EXAM" && (s.status === "GRADED" || s.grade != null));
-      const hacerSubs = subs.filter(s => s.task.type === "TASK" && (s.status === "GRADED" || s.grade != null));
+      const saberSubs = subs.filter(s => (s.task.type === "EXAM" || s.task.type === "TASK_SABER" || s.task.type === "SABER") && (s.status === "GRADED" || s.grade != null));
+      const hacerSubs = subs.filter(s => (s.task.type === "TASK" || s.task.type === "TASK_HACER" || s.task.type === "HACER") && (s.status === "GRADED" || s.grade != null));
       const serSubs   = subs.filter(s => s.task.type === "SER" && (s.status === "GRADED" || s.grade != null));
       const finalSubs = subs.filter(s => s.task.type === "FINAL" && (s.status === "GRADED" || s.grade != null));
 
@@ -303,6 +303,21 @@ export default async function CalificacionesEstudiantePage() {
                               {/* Left: info */}
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem", flexWrap: "wrap" }}>
+                                  {sub.task.type === "TASK_SABER" && (
+                                    <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f3e8ff", color: "#6b21a8", border: "1px solid #d8b4fe" }}>
+                                      📖 Tarea (Saber)
+                                    </span>
+                                  )}
+                                  {sub.task.type === "EXAM" && (
+                                    <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f3e8ff", color: "#6b21a8", border: "1px solid #d8b4fe" }}>
+                                      📝 Examen (Saber)
+                                    </span>
+                                  )}
+                                  {sub.task.type === "TASK" && (
+                                    <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#ffedd5", color: "#9a3412", border: "1px solid #fed7aa" }}>
+                                      📋 Tarea (Hacer)
+                                    </span>
+                                  )}
                                   {sub.task.isExternal ? (
                                     <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1" }}>
                                       📁 Entrega en clase

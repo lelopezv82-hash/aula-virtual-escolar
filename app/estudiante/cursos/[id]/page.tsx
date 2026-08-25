@@ -108,7 +108,7 @@ export default async function CursoDescripcionPage({
       courseId: id,
       active: true,
       isExternal: false,
-      type: { in: ["TASK", "EXAM", "FINAL"] },
+      type: { in: ["TASK", "TASK_SABER", "SABER", "EXAM", "FINAL"] },
       OR: [{ period: null }, { period: { in: activePeriodNames } }],
       AND: [
         { OR: [{ publishAt: null }, { publishAt: { lte: now } }] },

@@ -132,7 +132,9 @@ export async function POST(
         if (id.startsWith('NEW_')) {
           const taskType =
             id.startsWith('NEW_EXAM_') ? 'EXAM' :
-            id.startsWith('NEW_SER_')  ? 'SER'  : 'TASK';
+            id.startsWith('NEW_TASK_SABER_') ? 'TASK_SABER' :
+            id.startsWith('NEW_SER_')  ? 'SER'  :
+            id.startsWith('NEW_FINAL_') ? 'FINAL' : 'TASK';
 
           // Strip label prefix if present (e.g. "SABER 2 - Algebra" → "Algebra")
           const titleMatch = raw.match(/^(?:SABER|HACER|SER|EXAMEN FINAL|ASISTENCIA)\s+\d+\s*-\s*(.+)$/i);
@@ -146,8 +148,8 @@ export async function POST(
             },
           });
 
-          const cat = taskType === 'EXAM' ? 'SABER' : taskType === 'TASK' ? 'HACER' : 'SER';
-          const n = countExisting(taskType) + (taskType === 'EXAM' ? ++addedExam : taskType === 'SER' ? ++addedSer : ++addedTask);
+          const cat = (taskType === 'EXAM' || taskType === 'TASK_SABER') ? 'SABER' : taskType === 'TASK' ? 'HACER' : taskType === 'FINAL' ? 'EXAMEN FINAL' : 'SER';
+          const n = countExisting(taskType) + (taskType === 'EXAM' || taskType === 'TASK_SABER' ? ++addedExam : taskType === 'SER' ? ++addedSer : ++addedTask);
           headerIds[ci]    = newTask.id;
           headerTitles[ci] = `${cat} ${n} - ${title}`;
         } else if (id && id.length > 10) {

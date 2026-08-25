@@ -350,7 +350,18 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
             </svg>
           </div>
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 uppercase leading-none">{task.title}</h1>
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 uppercase leading-none">{task.title}</h1>
+              {task.type === "TASK_SABER" || task.type === "SABER" ? (
+                <span className="px-2.5 py-0.5 rounded-full font-bold text-xs bg-purple-100 text-purple-800 border border-purple-200">
+                  Dimensión: El Saber (Cognitivo)
+                </span>
+              ) : (
+                <span className="px-2.5 py-0.5 rounded-full font-bold text-xs bg-orange-100 text-orange-800 border border-orange-200">
+                  Dimensión: El Hacer (Procedimental)
+                </span>
+              )}
+            </div>
             {task.dueDate && new Date(task.dueDate).getFullYear() < 9000 && (
               <p className="text-muted text-sm mt-1">Vence: {formatToColombiaString(task.dueDate)}</p>
             )}

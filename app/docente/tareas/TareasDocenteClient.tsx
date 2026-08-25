@@ -341,8 +341,12 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
             </button>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="px-2.5 py-0.5 rounded-full font-extrabold text-xs uppercase tracking-wider bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300">
-                  {gradingTask.type === "EXAM" ? "Examen — Saber" : "Tarea — Hacer"}
+                <span className={`px-2.5 py-0.5 rounded-full font-extrabold text-xs uppercase tracking-wider ${
+                  gradingTask.type === "EXAM" || gradingTask.type === "TASK_SABER"
+                    ? "bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300"
+                    : "bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300"
+                }`}>
+                  {gradingTask.type === "EXAM" ? "Examen — Saber" : gradingTask.type === "TASK_SABER" ? "Tarea — Saber" : "Tarea — Hacer"}
                 </span>
                 {groupGradeBadge && (
                   <span className="px-2.5 py-0.5 rounded-full font-bold text-xs bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 flex items-center gap-1">

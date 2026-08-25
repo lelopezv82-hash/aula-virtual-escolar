@@ -88,7 +88,7 @@ const CellInput = memo(function CellInput({
    Helpers
 ───────────────────────────────────────────────────────────────── */
 const CAT_LABEL: Record<string, string> = {
-  EXAM: "SABER", TASK: "HACER", SER: "SER", FINAL: "EXAMEN FINAL",
+  EXAM: "SABER", TASK_SABER: "SABER", TASK: "HACER", SER: "SER", FINAL: "EXAMEN FINAL",
 };
 
 function typeLabel(type: string) { return CAT_LABEL[type] ?? type; }
