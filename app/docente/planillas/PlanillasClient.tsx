@@ -1960,7 +1960,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       : "";
 
     return (
-      <div className="flex flex-col gap-6 animate-fade-in pb-52">
+      <div className="flex flex-col gap-4 animate-fade-in" style={{ height: 'calc(100vh - 60px - 4rem)', minHeight: '580px' }}>
         {/* Top Header & Navigation */}
         <div className="flex items-center justify-between flex-wrap gap-4 bg-white dark:bg-gray-900 p-5 rounded-2xl border shadow-sm" style={{ borderColor: "var(--border-color)" }}>
           <div className="flex items-center gap-4">
@@ -2179,6 +2179,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         </div>
 
         {/* Main Students List / Table */}
+        <div className="flex-1 min-h-0 overflow-y-auto rounded-2xl">
         <div className="card rounded-2xl border shadow-sm bg-white dark:bg-gray-900 overflow-hidden" style={{ borderColor: "var(--border-color)" }}>
           {loadingStudents ? (
             <div className="flex flex-col items-center justify-center py-24 gap-3">
@@ -2335,9 +2336,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             </div>
           )}
         </div>
+        </div>
 
-        {/* Sticky Bottom Bar for fast saving */}
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md px-6 py-3 rounded-2xl border shadow-xl flex items-center gap-6" style={{ borderColor: "var(--border-color)" }}>
+        {/* Bottom Bar */}
+        <div className="flex-shrink-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md px-5 py-3 rounded-2xl border shadow-lg flex items-center justify-between gap-4 mt-1" style={{ borderColor: "var(--border-color)" }}>
           <div className="flex items-center gap-3 text-xs font-bold text-muted">
             <span>Calificados: <strong className="text-emerald-600 text-sm">{gradedCount}</strong>/{totalCount}</span>
             <span>•</span>
