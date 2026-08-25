@@ -101,15 +101,56 @@ export default function DocenteDashboardClient({
     };
   }, [filteredGroups]);
 
-  // Group filtered items by Grade for clean layout
+  // Group filtered items by Grade -> Course -> Sorted Groups
   const groupsByGrade = useMemo(() => {
-    const map = new Map<string, CourseGroupItem[]>();
-    filteredGroups.forEach((cg) => {
-      const label = `Grado ${cg.gradeName}`;
-      if (!map.has(label)) map.set(label, []);
-      map.get(label)!.push(cg);
+    const gradeMap = new Map<string, Map<string, {
+      courseId: string;
+      courseName: string;
+      gradeId: string;
+      gradeName: string;
+      groups: CourseGroupItem[];
+      totalStudents: number;
+      totalTasks: number;
+      totalPending: number;
+    }>>();
+
+    // Sort naturally by grade, course, and group
+    const sorted = [...filteredGroups].sort((a, b) => {
+      const gCmp = a.gradeName.localeCompare(b.gradeName, undefined, { numeric: true, sensitivity: "base" });
+      if (gCmp !== 0) return gCmp;
+      const cCmp = a.courseName.localeCompare(b.courseName, undefined, { sensitivity: "base" });
+      if (cCmp !== 0) return cCmp;
+      return a.groupName.localeCompare(b.groupName, undefined, { numeric: true, sensitivity: "base" });
     });
-    return Array.from(map.entries());
+
+    sorted.forEach((cg) => {
+      const gradeLabel = `GRADO ${cg.gradeName.toUpperCase()}`;
+      if (!gradeMap.has(gradeLabel)) {
+        gradeMap.set(gradeLabel, new Map());
+      }
+      const courseMap = gradeMap.get(gradeLabel)!;
+      if (!courseMap.has(cg.courseId)) {
+        courseMap.set(cg.courseId, {
+          courseId: cg.courseId,
+          courseName: cg.courseName,
+          gradeId: cg.gradeId,
+          gradeName: cg.gradeName,
+          groups: [],
+          totalStudents: 0,
+          totalTasks: cg.tasksCount,
+          totalPending: 0,
+        });
+      }
+      const courseEntry = courseMap.get(cg.courseId)!;
+      courseEntry.groups.push(cg);
+      courseEntry.totalStudents += cg.studentsCount;
+      courseEntry.totalPending += cg.pendingCount;
+    });
+
+    return Array.from(gradeMap.entries()).map(([gradeLabel, courseMap]) => ({
+      gradeLabel,
+      courses: Array.from(courseMap.values())
+    }));
   }, [filteredGroups]);
 
   return (
@@ -123,120 +164,89 @@ export default function DocenteDashboardClient({
           </p>
         </div>
 
-        {/* Filters bar */}
-        <div className="flex flex-wrap items-center gap-3 bg-body p-2 rounded-lg border" style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)" }}>
-          <div className="flex items-center gap-1 text-xs font-semibold px-2" style={{ color: "var(--text-secondary)" }}>
-            <Filter size={14} />
-            <span>Filtrar:</span>
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Filter size={16} className="text-muted" />
+            <select
+              value={selectedGrade}
+              onChange={(e) => setSelectedGrade(e.target.value)}
+              className="px-3 py-1.5 rounded-lg border text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
+              style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: "var(--text-primary)" }}
+            >
+              <option value="ALL">Todos los Grados</option>
+              {uniqueGrades.map((g) => (
+                <option key={g.id} value={g.name}>
+                  Grado {g.name}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {/* Grade Filter Dropdown */}
-          <select
-            value={selectedGrade}
-            onChange={(e) => setSelectedGrade(e.target.value)}
-            className="text-xs p-2 rounded-md border font-medium bg-card"
-            style={{ background: "var(--bg-card)", borderColor: "var(--border-color)", color: "var(--text-primary)" }}
-          >
-            <option value="ALL">🎓 Todos los Grados</option>
-            {uniqueGrades.map((g) => (
-              <option key={g.id} value={g.name}>
-                Grado {g.name}
-              </option>
-            ))}
-          </select>
-
-          {/* Course Filter Dropdown */}
           <select
             value={selectedCourse}
             onChange={(e) => setSelectedCourse(e.target.value)}
-            className="text-xs p-2 rounded-md border font-medium bg-card"
-            style={{ background: "var(--bg-card)", borderColor: "var(--border-color)", color: "var(--text-primary)" }}
+            className="px-3 py-1.5 rounded-lg border text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
+            style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)", color: "var(--text-primary)" }}
           >
-            <option value="ALL">📚 Todos los Cursos</option>
+            <option value="ALL">Todas las Asignaturas</option>
             {uniqueCourses.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
               </option>
             ))}
           </select>
-
-          {(selectedGrade !== "ALL" || selectedCourse !== "ALL") && (
-            <button
-              onClick={() => {
-                setSelectedGrade("ALL");
-                setSelectedCourse("ALL");
-              }}
-              className="text-xs text-primary underline px-2 font-medium"
-              style={{ color: "var(--primary-color)" }}
-            >
-              Restablecer
-            </button>
-          )}
         </div>
       </div>
 
-      {/* 4 Cards Grid */}
-      <div className="stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "1.5rem" }}>
-        {/* Total Estudiantes Card */}
-        <div className="card stat-card" style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-          <div className="stat-icon" style={{ background: "rgba(37, 99, 235, 0.1)", color: "var(--primary-color)", padding: "0.75rem", borderRadius: "var(--radius-md)" }}>
-            <Users size={28} />
+      {/* KPI Cards Grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
+        <div className="stat-card">
+          <div className="stat-icon" style={{ background: "rgba(37, 99, 235, 0.1)", color: "var(--primary-color)" }}>
+            <Users size={24} />
           </div>
-          <div className="stat-info">
-            <h3 style={{ fontSize: "0.875rem", color: "var(--text-secondary)", margin: 0 }}>
-              Total Estudiantes
-            </h3>
-            <div className="value" style={{ fontSize: "1.75rem", fontWeight: "bold" }}>
-              {stats.studentsCount}
-            </div>
-            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
-              {selectedGrade !== "ALL" || selectedCourse !== "ALL" ? "En selección actual" : "En tus cursos y grados"}
-            </span>
+          <div>
+            <div className="stat-value">{stats.studentsCount}</div>
+            <div className="stat-label">Total Estudiantes</div>
           </div>
         </div>
 
-        {/* Cursos Activos Card */}
-        <div className="card stat-card" style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-          <div className="stat-icon" style={{ background: "rgba(16, 185, 129, 0.1)", color: "var(--success)", padding: "0.75rem", borderRadius: "var(--radius-md)" }}>
-            <BookOpen size={28} />
+        <div className="stat-card">
+          <div className="stat-icon" style={{ background: "rgba(16, 185, 129, 0.1)", color: "var(--success)" }}>
+            <BookOpen size={24} />
           </div>
-          <div className="stat-info">
-            <h3 style={{ fontSize: "0.875rem", color: "var(--text-secondary)", margin: 0 }}>Cursos Activos</h3>
-            <div className="value" style={{ fontSize: "1.75rem", fontWeight: "bold" }}>{stats.coursesCount}</div>
-            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Asignaturas registradas</span>
+          <div>
+            <div className="stat-value">{stats.coursesCount}</div>
+            <div className="stat-label">Asignaturas Activas</div>
           </div>
         </div>
 
-        {/* Tareas Asignadas Card */}
-        <div className="card stat-card" style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-          <div className="stat-icon" style={{ background: "rgba(245, 158, 11, 0.1)", color: "var(--warning)", padding: "0.75rem", borderRadius: "var(--radius-md)" }}>
-            <ClipboardList size={28} />
+        <div className="stat-card">
+          <div className="stat-icon" style={{ background: "rgba(245, 158, 11, 0.1)", color: "var(--warning)" }}>
+            <ClipboardList size={24} />
           </div>
-          <div className="stat-info">
-            <h3 style={{ fontSize: "0.875rem", color: "var(--text-secondary)", margin: 0 }}>Tareas Asignadas</h3>
-            <div className="value" style={{ fontSize: "1.75rem", fontWeight: "bold" }}>{stats.tasksCount}</div>
-            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Publicadas y activas</span>
+          <div>
+            <div className="stat-value">{stats.tasksCount}</div>
+            <div className="stat-label">Tareas Asignadas</div>
           </div>
         </div>
 
-        {/* Entregas por Calificar Card */}
-        <div className="card stat-card" style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-          <div className="stat-icon" style={{ background: "rgba(239, 68, 68, 0.1)", color: "var(--danger)", padding: "0.75rem", borderRadius: "var(--radius-md)" }}>
-            <TrendingUp size={28} />
+        <div className="stat-card">
+          <div className="stat-icon" style={{ background: "rgba(239, 68, 68, 0.1)", color: "var(--danger)" }}>
+            <Clock size={24} />
           </div>
-          <div className="stat-info">
-            <h3 style={{ fontSize: "0.875rem", color: "var(--text-secondary)", margin: 0 }}>Entregas por Calificar</h3>
-            <div className="value" style={{ fontSize: "1.75rem", fontWeight: "bold" }}>{stats.pendingReviewsCount}</div>
-            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Pendientes de revisión</span>
+          <div>
+            <div className="stat-value">{stats.pendingReviewsCount}</div>
+            <div className="stat-label">Entregas por Calificar</div>
           </div>
         </div>
       </div>
 
-      {/* Main Section: Breakdown by Grade and Course */}
-      <div className="card flex flex-col gap-4">
-        <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: "var(--border-color)" }}>
+      {/* Course Groups Breakdown by Grade */}
+      <div className="card flex flex-col gap-6" style={{ background: "var(--bg-card)", borderColor: "var(--border-color)" }}>
+        <div className="flex items-center justify-between border-b pb-4" style={{ borderColor: "var(--border-color)" }}>
           <div className="flex items-center gap-2">
-            <GraduationCap className="text-primary" size={22} style={{ color: "var(--primary-color)" }} />
+            <GraduationCap size={20} className="text-primary" style={{ color: "var(--primary-color)" }} />
             <h2 className="text-lg font-bold">Resumen por Grado y Asignatura</h2>
           </div>
           <Link href="/docente/cursos" className="text-xs font-semibold text-primary flex items-center gap-1 hover:underline" style={{ color: "var(--primary-color)" }}>
@@ -264,69 +274,106 @@ export default function DocenteDashboardClient({
             )}
           </div>
         ) : (
-          <div className="flex flex-col gap-6">
-            {groupsByGrade.map(([gradeTitle, items]) => (
-              <div key={gradeTitle} className="flex flex-col gap-3">
-                <div className="flex items-center gap-2 text-sm font-bold border-b pb-1.5" style={{ color: "var(--text-primary)", borderColor: "var(--border-color)" }}>
-                  <span className="badge badge-primary" style={{ background: "rgba(37, 99, 235, 0.15)", color: "var(--primary-color)", padding: "0.25rem 0.6rem" }}>
-                    {gradeTitle}
+          <div className="flex flex-col gap-8">
+            {groupsByGrade.map(({ gradeLabel, courses }) => (
+              <div key={gradeLabel} className="flex flex-col gap-4">
+                <div className="flex items-center gap-2 text-sm font-bold border-b pb-2" style={{ color: "var(--text-primary)", borderColor: "var(--border-color)" }}>
+                  <span className="badge badge-primary" style={{ background: "rgba(37, 99, 235, 0.15)", color: "var(--primary-color)", padding: "0.3rem 0.75rem", fontSize: "0.8rem", fontWeight: "700" }}>
+                    {gradeLabel}
                   </span>
-                  <span className="text-xs text-muted">({items.length} {items.length === 1 ? "curso/grupo" : "cursos/grupos"})</span>
+                  <span className="text-xs text-muted">
+                    ({courses.length} {courses.length === 1 ? "asignatura" : "asignaturas"} · {courses.reduce((acc, c) => acc + c.groups.length, 0)} grupos)
+                  </span>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1rem" }}>
-                  {items.map((cg) => (
+                <div className="flex flex-col gap-4">
+                  {courses.map((course) => (
                     <div
-                      key={`${cg.courseId}-${cg.groupId}`}
-                      className="p-4 rounded-xl border flex flex-col justify-between gap-3 transition-all hover:shadow-md"
+                      key={course.courseId}
+                      className="p-5 rounded-2xl border flex flex-col gap-4 shadow-sm"
                       style={{ background: "var(--bg-primary)", borderColor: "var(--border-color)" }}
                     >
-                      <div>
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <h3 className="font-bold text-base truncate" title={cg.courseName}>
-                            {cg.courseName}
-                          </h3>
-                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "rgba(16, 185, 129, 0.1)", color: "var(--success)" }}>
-                            Grupo {cg.groupName}
+                      {/* Course Header Bar */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3" style={{ borderColor: "var(--border-color)" }}>
+                        <div className="flex items-center gap-3">
+                          <div className="p-2.5 rounded-xl text-primary flex items-center justify-center" style={{ background: "rgba(249, 115, 22, 0.1)", color: "var(--primary-color)" }}>
+                            <BookOpen size={20} />
+                          </div>
+                          <div>
+                            <h3 className="font-extrabold text-base text-slate-800 dark:text-slate-100">
+                              {course.courseName}
+                            </h3>
+                            <p className="text-xs text-muted">
+                              Grado {course.gradeName} · {course.groups.length} {course.groups.length === 1 ? "grupo asignado" : "grupos asignados"}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Overall stats pill */}
+                        <div className="flex items-center gap-2 text-xs flex-wrap">
+                          <span className="px-3 py-1 rounded-lg border font-semibold text-slate-700 dark:text-slate-300" style={{ background: "var(--bg-card)", borderColor: "var(--border-color)" }}>
+                            👥 <strong>{course.totalStudents}</strong> estudiantes
                           </span>
-                        </div>
-                        <p className="text-xs text-muted">Grado {cg.gradeName}</p>
-                      </div>
-
-                      {/* Mini stats row */}
-                      <div className="grid grid-cols-3 gap-2 p-2.5 rounded-lg border text-center" style={{ background: "var(--bg-card)", borderColor: "var(--border-color)" }}>
-                        <div>
-                          <div className="text-xs text-muted font-medium">Estudiantes</div>
-                          <div className="font-bold text-sm text-primary" style={{ color: "var(--primary-color)" }}>
-                            {cg.studentsCount}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-muted font-medium">Tareas</div>
-                          <div className="font-bold text-sm">{cg.tasksCount}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-muted font-medium">Por Calificar</div>
-                          <div className="font-bold text-sm" style={{ color: cg.pendingCount > 0 ? "var(--warning)" : "var(--text-secondary)" }}>
-                            {cg.pendingCount}
-                          </div>
+                          <span className="px-3 py-1 rounded-lg border font-semibold text-slate-700 dark:text-slate-300" style={{ background: "var(--bg-card)", borderColor: "var(--border-color)" }}>
+                            📝 <strong>{course.totalTasks}</strong> tareas
+                          </span>
+                          {course.totalPending > 0 ? (
+                            <span className="px-3 py-1 rounded-lg font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                              ⏳ <strong>{course.totalPending}</strong> por calificar
+                            </span>
+                          ) : (
+                            <span className="px-3 py-1 rounded-lg font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/40">
+                              ✓ Al día
+                            </span>
+                          )}
                         </div>
                       </div>
 
-                      {/* Action buttons */}
-                      <div className="flex items-center gap-2 pt-1">
-                        <Link
-                          href={`/docente/grados?manageGroupId=${cg.groupId}`}
-                          className="btn btn-secondary text-[11px] flex-1 justify-center py-1.5"
-                        >
-                          👥 Ver Estudiantes ({cg.studentsCount})
-                        </Link>
-                        <Link
-                          href={`/docente/planillas?courseId=${cg.courseId}&groupId=${cg.groupId}`}
-                          className="btn btn-primary text-[11px] flex-1 justify-center py-1.5"
-                        >
-                          📊 Calificaciones
-                        </Link>
+                      {/* Groups Grid */}
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "0.85rem" }}>
+                        {course.groups.map((cg) => (
+                          <div
+                            key={cg.groupId}
+                            className="p-3.5 rounded-xl border flex flex-col justify-between gap-3 hover:shadow-md transition-all"
+                            style={{ background: "var(--bg-card)", borderColor: "var(--border-color)" }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-sm text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full" style={{ background: cg.pendingCount > 0 ? "var(--warning)" : "var(--success)" }}></span>
+                                Grupo {cg.groupName}
+                              </span>
+                              <span className="text-xs text-muted font-medium">
+                                {cg.studentsCount} est.
+                              </span>
+                            </div>
+
+                            <div className="flex items-center justify-between text-xs text-muted border-t pt-2" style={{ borderColor: "var(--border-color)" }}>
+                              <span>
+                                {cg.pendingCount > 0 ? (
+                                  <strong className="text-amber-600 dark:text-amber-400">⏳ {cg.pendingCount} por calificar</strong>
+                                ) : (
+                                  <span className="text-emerald-600 dark:text-emerald-400">✓ Calificado</span>
+                                )}
+                              </span>
+                              <span>{cg.tasksCount} tareas</span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 pt-1">
+                              <Link
+                                href={`/docente/grados?manageGroupId=${cg.groupId}`}
+                                className="btn btn-secondary text-[11px] font-semibold py-1.5 px-2 justify-center"
+                              >
+                                👥 Estudiantes
+                              </Link>
+                              <Link
+                                href={`/docente/planillas?courseId=${cg.courseId}&groupId=${cg.groupId}`}
+                                className="btn btn-primary text-[11px] font-bold py-1.5 px-2 justify-center !text-white hover:!text-white"
+                              >
+                                📊 Planilla
+                              </Link>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   ))}
