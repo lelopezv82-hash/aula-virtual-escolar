@@ -317,6 +317,14 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
       return true;
     });
 
+    const taskCourse = courses.find(c => c.tasks.some(t => t.id === gradingTask.id));
+    const activeGroupObj = gradingAvailableGroups.find(g => g.id === gradingActiveGroupId);
+    const groupGradeBadge = activeGroupObj?.gradeName && activeGroupObj?.name
+      ? `Grado ${activeGroupObj.gradeName} — Grupo ${activeGroupObj.name}`
+      : activeGroupObj?.name
+      ? `Grupo ${activeGroupObj.name}`
+      : "";
+
     return (
       <div className="flex flex-col gap-6 animate-fade-in pb-24">
         {/* Top Header & Navigation */}
@@ -336,11 +344,14 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                 <span className="px-2.5 py-0.5 rounded-full font-extrabold text-xs uppercase tracking-wider bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300">
                   {gradingTask.type === "EXAM" ? "Examen — Saber" : "Tarea — Hacer"}
                 </span>
-                {gradingTask.period && (
-                  <span className="text-xs text-muted font-medium">
-                    {gradingTask.period}
+                {groupGradeBadge && (
+                  <span className="px-2.5 py-0.5 rounded-full font-bold text-xs bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 flex items-center gap-1">
+                    🎓 {groupGradeBadge}
                   </span>
                 )}
+                <span className="text-xs text-muted font-semibold">
+                  {taskCourse?.name ? `${taskCourse.name} • ` : ""}{gradingTask.period}
+                </span>
               </div>
               <h1 className="text-2xl font-black text-gray-900 dark:text-gray-100 mt-1 flex items-center gap-2">
                 <Pencil size={22} className="text-[#f98012]" />

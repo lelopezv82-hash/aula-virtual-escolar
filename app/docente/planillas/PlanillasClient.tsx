@@ -1949,6 +1949,15 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     });
 
     const catInfo = CATEGORIES.find(c => c.type === gradingTask.type) ?? CATEGORIES[1];
+    const selectedGroupObj = groups.find(g => g.id === selectedGroupId);
+    const activeGroupObj = gradingAvailableGroups.find(g => g.id === gradingActiveGroupId) || selectedGroupObj;
+    const activeGradeName = (activeGroupObj as any)?.gradeName || (activeGroupObj as any)?.grade?.name || selectedGroupObj?.grade?.name || students[0]?.group?.grade?.name || "";
+    const activeGroupName = activeGroupObj?.name || selectedGroupObj?.name || students[0]?.group?.name || "";
+    const groupGradeBadge = activeGradeName && activeGroupName 
+      ? `Grado ${activeGradeName} — Grupo ${activeGroupName}`
+      : activeGroupName 
+      ? `Grupo ${activeGroupName}`
+      : "";
 
     return (
       <div className="flex flex-col gap-6 animate-fade-in pb-24">
@@ -1969,7 +1978,12 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 <span className={`px-2.5 py-0.5 rounded-full font-extrabold text-xs uppercase tracking-wider ${catInfo.color.badge}`}>
                   {catInfo.label} {catInfo.sublabel ? `— ${catInfo.sublabel}` : ""}
                 </span>
-                <span className="text-xs text-muted font-medium">
+                {groupGradeBadge && (
+                  <span className="px-2.5 py-0.5 rounded-full font-bold text-xs bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 flex items-center gap-1">
+                    🎓 {groupGradeBadge}
+                  </span>
+                )}
+                <span className="text-xs text-muted font-semibold">
                   {selectedCourse?.name ? `${selectedCourse.name} • ` : ""}{selectedPeriod}
                 </span>
               </div>
