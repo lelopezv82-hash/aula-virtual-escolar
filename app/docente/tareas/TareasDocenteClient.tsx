@@ -436,12 +436,6 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
 
           <div className="flex items-center gap-3">
             <button
-              onClick={closeGrading}
-              className="btn btn-secondary text-sm font-semibold"
-            >
-              Volver a Tareas
-            </button>
-            <button
               onClick={saveManualGrades}
               disabled={savingGrades || loadingStudents || selectedStudentIds.length === 0}
               className={`btn ${gradingSaved ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "btn-primary"} px-5 py-2.5 font-bold shadow-md flex items-center gap-2`}
@@ -479,48 +473,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
           </div>
         )}
 
-        {/* KPI / Stats Overview Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="card p-4 rounded-xl border bg-white dark:bg-gray-900 flex items-center gap-3 shadow-sm" style={{ borderColor: "var(--border-color)" }}>
-            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-              <Users size={20} />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-muted uppercase">Total Estudiantes</p>
-              <p className="text-xl font-black">{totalCount}</p>
-            </div>
-          </div>
 
-          <div className="card p-4 rounded-xl border bg-white dark:bg-gray-900 flex items-center gap-3 shadow-sm" style={{ borderColor: "var(--border-color)" }}>
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-              <CheckCircle size={20} />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-muted uppercase">Calificados</p>
-              <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{gradedCount} / {totalCount}</p>
-            </div>
-          </div>
-
-          <div className="card p-4 rounded-xl border bg-white dark:bg-gray-900 flex items-center gap-3 shadow-sm" style={{ borderColor: "var(--border-color)" }}>
-            <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-              <Clock size={20} />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-muted uppercase">Pendientes</p>
-              <p className="text-xl font-black text-amber-600 dark:text-amber-400">{pendingCount}</p>
-            </div>
-          </div>
-
-          <div className="card p-4 rounded-xl border bg-white dark:bg-gray-900 flex items-center gap-3 shadow-sm" style={{ borderColor: "var(--border-color)" }}>
-            <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
-              <Sparkles size={20} />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-muted uppercase">Promedio Actual</p>
-              <p className="text-xl font-black text-purple-600 dark:text-purple-400">{averageGrade ?? "—"}</p>
-            </div>
-          </div>
-        </div>
 
         {/* Toolbar & Filters Card */}
         <div className="card p-4 rounded-xl border bg-white dark:bg-gray-900 flex flex-wrap items-center justify-between gap-4 shadow-sm" style={{ borderColor: "var(--border-color)" }}>
