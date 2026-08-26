@@ -62,6 +62,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
   // Modal State
   const [showAddModal, setShowAddModal] = useState(false);
   const [addingType, setAddingType] = useState<"EXAM" | "TASK" | "SER" | "FINAL" | "ATTEND">("EXAM");
+  const [addingSaberSubtype, setAddingSaberSubtype] = useState<"TASK_SABER" | "EXAM">("TASK_SABER");
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [addingTask, setAddingTask] = useState(false);
 
@@ -895,6 +896,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
 
   const openAddModal = (type: "EXAM" | "TASK" | "SER" | "FINAL" | "ATTEND") => {
     setAddingType(type);
+    setAddingSaberSubtype("TASK_SABER");
     setNewTaskTitle("");
     setShowAddModal(true);
   };
@@ -903,10 +905,11 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
     if (!newTaskTitle.trim()) return;
     setAddingTask(true);
     try {
+      const effectiveType = addingType === "EXAM" ? addingSaberSubtype : addingType;
       const res = await fetch(`/api/docente/cursos/${courseId}/grades/spreadsheet/columns`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: newTaskTitle, type: addingType, period: activePeriod })
+        body: JSON.stringify({ title: newTaskTitle, type: effectiveType, period: activePeriod })
       });
       if (res.ok) {
         setShowAddModal(false);
@@ -1127,11 +1130,50 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
                 <X size={20} />
               </button>
             </div>
+
+            {addingType === "EXAM" && (
+              <div className="mb-4">
+                <label className="block text-xs font-bold text-purple-900 dark:text-purple-300 mb-1.5">
+                  Modalidad en El Saber (Cognitivo) *
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAddingSaberSubtype("TASK_SABER")}
+                    className={`p-2.5 rounded-xl border text-left flex flex-col gap-0.5 transition-all ${
+                      addingSaberSubtype === "TASK_SABER"
+                        ? "border-purple-500 bg-purple-50 dark:bg-purple-950/40 text-purple-900 dark:text-purple-200 ring-2 ring-purple-400/50"
+                        : "border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300"
+                    }`}
+                  >
+                    <span className="font-bold text-xs">📖 Tarea (Saber)</span>
+                    <span className="text-[10px] text-muted">Talleres / Trabajos</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAddingSaberSubtype("EXAM")}
+                    className={`p-2.5 rounded-xl border text-left flex flex-col gap-0.5 transition-all ${
+                      addingSaberSubtype === "EXAM"
+                        ? "border-purple-500 bg-purple-50 dark:bg-purple-950/40 text-purple-900 dark:text-purple-200 ring-2 ring-purple-400/50"
+                        : "border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300"
+                    }`}
+                  >
+                    <span className="font-bold text-xs">📝 Examen (Saber)</span>
+                    <span className="text-[10px] text-muted">Evaluación / Quiz</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="mb-6">
-              <label className="block text-sm font-semibold mb-2">Título de la Evaluación</label>
+              <label className="block text-sm font-semibold mb-2">
+                {addingType === "EXAM" 
+                  ? (addingSaberSubtype === "EXAM" ? "Título del Examen" : "Título de la Tarea (Saber)")
+                  : "Título de la Evaluación"}
+              </label>
               <input
                 type="text"
-                placeholder={addingType === "SER" ? "Ej. Autoevaluación" : "Ej. Evaluación Final"}
+                placeholder={addingType === "SER" ? "Ej. Autoevaluación" : addingType === "EXAM" ? (addingSaberSubtype === "EXAM" ? "Ej. Examen de Cinética" : "Ej. Taller de Comprensión") : "Ej. Taller Práctico"}
                 value={newTaskTitle}
                 onChange={(e) => setNewTaskTitle(e.target.value)}
                 className="input"

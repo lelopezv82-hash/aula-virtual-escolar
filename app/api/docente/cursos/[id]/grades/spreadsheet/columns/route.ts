@@ -37,6 +37,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       duration,
       weight,
       groupIds,
+      studentIds,
       theme,
       publishAt,
       allowLateSubmission
@@ -86,7 +87,10 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         duration: duration ? parseInt(duration) || null : null,
         groups: {
           connect: targetGroups
-        }
+        },
+        assignedStudents: studentIds && Array.isArray(studentIds) && studentIds.length > 0
+          ? { connect: studentIds.map((id: string) => ({ id })) }
+          : undefined
       }
     });
 

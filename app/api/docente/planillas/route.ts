@@ -75,7 +75,10 @@ export async function GET(req: Request) {
       where: {
         courseId: courseId,
         period: period,
-        groups: { some: { id: groupId } }
+        OR: [
+          { groups: { some: { id: groupId } } },
+          { assignedStudents: { some: { id: { in: studentIds } } } }
+        ]
       },
       select: {
         id: true,

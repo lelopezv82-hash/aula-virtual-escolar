@@ -1,7 +1,7 @@
 const https = require('https');
 
 const RENDER_API_KEY = 'rnd_4OnCVuMVqth46XeVlb7kGVW9Aez9';
-const SERVICE_ID = 'srv-d8avvkegvqtc73a4bqa0';
+const SERVICE_ID = 'srv-d9t9096417fc73dqs84g';
 
 const data = JSON.stringify({
   clearCache: 'do_not_clear'

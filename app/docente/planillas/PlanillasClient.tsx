@@ -154,6 +154,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
   // ── Add column modal ──
   const [addModal,    setAddModal]    = useState<{ type: CatType } | null>(null);
+  const [selectedSaberSubtype, setSelectedSaberSubtype] = useState<"TASK_SABER" | "EXAM">("TASK_SABER");
+  const [allCourseStudents, setAllCourseStudents] = useState<{ id: string; name: string; groupName?: string; grade?: string }[]>([]);
+  const [newTaskStudentIds, setNewTaskStudentIds] = useState<string[]>([]);
+  const [studentSearch, setStudentSearch] = useState("");
   const [newTaskName, setNewTaskName] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
   const [newTaskDueDate, setNewTaskDueDate] = useState("");
@@ -564,13 +568,16 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   // ── Add column ──
   const openAddModal = (type: CatType) => {
     setAddModal({ type });
+    setSelectedSaberSubtype("TASK_SABER");
     setNewTaskName("");
     setNewTaskDescription("");
     setNewTaskDueDate(getDefaultDueDate());
-    setNewTaskIsExternal(type === "EXAM" || type === "TASK" ? false : true);
+    setNewTaskIsExternal(type === "SER" ? true : false);
     setNewTaskDuration("");
     setNewTaskWeight("0");
     setNewTaskGroupIds(selectedGroupId ? [selectedGroupId] : []);
+    setNewTaskStudentIds([]);
+    setStudentSearch("");
     setNewTaskSelectedThemes([]);
     setNewTaskPublishAt("");
     setNewTaskAllowLateSubmission(false);
@@ -582,7 +589,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     setShowReusePicker(false);
     setSelectedReuseTaskId("");
     fetchReusableTasks(type);
-    // Fetch resources and themes for the selected course
+    // Fetch resources, themes, and students for the selected course
     if (selectedCourseId) {
       setLoadingResources(true);
       fetch(`/api/docente/recursos?courseId=${selectedCourseId}`)
@@ -594,6 +601,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         .then(r => r.json())
         .then(d => { if (d.themes) setPlanillasThemes(d.themes); })
         .catch(() => {});
+      fetch("/api/docente/estudiantes")
+        .then(r => r.json())
+        .then(d => { if (d.students) setAllCourseStudents(d.students); })
+        .catch(() => {});
     }
   };
 
@@ -601,7 +612,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     if (!addModal) return new FormData();
     const fd = new FormData();
     fd.append("title", newTaskName.trim());
-    fd.append("type", addModal.type);
+    const effectiveType = addModal.type === "EXAM" ? selectedSaberSubtype : addModal.type;
+    fd.append("type", effectiveType);
     fd.append("period", selectedPeriod);
     fd.append("description", newTaskDescription.trim());
     fd.append("dueDate", newTaskDueDate);
@@ -617,6 +629,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     if (newTaskDuration) fd.append("duration", newTaskDuration);
     fd.append("weight", newTaskWeight);
     fd.append("groupIds", JSON.stringify(newTaskGroupIds));
+    fd.append("studentIds", JSON.stringify(newTaskStudentIds));
     
     if (addModal.type !== "SER") {
       if (newTaskPublishAt) fd.append("publishAt", newTaskPublishAt);
@@ -640,7 +653,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     try {
       const res = await fetch("/api/docente/tareas", { method: "POST", body: buildFormData() });
       if (res.ok) { setAddModal(null); fetchData(); }
-      else { const d = await res.json(); alert(d.error ?? (addModal.type === "EXAM" ? "Error al crear el examen." : addModal.type === "TASK" ? "Error al crear la tarea." : "Error al crear la evaluación.")); }
+      else { const d = await res.json(); alert(d.error ?? (addModal.type === "EXAM" ? "Error al crear la actividad del Saber." : addModal.type === "TASK" ? "Error al crear la tarea." : "Error al crear la evaluación.")); }
     } catch { alert("Error de conexión."); }
     setAddingTask(false);
   };
@@ -660,7 +673,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         const pad = (n: number) => String(n).padStart(2, "0");
         return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
       };
-      setAddModal({ type: task.type as CatType });
+      const taskType = t.type || "TASK";
+      const catType = (taskType === "TASK_SABER" || taskType === "SABER" ? "EXAM" : taskType) as CatType;
+      setAddModal({ type: catType });
+      setSelectedSaberSubtype(taskType === "EXAM" ? "EXAM" : "TASK_SABER");
       setEditTaskId(task.id);
       setNewTaskName(t.title || "");
       setNewTaskDescription(t.description || "");
@@ -669,6 +685,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       setNewTaskDuration(t.duration ? String(t.duration) : "");
       setNewTaskWeight(t.weight != null ? String(t.weight) : "0");
       setNewTaskGroupIds((t.groups || []).map((g: any) => g.id));
+      setNewTaskStudentIds((t.assignedStudents || []).map((s: any) => s.id));
+      setStudentSearch("");
       setNewTaskSelectedThemes(
         t.themes && t.themes.length > 0
           ? t.themes.map((th: any) => th.title)
@@ -692,6 +710,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         fetch(`/api/docente/temas?courseId=${selectedCourseId}`)
           .then(r => r.json())
           .then(d => { if (d.themes) setPlanillasThemes(d.themes); })
+          .catch(() => {});
+        fetch("/api/docente/estudiantes")
+          .then(r => r.json())
+          .then(d => { if (d.students) setAllCourseStudents(d.students); })
           .catch(() => {});
       }
     } catch { alert("Error de conexión."); }
@@ -3018,15 +3040,59 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 </div>
               </div>
 
+              {/* Subtipo de Dimensión Saber (Tarea vs Examen) */}
+              {addModal.type === "EXAM" && (
+                <div className="input-group">
+                  <label className="block text-xs font-bold text-purple-900 dark:text-purple-300 mb-1.5">
+                    Modalidad en El Saber (Cognitivo) *
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSaberSubtype("TASK_SABER")}
+                      className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition-all ${
+                        selectedSaberSubtype === "TASK_SABER"
+                          ? "border-purple-500 bg-purple-50/90 dark:bg-purple-950/40 text-purple-900 dark:text-purple-200 ring-2 ring-purple-400/50 shadow-sm"
+                          : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/40 text-gray-700 dark:text-gray-300"
+                      }`}
+                    >
+                      <span className="font-extrabold text-xs flex items-center gap-1.5 text-purple-700 dark:text-purple-300">
+                        📖 Tarea / Taller (Saber)
+                      </span>
+                      <span className="text-[11px] text-muted leading-tight">
+                        Entrega de guías, talleres escritos, consultas o calificación manual.
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSaberSubtype("EXAM")}
+                      className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition-all ${
+                        selectedSaberSubtype === "EXAM"
+                          ? "border-purple-500 bg-purple-50/90 dark:bg-purple-950/40 text-purple-900 dark:text-purple-200 ring-2 ring-purple-400/50 shadow-sm"
+                          : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/40 text-gray-700 dark:text-gray-300"
+                      }`}
+                    >
+                      <span className="font-extrabold text-xs flex items-center gap-1.5 text-purple-700 dark:text-purple-300">
+                        📝 Examen en Línea (Saber)
+                      </span>
+                      <span className="text-[11px] text-muted leading-tight">
+                        Cuestionario interactivo con preguntas y tiempo límite en plataforma.
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Row 2: Título */}
               <div className="input-group">
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
                   {addModal.type === "SER"
                     ? "Nombre de la Evaluación Actitudinal *"
                     : addModal.type === "EXAM"
-                    ? "Título del Examen *"
+                    ? (selectedSaberSubtype === "EXAM" ? "Título del Examen (Saber) *" : "Título de la Tarea (Saber) *")
                     : addModal.type === "TASK"
-                    ? "Título de la Tarea *"
+                    ? "Título de la Tarea (Hacer) *"
                     : addModal.type === "FINAL"
                     ? "Título del Examen Final *"
                     : "Título de la Evaluación *"}
@@ -3038,11 +3104,11 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     addModal.type === "SER"
                       ? "Ej. Coevaluación, Autoevaluación"
                       : addModal.type === "EXAM"
-                      ? "Ej. Taller de cinemática"
+                      ? (selectedSaberSubtype === "EXAM" ? "Ej. Examen de Cinética Química" : "Ej. Taller de Comprensión, Guía de Consulta...")
                       : addModal.type === "TASK"
-                      ? "Ej. Taller de Comprensión"
+                      ? "Ej. Taller Práctico, Maqueta, Ejercicios"
                       : addModal.type === "FINAL"
-                      ? "Ej. Examen Final"
+                      ? "Ej. Examen Final del Periodo"
                       : "Ej. Asistencia Semana 1"
                   }
                   value={newTaskName}
@@ -3053,7 +3119,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               </div>
 
               {/* Row 3: Porcentaje & Fecha */}
-              <div className={(addModal?.type === "EXAM" || addModal?.type === "FINAL") ? "grid grid-cols-3 gap-4" : "grid grid-cols-2 gap-4"}>
+              <div className={(addModal?.type === "FINAL" || (addModal?.type === "EXAM" && selectedSaberSubtype === "EXAM")) ? "grid grid-cols-3 gap-4" : "grid grid-cols-2 gap-4"}>
                 <div className="input-group">
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
                     Porcentaje de la Nota (0-100) *
@@ -3080,7 +3146,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     required={addModal.type === "SER" ? false : !newTaskIsExternal}
                   />
                 </div>
-                {(addModal?.type === "EXAM" || addModal?.type === "FINAL") && (
+                {(addModal?.type === "FINAL" || (addModal?.type === "EXAM" && selectedSaberSubtype === "EXAM")) && (
                   <div className="input-group">
                     <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
                       Límite de Tiempo (minutos, opcional)
@@ -3206,10 +3272,68 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 </div>
               )}
 
+              {/* Asignación a Estudiantes Específicos (Opcional) */}
+              <div className="input-group">
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                    <span>Asignar a Estudiantes Específicos</span>
+                    <span className="text-[10px] font-normal text-muted">(Opcional: asignación individual)</span>
+                  </label>
+                  {newTaskStudentIds.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setNewTaskStudentIds([])}
+                      className="text-[11px] font-bold text-red-500 hover:underline"
+                    >
+                      Limpiar ({newTaskStudentIds.length} seleccionados)
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  className="input-field mb-2 text-xs py-1.5 px-3 border rounded-lg w-full"
+                  placeholder="Buscar estudiante por nombre o grupo..."
+                  value={studentSearch}
+                  onChange={(e) => setStudentSearch(e.target.value)}
+                />
+                <div className="border rounded-lg p-2.5 max-h-[140px] overflow-y-auto flex flex-col gap-1.5 bg-slate-50 dark:bg-slate-900 border-gray-200 dark:border-gray-800">
+                  {allCourseStudents
+                    .filter(s => !studentSearch || s.name.toLowerCase().includes(studentSearch.toLowerCase()) || (s.groupName && s.groupName.toLowerCase().includes(studentSearch.toLowerCase())))
+                    .map(s => {
+                      const isChecked = newTaskStudentIds.includes(s.id);
+                      return (
+                        <label key={s.id} className="flex items-center justify-between gap-2 text-xs cursor-pointer hover:text-primary py-0.5 select-none">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                setNewTaskStudentIds(prev =>
+                                  isChecked ? prev.filter(id => id !== s.id) : [...prev, s.id]
+                                );
+                              }}
+                              className="rounded text-[#f97316] focus:ring-[#f97316] w-3.5 h-3.5"
+                            />
+                            <span className="font-semibold text-gray-800 dark:text-gray-200">{s.name}</span>
+                          </div>
+                          {s.groupName && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-medium">
+                              {s.groupName}
+                            </span>
+                          )}
+                        </label>
+                      );
+                    })}
+                  {allCourseStudents.length === 0 && (
+                    <p className="text-[11px] text-muted text-center py-2">No hay estudiantes cargados.</p>
+                  )}
+                </div>
+              </div>
+
               {/* Description */}
               <div className="input-group">
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                  {addModal.type === "EXAM" ? "Descripción del Examen" : addModal.type === "SER" ? "Descripción (Opcional)" : "Descripción de la Tarea"}
+                  {addModal.type === "SER" ? "Descripción (Opcional)" : (addModal.type === "EXAM" && selectedSaberSubtype === "EXAM") ? "Descripción del Examen" : "Descripción / Instrucciones de la Tarea"}
                 </label>
                 <textarea
                   placeholder={addModal.type === "SER" ? "Ej. Criterios de evaluación actitudinal..." : "Escribe las instrucciones aquí..."}
@@ -3221,7 +3345,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               </div>
 
               {/* Task Additions: Enlace Externo & Archivo Adjunto */}
-              {addModal.type !== "EXAM" && addModal.type !== "SER" && (
+              {(addModal.type === "TASK" || (addModal.type === "EXAM" && selectedSaberSubtype === "TASK_SABER")) && (
                 <>
                   {/* Enlace Externo */}
                   <div className="input-group">
@@ -3240,7 +3364,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                   {/* Archivo Adjunto */}
                   <div className="input-group">
                     <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                      Archivo Adjunto (Opcional)
+                      Archivo Adjunto / Guía de Apoyo (Opcional)
                     </label>
                     {existingAttachmentUrl && !newTaskFile && (
                       <div className="flex items-center justify-between p-2.5 mb-2 rounded-lg bg-orange-50/50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 text-xs">
@@ -3298,7 +3422,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 ) : (
                   <>
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                    <span>{editTaskId ? "Guardar Cambios" : (addModal.type === "EXAM" ? "Crear Examen" : addModal.type === "TASK" ? "Crear Tarea" : addModal.type === "SER" ? "Crear Evaluación Actitudinal" : "Crear Evaluación")}</span>
+                    <span>{editTaskId ? "Guardar Cambios" : (addModal.type === "EXAM" ? (selectedSaberSubtype === "EXAM" ? "Crear Examen" : "Crear Tarea (Saber)") : addModal.type === "TASK" ? "Crear Tarea" : addModal.type === "SER" ? "Crear Evaluación Actitudinal" : "Crear Evaluación")}</span>
                   </>
                 )}
               </button>

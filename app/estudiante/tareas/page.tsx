@@ -35,7 +35,7 @@ export default async function TareasEstudiantePage() {
   const tasks = await prisma.task.findMany({
     where: {
       active: true,
-      type: "TASK",
+      type: { in: ["TASK", "TASK_SABER", "SABER"] },
       OR: [
         { period: null },
         { period: { in: activePeriodNames } }
@@ -87,6 +87,7 @@ export default async function TareasEstudiantePage() {
           </div>
         ) : (
           pendingTasks.map(task => {
+            const isTaskSaber = task.type === "TASK_SABER" || task.type === "SABER";
             const submission = task.submissions[0];
             const { activeDeadline, hasExtension, isClosed, isLate } = getTaskDeadlineStatus(task, submission);
             const hasGradeSet = submission?.grade != null;
@@ -110,7 +111,7 @@ export default async function TareasEstudiantePage() {
 
             const leftBorderColor = isSubmitted
               ? (isGraded && activeGrade !== null && Number(activeGrade) < 3.0 ? 'var(--danger)' : 'var(--success)')
-              : isLate ? 'var(--danger)' : 'var(--primary-color)';
+              : isLate ? 'var(--danger)' : isTaskSaber ? '#8b5cf6' : 'var(--primary-color)';
 
             const gradeColor = isGraded
               ? (activeGrade !== null && Number(activeGrade) >= 3 ? 'var(--success)' : 'var(--danger)')
@@ -138,6 +139,15 @@ export default async function TareasEstudiantePage() {
                     <span style={{ fontSize: "0.75rem", fontWeight: 700, padding: "2px 8px", background: "#f3f4f6", borderRadius: "4px", color: "#4b5563" }}>
                       {task.course.name}
                     </span>
+                    {isTaskSaber ? (
+                      <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f3e8ff", color: "#6b21a8", border: "1px solid #d8b4fe" }}>
+                        📖 Saber (Cognitivo)
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#ffedd5", color: "#9a3412", border: "1px solid #fed7aa" }}>
+                        📋 Hacer (Procedimental)
+                      </span>
+                    )}
                     {task.isExternal ? (
                       <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1" }}>
                         📁 Entrega en clase
