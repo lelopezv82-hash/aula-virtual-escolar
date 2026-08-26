@@ -837,9 +837,11 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         const fInputs: Record<string, string> = {};
         data.students.forEach((s: any) => {
           const sub = s.submission;
-          const isSubmitted = !!sub && (sub.status === "SUBMITTED" || sub.status === "GRADED" || !!sub.fileUrl);
+          // A student is truly submitted only if they uploaded a file or their status is SUBMITTED.
+          // "GRADED" alone (no fileUrl) means the docente assigned a grade without an actual delivery.
+          const hasActualSubmission = !!sub && (sub.status === "SUBMITTED" || !!sub.fileUrl);
           const { isClosed } = getTaskDeadlineStatus(taskInfo, sub);
-          const isOverdueWithoutSubmission = !(data.isExternal ?? (task as any).isExternal) && isClosed && !isSubmitted;
+          const isOverdueWithoutSubmission = !(data.isExternal ?? (task as any).isExternal) && isClosed && !hasActualSubmission;
 
           if (sub?.grade != null) {
             inputs[s.id] = String(sub.grade);
@@ -852,7 +854,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           if (sub?.feedback) {
             fInputs[s.id] = sub.feedback;
           } else if (isOverdueWithoutSubmission) {
-            fInputs[s.id] = "No entregado (Plazo vencido)";
+            fInputs[s.id] = "Actividad no entregada dentro del plazo establecido.";
           } else {
             fInputs[s.id] = "";
           }

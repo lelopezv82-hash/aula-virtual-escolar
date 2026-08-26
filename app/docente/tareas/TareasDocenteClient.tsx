@@ -222,9 +222,11 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
         const fInputs: Record<string, string> = {};
         data.students.forEach((s: StudentGradeEntry) => {
           const sub = s.submission;
-          const isSubmitted = !!sub && (sub.status === "SUBMITTED" || sub.status === "GRADED" || !!(sub as any).fileUrl);
+          // Only treat as submitted if there's an actual file or explicit SUBMITTED status.
+          // GRADED alone (no fileUrl) = docente graded without student delivering anything.
+          const hasActualSubmission = !!sub && (sub.status === "SUBMITTED" || !!(sub as any).fileUrl);
           const { isClosed } = getTaskDeadlineStatus(taskInfo, sub as any);
-          const isOverdueWithoutSubmission = !data.isExternal && isClosed && !isSubmitted;
+          const isOverdueWithoutSubmission = !data.isExternal && isClosed && !hasActualSubmission;
 
           if (sub?.grade != null) {
             inputs[s.id] = String(sub.grade);
@@ -237,7 +239,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
           if (sub?.feedback) {
             fInputs[s.id] = sub.feedback;
           } else if (isOverdueWithoutSubmission) {
-            fInputs[s.id] = "No entregado (Plazo vencido)";
+            fInputs[s.id] = "Actividad no entregada dentro del plazo establecido.";
           } else {
             fInputs[s.id] = "";
           }
