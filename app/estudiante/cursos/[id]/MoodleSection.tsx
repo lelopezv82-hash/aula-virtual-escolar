@@ -352,7 +352,7 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                             fontSize: "0.8rem", color: "#555",
                             marginTop: "0.3rem", lineHeight: 1.4,
                           }}>
-                            {cleanDesc}
+                            <span style={{ fontWeight: 700, color: "#333" }}>Instrucciones: </span>{cleanDesc}
                           </div>
                         )}
                       </div>

@@ -275,7 +275,7 @@ export default async function CursoDescripcionPage({
                         fontSize: "0.82rem", color: "#475569",
                         marginTop: "0.3rem", lineHeight: 1.4,
                       }}>
-                        {cleanDesc}
+                        <span style={{ fontWeight: 700, color: "#1e293b" }}>Instrucciones: </span>{cleanDesc}
                       </div>
                     )}
                   </div>
