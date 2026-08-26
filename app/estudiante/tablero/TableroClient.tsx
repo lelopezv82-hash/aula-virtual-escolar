@@ -886,7 +886,7 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
         {/* Description snippet */}
         {task.description && (
           <p className="text-xs text-muted line-clamp-2 mb-2">
-            {task.description}
+            <span className="font-bold text-slate-700 dark:text-slate-300">Instrucciones: </span>{task.description}
           </p>
         )}
 
