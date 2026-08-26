@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import GDriveEmailDisplay from "@/components/GDriveEmailDisplay";
 import { createPortal } from "react-dom";
+import { getTaskDeadlineStatus } from "@/lib/dateUtils";
 
 interface Task {
   id: string;
@@ -49,6 +50,9 @@ interface StudentGradeEntry {
     grade: number | null;
     feedback: string | null;
     submittedAt: string | null;
+    fileUrl?: string | null;
+    allowLateSubmission?: boolean;
+    lateSubmissionUntil?: string | null;
   } | null;
 }
 
@@ -69,6 +73,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
   // Manual Grading Modal state
   const [gradingTask, setGradingTask] = useState<Task | null>(null);
   const [gradingStudents, setGradingStudents] = useState<StudentGradeEntry[]>([]);
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [gradeInputs, setGradeInputs] = useState<Record<string, string>>({});
   const [feedbackInputs, setFeedbackInputs] = useState<Record<string, string>>({});
   const [loadingStudents, setLoadingStudents] = useState(false);
@@ -108,11 +113,11 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
     setAvailableStudents([]);
     setAssignedStudentIds([]);
     try {
-      const res = await fetch(`/api/docente/tareas/${task.id}/assigned-students`);
+      const res = await fetch(`/api/docente/tareas/${task.id}/assign`);
       const data = await res.json();
       if (res.ok) {
-        setAvailableStudents(data.availableStudents || []);
-        setAssignedStudentIds((data.assignedStudents || []).map((s: any) => s.id));
+        setAvailableStudents(data.students || []);
+        setAssignedStudentIds(data.assignedStudentIds || []);
       } else {
         setAssignError(data.error || "Error al cargar estudiantes");
       }
@@ -123,30 +128,35 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
     }
   };
 
+  const toggleStudentAssignment = (studentId: string) => {
+    setAssignedStudentIds(prev => 
+      prev.includes(studentId) 
+        ? prev.filter(id => id !== studentId)
+        : [...prev, studentId]
+    );
+  };
+
   const saveAssignedStudents = async () => {
     if (!assigningTask) return;
     setSavingAssign(true);
     setAssignError("");
     setAssignSaved(false);
     try {
-      const res = await fetch(`/api/docente/tareas/${assigningTask.id}/assigned-students`, {
-        method: "PUT",
+      const res = await fetch(`/api/docente/tareas/${assigningTask.id}/assign`, {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ studentIds: assignedStudentIds }),
       });
       const data = await res.json();
       if (res.ok) {
         setAssignSaved(true);
-        setTimeout(() => {
-          setAssignSaved(false);
-          setAssigningTask(null);
-        }, 1200);
+        setTimeout(() => setAssignSaved(false), 2500);
         router.refresh();
       } else {
         setAssignError(data.error || "Error al guardar asignaciones");
       }
     } catch {
-      setAssignError("Error de conexión al guardar");
+      setAssignError("Error de conexión");
     } finally {
       setSavingAssign(false);
     }
@@ -166,7 +176,8 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
     }
   };
 
-  const openGradingModal = async (task: { id: string; title?: string; dueDate?: any }, targetGroupId?: string) => {
+  // ── Manual Grading Handlers ─────────────────────────────────────────────────
+  const openGradingModal = async (task: { id: string; title?: string; type?: string; dueDate?: string | Date }, targetGroupId?: string) => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       params.set("calificarTaskId", task.id);
@@ -186,6 +197,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
       const data = await res.json();
       if (res.ok && data.students) {
         setGradingStudents(data.students);
+        setSelectedStudentIds(data.students.map((s: any) => s.id));
         if (data.groups) {
           setGradingAvailableGroups(data.groups);
         }
@@ -193,13 +205,42 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
           id: task.id,
           title: data.taskTitle || prev?.title || task.title || "Actividad",
           type: data.taskType || prev?.type || "TASK",
-          dueDate: prev?.dueDate || new Date()
-        }));
+          dueDate: data.dueDate || prev?.dueDate || new Date(),
+          allowLateSubmission: data.allowLateSubmission,
+          lateSubmissionUntil: data.lateSubmissionUntil,
+          isExternal: data.isExternal,
+        } as Task));
+
+        const taskInfo = {
+          dueDate: data.dueDate || task.dueDate || new Date(),
+          allowLateSubmission: data.allowLateSubmission ?? false,
+          lateSubmissionUntil: data.lateSubmissionUntil,
+          type: data.taskType || task.type || "TASK",
+        };
+
         const inputs: Record<string, string> = {};
         const fInputs: Record<string, string> = {};
         data.students.forEach((s: StudentGradeEntry) => {
-          inputs[s.id] = s.submission?.grade != null ? String(s.submission.grade) : "";
-          fInputs[s.id] = s.submission?.feedback ?? "";
+          const sub = s.submission;
+          const isSubmitted = !!sub && (sub.status === "SUBMITTED" || sub.status === "GRADED" || !!(sub as any).fileUrl);
+          const { isClosed } = getTaskDeadlineStatus(taskInfo, sub as any);
+          const isOverdueWithoutSubmission = !data.isExternal && isClosed && !isSubmitted;
+
+          if (sub?.grade != null) {
+            inputs[s.id] = String(sub.grade);
+          } else if (isOverdueWithoutSubmission) {
+            inputs[s.id] = "1.0";
+          } else {
+            inputs[s.id] = "";
+          }
+
+          if (sub?.feedback) {
+            fInputs[s.id] = sub.feedback;
+          } else if (isOverdueWithoutSubmission) {
+            fInputs[s.id] = "No entregado (Plazo vencido)";
+          } else {
+            fInputs[s.id] = "";
+          }
         });
         setGradeInputs(inputs);
         setFeedbackInputs(fInputs);
@@ -231,6 +272,23 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
     router.refresh();
   };
 
+  const toggleStudentSelection = (studentId: string) => {
+    setSelectedStudentIds(prev =>
+      prev.includes(studentId)
+        ? prev.filter(id => id !== studentId)
+        : [...prev, studentId]
+    );
+  };
+
+  const toggleSelectAllFiltered = (filteredIds: string[]) => {
+    const allSelected = filteredIds.length > 0 && filteredIds.every(id => selectedStudentIds.includes(id));
+    if (allSelected) {
+      setSelectedStudentIds(prev => prev.filter(id => !filteredIds.includes(id)));
+    } else {
+      setSelectedStudentIds(prev => Array.from(new Set([...prev, ...filteredIds])));
+    }
+  };
+
   const applyBulkGrade = () => {
     const num = parseFloat(bulkGradeValue);
     if (isNaN(num) || num < 1.0 || num > 5.0) {
@@ -238,9 +296,14 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
       return;
     }
     const formatted = num.toFixed(1);
+    const targetStudents = gradingStudents.filter(s => selectedStudentIds.includes(s.id));
+    if (targetStudents.length === 0) {
+      alert("Selecciona al menos un estudiante con el checkbox para aplicar la calificación.");
+      return;
+    }
     setGradeInputs(prev => {
       const updated = { ...prev };
-      gradingStudents.forEach(s => {
+      targetStudents.forEach(s => {
         if (!updated[s.id] || updated[s.id].trim() === "") {
           updated[s.id] = formatted;
         }
@@ -252,12 +315,17 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
 
   const saveManualGrades = async () => {
     if (!gradingTask) return;
+    const targetStudents = gradingStudents.filter(s => selectedStudentIds.includes(s.id));
+    if (targetStudents.length === 0) {
+      alert("Por favor selecciona al menos un estudiante con el checkbox para guardar su calificación.");
+      return;
+    }
     setSavingGrades(true);
     setGradingError("");
     setGradingSaved(false);
     try {
-      const promises = gradingStudents
-        .filter(s => gradeInputs[s.id] !== undefined && gradeInputs[s.id] !== "")
+      const promises = targetStudents
+        .filter(s => (gradeInputs[s.id] !== undefined && gradeInputs[s.id] !== "") || (feedbackInputs[s.id] !== undefined && feedbackInputs[s.id] !== ""))
         .map(s =>
           fetch("/api/docente/calificar", {
             method: "PATCH",
@@ -265,8 +333,8 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
             body: JSON.stringify({
               taskId: gradingTask.id,
               studentId: s.id,
-              grade: Number(gradeInputs[s.id]),
-              feedback: feedbackInputs[s.id] || undefined,
+              grade: gradeInputs[s.id] !== "" && gradeInputs[s.id] !== undefined ? Number(gradeInputs[s.id]) : undefined,
+              feedback: feedbackInputs[s.id] !== undefined ? feedbackInputs[s.id] : undefined,
             }),
           })
         );
@@ -274,8 +342,10 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
       setGradingSaved(true);
       setTimeout(() => setGradingSaved(false), 2500);
       router.refresh();
+      alert("¡Calificaciones guardadas exitosamente!");
     } catch {
       setGradingError("Error al guardar calificaciones");
+      alert("Error al guardar calificaciones.");
     } finally {
       setSavingGrades(false);
     }
@@ -373,7 +443,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
             </button>
             <button
               onClick={saveManualGrades}
-              disabled={savingGrades || loadingStudents}
+              disabled={savingGrades || loadingStudents || selectedStudentIds.length === 0}
               className={`btn ${gradingSaved ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "btn-primary"} px-5 py-2.5 font-bold shadow-md flex items-center gap-2`}
             >
               {savingGrades ? (
@@ -389,7 +459,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
               ) : (
                 <>
                   <Save size={18} />
-                  Guardar Calificaciones
+                  Guardar Calificaciones ({selectedStudentIds.length})
                 </>
               )}
             </button>
@@ -495,6 +565,28 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
               ))}
             </div>
 
+            {/* Selection Quick Actions */}
+            <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl border" style={{ borderColor: "var(--border-color)" }}>
+              <span className="text-xs font-bold text-gray-700 dark:text-gray-200">
+                <strong className="text-[#f98012]">{selectedStudentIds.length}</strong> de {gradingStudents.length} seleccionados
+              </span>
+              <span className="text-gray-300 dark:text-gray-600">|</span>
+              <button
+                type="button"
+                onClick={() => setSelectedStudentIds(gradingStudents.map(s => s.id))}
+                className="text-xs font-bold text-[#f98012] hover:underline"
+              >
+                Todos
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedStudentIds([])}
+                className="text-xs font-bold text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              >
+                Ninguno
+              </button>
+            </div>
+
             {gradingAvailableGroups.length > 1 && (
               <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border" style={{ borderColor: "var(--border-color)" }}>
                 <span className="text-[11px] font-bold text-muted px-2">Grupo:</span>
@@ -574,7 +666,18 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                 <thead>
                   <tr className="border-b bg-gray-50/80 dark:bg-gray-800/60 text-xs font-bold uppercase tracking-wider text-muted" style={{ borderColor: "var(--border-color)" }}>
                     <th className="py-3.5 px-4 w-12 text-center">No.</th>
-                    <th className="py-3.5 px-4 min-w-[220px]">Estudiante</th>
+                    <th className="py-3.5 px-4 min-w-[240px]">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={filteredStudents.length > 0 && filteredStudents.every(s => selectedStudentIds.includes(s.id))}
+                          onChange={() => toggleSelectAllFiltered(filteredStudents.map(s => s.id))}
+                          className="w-4 h-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500 cursor-pointer accent-[#f98012]"
+                          title="Seleccionar / Deseleccionar todos"
+                        />
+                        <span>Estudiante</span>
+                      </div>
+                    </th>
                     <th className="py-3.5 px-4 min-w-[180px]">Estado de Entrega</th>
                     <th className="py-3.5 px-4 w-32 text-center">Calificación (1–5)</th>
                     <th className="py-3.5 px-4 w-28 text-center">Desempeño</th>
@@ -583,6 +686,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                 </thead>
                 <tbody className="divide-y" style={{ borderColor: "var(--border-color)" }}>
                   {filteredStudents.map((student, idx) => {
+                    const isSelected = selectedStudentIds.includes(student.id);
                     const gradeVal = gradeInputs[student.id] ?? "";
                     const numGrade = parseFloat(gradeVal);
                     const hasValidGrade = !isNaN(numGrade) && numGrade >= 1.0 && numGrade <= 5.0;
@@ -592,17 +696,24 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                       <tr
                         key={student.id}
                         className={`hover:bg-orange-50/40 dark:hover:bg-orange-950/10 transition-colors ${
-                          hasValidGrade ? "" : "bg-slate-50/30 dark:bg-slate-900/30"
-                        }`}
+                          isSelected ? "bg-orange-50/20 dark:bg-orange-950/10" : "opacity-80"
+                        } ${hasValidGrade ? "" : "bg-slate-50/30 dark:bg-slate-900/30"}`}
                       >
                         {/* Index */}
                         <td className="py-3.5 px-4 text-center font-bold text-xs text-muted">
                           {idx + 1}
                         </td>
 
-                        {/* Student Name & Avatar */}
+                        {/* Student Name & Avatar with Checkbox */}
                         <td className="py-3.5 px-4">
                           <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleStudentSelection(student.id)}
+                              className="w-4 h-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500 cursor-pointer accent-[#f98012] shrink-0"
+                              title="Seleccionar estudiante para calificar"
+                            />
                             <div
                               className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs text-white shadow-sm"
                               style={{ background: "linear-gradient(135deg, #f98012, #e06d09)" }}
@@ -663,7 +774,11 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                             step="0.1"
                             placeholder="—"
                             value={gradeVal}
-                            onChange={e => setGradeInputs(prev => ({ ...prev, [student.id]: e.target.value }))}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setGradeInputs(prev => ({ ...prev, [student.id]: val }));
+                              setSelectedStudentIds(prev => prev.includes(student.id) ? prev : [...prev, student.id]);
+                            }}
                             className={`w-24 text-center font-black rounded-xl border py-1.5 text-base outline-none focus:ring-2 focus:ring-orange-500 transition-all ${
                               hasValidGrade
                                 ? numGrade < 3.0
@@ -693,7 +808,11 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                             type="text"
                             placeholder="Comentario u observación opcional para el estudiante…"
                             value={feedbackInputs[student.id] ?? ""}
-                            onChange={e => setFeedbackInputs(prev => ({ ...prev, [student.id]: e.target.value }))}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setFeedbackInputs(prev => ({ ...prev, [student.id]: val }));
+                              setSelectedStudentIds(prev => prev.includes(student.id) ? prev : [...prev, student.id]);
+                            }}
                             className="w-full py-1.5 px-3 rounded-xl border bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors"
                             style={{ borderColor: "var(--border-color)" }}
                           />
@@ -714,6 +833,8 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
             <span>Calificados: <strong className="text-emerald-600 text-sm">{gradedCount}</strong>/{totalCount}</span>
             <span>•</span>
             <span>Pendientes: <strong className="text-amber-600 text-sm">{pendingCount}</strong></span>
+            <span>•</span>
+            <span>Seleccionados: <strong className="text-orange-600 text-sm">{selectedStudentIds.length}</strong></span>
           </div>
 
           <div className="flex items-center gap-3">
@@ -725,7 +846,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
             </button>
             <button
               onClick={saveManualGrades}
-              disabled={savingGrades || loadingStudents}
+              disabled={savingGrades || loadingStudents || selectedStudentIds.length === 0}
               className={`btn ${gradingSaved ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "btn-primary"} py-2 px-5 text-xs font-bold flex items-center gap-1.5 shadow-md`}
             >
               {savingGrades ? (
@@ -741,7 +862,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
               ) : (
                 <>
                   <Save size={15} />
-                  Guardar Calificaciones
+                  Guardar Calificaciones ({selectedStudentIds.length})
                 </>
               )}
             </button>
