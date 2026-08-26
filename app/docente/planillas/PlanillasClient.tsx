@@ -2222,27 +2222,6 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             )}
           </div>
 
-          {/* Quick bulk grade tool */}
-          <div className="flex items-center gap-2 bg-orange-50/80 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/40 p-1.5 rounded-xl">
-            <span className="text-xs font-bold text-orange-800 dark:text-orange-300 pl-2">Nota para pendientes:</span>
-            <input
-              type="number"
-              min="1.0"
-              max="5.0"
-              step="0.1"
-              placeholder="5.0"
-              value={bulkGradeValue}
-              onChange={e => setBulkGradeValue(e.target.value)}
-              className="w-16 text-center font-bold text-sm py-1 px-1 rounded-lg border bg-white dark:bg-gray-900"
-              style={{ borderColor: "var(--border-color)" }}
-            />
-            <button
-              onClick={applyBulkGrade}
-              className="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
-            >
-              Aplicar
-            </button>
-          </div>
         </div>
 
         {/* Main Students List / Table */}
