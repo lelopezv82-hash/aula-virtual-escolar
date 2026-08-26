@@ -155,7 +155,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   // ── Add column modal ──
   const [addModal,    setAddModal]    = useState<{ type: CatType } | null>(null);
   const [selectedSaberSubtype, setSelectedSaberSubtype] = useState<"TASK_SABER" | "EXAM">("TASK_SABER");
-  const [allCourseStudents, setAllCourseStudents] = useState<{ id: string; name: string; groupName?: string; grade?: string }[]>([]);
+  const [allCourseStudents, setAllCourseStudents] = useState<{ id: string; name: string; groupName?: string; grade?: string; groupId?: string; group?: any }[]>([]);
   const [newTaskStudentIds, setNewTaskStudentIds] = useState<string[]>([]);
   const [studentSearch, setStudentSearch] = useState("");
   const [newTaskName, setNewTaskName] = useState("");
@@ -3297,9 +3297,28 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                   onChange={(e) => setStudentSearch(e.target.value)}
                 />
                 <div className="border rounded-lg p-2.5 max-h-[140px] overflow-y-auto flex flex-col gap-1.5 bg-slate-50 dark:bg-slate-900 border-gray-200 dark:border-gray-800">
-                  {allCourseStudents
-                    .filter(s => !studentSearch || s.name.toLowerCase().includes(studentSearch.toLowerCase()) || (s.groupName && s.groupName.toLowerCase().includes(studentSearch.toLowerCase())))
-                    .map(s => {
+                  {newTaskGroupIds.length === 0 ? (
+                    <p className="text-[11px] text-muted text-center py-2">
+                      Selecciona al menos un grupo arriba para ver y asignar estudiantes.
+                    </p>
+                  ) : (() => {
+                    const filteredStudents = allCourseStudents.filter(s => {
+                      const belongsToSelectedGroup = (s.groupId && newTaskGroupIds.includes(s.groupId)) || (s.group?.id && newTaskGroupIds.includes(s.group.id));
+                      if (!belongsToSelectedGroup) return false;
+                      if (!studentSearch) return true;
+                      const q = studentSearch.toLowerCase().trim();
+                      return s.name.toLowerCase().includes(q) || (s.groupName && s.groupName.toLowerCase().includes(q));
+                    });
+
+                    if (filteredStudents.length === 0) {
+                      return (
+                        <p className="text-[11px] text-muted text-center py-2">
+                          No se encontraron estudiantes {studentSearch ? "con esa búsqueda" : "en los grupos seleccionados"}.
+                        </p>
+                      );
+                    }
+
+                    return filteredStudents.map(s => {
                       const isChecked = newTaskStudentIds.includes(s.id);
                       return (
                         <label key={s.id} className="flex items-center justify-between gap-2 text-xs cursor-pointer hover:text-primary py-0.5 select-none">
@@ -3323,10 +3342,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                           )}
                         </label>
                       );
-                    })}
-                  {allCourseStudents.length === 0 && (
-                    <p className="text-[11px] text-muted text-center py-2">No hay estudiantes cargados.</p>
-                  )}
+                    });
+                  })()}
                 </div>
               </div>
 

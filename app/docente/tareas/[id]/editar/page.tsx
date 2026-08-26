@@ -33,7 +33,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
   const [allResources, setAllResources] = useState<{id: string, title: string, type: string}[]>([]);
   const [selectedResourceIds, setSelectedResourceIds] = useState<string[]>([]);
   const [courseThemes, setCourseThemes] = useState<{id: string, title: string}[]>([]);
-  const [allStudents, setAllStudents] = useState<{id: string, name: string, groupName?: string, grade?: string}[]>([]);
+  const [allStudents, setAllStudents] = useState<{id: string, name: string, groupName?: string, grade?: string, groupId?: string, group?: any}[]>([]);
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [studentSearch, setStudentSearch] = useState("");
 
@@ -261,9 +261,28 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
             onChange={(e) => setStudentSearch(e.target.value)}
           />
           <div className="border rounded-lg p-3 max-h-[160px] overflow-y-auto flex flex-col gap-2 bg-slate-50 dark:bg-slate-900" style={{ borderColor: 'var(--border-color)' }}>
-            {allStudents
-              .filter(s => s.name.toLowerCase().includes(studentSearch.toLowerCase()) || (s.groupName && s.groupName.toLowerCase().includes(studentSearch.toLowerCase())))
-              .map(s => {
+            {groupIds.length === 0 ? (
+              <p className="text-xs text-muted text-center py-2">
+                Selecciona al menos un grupo arriba para ver y asignar estudiantes.
+              </p>
+            ) : (() => {
+              const filtered = allStudents.filter(s => {
+                const belongsToGroup = (s.groupId && groupIds.includes(s.groupId)) || (s.group?.id && groupIds.includes(s.group.id));
+                if (!belongsToGroup) return false;
+                if (!studentSearch) return true;
+                const q = studentSearch.toLowerCase().trim();
+                return s.name.toLowerCase().includes(q) || (s.groupName && s.groupName.toLowerCase().includes(q));
+              });
+
+              if (filtered.length === 0) {
+                return (
+                  <p className="text-xs text-muted text-center py-2">
+                    No se encontraron estudiantes {studentSearch ? "con esa búsqueda" : "en los grupos seleccionados"}.
+                  </p>
+                );
+              }
+
+              return filtered.map(s => {
                 const isChecked = selectedStudentIds.includes(s.id);
                 return (
                   <label key={s.id} className="flex items-center justify-between gap-2 text-sm cursor-pointer hover:text-primary py-0.5">
@@ -288,10 +307,8 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
                     )}
                   </label>
                 );
-              })}
-            {allStudents.length === 0 && (
-              <p className="text-xs text-muted text-center py-2">No hay estudiantes cargados.</p>
-            )}
+              });
+            })()}
           </div>
         </div>
 
