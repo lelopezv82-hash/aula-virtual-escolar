@@ -305,7 +305,7 @@ export default function DocenteDashboardClient({
                               {course.courseName}
                             </h3>
                             <p className="text-xs text-muted">
-                              Grado {course.gradeName} · {course.groups.length} {course.groups.length === 1 ? "grupo asignado" : "grupos asignados"}
+                              Grado {course.gradeName} · {course.groups.length === 1 ? course.groups[0]?.name ?? "1 grupo" : `${course.groups.length} grupos`}
                             </p>
                           </div>
                         </div>
