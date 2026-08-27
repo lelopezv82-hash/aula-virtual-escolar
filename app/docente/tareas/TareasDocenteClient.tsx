@@ -349,6 +349,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
           })
         );
       await Promise.all(promises);
+      setSelectedStudentIds([]);
       setGradingSaved(true);
       setTimeout(() => setGradingSaved(false), 2500);
       router.refresh();

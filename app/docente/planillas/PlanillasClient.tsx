@@ -1258,6 +1258,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           })
         );
       await Promise.all(promises);
+      setSelectedStudentIds([]);
       setGradingSaved(true);
       setTimeout(() => setGradingSaved(false), 3500);
       fetchData();
