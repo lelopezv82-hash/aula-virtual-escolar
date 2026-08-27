@@ -882,7 +882,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       const data = await res.json();
       if (res.ok && data.students) {
         setGradingStudents(data.students);
-        setSelectedStudentIds(data.students.map((s: any) => s.id));
+        setSelectedStudentIds([]); // Safely start unselected; user activates per-student with checkbox
         if (data.groups) {
           setGradingAvailableGroups(data.groups);
         }
@@ -2352,9 +2352,11 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     return (
                       <tr
                         key={student.id}
-                        className={`hover:bg-orange-50/40 dark:hover:bg-orange-950/10 transition-colors ${
-                          isSelected ? "bg-orange-50/20 dark:bg-orange-950/10" : "opacity-80"
-                        } ${hasValidGrade ? "" : "bg-slate-50/30 dark:bg-slate-900/30"}`}
+                        className={`transition-all ${
+                          isSelected
+                            ? "bg-orange-50/40 dark:bg-orange-950/20 border-l-4 border-l-[#f98012] shadow-sm font-medium"
+                            : "opacity-60 hover:opacity-85 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 border-l-4 border-l-transparent"
+                        }`}
                       >
                         {/* Index */}
                         <td className="py-3.5 px-4 text-center font-bold text-xs text-muted">
@@ -2369,16 +2371,16 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                               checked={isSelected}
                               onChange={() => toggleStudentSelection(student.id)}
                               className="w-4 h-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500 cursor-pointer accent-[#f98012] shrink-0"
-                              title="Seleccionar estudiante para calificar"
+                              title={isSelected ? "Estudiante activado para calificar (clic para desactivar)" : "Activar checkbox para calificar a este estudiante"}
                             />
                             <div
                               className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs text-white shadow-sm"
-                              style={{ background: "linear-gradient(135deg, #f98012, #e06d09)" }}
+                              style={{ background: isSelected ? "linear-gradient(135deg, #f98012, #e06d09)" : "#9ca3af" }}
                             >
                               {student.name.charAt(0).toUpperCase()}
                             </div>
                             <div className="min-w-0">
-                              <p className="font-bold text-gray-900 dark:text-gray-100 leading-tight truncate">
+                              <p className={`font-bold leading-tight truncate ${isSelected ? "text-gray-900 dark:text-gray-100" : "text-gray-600 dark:text-gray-400"}`}>
                                 {student.name}
                               </p>
                               <p className="text-xs text-muted mt-0.5 font-medium">{student.groupName}</p>
@@ -2430,20 +2432,23 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                             max="5.0"
                             step="0.1"
                             placeholder="—"
+                            disabled={!isSelected}
                             value={gradeVal}
                             onChange={e => {
                               const val = e.target.value;
                               setGradeInputs(prev => ({ ...prev, [student.id]: val }));
-                              setSelectedStudentIds(prev => prev.includes(student.id) ? prev : [...prev, student.id]);
                             }}
-                            className={`w-24 text-center font-black rounded-xl border py-1.5 text-base outline-none focus:ring-2 focus:ring-orange-500 transition-all ${
-                              hasValidGrade
+                            title={!isSelected ? "Activa la casilla del estudiante para ingresar calificación" : undefined}
+                            className={`w-24 text-center font-black rounded-xl border py-1.5 text-base outline-none transition-all ${
+                              !isSelected
+                                ? "border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500 cursor-not-allowed select-none shadow-none"
+                                : hasValidGrade
                                 ? numGrade < 3.0
-                                  ? "border-red-300 text-red-600 bg-red-50/50 dark:bg-red-950/20"
+                                  ? "border-red-300 text-red-600 bg-red-50/50 dark:bg-red-950/20 focus:ring-2 focus:ring-red-500 shadow-sm"
                                   : numGrade < 4.0
-                                  ? "border-amber-300 text-amber-600 bg-amber-50/50 dark:bg-amber-950/20"
-                                  : "border-emerald-300 text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20"
-                                : "border-gray-200 dark:border-gray-700 bg-slate-50 dark:bg-slate-800 text-gray-400"
+                                  ? "border-amber-300 text-amber-600 bg-amber-50/50 dark:bg-amber-950/20 focus:ring-2 focus:ring-amber-500 shadow-sm"
+                                  : "border-emerald-300 text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 focus:ring-2 focus:ring-emerald-500 shadow-sm"
+                                : "border-orange-400 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 shadow-sm"
                             }`}
                           />
                         </td>
@@ -2463,15 +2468,20 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                         <td className="py-3.5 px-4">
                           <input
                             type="text"
-                            placeholder="Comentario u observación opcional para el estudiante…"
+                            placeholder={!isSelected ? "Activa la casilla para escribir observación…" : "Comentario u observación opcional para el estudiante…"}
+                            disabled={!isSelected}
                             value={feedbackInputs[student.id] ?? ""}
                             onChange={e => {
                               const val = e.target.value;
                               setFeedbackInputs(prev => ({ ...prev, [student.id]: val }));
-                              setSelectedStudentIds(prev => prev.includes(student.id) ? prev : [...prev, student.id]);
                             }}
-                            className="w-full py-1.5 px-3 rounded-xl border bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors"
-                            style={{ borderColor: "var(--border-color)" }}
+                            title={!isSelected ? "Activa la casilla del estudiante para escribir comentario" : undefined}
+                            className={`w-full py-1.5 px-3 rounded-xl border text-sm transition-colors ${
+                              !isSelected
+                                ? "border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500 cursor-not-allowed select-none"
+                                : "border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            }`}
+                            style={isSelected ? { borderColor: "var(--border-color)" } : undefined}
                           />
                         </td>
                       </tr>
