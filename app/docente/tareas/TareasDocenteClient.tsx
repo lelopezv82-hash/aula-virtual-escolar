@@ -613,8 +613,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                     </th>
                     <th className="py-3.5 px-4 min-w-[180px]">Estado de Entrega</th>
                     <th className="py-3.5 px-4 w-32 text-center">Calificación (1–5)</th>
-                    <th className="py-3.5 px-4 w-28 text-center">Desempeño</th>
-                    <th className="py-3.5 px-4 min-w-[280px]">Retroalimentación / Comentario</th>
+                    <th className="py-3.5 px-4 min-w-[320px]">Retroalimentación / Comentario</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y" style={{ borderColor: "var(--border-color)" }}>
@@ -623,7 +622,6 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                     const gradeVal = gradeInputs[student.id] ?? "";
                     const numGrade = parseFloat(gradeVal);
                     const hasValidGrade = !isNaN(numGrade) && numGrade >= 1.0 && numGrade <= 5.0;
-                    const desemp = hasValidGrade ? getDesempeno(numGrade) : null;
 
                     return (
                       <tr
@@ -683,7 +681,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                                   className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 transition-colors"
                                   title="Ver archivo"
                                 >
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                                   Ver Archivo
                                 </a>
                                 <a
@@ -728,17 +726,6 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                                 : "border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
                             }`}
                           />
-                        </td>
-
-                        {/* Desempeño */}
-                        <td className="py-3.5 px-4 text-center">
-                          {desemp ? (
-                            <span className={`inline-block px-2.5 py-1 rounded-lg text-xs font-black ${desemp.cls}`}>
-                              {desemp.label}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-muted font-semibold">—</span>
-                          )}
                         </td>
 
                         {/* Feedback / Comentario */}

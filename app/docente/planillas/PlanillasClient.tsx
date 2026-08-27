@@ -2329,8 +2329,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     </th>
                     <th className="py-3.5 px-4 min-w-[180px]">Estado de Entrega</th>
                     <th className="py-3.5 px-4 w-32 text-center">Calificación (1–5)</th>
-                    <th className="py-3.5 px-4 w-28 text-center">Desempeño</th>
-                    <th className="py-3.5 px-4 min-w-[280px]">Retroalimentación / Comentario</th>
+                    <th className="py-3.5 px-4 min-w-[320px]">Retroalimentación / Comentario</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y" style={{ borderColor: "var(--border-color)" }}>
@@ -2339,7 +2338,6 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     const gradeVal = gradeInputs[student.id] ?? "";
                     const numGrade = parseFloat(gradeVal);
                     const hasValidGrade = !isNaN(numGrade) && numGrade >= 1.0 && numGrade <= 5.0;
-                    const desemp = hasValidGrade ? getDesempeno(numGrade) : null;
 
                     return (
                       <tr
@@ -2444,17 +2442,6 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                                 : "border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
                             }`}
                           />
-                        </td>
-
-                        {/* Desempeño */}
-                        <td className="py-3.5 px-4 text-center">
-                          {desemp ? (
-                            <span className={`inline-block px-2.5 py-1 rounded-lg text-xs font-black ${desemp.cls}`}>
-                              {desemp.label}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-muted font-semibold">—</span>
-                          )}
                         </td>
 
                         {/* Feedback / Comentario */}
