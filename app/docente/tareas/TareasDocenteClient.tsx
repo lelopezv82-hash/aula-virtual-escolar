@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { ClipboardList, Plus, Pencil, X, Save, Loader2, CheckCircle, Clock, AlertCircle, Users, Search, UserCheck, ArrowLeft, Sparkles } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { ClipboardList, Plus, Pencil, X, Save, Loader2, CheckCircle, Clock, AlertCircle, AlertTriangle, Users, Search, UserCheck, ArrowLeft, Sparkles } from "lucide-react";
 import TaskActions from "./TaskActions";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -78,6 +78,8 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [gradeInputs, setGradeInputs] = useState<Record<string, string>>({});
   const [feedbackInputs, setFeedbackInputs] = useState<Record<string, string>>({});
+  const [initialGradeInputs, setInitialGradeInputs] = useState<Record<string, string>>({});
+  const [initialFeedbackInputs, setInitialFeedbackInputs] = useState<Record<string, string>>({});
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [savingGrades, setSavingGrades] = useState(false);
   const [gradingError, setGradingError] = useState("");
@@ -87,6 +89,24 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
   const [bulkGradeValue, setBulkGradeValue] = useState("");
   const [gradingActiveGroupId, setGradingActiveGroupId] = useState<string>("all");
   const [gradingAvailableGroups, setGradingAvailableGroups] = useState<{ id: string; name: string; gradeName?: string; label?: string }[]>([]);
+
+  const hasUnsavedGradingChanges = useMemo(() => {
+    if (!gradingTask) return false;
+    const gradeChanged = Object.keys(gradeInputs).some(id => (gradeInputs[id] ?? "") !== (initialGradeInputs[id] ?? ""));
+    const feedbackChanged = Object.keys(feedbackInputs).some(id => (feedbackInputs[id] ?? "") !== (initialFeedbackInputs[id] ?? ""));
+    return gradeChanged || feedbackChanged;
+  }, [gradingTask, gradeInputs, feedbackInputs, initialGradeInputs, initialFeedbackInputs]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedGradingChanges) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedGradingChanges]);
 
   const calificarTaskIdParam = searchParams.get("calificarTaskId");
   useEffect(() => {
@@ -255,6 +275,8 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
         });
         setGradeInputs(inputs);
         setFeedbackInputs(fInputs);
+        setInitialGradeInputs(inputs);
+        setInitialFeedbackInputs(fInputs);
       } else {
         setGradingError(data.error || "Error al cargar estudiantes");
       }
@@ -267,10 +289,24 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
 
   const changeGradingGroup = (newGroupId: string) => {
     if (!gradingTask) return;
+    if (hasUnsavedGradingChanges) {
+      toast.warning(
+        "¡Calificaciones sin guardar!",
+        "Tienes notas modificadas pendientes de guardar en este grupo. Guarda las calificaciones antes de cambiar de grupo."
+      );
+      return;
+    }
     openGradingModal(gradingTask, newGroupId);
   };
 
   const closeGrading = () => {
+    if (hasUnsavedGradingChanges) {
+      toast.warning(
+        "¡Calificaciones sin guardar!",
+        "Has modificado notas o comentarios. Debes presionar 'Guardar Calificaciones' para guardar los cambios antes de salir."
+      );
+      return;
+    }
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       params.delete("calificarTaskId");
@@ -349,6 +385,8 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
           })
         );
       await Promise.all(promises);
+      setInitialGradeInputs({ ...gradeInputs });
+      setInitialFeedbackInputs({ ...feedbackInputs });
       setSelectedStudentIds([]);
       setGradingSaved(true);
       setTimeout(() => setGradingSaved(false), 2500);
@@ -450,6 +488,12 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
           </div>
 
           <div className="flex items-center gap-3">
+            {hasUnsavedGradingChanges && (
+              <div className="flex items-center gap-2 text-xs font-bold text-amber-700 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/60 px-3 py-2 rounded-xl animate-pulse shadow-xs">
+                <AlertTriangle size={15} className="text-amber-600 shrink-0" />
+                <span>Cambios sin guardar</span>
+              </div>
+            )}
             <button
               onClick={saveManualGrades}
               disabled={savingGrades || loadingStudents}

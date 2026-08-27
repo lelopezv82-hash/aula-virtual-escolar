@@ -252,6 +252,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [gradeInputs, setGradeInputs] = useState<Record<string, string>>({});
   const [feedbackInputs, setFeedbackInputs] = useState<Record<string, string>>({});
+  const [initialGradeInputs, setInitialGradeInputs] = useState<Record<string, string>>({});
+  const [initialFeedbackInputs, setInitialFeedbackInputs] = useState<Record<string, string>>({});
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [savingGrades, setSavingGrades] = useState(false);
   const [gradingError, setGradingError] = useState("");
@@ -261,6 +263,24 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [bulkGradeValue, setBulkGradeValue] = useState("");
   const [gradingActiveGroupId, setGradingActiveGroupId] = useState<string>("all");
   const [gradingAvailableGroups, setGradingAvailableGroups] = useState<{ id: string; name: string; gradeName?: string; label?: string }[]>([]);
+
+  const hasUnsavedGradingChanges = useMemo(() => {
+    if (!gradingTask) return false;
+    const gradeChanged = Object.keys(gradeInputs).some(id => (gradeInputs[id] ?? "") !== (initialGradeInputs[id] ?? ""));
+    const feedbackChanged = Object.keys(feedbackInputs).some(id => (feedbackInputs[id] ?? "") !== (initialFeedbackInputs[id] ?? ""));
+    return gradeChanged || feedbackChanged;
+  }, [gradingTask, gradeInputs, feedbackInputs, initialGradeInputs, initialFeedbackInputs]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedGradingChanges) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedGradingChanges]);
 
   // ── Duplication / Cloning Modal State ──
   const [duplicateModalTask, setDuplicateModalTask] = useState<TaskItem | null>(null);
@@ -938,6 +958,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         });
         setGradeInputs(inputs);
         setFeedbackInputs(fInputs);
+        setInitialGradeInputs(inputs);
+        setInitialFeedbackInputs(fInputs);
       } else {
         setGradingError(data.error || "Error al cargar estudiantes");
       }
@@ -950,6 +972,13 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
   const changeGradingGroup = (newGroupId: string) => {
     if (!gradingTask) return;
+    if (hasUnsavedGradingChanges) {
+      toast.warning(
+        "¡Calificaciones sin guardar!",
+        "Tienes notas modificadas pendientes de guardar en este grupo. Guarda las calificaciones antes de cambiar de grupo."
+      );
+      return;
+    }
     if (newGroupId !== "all") {
       setSelectedGroupId(newGroupId);
     }
@@ -1067,6 +1096,13 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   };
 
   const closeGrading = () => {
+    if (hasUnsavedGradingChanges) {
+      toast.warning(
+        "¡Calificaciones sin guardar!",
+        "Has modificado notas o comentarios. Debes presionar 'Guardar Calificaciones' para guardar los cambios antes de salir."
+      );
+      return;
+    }
     updateUrlAndStorage(selectedCourseId, selectedPeriod, selectedGroupId, null);
     setGradingTask(null);
     setGradingSearch("");
@@ -1258,6 +1294,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           })
         );
       await Promise.all(promises);
+      setInitialGradeInputs({ ...gradeInputs });
+      setInitialFeedbackInputs({ ...feedbackInputs });
       setSelectedStudentIds([]);
       setGradingSaved(true);
       setTimeout(() => setGradingSaved(false), 3500);
@@ -2166,6 +2204,12 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           </div>
 
           <div className="flex items-center gap-3">
+            {hasUnsavedGradingChanges && (
+              <div className="flex items-center gap-2 text-xs font-bold text-amber-700 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/60 px-3 py-2 rounded-xl animate-pulse shadow-xs">
+                <AlertTriangle size={15} className="text-amber-600 shrink-0" />
+                <span>Cambios sin guardar</span>
+              </div>
+            )}
             <button
               onClick={saveManualGrades}
               disabled={savingGrades || loadingStudents}
