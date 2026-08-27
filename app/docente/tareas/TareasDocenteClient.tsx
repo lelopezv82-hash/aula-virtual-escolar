@@ -607,13 +607,13 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b bg-gray-50/80 dark:bg-gray-800/60 text-xs font-bold uppercase tracking-wider text-muted" style={{ borderColor: "var(--border-color)" }}>
-                    <th className="py-3.5 px-4 w-12 text-center">No.</th>
-                    <th className="py-3.5 px-4 min-w-[240px]">
+                    <th className="py-3.5 px-4 w-14 text-center">No.</th>
+                    <th className="py-3.5 px-4 min-w-[220px]">
                       <span>Estudiante</span>
                     </th>
-                    <th className="py-3.5 px-4 min-w-[180px]">Estado de Entrega</th>
-                    <th className="py-3.5 px-4 w-32 text-center">Calificación (1–5)</th>
-                    <th className="py-3.5 px-4 min-w-[320px]">Retroalimentación / Comentario</th>
+                    <th className="py-3.5 px-4 min-w-[170px]">Estado de Entrega</th>
+                    <th className="py-3.5 px-6 w-44 text-center whitespace-nowrap">Calificación (1–5)</th>
+                    <th className="py-3.5 px-6 min-w-[340px]">Retroalimentación / Comentario</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y" style={{ borderColor: "var(--border-color)" }}>
@@ -699,7 +699,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                         </td>
 
                         {/* Grade Input */}
-                        <td className="py-3.5 px-4 text-center">
+                        <td className="py-3.5 px-6 text-center">
                           <input
                             type="text"
                             inputMode="decimal"
@@ -729,7 +729,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                         </td>
 
                         {/* Feedback / Comentario */}
-                        <td className="py-3.5 px-4">
+                        <td className="py-3.5 px-6">
                           <input
                             type="text"
                             placeholder={!isSelected ? "Activa la casilla para escribir observación…" : "Comentario u observación opcional para el estudiante…"}
