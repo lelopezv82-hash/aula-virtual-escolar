@@ -108,6 +108,30 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedGradingChanges]);
 
+  // Block ALL in-app link navigation while there are unsaved grading changes
+  useEffect(() => {
+    if (!hasUnsavedGradingChanges) return;
+
+    const handleLinkClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const link = target.closest("a");
+      if (link && link.href && !link.href.startsWith("javascript") && !link.href.includes("#")) {
+        const url = new URL(link.href);
+        if (url.origin === window.location.origin) {
+          e.preventDefault();
+          e.stopPropagation();
+          toast.warning(
+            "¡Calificaciones sin guardar!",
+            "Guarda las calificaciones antes de navegar a otra sección de la plataforma."
+          );
+        }
+      }
+    };
+
+    document.addEventListener("click", handleLinkClick, true);
+    return () => document.removeEventListener("click", handleLinkClick, true);
+  }, [hasUnsavedGradingChanges, toast]);
+
   const calificarTaskIdParam = searchParams.get("calificarTaskId");
   useEffect(() => {
     if (calificarTaskIdParam && (!gradingTask || gradingTask.id !== calificarTaskIdParam)) {

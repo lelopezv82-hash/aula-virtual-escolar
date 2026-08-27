@@ -282,6 +282,32 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedGradingChanges]);
 
+  // Block ALL in-app link navigation while there are unsaved grading changes
+  useEffect(() => {
+    if (!hasUnsavedGradingChanges) return;
+
+    const handleLinkClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const link = target.closest("a");
+      // Allow anchor-only links (#) and the save button area, block everything else
+      if (link && link.href && !link.href.startsWith("javascript") && !link.href.includes("#")) {
+        const url = new URL(link.href);
+        // Only block internal navigation (same origin)
+        if (url.origin === window.location.origin) {
+          e.preventDefault();
+          e.stopPropagation();
+          toast.warning(
+            "¡Calificaciones sin guardar!",
+            "Guarda las calificaciones antes de navegar a otra sección de la plataforma."
+          );
+        }
+      }
+    };
+
+    document.addEventListener("click", handleLinkClick, true);
+    return () => document.removeEventListener("click", handleLinkClick, true);
+  }, [hasUnsavedGradingChanges, toast]);
+
   // ── Duplication / Cloning Modal State ──
   const [duplicateModalTask, setDuplicateModalTask] = useState<TaskItem | null>(null);
   const [duplicateTargetCourseId, setDuplicateTargetCourseId] = useState<string>("");
