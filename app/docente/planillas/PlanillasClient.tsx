@@ -2106,9 +2106,13 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       const q = gradingSearch.toLowerCase().trim();
       const matchesSearch = !q || s.name.toLowerCase().includes(q) || (s.groupName && s.groupName.toLowerCase().includes(q));
       if (!matchesSearch) return false;
-      if (gradingStatusFilter === "GRADED") return gradeInputs[s.id] !== undefined && gradeInputs[s.id] !== "";
+      // Always keep actively selected student visible so they never disappear or get blocked while editing
+      if (selectedStudentIds.includes(s.id)) return true;
+
+      const hasInitialGrade = s.submission?.grade != null || s.submission?.status === "GRADED";
+      if (gradingStatusFilter === "GRADED") return hasInitialGrade || (gradeInputs[s.id] !== undefined && gradeInputs[s.id] !== "");
       if (gradingStatusFilter === "SUBMITTED") return (s.submission?.status === "SUBMITTED" || s.submission?.fileUrl) && (!gradeInputs[s.id] || gradeInputs[s.id] === "");
-      if (gradingStatusFilter === "PENDING") return !gradeInputs[s.id] || gradeInputs[s.id] === "";
+      if (gradingStatusFilter === "PENDING") return !hasInitialGrade && (!gradeInputs[s.id] || gradeInputs[s.id] === "");
       return true;
     });
 
@@ -2412,15 +2416,16 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                         {/* Grade Input */}
                         <td className="py-3.5 px-4 text-center">
                           <input
-                            type="number"
-                            min="1.0"
-                            max="5.0"
-                            step="0.1"
+                            type="text"
+                            inputMode="decimal"
                             placeholder="—"
                             disabled={!isSelected}
                             value={gradeVal}
                             onChange={e => {
-                              const val = e.target.value;
+                              let val = e.target.value.replace(',', '.');
+                              if (val !== "" && !/^\d*\.?\d*$/.test(val)) return;
+                              const num = parseFloat(val);
+                              if (!isNaN(num) && num > 5.0) return;
                               setGradeInputs(prev => ({ ...prev, [student.id]: val }));
                             }}
                             title={!isSelected ? "Activa la casilla del estudiante para ingresar calificación" : undefined}
