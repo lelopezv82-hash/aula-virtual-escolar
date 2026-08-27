@@ -282,11 +282,8 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
   };
 
   const toggleStudentSelection = (studentId: string) => {
-    setSelectedStudentIds(prev =>
-      prev.includes(studentId)
-        ? prev.filter(id => id !== studentId)
-        : [...prev, studentId]
-    );
+    // Only one student can be activated at a time for safety
+    setSelectedStudentIds(prev => (prev.includes(studentId) ? [] : [studentId]));
   };
 
   const toggleSelectAllFiltered = (filteredIds: string[]) => {
@@ -324,9 +321,12 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
 
   const saveManualGrades = async () => {
     if (!gradingTask) return;
-    const targetStudents = gradingStudents.filter(s => selectedStudentIds.includes(s.id));
+    // Save all students who have any grade or feedback entered
+    const targetStudents = gradingStudents.filter(
+      s => (gradeInputs[s.id] !== undefined && gradeInputs[s.id] !== "") || (feedbackInputs[s.id] !== undefined && feedbackInputs[s.id] !== "")
+    );
     if (targetStudents.length === 0) {
-      alert("Por favor selecciona al menos un estudiante con el checkbox para guardar su calificación.");
+      alert("No hay calificaciones ingresadas para guardar.");
       return;
     }
     setSavingGrades(true);
@@ -334,7 +334,6 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
     setGradingSaved(false);
     try {
       const promises = targetStudents
-        .filter(s => (gradeInputs[s.id] !== undefined && gradeInputs[s.id] !== "") || (feedbackInputs[s.id] !== undefined && feedbackInputs[s.id] !== ""))
         .map(s =>
           fetch("/api/docente/calificar", {
             method: "PATCH",
@@ -446,7 +445,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
           <div className="flex items-center gap-3">
             <button
               onClick={saveManualGrades}
-              disabled={savingGrades || loadingStudents || selectedStudentIds.length === 0}
+              disabled={savingGrades || loadingStudents}
               className={`btn ${gradingSaved ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "btn-primary"} px-5 py-2.5 font-bold shadow-md flex items-center gap-2`}
             >
               {savingGrades ? (
@@ -462,7 +461,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
               ) : (
                 <>
                   <Save size={18} />
-                  Guardar Calificaciones ({selectedStudentIds.length})
+                  Guardar Calificaciones
                 </>
               )}
             </button>
@@ -528,26 +527,21 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
             </div>
 
             {/* Selection Quick Actions */}
-            <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl border" style={{ borderColor: "var(--border-color)" }}>
-              <span className="text-xs font-bold text-gray-700 dark:text-gray-200">
-                <strong className="text-[#f98012]">{selectedStudentIds.length}</strong> de {gradingStudents.length} seleccionados
-              </span>
-              <span className="text-gray-300 dark:text-gray-600">|</span>
-              <button
-                type="button"
-                onClick={() => setSelectedStudentIds(gradingStudents.map(s => s.id))}
-                className="text-xs font-bold text-[#f98012] hover:underline"
-              >
-                Todos
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedStudentIds([])}
-                className="text-xs font-bold text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-              >
-                Ninguno
-              </button>
-            </div>
+            {selectedStudentIds.length > 0 && (
+              <div className="flex items-center gap-2 bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800/60 px-3 py-1.5 rounded-xl shadow-xs">
+                <span className="text-xs font-bold text-orange-800 dark:text-orange-300">
+                  Editando a: <strong>{gradingStudents.find(s => s.id === selectedStudentIds[0])?.name}</strong>
+                </span>
+                <span className="text-orange-300 dark:text-orange-700">|</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedStudentIds([])}
+                  className="text-xs font-bold text-orange-600 hover:text-orange-800 dark:hover:text-orange-200 underline"
+                >
+                  Bloquear
+                </button>
+              </div>
+            )}
 
             {gradingAvailableGroups.length > 1 && (
               <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border" style={{ borderColor: "var(--border-color)" }}>
@@ -608,16 +602,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                   <tr className="border-b bg-gray-50/80 dark:bg-gray-800/60 text-xs font-bold uppercase tracking-wider text-muted" style={{ borderColor: "var(--border-color)" }}>
                     <th className="py-3.5 px-4 w-12 text-center">No.</th>
                     <th className="py-3.5 px-4 min-w-[240px]">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={filteredStudents.length > 0 && filteredStudents.every(s => selectedStudentIds.includes(s.id))}
-                          onChange={() => toggleSelectAllFiltered(filteredStudents.map(s => s.id))}
-                          className="w-4 h-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500 cursor-pointer accent-[#f98012]"
-                          title="Seleccionar / Deseleccionar todos"
-                        />
-                        <span>Estudiante</span>
-                      </div>
+                      <span>Estudiante</span>
                     </th>
                     <th className="py-3.5 px-4 min-w-[180px]">Estado de Entrega</th>
                     <th className="py-3.5 px-4 w-32 text-center">Calificación (1–5)</th>
@@ -784,8 +769,6 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
             <span>Calificados: <strong className="text-emerald-600 text-sm">{gradedCount}</strong>/{totalCount}</span>
             <span>•</span>
             <span>Pendientes: <strong className="text-amber-600 text-sm">{pendingCount}</strong></span>
-            <span>•</span>
-            <span>Seleccionados: <strong className="text-orange-600 text-sm">{selectedStudentIds.length}</strong></span>
           </div>
 
           <div className="flex items-center gap-3">
@@ -797,7 +780,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
             </button>
             <button
               onClick={saveManualGrades}
-              disabled={savingGrades || loadingStudents || selectedStudentIds.length === 0}
+              disabled={savingGrades || loadingStudents}
               className={`btn ${gradingSaved ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "btn-primary"} py-2 px-5 text-xs font-bold flex items-center gap-1.5 shadow-md`}
             >
               {savingGrades ? (
@@ -813,7 +796,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
               ) : (
                 <>
                   <Save size={15} />
-                  Guardar Calificaciones ({selectedStudentIds.length})
+                  Guardar Calificaciones
                 </>
               )}
             </button>
