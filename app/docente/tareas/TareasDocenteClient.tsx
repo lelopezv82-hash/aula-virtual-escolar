@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import GDriveEmailDisplay from "@/components/GDriveEmailDisplay";
 import { createPortal } from "react-dom";
 import { getTaskDeadlineStatus } from "@/lib/dateUtils";
+import { useToast } from "@/components/Toast";
 
 interface Task {
   id: string;
@@ -66,6 +67,7 @@ const getDesempeno = (g: number) => {
 export default function TareasDocenteClient({ courses, periods }: { courses: Course[], periods: Period[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const toast = useToast();
   const [selectedTheme, setSelectedTheme] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState("");
   const hasFiltersApplied = selectedTheme !== "" || selectedPeriod !== "";
@@ -298,13 +300,13 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
   const applyBulkGrade = () => {
     const num = parseFloat(bulkGradeValue);
     if (isNaN(num) || num < 1.0 || num > 5.0) {
-      alert("Por favor ingresa una calificación válida entre 1.0 y 5.0");
+      toast.warning("Calificación inválida", "Por favor ingresa un valor entre 1.0 y 5.0");
       return;
     }
     const formatted = num.toFixed(1);
     const targetStudents = gradingStudents.filter(s => selectedStudentIds.includes(s.id));
     if (targetStudents.length === 0) {
-      alert("Selecciona al menos un estudiante con el checkbox para aplicar la calificación.");
+      toast.warning("Sin selección", "Selecciona al menos un estudiante con el checkbox para aplicar la calificación.");
       return;
     }
     setGradeInputs(prev => {
@@ -326,7 +328,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
       s => (gradeInputs[s.id] !== undefined && gradeInputs[s.id] !== "") || (feedbackInputs[s.id] !== undefined && feedbackInputs[s.id] !== "")
     );
     if (targetStudents.length === 0) {
-      alert("No hay calificaciones ingresadas para guardar.");
+      toast.warning("Nada que guardar", "No hay calificaciones ingresadas para guardar.");
       return;
     }
     setSavingGrades(true);
@@ -350,10 +352,10 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
       setGradingSaved(true);
       setTimeout(() => setGradingSaved(false), 2500);
       router.refresh();
-      alert("¡Calificaciones guardadas exitosamente!");
+      toast.success("¡Calificaciones guardadas!", "Todas las notas fueron registradas correctamente.");
     } catch {
       setGradingError("Error al guardar calificaciones");
-      alert("Error al guardar calificaciones.");
+      toast.error("Error al guardar", "No se pudieron guardar las calificaciones. Intenta de nuevo.");
     } finally {
       setSavingGrades(false);
     }

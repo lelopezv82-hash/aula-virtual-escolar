@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ConfirmProvider } from "@/components/ConfirmProvider";
+import { ToastProvider } from "@/components/Toast";
 
 export const metadata: Metadata = {
   title: "Aula Virtual",
@@ -15,11 +16,13 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body>
-        <ConfirmProvider>
-          <main className="app-container">
-            {children}
-          </main>
-        </ConfirmProvider>
+        <ToastProvider>
+          <ConfirmProvider>
+            <main className="app-container">
+              {children}
+            </main>
+          </ConfirmProvider>
+        </ToastProvider>
       </body>
     </html>
   );
