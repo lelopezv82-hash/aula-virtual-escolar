@@ -120,13 +120,67 @@ const colLetter = (idx: number): string => {
 
 export default function PlanillasClient({ courses, periods, teacherName }: PlanillasClientProps) {
   const searchParams = useSearchParams();
-  const initCourseId = searchParams.get("courseId") || courses[0]?.id || "";
-  const initGroupId = searchParams.get("groupId") || "";
+  const searchCourseId = searchParams.get("courseId");
+  const searchPeriod = searchParams.get("period");
+  const searchGroupId = searchParams.get("groupId");
+  const calificarTaskIdParam = searchParams.get("calificarTaskId");
+
+  const initCourseId = searchCourseId || courses[0]?.id || "";
+  const initPeriod   = searchPeriod || periods[0]?.name || "Periodo 1";
+  const initGroupId  = searchGroupId || "";
 
   // ── Selector state ──
   const [selectedCourseId, setSelectedCourseId] = useState(initCourseId);
-  const [selectedPeriod,   setSelectedPeriod]   = useState(periods[0]?.name ?? "Periodo 1");
+  const [selectedPeriod,   setSelectedPeriod]   = useState(initPeriod);
   const [selectedGroupId,  setSelectedGroupId]  = useState(initGroupId);
+
+  // ── Sync Helper for URL & LocalStorage ──
+  const updateUrlAndStorage = useCallback((newCourseId: string, newPeriod: string, newGroupId: string, calificarId?: string | null) => {
+    if (typeof window === "undefined") return;
+    try {
+      if (newCourseId) localStorage.setItem("aula_planillas_courseId", newCourseId);
+      if (newPeriod) localStorage.setItem("aula_planillas_period", newPeriod);
+      if (newGroupId && newGroupId !== "all") localStorage.setItem("aula_planillas_groupId", newGroupId);
+    } catch {}
+
+    const params = new URLSearchParams(window.location.search);
+    if (newCourseId) params.set("courseId", newCourseId);
+    if (newPeriod) params.set("period", newPeriod);
+    if (newGroupId) params.set("groupId", newGroupId);
+    if (calificarId !== undefined) {
+      if (calificarId) {
+        params.set("calificarTaskId", calificarId);
+      } else {
+        params.delete("calificarTaskId");
+      }
+    }
+    const qs = params.toString();
+    window.history.replaceState({}, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
+  }, []);
+
+  // ── Restore from localStorage on mount if URL parameters were absent ──
+  useEffect(() => {
+    try {
+      if (!searchCourseId) {
+        const savedCourse = localStorage.getItem("aula_planillas_courseId");
+        if (savedCourse && courses.some(c => c.id === savedCourse)) {
+          setSelectedCourseId(savedCourse);
+        }
+      }
+      if (!searchPeriod) {
+        const savedPeriod = localStorage.getItem("aula_planillas_period");
+        if (savedPeriod && periods.some(p => p.name === savedPeriod)) {
+          setSelectedPeriod(savedPeriod);
+        }
+      }
+      if (!searchGroupId) {
+        const savedGroup = localStorage.getItem("aula_planillas_groupId");
+        if (savedGroup) {
+          setSelectedGroupId(savedGroup);
+        }
+      }
+    } catch {}
+  }, []);
 
   // ── Data state ──
   const [students,      setStudents]      = useState<Student[]>([]);
@@ -359,18 +413,31 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
 
   // ── Derived ──
-  const selectedCourse = courses.find(c => c.id === selectedCourseId);
+  const selectedCourse = courses.find(c => c.id === selectedCourseId) || courses[0];
   const groups = selectedCourse?.groups ?? [];
 
-  // Auto-select first group on course change
+  // Auto-select first group on course change only if current group doesn't belong to course
   useEffect(() => {
-    // Only auto-select if selectedGroupId is empty OR not part of the new course
+    if (!groups || groups.length === 0) return;
     const groupExists = groups.some(g => g.id === selectedGroupId);
-    if (!groupExists && groups.length > 0) {
-      setSelectedGroupId(groups[0]?.id ?? "");
+    if (!groupExists) {
+      try {
+        const savedGroup = localStorage.getItem("aula_planillas_groupId");
+        if (savedGroup && groups.some(g => g.id === savedGroup)) {
+          setSelectedGroupId(savedGroup);
+          return;
+        }
+      } catch {}
+      setSelectedGroupId(groups[0].id);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCourseId, groups]);
+  }, [selectedCourseId, groups, selectedGroupId]);
+
+  // Keep URL search params and localStorage in sync
+  useEffect(() => {
+    if (selectedCourseId && selectedPeriod && selectedGroupId) {
+      updateUrlAndStorage(selectedCourseId, selectedPeriod, selectedGroupId, gradingTask?.id);
+    }
+  }, [selectedCourseId, selectedPeriod, selectedGroupId, gradingTask?.id, updateUrlAndStorage]);
 
   // Fetch when filters complete
   useEffect(() => {
@@ -380,10 +447,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   }, [selectedCourseId, selectedPeriod, selectedGroupId]);
 
   // ── URL Query Param watcher for calificarTaskId persistence across F5 ──
-  const calificarTaskIdParam = searchParams.get("calificarTaskId");
   useEffect(() => {
     if (calificarTaskIdParam && (!gradingTask || gradingTask.id !== calificarTaskIdParam)) {
-      openGradingModal({ id: calificarTaskIdParam, title: "Cargando actividad...", type: "TASK", submissions: [] });
+      const gId = searchParams.get("groupId") || selectedGroupId || undefined;
+      openGradingModal({ id: calificarTaskIdParam, title: "Cargando actividad...", type: "TASK", submissions: [] }, gId);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calificarTaskIdParam]);
@@ -791,14 +858,18 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
   // ── Manual grading handlers ──────────────────────────────────────────────────
   const openGradingModal = async (task: { id: string; title?: string; type?: string; submissions?: any[] }, targetGroupId?: string) => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      params.set("calificarTaskId", task.id);
-      window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
+    const currentParamGroupId = searchParams.get("groupId");
+    const gId = targetGroupId !== undefined
+      ? targetGroupId
+      : (currentParamGroupId || selectedGroupId || "all");
+
+    setGradingActiveGroupId(gId);
+    if (gId && gId !== "all" && gId !== selectedGroupId) {
+      setSelectedGroupId(gId);
     }
 
-    const gId = targetGroupId !== undefined ? targetGroupId : (selectedGroupId || "all");
-    setGradingActiveGroupId(gId);
+    updateUrlAndStorage(selectedCourseId, selectedPeriod, gId, task.id);
+
     setGradingTask(task as TaskItem);
     setGradingError("");
     setGradingSaved(false);
@@ -813,6 +884,9 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         setSelectedStudentIds(data.students.map((s: any) => s.id));
         if (data.groups) {
           setGradingAvailableGroups(data.groups);
+        }
+        if (data.courseId && data.courseId !== selectedCourseId) {
+          setSelectedCourseId(data.courseId);
         }
         setGradingTask(prev => ({
           id: task.id,
@@ -873,6 +947,9 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
   const changeGradingGroup = (newGroupId: string) => {
     if (!gradingTask) return;
+    if (newGroupId !== "all") {
+      setSelectedGroupId(newGroupId);
+    }
     openGradingModal(gradingTask, newGroupId);
   };
 
@@ -987,12 +1064,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   };
 
   const closeGrading = () => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      params.delete("calificarTaskId");
-      const qs = params.toString();
-      window.history.replaceState({}, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
-    }
+    updateUrlAndStorage(selectedCourseId, selectedPeriod, selectedGroupId, null);
     setGradingTask(null);
     setGradingSearch("");
     setBulkGradeValue("");
@@ -2543,12 +2615,36 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       {/* Selectors */}
       <div className="card p-4 rounded-xl border flex flex-wrap gap-5 items-end" style={{ borderColor: "var(--border-color)" }}>
         {[
-          { label: "Asignatura", value: selectedCourseId, onChange: setSelectedCourseId,
-            options: courses.map(c => ({ value: c.id, label: c.name })) },
-          { label: "Periodo",    value: selectedPeriod,   onChange: setSelectedPeriod,
-            options: periods.map(p => ({ value: p.name, label: p.name })) },
-          { label: "Grado y Curso (Grupo)", value: selectedGroupId, onChange: setSelectedGroupId,
-            options: groups.map(g => ({ value: g.id, label: g.grade?.name ? `${g.grade.name} — ${g.name}` : g.name })) },
+          { 
+            label: "Asignatura", 
+            value: selectedCourseId, 
+            onChange: (val: string) => {
+              setSelectedCourseId(val);
+              const targetCourse = courses.find(c => c.id === val);
+              const newGId = targetCourse?.groups?.[0]?.id ?? "";
+              if (newGId) setSelectedGroupId(newGId);
+              updateUrlAndStorage(val, selectedPeriod, newGId, null);
+            },
+            options: courses.map(c => ({ value: c.id, label: c.name })) 
+          },
+          { 
+            label: "Periodo",    
+            value: selectedPeriod,   
+            onChange: (val: string) => {
+              setSelectedPeriod(val);
+              updateUrlAndStorage(selectedCourseId, val, selectedGroupId, null);
+            },
+            options: periods.map(p => ({ value: p.name, label: p.name })) 
+          },
+          { 
+            label: "Grado y Curso (Grupo)", 
+            value: selectedGroupId, 
+            onChange: (val: string) => {
+              setSelectedGroupId(val);
+              updateUrlAndStorage(selectedCourseId, selectedPeriod, val, null);
+            },
+            options: groups.map(g => ({ value: g.id, label: g.grade?.name ? `${g.grade.name} — ${g.name}` : g.name })) 
+          },
         ].map(({ label, value, onChange, options }) => (
           <div key={label} className="flex-1 min-w-[170px]">
             <label className="block text-xs font-bold text-muted uppercase tracking-wider mb-1.5">{label}</label>

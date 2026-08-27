@@ -89,7 +89,8 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
   const calificarTaskIdParam = searchParams.get("calificarTaskId");
   useEffect(() => {
     if (calificarTaskIdParam && (!gradingTask || gradingTask.id !== calificarTaskIdParam)) {
-      openGradingModal({ id: calificarTaskIdParam, title: "Cargando actividad...", dueDate: new Date() });
+      const targetG = searchParams.get("groupId") || undefined;
+      openGradingModal({ id: calificarTaskIdParam, title: "Cargando actividad...", dueDate: new Date() }, targetG);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calificarTaskIdParam]);
@@ -178,13 +179,19 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
 
   // ── Manual Grading Handlers ─────────────────────────────────────────────────
   const openGradingModal = async (task: { id: string; title?: string; type?: string; dueDate?: string | Date }, targetGroupId?: string) => {
+    const paramGroupId = searchParams.get("groupId");
+    const gId = targetGroupId !== undefined ? targetGroupId : (paramGroupId || "all");
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       params.set("calificarTaskId", task.id);
+      if (gId && gId !== "all") {
+        params.set("groupId", gId);
+      } else {
+        params.delete("groupId");
+      }
       window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
     }
 
-    const gId = targetGroupId !== undefined ? targetGroupId : "all";
     setGradingActiveGroupId(gId);
     setGradingTask(task as Task);
     setGradingError("");
