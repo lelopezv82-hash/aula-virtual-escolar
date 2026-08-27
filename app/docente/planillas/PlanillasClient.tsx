@@ -815,10 +815,11 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
   // ── Delete column ──
   const handleDeleteTask = async (taskId: string, taskTitle: string) => {
-    if (!confirm(`⚠️ ¿Eliminar "${taskTitle}"? Se borrarán TODAS las notas asociadas. Esta acción no se puede deshacer.`)) return;
+    if (!confirm(`⚠️ ¿Eliminar "${taskTitle}"? Se borrarán las notas asociadas a este grupo. Esta acción no se puede deshacer.`)) return;
     setDeletingId(taskId);
     try {
-      const res = await fetch(`/api/docente/cursos/${selectedCourseId}/grades/spreadsheet/columns?taskId=${taskId}`, { method: "DELETE" });
+      const qp = selectedGroupId ? `&groupId=${encodeURIComponent(selectedGroupId)}` : "";
+      const res = await fetch(`/api/docente/cursos/${selectedCourseId}/grades/spreadsheet/columns?taskId=${taskId}${qp}`, { method: "DELETE" });
       if (res.ok) fetchData();
       else        alert("Error eliminando columna.");
     } catch { alert("Error de conexión."); }

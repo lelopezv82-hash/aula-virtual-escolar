@@ -116,6 +116,7 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
 
     const url = new URL(request.url);
     const taskId = url.searchParams.get("taskId");
+    const groupId = url.searchParams.get("groupId");
 
     if (!taskId) return NextResponse.json({ error: 'Falta taskId' }, { status: 400 });
 
@@ -123,12 +124,34 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
       where: {
         id: taskId,
         course: { id: courseId, teacherId }
+      },
+      include: {
+        groups: true
       }
     });
 
     if (!task) return NextResponse.json({ error: 'Tarea no encontrada o acceso denegado' }, { status: 403 });
 
-    await prisma.task.delete({ where: { id: taskId } });
+    if (groupId && task.groups.length > 1) {
+      // Disconnect only this group from the task and delete submissions only for students in this group
+      await prisma.submission.deleteMany({
+        where: {
+          taskId,
+          student: { groupId }
+        }
+      });
+      await prisma.task.update({
+        where: { id: taskId },
+        data: {
+          groups: {
+            disconnect: [{ id: groupId }]
+          }
+        }
+      });
+    } else {
+      // Last group or no groupId: delete the task completely
+      await prisma.task.delete({ where: { id: taskId } });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
