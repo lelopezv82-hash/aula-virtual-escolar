@@ -629,8 +629,8 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                         key={student.id}
                         className={`transition-all ${
                           isSelected
-                            ? "bg-orange-50/40 dark:bg-orange-950/20 border-l-4 border-l-[#f98012] shadow-sm font-medium"
-                            : "opacity-60 hover:opacity-85 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 border-l-4 border-l-transparent"
+                            ? "bg-orange-50/50 dark:bg-orange-950/20 border-l-4 border-l-[#f98012] shadow-sm font-medium"
+                            : "hover:bg-gray-50/70 dark:hover:bg-gray-800/40 border-l-4 border-l-transparent"
                         }`}
                       >
                         {/* Index */}
@@ -650,12 +650,12 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                             />
                             <div
                               className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs text-white shadow-sm"
-                              style={{ background: isSelected ? "linear-gradient(135deg, #f98012, #e06d09)" : "#9ca3af" }}
+                              style={{ background: "linear-gradient(135deg, #f98012, #e06d09)" }}
                             >
                               {student.name.charAt(0).toUpperCase()}
                             </div>
                             <div className="min-w-0">
-                              <p className={`font-bold leading-tight truncate ${isSelected ? "text-gray-900 dark:text-gray-100" : "text-gray-600 dark:text-gray-400"}`}>
+                              <p className="font-bold leading-tight truncate text-gray-900 dark:text-gray-100">
                                 {student.name}
                               </p>
                               <p className="text-xs text-muted mt-0.5 font-medium">{student.groupName}</p>
@@ -714,17 +714,17 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                               if (!isNaN(num) && num > 5.0) return;
                               setGradeInputs(prev => ({ ...prev, [student.id]: val }));
                             }}
-                            title={!isSelected ? "Activa la casilla del estudiante para ingresar calificación" : undefined}
+                            title={!isSelected ? "Activa la casilla del estudiante para modificar calificación" : undefined}
                             className={`w-24 text-center font-black rounded-xl border py-1.5 text-base outline-none transition-all ${
-                              !isSelected
-                                ? "border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500 cursor-not-allowed select-none shadow-none"
+                              isSelected
+                                ? "border-orange-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-white ring-2 ring-orange-500 shadow-sm"
                                 : hasValidGrade
                                 ? numGrade < 3.0
-                                  ? "border-red-300 text-red-600 bg-red-50/50 dark:bg-red-950/20 focus:ring-2 focus:ring-red-500 shadow-sm"
+                                  ? "border-red-300 text-red-600 bg-red-50/50 dark:bg-red-950/20 shadow-sm"
                                   : numGrade < 4.0
-                                  ? "border-amber-300 text-amber-600 bg-amber-50/50 dark:bg-amber-950/20 focus:ring-2 focus:ring-amber-500 shadow-sm"
-                                  : "border-emerald-300 text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 focus:ring-2 focus:ring-emerald-500 shadow-sm"
-                                : "border-orange-400 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 shadow-sm"
+                                  ? "border-amber-300 text-amber-600 bg-amber-50/50 dark:bg-amber-950/20 shadow-sm"
+                                  : "border-emerald-300 text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 shadow-sm"
+                                : "border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
                             }`}
                           />
                         </td>
@@ -753,11 +753,10 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                             }}
                             title={!isSelected ? "Activa la casilla del estudiante para escribir comentario" : undefined}
                             className={`w-full py-1.5 px-3 rounded-xl border text-sm transition-colors ${
-                              !isSelected
-                                ? "border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500 cursor-not-allowed select-none"
-                                : "border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                              isSelected
+                                ? "border-orange-400 bg-white dark:bg-slate-800 text-gray-900 dark:text-white ring-2 ring-orange-500/50 focus:outline-none"
+                                : "border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800/80 text-gray-900 dark:text-white placeholder:text-gray-400"
                             }`}
-                            style={isSelected ? { borderColor: "var(--border-color)" } : undefined}
                           />
                         </td>
                       </tr>
