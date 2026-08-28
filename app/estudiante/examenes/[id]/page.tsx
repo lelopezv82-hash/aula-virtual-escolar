@@ -387,6 +387,21 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
     return "📎";
   }
 
+  function ResourceIcon({ type }: { type?: string }) {
+    return (
+      <div style={{
+        width: 28, height: 28, borderRadius: 4,
+        background: "#e3f2fd", border: "1px solid #90caf9",
+        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+      }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+      </div>
+    );
+  }
+
   if (initialLoad) {
     return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#f98012]" size={40} /></div>;
   }
@@ -498,39 +513,50 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
             : ""}
         </p>
 
-        {/* Normal file link styled in Moodle style / modern buttons */}
-        {task.attachmentUrl && !isGoogleForm && (
-          <div className="mt-4 p-3.5 bg-blue-50/70 border border-blue-200 rounded-xl flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-3 min-w-0">
-              <span className="text-2xl shrink-0">{getFileIcon(task.attachmentUrl)}</span>
-              <div className="min-w-0">
-                <span className="text-[11px] font-bold text-blue-900 uppercase tracking-wide block">Guía / Material de la evaluación</span>
-                <span className="text-sm font-semibold text-gray-900 truncate block">
-                  {getFileNameFromUrl(task.attachmentUrl, "Guía / Archivo del examen")}
-                </span>
+        {/* Material adjunto de la tarea: */}
+        {((task.attachmentUrl && !isGoogleForm) || (task.resources && task.resources.length > 0)) && (
+          <div style={{
+            marginTop: "1rem",
+            padding: "0.75rem 1rem",
+            background: "#f8fafc",
+            borderRadius: "6px",
+            border: "1px solid #e2e8f0",
+            display: "flex",
+            flexDirection: "column",
+            gap: "0.4rem"
+          }}>
+            <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#64748b" }}>
+              Material adjunto de la tarea:
+            </div>
+            {task.attachmentUrl && !isGoogleForm && (
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <ResourceIcon type={task.attachmentUrl.split('.').pop() || "FILE"} />
+                <a 
+                  href={task.attachmentUrl} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  download
+                  style={{ fontSize: "0.85rem", color: "#0284c7", textDecoration: "none", fontWeight: 500 }}
+                  className="hover:underline"
+                >
+                  Descargar Guía de la Tarea
+                </a>
               </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <a
-                href={task.attachmentUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-xs"
-                title="Ver guía en el navegador"
-              >
-                <FileText size={14} />
-                Ver Guía
-              </a>
-              <a
-                href={task.attachmentUrl}
-                download
-                className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shadow-xs"
-                title="Descargar archivo de la guía"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Descargar Guía
-              </a>
-            </div>
+            )}
+            {task.resources?.map((res: any) => (
+              <div key={res.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <ResourceIcon type={res.type} />
+                <a 
+                  href={res.url} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  style={{ fontSize: "0.85rem", color: "#0284c7", textDecoration: "none", fontWeight: 500 }}
+                  className="hover:underline"
+                >
+                  {res.title}
+                </a>
+              </div>
+            ))}
           </div>
         )}
       </div>
