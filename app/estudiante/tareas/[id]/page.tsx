@@ -397,6 +397,42 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
             : ""}
         </p>
 
+        {/* Guía o archivo adjunto de la tarea subido por el docente */}
+        {task.attachmentUrl && !isGoogleForm && (
+          <div className="mt-4 p-3.5 bg-blue-50/70 border border-blue-200 rounded-xl flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="text-2xl shrink-0">{getFileIcon(task.attachmentUrl)}</span>
+              <div className="min-w-0">
+                <span className="text-[11px] font-bold text-blue-900 uppercase tracking-wide block">Guía / Archivo de la actividad</span>
+                <span className="text-sm font-semibold text-gray-900 truncate block">
+                  {getFileNameFromUrl(task.attachmentUrl, "Guía de la actividad")}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <a
+                href={task.attachmentUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-xs"
+                title="Ver guía en el navegador"
+              >
+                <FileText size={14} />
+                Ver Guía
+              </a>
+              <a
+                href={task.attachmentUrl}
+                download
+                className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shadow-xs"
+                title="Descargar archivo de la guía"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Descargar Guía
+              </a>
+            </div>
+          </div>
+        )}
+
         {task.resources && task.resources.length > 0 && (
           <div className="mb-4 border-t pt-4 border-gray-100">
             <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Materiales y Recursos Vinculados</h3>
@@ -554,6 +590,28 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                       <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-sm text-xs font-semibold uppercase">
                         Sin calificar
                       </span>
+                    )}
+                  </td>
+                </tr>
+
+                {/* Calificación / Nota obtenida */}
+                <tr className="border-b border-gray-100">
+                  <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Calificación obtenida</td>
+                  <td className="p-4 align-middle">
+                    {submission?.grade !== null && submission?.grade !== undefined ? (
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-md font-black text-sm ${
+                          Number(submission.grade) >= 4.0
+                            ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                            : Number(submission.grade) >= 3.0
+                            ? "bg-amber-100 text-amber-800 border border-amber-300"
+                            : "bg-red-100 text-red-800 border border-red-300"
+                        }`}>
+                          {Number(submission.grade).toFixed(1).replace('.', ',')} / 5,0
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 font-medium">-</span>
                     )}
                   </td>
                 </tr>
