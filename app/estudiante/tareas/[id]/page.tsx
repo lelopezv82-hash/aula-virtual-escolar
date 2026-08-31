@@ -51,14 +51,21 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const hasUploadedFile = !!(submission?.fileUrl && submission.fileUrl.trim() !== "");
   const isAutomaticGrade1 = (submission?.grade === 1 || submission?.grade === 1.0) && hasActiveExtension && !hasUploadedFile;
 
-  const isGraded = (submission?.status === "GRADED" && !isAutomaticGrade1) || (submission?.grade != null && !isAutomaticGrade1);
   const isSubmitted = hasUploadedFile || (task?.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")) && submission?.status === "SUBMITTED");
 
   // Check deadline status for grade reason
-  const { isClosed: isDeadlinePassed } = task ? getTaskDeadlineStatus(task, submission) : { isClosed: false };
+  const { activeDeadline, isClosed: isSubmissionBlocked, isLate: isOverdue } = task ? getTaskDeadlineStatus(task, submission) : { activeDeadline: null, isClosed: false, isLate: false };
+  const isDeadlinePassed = isSubmissionBlocked;
+
   const neverSubmitted = !hasUploadedFile && !isSubmitted;
-  const virtualGraded = neverSubmitted && isDeadlinePassed;
-  const gradeReason = virtualGraded ? "No entregaste la tarea a tiempo" : null;
+  const isVirtualGraded = neverSubmitted && isDeadlinePassed && !task?.isExternal && !hasActiveExtension;
+
+  const effectiveGrade = (submission?.grade !== null && submission?.grade !== undefined && !isAutomaticGrade1)
+    ? submission.grade
+    : (isVirtualGraded ? 1.0 : null);
+
+  const isGraded = (submission?.status === "GRADED" && !isAutomaticGrade1) || (submission?.grade != null && !isAutomaticGrade1) || isVirtualGraded;
+  const gradeReason = isVirtualGraded ? "No entregaste la tarea a tiempo" : null;
 
   const triggerAutoSubmit = async () => {
     setIsTimerExpired(true);
@@ -336,7 +343,6 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
     return <div className="alert alert-danger">No se encontró la tarea o no tienes acceso.</div>;
   }
   
-  const { activeDeadline, isClosed: isSubmissionBlocked, isLate: isOverdue } = getTaskDeadlineStatus(task, submission);
   const isGoogleForm = task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle"));
   
   const teacherName = task.course?.teacher?.name || "Docente";
@@ -602,17 +608,20 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                 <tr className="border-b border-gray-100">
                   <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Calificación obtenida</td>
                   <td className="p-4 align-middle">
-                    {submission?.grade !== null && submission?.grade !== undefined ? (
-                      <div className="flex items-center gap-2">
+                    {effectiveGrade !== null && effectiveGrade !== undefined ? (
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className={`inline-flex items-center px-3 py-1 rounded-md font-black text-sm ${
-                          Number(submission.grade) >= 4.0
+                          Number(effectiveGrade) >= 4.0
                             ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                            : Number(submission.grade) >= 3.0
+                            : Number(effectiveGrade) >= 3.0
                             ? "bg-amber-100 text-amber-800 border border-amber-300"
                             : "bg-red-100 text-red-800 border border-red-300"
                         }`}>
-                          {Number(submission.grade).toFixed(1).replace('.', ',')} / 5,0
+                          {Number(effectiveGrade).toFixed(1).replace('.', ',')} / 5,0
                         </span>
+                        {gradeReason && (
+                          <span className="text-xs text-red-600 font-medium">({gradeReason})</span>
+                        )}
                       </div>
                     ) : (
                       <span className="text-gray-400 font-medium">-</span>
@@ -695,8 +704,8 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                     <tr className="border-b border-gray-100">
                       <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Calificación</td>
                       <td className="p-4 align-middle font-bold text-gray-950 text-base">
-                        {submission.grade !== null && submission.grade !== undefined 
-                          ? `${Number(submission.grade).toFixed(2).replace('.', ',')} / 5,00` 
+                        {effectiveGrade !== null && effectiveGrade !== undefined 
+                          ? `${Number(effectiveGrade).toFixed(2).replace('.', ',')} / 5,00` 
                           : "Pendiente"}
                       </td>
                     </tr>
@@ -705,7 +714,11 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                     <tr className="border-b border-gray-100">
                       <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Calificado sobre</td>
                       <td className="p-4 align-middle">
-                        {submission.updatedAt ? formatMoodleDate(submission.updatedAt, true) : "-"}
+                        {submission?.updatedAt 
+                          ? formatMoodleDate(submission.updatedAt, true) 
+                          : task?.dueDate 
+                          ? formatMoodleDate(task.dueDate, true) 
+                          : "-"}
                       </td>
                     </tr>
                     
