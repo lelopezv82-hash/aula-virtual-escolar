@@ -619,28 +619,6 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                     )}
                   </td>
                 </tr>
-
-                {/* Calificación / Nota obtenida */}
-                <tr className="border-b border-gray-100">
-                  <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Calificación obtenida</td>
-                  <td className="p-4 align-middle">
-                    {activeSubmission?.grade !== null && activeSubmission?.grade !== undefined ? (
-                      <div className="flex items-center gap-2">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-md font-black text-sm ${
-                          Number(activeSubmission.grade) >= 4.0
-                            ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                            : Number(activeSubmission.grade) >= 3.0
-                            ? "bg-amber-100 text-amber-800 border border-amber-300"
-                            : "bg-red-100 text-red-800 border border-red-300"
-                        }`}>
-                          {Number(activeSubmission.grade).toFixed(1).replace('.', ',')}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-gray-400 font-medium">-</span>
-                    )}
-                  </td>
-                </tr>
                 
                 {/* Última modificación / Fecha de finalización */}
                 <tr className="border-b border-gray-100">
