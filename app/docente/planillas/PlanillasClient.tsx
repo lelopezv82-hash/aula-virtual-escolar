@@ -6,7 +6,7 @@ import {
   ArrowLeft, FileSpreadsheet, FileText, Loader2,
   Save, Undo2, AlertTriangle, Check, Info,
   Plus, Trash2, X, Pencil, CheckCircle, AlertCircle, Clock,
-  Eye, EyeOff, Users, Search, Sparkles, Copy, Calendar
+  Eye, EyeOff, Users, Search, Sparkles, Copy, Calendar, Download, RotateCcw
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -18,7 +18,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { useToast } from "@/components/Toast";
 
-// ── Interfaces ────────────────────────────────────────────────────────────────
+// â”€â”€ Interfaces â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface Group {
   id: string;
@@ -79,11 +79,11 @@ interface CourseWeights {
   finalPercent: number;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-// SABER = EXAM / TASK_SABER (exámenes / tareas), HACER = TASK (tareas), SER = SER (actitudinal)
+// SABER = EXAM / TASK_SABER (exÃ¡menes / tareas), HACER = TASK (tareas), SER = SER (actitudinal)
 const CATEGORIES = [
-  { type: "EXAM",   label: "SABER",       sublabel: "Exámenes / Tareas", pctKey: "saberPercent",  color: { header: "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300", cell: "bg-purple-50/60 dark:bg-purple-900/10", cellBorder: "border-l-purple-300 dark:border-l-purple-700", badge: "bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300", dot: "#a855f7", btn: "hover:bg-purple-200 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300" } },
+  { type: "EXAM",   label: "SABER",       sublabel: "ExÃ¡menes / Tareas", pctKey: "saberPercent",  color: { header: "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300", cell: "bg-purple-50/60 dark:bg-purple-900/10", cellBorder: "border-l-purple-300 dark:border-l-purple-700", badge: "bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300", dot: "#a855f7", btn: "hover:bg-purple-200 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300" } },
   { type: "TASK",   label: "HACER",       sublabel: "Tareas",      pctKey: "hacerPercent",  color: { header: "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300", cell: "bg-orange-50/60 dark:bg-orange-900/10", cellBorder: "border-l-orange-300 dark:border-l-orange-700", badge: "bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300", dot: "#d97706", btn: "hover:bg-orange-200 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300" } },
   { type: "SER",    label: "SER",         sublabel: "Actitudinal", pctKey: "serPercent",    color: { header: "bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-300", cell: "bg-teal-50/60 dark:bg-teal-900/10", cellBorder: "border-l-teal-400 dark:border-l-teal-700", badge: "bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-300", dot: "#0d9488", btn: "hover:bg-teal-200 bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300" } },
   { type: "FINAL",  label: "EXAMEN FINAL", sublabel: "",           pctKey: "finalPercent",  color: { header: "bg-sky-100 dark:bg-sky-900/30 text-sky-800 dark:text-sky-300", cell: "bg-sky-50/60 dark:bg-sky-900/10", cellBorder: "border-l-sky-300 dark:border-l-sky-700", badge: "bg-sky-100 text-sky-800 dark:bg-sky-900/50 dark:text-sky-300", dot: "#0ea5e9", btn: "hover:bg-sky-200 bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300" } },
@@ -95,7 +95,7 @@ type CatType = (typeof CATEGORIES)[number]["type"];
 const getDesempeno = (g: number) => {
   if (g >= 4.6) return { label: "SUPERIOR", cls: "text-purple-700 bg-purple-50 dark:bg-purple-900/30 dark:text-purple-300" };
   if (g >= 4.0) return { label: "ALTO",     cls: "text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-300" };
-  if (g >= 3.0) return { label: "BÁSICO",   cls: "text-green-700 bg-green-50 dark:bg-green-900/30 dark:text-green-300" };
+  if (g >= 3.0) return { label: "BÃSICO",   cls: "text-green-700 bg-green-50 dark:bg-green-900/30 dark:text-green-300" };
   return           { label: "BAJO",     cls: "text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-300" };
 };
 
@@ -106,7 +106,7 @@ const gradeColor = (g: number | null) => {
   return "#16a34a";
 };
 
-/** Converts a 0-based column index to Excel column letters: 0→A, 25→Z, 26→AA … */
+/** Converts a 0-based column index to Excel column letters: 0â†’A, 25â†’Z, 26â†’AA â€¦ */
 const colLetter = (idx: number): string => {
   let s = "";
   let n = idx;
@@ -117,7 +117,7 @@ const colLetter = (idx: number): string => {
   return s;
 };
 
-// ── Main Component ────────────────────────────────────────────────────────────
+// â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function PlanillasClient({ courses, periods, teacherName }: PlanillasClientProps) {
   const searchParams = useSearchParams();
@@ -131,12 +131,12 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const initPeriod   = searchPeriod || periods[0]?.name || "Periodo 1";
   const initGroupId  = searchGroupId || "";
 
-  // ── Selector state ──
+  // â”€â”€ Selector state â”€â”€
   const [selectedCourseId, setSelectedCourseId] = useState(initCourseId);
   const [selectedPeriod,   setSelectedPeriod]   = useState(initPeriod);
   const [selectedGroupId,  setSelectedGroupId]  = useState(initGroupId);
 
-  // ── Sync Helper for URL & LocalStorage ──
+  // â”€â”€ Sync Helper for URL & LocalStorage â”€â”€
   const updateUrlAndStorage = useCallback((newCourseId: string, newPeriod: string, newGroupId: string, calificarId?: string | null) => {
     if (typeof window === "undefined") return;
     try {
@@ -160,7 +160,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     window.history.replaceState({}, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
   }, []);
 
-  // ── Restore from localStorage on mount if URL parameters were absent ──
+  // â”€â”€ Restore from localStorage on mount if URL parameters were absent â”€â”€
   useEffect(() => {
     try {
       if (!searchCourseId) {
@@ -184,17 +184,17 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     } catch {}
   }, []);
 
-  // ── Data state ──
+  // â”€â”€ Data state â”€â”€
   const [students,      setStudents]      = useState<Student[]>([]);
   const [tasks,         setTasks]         = useState<TaskItem[]>([]);
   const [courseWeights, setCourseWeights] = useState<CourseWeights | null>(null);
   const [loading,       setLoading]       = useState(false);
 
-  // ── Grades grid state ──
+  // â”€â”€ Grades grid state â”€â”€
   const [gradesGrid,   setGradesGrid]   = useState<Record<string, Record<string, string>>>({});
   const [initialGrid,  setInitialGrid]  = useState<Record<string, Record<string, string>>>({});
 
-  // ── Weights edit state ──
+  // â”€â”€ Weights edit state â”€â”€
   const [pctForm,     setPctForm]     = useState({ saber: 25, hacer: 40, ser: 15, final: 20 });
   const [savingPct,   setSavingPct]   = useState(false);
   const [pctSuccess,  setPctSuccess]  = useState(false);
@@ -204,11 +204,11 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError,   setSaveError]   = useState("");
 
-  // ── Portal mount guard (SSR-safe) ──
+  // â”€â”€ Portal mount guard (SSR-safe) â”€â”€
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => { setIsMounted(true); }, []);
 
-  // ── Add column modal ──
+  // â”€â”€ Add column modal â”€â”€
   const [addModal,    setAddModal]    = useState<{ type: CatType } | null>(null);
   const [selectedSaberSubtype, setSelectedSaberSubtype] = useState<"TASK_SABER" | "EXAM">("TASK_SABER");
   const [allCourseStudents, setAllCourseStudents] = useState<{ id: string; name: string; groupName?: string; grade?: string; groupId?: string; group?: any }[]>([]);
@@ -231,22 +231,22 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [existingAttachmentUrl, setExistingAttachmentUrl] = useState<string | null>(null);
   const [addingTask,  setAddingTask]  = useState(false);
 
-  // ── Resource linking in modal ──
+  // â”€â”€ Resource linking in modal â”€â”€
   const [modalResources, setModalResources] = useState<{id: string; title: string; type: string}[]>([]);
   const [newTaskResourceIds, setNewTaskResourceIds] = useState<string[]>([]);
   const [loadingResources, setLoadingResources] = useState(false);
 
-  // ── Edit modal ──
+  // â”€â”€ Edit modal â”€â”€
   const [editTaskId,  setEditTaskId]  = useState<string | null>(null);
   const [loadingEdit, setLoadingEdit] = useState(false);
 
-  // ── Toggle active ──
+  // â”€â”€ Toggle active â”€â”€
   const [togglingId, setTogglingId]  = useState<string | null>(null);
 
-  // ── Delete confirm ──
+  // â”€â”€ Delete confirm â”€â”€
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // ── Manual Grading Full-Screen State ──
+  // â”€â”€ Manual Grading Full-Screen State â”€â”€
   const [gradingTask, setGradingTask] = useState<TaskItem | null>(null);
   const [gradingStudents, setGradingStudents] = useState<Array<{ id: string; name: string; groupName: string; submission: { id: string; status: string; grade: number | null; feedback: string | null; submittedAt: string | null; fileUrl: string | null } | null }>>([]); 
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
@@ -297,8 +297,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           e.preventDefault();
           e.stopPropagation();
           toast.warning(
-            "¡Calificaciones sin guardar!",
-            "Guarda las calificaciones antes de navegar a otra sección de la plataforma."
+            "Â¡Calificaciones sin guardar!",
+            "Guarda las calificaciones antes de navegar a otra secciÃ³n de la plataforma."
           );
         }
       }
@@ -308,7 +308,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     return () => document.removeEventListener("click", handleLinkClick, true);
   }, [hasUnsavedGradingChanges, toast]);
 
-  // ── Duplication / Cloning Modal State ──
+  // â”€â”€ Duplication / Cloning Modal State â”€â”€
   const [duplicateModalTask, setDuplicateModalTask] = useState<TaskItem | null>(null);
   const [duplicateTargetCourseId, setDuplicateTargetCourseId] = useState<string>("");
   const [duplicateTargetGroupIds, setDuplicateTargetGroupIds] = useState<string[]>([]);
@@ -319,13 +319,13 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [duplicateSuccess, setDuplicateSuccess] = useState<string>("");
   const [duplicateError, setDuplicateError] = useState<string>("");
 
-  // ── Reusable tasks for Add Modal ──
+  // â”€â”€ Reusable tasks for Add Modal â”€â”€
   const [reusableTasks, setReusableTasks] = useState<any[]>([]);
   const [loadingReusableTasks, setLoadingReusableTasks] = useState(false);
   const [selectedReuseTaskId, setSelectedReuseTaskId] = useState<string>("");
   const [showReusePicker, setShowReusePicker] = useState<boolean>(false);
 
-  // ── Exam / Task Management Modal ──
+  // â”€â”€ Exam / Task Management Modal â”€â”€
   const [questionsModalTask, setQuestionsModalTask] = useState<TaskItem | null>(null);
   const [examQuestions, setExamQuestions] = useState<any[]>([]);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
@@ -343,7 +343,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [bulkProrrogaDate, setBulkProrrogaDate] = useState("");
   const [savingBulkProrroga, setSavingBulkProrroga] = useState(false);
 
-  // ── Custom Excel Sync Wizard State ──
+  // â”€â”€ Custom Excel Sync Wizard State â”€â”€
   const [customExcelData, setCustomExcelData] = useState<{
     rows: any[][];
     headers: string[];
@@ -418,7 +418,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         alert(json.error || "Error al sincronizar con Google Drive");
       }
     } catch (e) {
-      alert("Error de conexión al sincronizar");
+      alert("Error de conexiÃ³n al sincronizar");
     } finally {
       setGDriveSyncing(false);
     }
@@ -457,7 +457,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         alert(json.error || 'Error al subir el archivo a Google Drive');
       }
     } catch (err) {
-      alert('Error de conexión al subir el archivo');
+      alert('Error de conexiÃ³n al subir el archivo');
     } finally {
       setGDriveUploading(false);
       e.target.value = '';
@@ -465,7 +465,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   };
 
 
-  // ── Derived ──
+  // â”€â”€ Derived â”€â”€
   const selectedCourse = courses.find(c => c.id === selectedCourseId) || courses[0];
   const groups = selectedCourse?.groups ?? [];
 
@@ -499,7 +499,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCourseId, selectedPeriod, selectedGroupId]);
 
-  // ── URL Query Param watcher for calificarTaskId persistence across F5 ──
+  // â”€â”€ URL Query Param watcher for calificarTaskId persistence across F5 â”€â”€
   useEffect(() => {
     if (calificarTaskIdParam && (!gradingTask || gradingTask.id !== calificarTaskIdParam)) {
       const gId = searchParams.get("groupId") || selectedGroupId || undefined;
@@ -577,7 +577,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     finally   { setLoading(false); }
   };
 
-  // ── Category slices ──
+  // â”€â”€ Category slices â”€â”€
   const byType = useCallback(
     (type: string) => {
       if (type === "EXAM") {
@@ -603,7 +603,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     [gradesGrid, initialGrid]
   );
 
-  // ── Cell handler ──
+  // â”€â”€ Cell handler â”€â”€
   const handleCell = (studentId: string, taskId: string, value: string) => {
     if (value !== "") {
       const p = parseFloat(value);
@@ -612,7 +612,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     setGradesGrid(prev => ({ ...prev, [studentId]: { ...prev[studentId], [taskId]: value } }));
   };
 
-  // ── Save grades ──
+  // â”€â”€ Save grades â”€â”€
   const handleSave = async () => {
     setSaving(true); setSaveError(""); setSaveSuccess(false);
     const submissions: { studentId: string; taskId: string; grade: string | null }[] = [];
@@ -634,11 +634,11 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         setInitialGrid(JSON.parse(JSON.stringify(gradesGrid)));
         setTimeout(() => setSaveSuccess(false), 3000);
       } else setSaveError(data.error ?? "Error al guardar");
-    } catch { setSaveError("Error de conexión"); }
+    } catch { setSaveError("Error de conexiÃ³n"); }
     finally   { setSaving(false); }
   };
 
-  // ── Save weight percentages ──
+  // â”€â”€ Save weight percentages â”€â”€
   const pctTotal   = pctForm.saber + pctForm.hacer + pctForm.ser + pctForm.final;
   const pctChanged = courseWeights
     ? pctForm.saber !== courseWeights.saberPercent
@@ -673,7 +673,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         const d = await res.json();
         setPctError(d.error ?? "Error al guardar pesos");
       }
-    } catch { setPctError("Error de conexión"); }
+    } catch { setPctError("Error de conexiÃ³n"); }
     setSavingPct(false);
   };
 
@@ -686,7 +686,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   };
 
-  // ── Add column ──
+  // â”€â”€ Add column â”€â”€
   const openAddModal = (type: CatType) => {
     setAddModal({ type });
     setSelectedSaberSubtype("TASK_SABER");
@@ -774,8 +774,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     try {
       const res = await fetch("/api/docente/tareas", { method: "POST", body: buildFormData() });
       if (res.ok) { setAddModal(null); fetchData(); }
-      else { const d = await res.json(); alert(d.error ?? (addModal.type === "EXAM" ? "Error al crear la actividad del Saber." : addModal.type === "TASK" ? "Error al crear la tarea." : "Error al crear la evaluación.")); }
-    } catch { alert("Error de conexión."); }
+      else { const d = await res.json(); alert(d.error ?? (addModal.type === "EXAM" ? "Error al crear la actividad del Saber." : addModal.type === "TASK" ? "Error al crear la tarea." : "Error al crear la evaluaciÃ³n.")); }
+    } catch { alert("Error de conexiÃ³n."); }
     setAddingTask(false);
   };
 
@@ -837,7 +837,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           .then(d => { if (d.students) setAllCourseStudents(d.students); })
           .catch(() => {});
       }
-    } catch { alert("Error de conexión."); }
+    } catch { alert("Error de conexiÃ³n."); }
     setLoadingEdit(false);
   };
 
@@ -848,7 +848,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       const res = await fetch(`/api/docente/tareas/${editTaskId}`, { method: "PATCH", body: buildFormData() });
       if (res.ok) { setAddModal(null); setEditTaskId(null); fetchData(); }
       else { const d = await res.json(); alert(d.error ?? "Error al guardar cambios."); }
-    } catch { alert("Error de conexión."); }
+    } catch { alert("Error de conexiÃ³n."); }
     setAddingTask(false);
   };
 
@@ -862,24 +862,24 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       });
       if (res.ok) fetchData();
       else alert("Error al cambiar estado.");
-    } catch { alert("Error de conexión."); }
+    } catch { alert("Error de conexiÃ³n."); }
     setTogglingId(null);
   };
 
-  // ── Delete column ──
+  // â”€â”€ Delete column â”€â”€
   const handleDeleteTask = async (taskId: string, taskTitle: string) => {
-    if (!confirm(`⚠️ ¿Eliminar "${taskTitle}"? Se borrarán las notas asociadas a este grupo. Esta acción no se puede deshacer.`)) return;
+    if (!confirm(`âš ï¸ Â¿Eliminar "${taskTitle}"? Se borrarÃ¡n las notas asociadas a este grupo. Esta acciÃ³n no se puede deshacer.`)) return;
     setDeletingId(taskId);
     try {
       const qp = selectedGroupId ? `&groupId=${encodeURIComponent(selectedGroupId)}` : "";
       const res = await fetch(`/api/docente/cursos/${selectedCourseId}/grades/spreadsheet/columns?taskId=${taskId}${qp}`, { method: "DELETE" });
       if (res.ok) fetchData();
       else        alert("Error eliminando columna.");
-    } catch { alert("Error de conexión."); }
+    } catch { alert("Error de conexiÃ³n."); }
     setDeletingId(null);
   };
 
-  // ── Per-student stats ──
+  // â”€â”€ Per-student stats â”€â”€
   const calcStats = useCallback((studentId: string) => {
     const g = gradesGrid[studentId] ?? {};
     const avg = (list: TaskItem[]) => {
@@ -910,7 +910,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     };
   }, [gradesGrid, byType, pctForm]);
 
-  // ── Manual grading handlers ──────────────────────────────────────────────────
+  // â”€â”€ Manual grading handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const openGradingModal = async (task: { id: string; title?: string; type?: string; submissions?: any[] }, targetGroupId?: string) => {
     const currentParamGroupId = searchParams.get("groupId");
     const gId = targetGroupId !== undefined
@@ -995,7 +995,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         setGradingError(data.error || "Error al cargar estudiantes");
       }
     } catch {
-      setGradingError("Error de conexión");
+      setGradingError("Error de conexiÃ³n");
     } finally {
       setLoadingStudents(false);
     }
@@ -1005,7 +1005,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     if (!gradingTask) return;
     if (hasUnsavedGradingChanges) {
       toast.warning(
-        "¡Calificaciones sin guardar!",
+        "Â¡Calificaciones sin guardar!",
         "Tienes notas modificadas pendientes de guardar en este grupo. Guarda las calificaciones antes de cambiar de grupo."
       );
       return;
@@ -1016,7 +1016,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     openGradingModal(gradingTask, newGroupId);
   };
 
-  // ── Duplication / Cloning Handlers ──
+  // â”€â”€ Duplication / Cloning Handlers â”€â”€
   const openDuplicateModal = (task: TaskItem) => {
     setDuplicateModalTask(task);
     setDuplicateTargetCourseId(selectedCourseId);
@@ -1055,7 +1055,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       });
       const data = await res.json();
       if (res.ok && data.task) {
-        setDuplicateSuccess("¡Actividad clonada con éxito con planilla de notas 100% limpia y nueva fecha!");
+        setDuplicateSuccess("Â¡Actividad clonada con Ã©xito con planilla de notas 100% limpia y nueva fecha!");
         setTimeout(() => {
           setDuplicateModalTask(null);
           setDuplicateSuccess("");
@@ -1065,7 +1065,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         setDuplicateError(data.error || "Error al duplicar la actividad");
       }
     } catch {
-      setDuplicateError("Error de conexión al duplicar");
+      setDuplicateError("Error de conexiÃ³n al duplicar");
     } finally {
       setDuplicating(false);
     }
@@ -1120,7 +1120,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         alert(data.error || "Error al clonar la actividad.");
       }
     } catch {
-      alert("Error de conexión al clonar.");
+      alert("Error de conexiÃ³n al clonar.");
     } finally {
       setAddingTask(false);
     }
@@ -1129,7 +1129,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const closeGrading = () => {
     if (hasUnsavedGradingChanges) {
       toast.warning(
-        "¡Calificaciones sin guardar!",
+        "Â¡Calificaciones sin guardar!",
         "Has modificado notas o comentarios. Debes presionar 'Guardar Calificaciones' para guardar los cambios antes de salir."
       );
       return;
@@ -1158,13 +1158,13 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const applyBulkGrade = () => {
     const num = parseFloat(bulkGradeValue);
     if (isNaN(num) || num < 1.0 || num > 5.0) {
-      toast.warning("Calificación inválida", "Por favor ingresa un valor entre 1.0 y 5.0");
+      toast.warning("CalificaciÃ³n invÃ¡lida", "Por favor ingresa un valor entre 1.0 y 5.0");
       return;
     }
     const formatted = num.toFixed(1);
     const targetStudents = gradingStudents.filter(s => selectedStudentIds.includes(s.id));
     if (targetStudents.length === 0) {
-      toast.warning("Sin selección", "Selecciona al menos un estudiante con el checkbox para aplicar la calificación.");
+      toast.warning("Sin selecciÃ³n", "Selecciona al menos un estudiante con el checkbox para aplicar la calificaciÃ³n.");
       return;
     }
     setGradeInputs(prev => {
@@ -1209,7 +1209,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         if (questRes.ok) setExamQuestions(questData.questions || []);
       }
     } catch {
-      alert("Error de conexión al cargar la información de la tarea");
+      alert("Error de conexiÃ³n al cargar la informaciÃ³n de la tarea");
     } finally {
       setLoadingQuestions(false);
     }
@@ -1248,13 +1248,13 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         if (r.ok) setTaskStudents(d.students || []);
         setSelectedTaskStudentIds([]);
         setShowBulkProrrogaInPlanilla(false);
-        toast.success("Prórroga aplicada", `Se configuró la prórroga para los ${selectedTaskStudentIds.length} estudiantes seleccionados.`);
+        toast.success("PrÃ³rroga aplicada", `Se configurÃ³ la prÃ³rroga para los ${selectedTaskStudentIds.length} estudiantes seleccionados.`);
       } else {
         const errData = await res.json();
-        toast.error("Error", errData.error || "No se pudo aplicar la prórroga.");
+        toast.error("Error", errData.error || "No se pudo aplicar la prÃ³rroga.");
       }
     } catch {
-      toast.error("Error de conexión");
+      toast.error("Error de conexiÃ³n");
     } finally {
       setSavingBulkProrroga(false);
     }
@@ -1278,8 +1278,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         const r = await fetch(`/api/docente/tareas/${questionsModalTask.id}/students-grades`);
         const d = await r.json();
         if (r.ok) setTaskStudents(d.students || []);
-        alert("Prórroga global guardada con éxito.");
-      } else { alert("Error al guardar la prórroga."); }
+        alert("PrÃ³rroga global guardada con Ã©xito.");
+      } else { alert("Error al guardar la prÃ³rroga."); }
     } catch { alert("Error de red"); } finally { setSavingGlobalLate(false); }
   };
 
@@ -1299,15 +1299,15 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         const r = await fetch(`/api/docente/tareas/${questionsModalTask.id}/students-grades`);
         const d = await r.json();
         if (r.ok) setTaskStudents(d.students || []);
-      } else { alert("Error al actualizar la prórroga del estudiante"); }
-    } catch { alert("Error de conexión"); }
+      } else { alert("Error al actualizar la prÃ³rroga del estudiante"); }
+    } catch { alert("Error de conexiÃ³n"); }
   };
 
   const resetStudentSubmission = async (studentId: string, studentName: string, hasSub: boolean) => {
     if (!questionsModalTask) return;
     const msg = hasSub
-      ? `¿Reiniciar el examen de ${studentName}? Se eliminará el intento actual.`
-      : `¿Habilitar el examen de ${studentName}?`;
+      ? `Â¿Reiniciar el examen de ${studentName}? Se eliminarÃ¡ el intento actual.`
+      : `Â¿Habilitar el examen de ${studentName}?`;
     if (!confirm(msg)) return;
     setResettingSubmissions(studentId);
     try {
@@ -1321,12 +1321,12 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         const d = await res.json();
         alert(d.error || "Error al reiniciar");
       }
-    } catch { alert("Error de conexión"); } finally { setResettingSubmissions(null); }
+    } catch { alert("Error de conexiÃ³n"); } finally { setResettingSubmissions(null); }
   };
 
   const resetAllGroupSubmissions = async () => {
     if (!questionsModalTask) return;
-    if (!confirm(`¿Reiniciar el examen para los ${taskStudents.length} estudiantes del grupo? Se eliminarán todos los intentos.`)) return;
+    if (!confirm(`Â¿Reiniciar el examen para los ${taskStudents.length} estudiantes del grupo? Se eliminarÃ¡n todos los intentos.`)) return;
     setResettingSubmissions("all");
     try {
       const res = await fetch(`/api/docente/tareas/${questionsModalTask.id}/reset-all`, {
@@ -1341,7 +1341,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         if (r.ok) setTaskStudents(d.students || []);
         alert(`Reiniciados ${data.resetCount} intentos.`);
       } else { alert(data.error || "Error al reiniciar"); }
-    } catch { alert("Error de conexión"); } finally { setResettingSubmissions(null); }
+    } catch { alert("Error de conexiÃ³n"); } finally { setResettingSubmissions(null); }
   };
 
   const saveManualGrades = async () => {
@@ -1378,7 +1378,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       setGradingSaved(true);
       setTimeout(() => setGradingSaved(false), 3500);
       fetchData();
-      toast.success("¡Calificaciones guardadas!", "Todas las notas fueron registradas correctamente.");
+      toast.success("Â¡Calificaciones guardadas!", "Todas las notas fueron registradas correctamente.");
     } catch {
       setGradingError("Error al guardar calificaciones");
       toast.error("Error al guardar", "No se pudieron guardar las calificaciones. Intenta de nuevo.");
@@ -1394,7 +1394,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     return <span className="badge badge-danger flex items-center gap-1"><AlertCircle size={10} /> Pendiente</span>;
   };
 
-  // ── Export & Sync ──
+  // â”€â”€ Export & Sync â”€â”€
   const exportToExcel = () => {
     const t = document.getElementById("planillas-table");
     if (!t) return;
@@ -1458,7 +1458,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
     const getColCategory = (header: string): string | null => {
       const h = header.toLowerCase();
-      if (h.includes("def") || h.includes("promedio") || h.includes("desempeño") || h.includes("total") || h.includes("nota final") || h.includes("planilla")) {
+      if (h.includes("def") || h.includes("promedio") || h.includes("desempeÃ±o") || h.includes("total") || h.includes("nota final") || h.includes("planilla")) {
         return null;
       }
       if (h.includes("saber") || h.includes("exam") || h.includes("evaluaci") || h.includes("quiz") || h.includes("prueba")) return "EXAM";
@@ -1558,7 +1558,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           }
 
           setGradesGrid(updatedGradesGrid);
-          alert(`Sincronización exitosa. Se leyeron calificaciones para los estudiantes en pantalla. Revisa los cambios resaltados en amarillo y presiona 'Guardar' para confirmarlos.`);
+          alert(`SincronizaciÃ³n exitosa. Se leyeron calificaciones para los estudiantes en pantalla. Revisa los cambios resaltados en amarillo y presiona 'Guardar' para confirmarlos.`);
           return;
         }
 
@@ -1712,7 +1712,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
       } catch (err: any) {
         console.error(err);
-        alert(`Ocurrió un error al procesar el archivo Excel: ${err?.message || err}`);
+        alert(`OcurriÃ³ un error al procesar el archivo Excel: ${err?.message || err}`);
       }
     };
     reader.readAsBinaryString(file);
@@ -1789,7 +1789,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     setExcelTaskMappings(mappings);
   };
 
-  // ── Shared helpers for Excel sync ──
+  // â”€â”€ Shared helpers for Excel sync â”€â”€
   const _normalizeName = (name: string) =>
     name.toLowerCase()
       .normalize("NFD")
@@ -1868,7 +1868,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
     const activeMappings = _getActiveMappings();
 
-    // ── Deep copy to avoid mutating original grid entries ──
+    // â”€â”€ Deep copy to avoid mutating original grid entries â”€â”€
     // A shallow copy ({ ...gradesGrid }) shares inner objects, so writing to
     // updatedGradesGrid[id][taskId] would also mutate gradesGrid[id][taskId],
     // breaking the "already has grade" check below.
@@ -1896,7 +1896,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         const existingGrade = gradesGrid[studentMatch.id]?.[taskId];
         const alreadyHasGrade = existingGrade !== undefined && existingGrade !== null && String(existingGrade).trim() !== "";
         if (alreadyHasGrade) {
-          // There is already a grade on the platform — skip, never overwrite
+          // There is already a grade on the platform â€” skip, never overwrite
           skippedCount++;
         } else if (gradeVal !== undefined && gradeVal !== null && String(gradeVal).trim() !== "") {
           const cleanGrade = String(gradeVal).replace(",", ".").trim();
@@ -1918,17 +1918,17 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
 
   const exportToOfficialTemplate = () => {
-    // ── Column layout (matches template image exactly) ──────────────────────
+    // â”€â”€ Column layout (matches template image exactly) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // A(0):  No.
     // B(1):  NOMBRE COMPLETO
-    // C–F(2–5):   SABER 30% → 4 slots
-    // G–P(6–15):  HACER 50% → 10 slots
-    // Q–S(16–18): SER 20%   → 3 slots
+    // Câ€“F(2â€“5):   SABER 30% â†’ 4 slots
+    // Gâ€“P(6â€“15):  HACER 50% â†’ 10 slots
+    // Qâ€“S(16â€“18): SER 20%   â†’ 3 slots
     // T(19): DEF SABER  (formula)
     // U(20): DEF HACER  (formula)
     // V(21): DEF SER    (formula)
     // W(22): DEF final  (formula)
-    // X(23): DESEMPEÑO  (formula)
+    // X(23): DESEMPEÃ‘O  (formula)
     const TOTAL_COLS = 24;
     const SABER_START = 2;  const SABER_SLOTS = 4;
     const HACER_START = 6;  const HACER_SLOTS = 10;
@@ -1955,23 +1955,23 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     // Helper: build empty row of TOTAL_COLS cells
     const emptyRow = () => Array<any>(TOTAL_COLS).fill("");
 
-    // ── Row 0: INSTITUCIÓN EDUCATIVA ─────────────────────────────────────
-    const r0 = emptyRow(); r0[0] = "INSTITUCIÓN EDUCATIVA";
-    // ── Row 1: School name ───────────────────────────────────────────────
-    const r1 = emptyRow(); r1[0] = "MONSEÑOR DÍAZ PLATA";
-    // ── Row 2: LISTADO DE DESEMPEÑO ──────────────────────────────────────
-    const r2 = emptyRow(); r2[0] = "LISTADO DE DESEMPEÑO 2026";
-    // ── Row 3: empty ─────────────────────────────────────────────────────
+    // â”€â”€ Row 0: INSTITUCIÃ“N EDUCATIVA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    const r0 = emptyRow(); r0[0] = "INSTITUCIÃ“N EDUCATIVA";
+    // â”€â”€ Row 1: School name â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    const r1 = emptyRow(); r1[0] = "MONSEÃ‘OR DÃAZ PLATA";
+    // â”€â”€ Row 2: LISTADO DE DESEMPEÃ‘O â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    const r2 = emptyRow(); r2[0] = "LISTADO DE DESEMPEÃ‘O 2026";
+    // â”€â”€ Row 3: empty â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const r3 = emptyRow();
-    // ── Row 4: meta (DOCENTE / ASIGNATURA / GRADO / PERIODO) ────────────
+    // â”€â”€ Row 4: meta (DOCENTE / ASIGNATURA / GRADO / PERIODO) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const r4 = emptyRow();
     r4[0]  = "DOCENTE:";   r4[1]  = teacherName;
     r4[4]  = "ASIGNATURA:"; r4[5]  = selectedCourse?.name ?? "";
     r4[11] = "GRADO:";     r4[12] = gradeLabel;
     r4[16] = "PERIODO:";   r4[17] = selectedPeriod;
-    // ── Row 5: empty ─────────────────────────────────────────────────────
+    // â”€â”€ Row 5: empty â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const r5 = emptyRow();
-    // ── Row 6: category headers ──────────────────────────────────────────
+    // â”€â”€ Row 6: category headers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const r6 = emptyRow();
     r6[0]  = "No.";
     r6[1]  = "NOMBRE COMPLETO";
@@ -1980,8 +1980,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     r6[SER_START]   = `SER ${Math.round(serPct * 100)}%`;
     r6[COL_DEF_SABER] = "DEF";
     r6[COL_DEF]     = "DEF";
-    r6[COL_DESEMP]  = "DESEMPEÑO";
-    // ── Row 7: sub-column numbers ─────────────────────────────────────────
+    r6[COL_DESEMP]  = "DESEMPEÃ‘O";
+    // â”€â”€ Row 7: sub-column numbers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const r7 = emptyRow();
     for (let j = 0; j < SABER_SLOTS; j++) r7[SABER_START + j] = j + 1;
     for (let j = 0; j < HACER_SLOTS; j++) r7[HACER_START + j] = j + 1;
@@ -1992,7 +1992,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
     const wsData: any[][] = [r0, r1, r2, r3, r4, r5, r6, r7];
 
-    // ── Data rows start at Excel row 9 (1-indexed), index 8 ──────────────
+    // â”€â”€ Data rows start at Excel row 9 (1-indexed), index 8 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const FIRST_DATA_EXCEL_ROW = 9;
 
     students.forEach((student, i) => {
@@ -2030,14 +2030,14 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       row.push({ t: "n", f: `IFERROR(AVERAGE(${hE}${excelRow}:${hL}${excelRow})*${hacerPct},0)` });
       row.push({ t: "n", f: `IFERROR(AVERAGE(${aE}${excelRow}:${aL}${excelRow})*${serPct},0)` });
       row.push({ t: "n", f: `IFERROR(${dS}${excelRow}+${dH}${excelRow}+${dA}${excelRow},0)` });
-      row.push({ t: "s", f: `IF(${dF}${excelRow}=0,"",IF(${dF}${excelRow}>=4.6,"SUPERIOR",IF(${dF}${excelRow}>=4.0,"ALTO",IF(${dF}${excelRow}>=3.0,"BÁSICO","BAJO"))))` });
+      row.push({ t: "s", f: `IF(${dF}${excelRow}=0,"",IF(${dF}${excelRow}>=4.6,"SUPERIOR",IF(${dF}${excelRow}>=4.0,"ALTO",IF(${dF}${excelRow}>=3.0,"BÃSICO","BAJO"))))` });
 
       wsData.push(row);
     });
 
     const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-    // ── Column widths ────────────────────────────────────────────────────
+    // â”€â”€ Column widths â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     ws["!cols"] = [
       { wch: 5 },   // A: No.
       { wch: 28 },  // B: Nombre
@@ -2046,10 +2046,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       ...Array(SER_SLOTS).fill(null).map(() => ({ wch: 7 })),    // Q-S
       { wch: 10 }, { wch: 10 }, { wch: 10 },  // T-V: DEF sub
       { wch: 10 },  // W: DEF
-      { wch: 13 },  // X: DESEMPEÑO
+      { wch: 13 },  // X: DESEMPEÃ‘O
     ];
 
-    // ── Row heights ───────────────────────────────────────────────────────
+    // â”€â”€ Row heights â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     ws["!rows"] = [
       { hpt: 18 }, // Row 1: Institution
       { hpt: 28 }, // Row 2: School name
@@ -2061,10 +2061,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       { hpt: 20 }, // Row 8: sub-numbers
     ];
 
-    // ── Cell merges ───────────────────────────────────────────────────────
+    // â”€â”€ Cell merges â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     ws["!merges"] = [
       // Title rows
-      { s: { r: 0, c: 0 }, e: { r: 0, c: TOTAL_COLS - 1 } }, // INSTITUCIÓN
+      { s: { r: 0, c: 0 }, e: { r: 0, c: TOTAL_COLS - 1 } }, // INSTITUCIÃ“N
       { s: { r: 1, c: 0 }, e: { r: 1, c: TOTAL_COLS - 1 } }, // School name
       { s: { r: 2, c: 0 }, e: { r: 2, c: TOTAL_COLS - 1 } }, // Listado
       // Meta row
@@ -2072,7 +2072,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       { s: { r: 4, c: 5  }, e: { r: 4, c: 10 } },  // Subject value
       { s: { r: 4, c: 12 }, e: { r: 4, c: 15 } },  // Grade value
       { s: { r: 4, c: 17 }, e: { r: 4, c: TOTAL_COLS - 1 } }, // Period value
-      // Category header row (row 6) — "No." and "NOMBRE" span 2 rows
+      // Category header row (row 6) â€” "No." and "NOMBRE" span 2 rows
       { s: { r: 6, c: 0 }, e: { r: 7, c: 0 } },  // No.
       { s: { r: 6, c: 1 }, e: { r: 7, c: 1 } },  // NOMBRE COMPLETO
       { s: { r: 6, c: SABER_START }, e: { r: 6, c: SABER_START + SABER_SLOTS - 1 } }, // SABER
@@ -2080,7 +2080,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       { s: { r: 6, c: SER_START   }, e: { r: 6, c: SER_START   + SER_SLOTS   - 1 } }, // SER
       { s: { r: 6, c: COL_DEF_SABER }, e: { r: 6, c: COL_DEF_SER } }, // DEF (3 sub-cols)
       { s: { r: 6, c: COL_DEF    }, e: { r: 7, c: COL_DEF    } }, // DEF final spans 2 rows
-      { s: { r: 6, c: COL_DESEMP }, e: { r: 7, c: COL_DESEMP } }, // DESEMPEÑO spans 2 rows
+      { s: { r: 6, c: COL_DESEMP }, e: { r: 7, c: COL_DESEMP } }, // DESEMPEÃ‘O spans 2 rows
     ];
 
     const wb = XLSX.utils.book_new();
@@ -2091,7 +2091,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
   const exportToPDF = () => {
     const doc = new jsPDF("landscape");
-    doc.text(`Consolidado — ${selectedCourse?.name ?? ""}  |  ${selectedPeriod}  |  Docente: ${teacherName}`, 14, 14);
+    doc.text(`Consolidado â€” ${selectedCourse?.name ?? ""}  |  ${selectedPeriod}  |  Docente: ${teacherName}`, 14, 14);
     autoTable(doc, { html: "#planillas-table", startY: 22, styles: { fontSize: 7 } });
     doc.save(`Planilla_${selectedCourse?.name}_${selectedPeriod}.pdf`);
   };
@@ -2105,7 +2105,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const showFinal  = byType("FINAL").length  > 0 || fp > 0;
   const showAttend = byType("ATTEND").length > 0;
 
-  // ── Render helpers ──────────────────────────────────────────────────────────
+  // â”€â”€ Render helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const renderCatHeader = (cat: typeof CATEGORIES[number]) => {
     const catTasks = byType(cat.type);
@@ -2134,7 +2134,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     return (
       <>
         {catTasks.length === 0
-          ? <th key={`${cat.type}-empty`} className="border border-gray-200 dark:border-gray-700 p-1 font-normal italic text-gray-400" style={{ width: "56px", minWidth: "56px" }}>—</th>
+          ? <th key={`${cat.type}-empty`} className="border border-gray-200 dark:border-gray-700 p-1 font-normal italic text-gray-400" style={{ width: "56px", minWidth: "56px" }}>â€”</th>
           : catTasks.map(t => (
               <th key={t.id} title={t.title} className="border border-gray-200 dark:border-gray-700 p-1 cursor-help text-center group relative" style={{ width: "56px", minWidth: "56px" }}>
                 <div className="flex flex-col items-center">
@@ -2182,7 +2182,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     max="5.0"
                     step="0.1"
                     value={val}
-                    placeholder="—"
+                    placeholder="â€”"
                     onChange={e => handleCell(studentId, t.id, e.target.value)}
                     className={`w-full text-center font-bold rounded border px-1 py-0.5 bg-white dark:bg-gray-800 text-xs outline-none focus:ring-1 focus:ring-orange-400 transition-colors ${
                       isLow     ? "text-red-600 border-red-200 dark:border-red-700"
@@ -2202,12 +2202,12 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const pondCell = (val: number | null, color: string) => (
     <td className="p-1.5 border border-gray-200 dark:border-gray-700 bg-blue-50/40 dark:bg-blue-900/10 font-bold text-center text-xs">
       <span style={{ color: val !== null ? color : "#9ca3af" }}>
-        {val !== null ? val.toFixed(2) : "—"}
+        {val !== null ? val.toFixed(2) : "â€”"}
       </span>
     </td>
   );
 
-  // ── Full-Screen Manual Grading View ─────────────────────────────────────────
+  // â”€â”€ Full-Screen Manual Grading View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (gradingTask) {
     const totalCount = gradingStudents.length;
     const gradedCount = gradingStudents.filter(s => gradeInputs[s.id] !== undefined && gradeInputs[s.id] !== "").length;
@@ -2241,7 +2241,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     const activeGradeName = (activeGroupObj as any)?.gradeName || (activeGroupObj as any)?.grade?.name || selectedGroupObj?.grade?.name || students[0]?.group?.grade?.name || "";
     const activeGroupName = activeGroupObj?.name || selectedGroupObj?.name || students[0]?.group?.name || "";
     const groupGradeBadge = activeGradeName && activeGroupName 
-      ? `Grado ${activeGradeName} — Grupo ${activeGroupName}`
+      ? `Grado ${activeGradeName} â€” Grupo ${activeGroupName}`
       : activeGroupName 
       ? `Grupo ${activeGroupName}`
       : "";
@@ -2263,15 +2263,15 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={`px-2.5 py-0.5 rounded-full font-extrabold text-xs uppercase tracking-wider ${catInfo.color.badge}`}>
-                  {catInfo.label} {catInfo.sublabel ? `— ${catInfo.sublabel}` : ""}
+                  {catInfo.label} {catInfo.sublabel ? `â€” ${catInfo.sublabel}` : ""}
                 </span>
                 {groupGradeBadge && (
                   <span className="px-2.5 py-0.5 rounded-full font-bold text-xs bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 flex items-center gap-1">
-                    🎓 {groupGradeBadge}
+                    ðŸŽ“ {groupGradeBadge}
                   </span>
                 )}
                 <span className="text-xs text-muted font-semibold">
-                  {selectedCourse?.name ? `${selectedCourse.name} • ` : ""}{selectedPeriod}
+                  {selectedCourse?.name ? `${selectedCourse.name} â€¢ ` : ""}{selectedPeriod}
                 </span>
               </div>
               <h1 className="text-2xl font-black text-gray-900 dark:text-gray-100 mt-1 flex items-center gap-2">
@@ -2301,7 +2301,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               ) : gradingSaved ? (
                 <>
                   <CheckCircle size={18} />
-                  ¡Guardado con Éxito!
+                  Â¡Guardado con Ã‰xito!
                 </>
               ) : (
                 <>
@@ -2317,7 +2317,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         {gradingSaved && (
           <div className="flex items-center gap-2 text-sm font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 px-4 py-3 rounded-xl animate-fade-in shadow-sm">
             <CheckCircle size={20} className="text-emerald-600 shrink-0" />
-            ¡Todas las calificaciones y comentarios fueron guardados correctamente en el sistema!
+            Â¡Todas las calificaciones y comentarios fueron guardados correctamente en el sistema!
           </div>
         )}
         {gradingError && (
@@ -2450,8 +2450,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                       <span>Estudiante</span>
                     </th>
                     <th className="py-3.5 px-4 min-w-[170px]">Estado de Entrega</th>
-                    <th className="py-3.5 px-6 w-44 text-center whitespace-nowrap">Calificación (1–5)</th>
-                    <th className="py-3.5 px-6 min-w-[340px]">Retroalimentación / Comentario</th>
+                    <th className="py-3.5 px-6 w-44 text-center whitespace-nowrap">CalificaciÃ³n (1â€“5)</th>
+                    <th className="py-3.5 px-6 min-w-[340px]">RetroalimentaciÃ³n / Comentario</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y" style={{ borderColor: "var(--border-color)" }}>
@@ -2566,7 +2566,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                           <input
                             type="text"
                             inputMode="decimal"
-                            placeholder="—"
+                            placeholder="â€”"
                             disabled={!isSelected}
                             value={gradeVal}
                             onChange={e => {
@@ -2576,7 +2576,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                               if (!isNaN(num) && num > 5.0) return;
                               setGradeInputs(prev => ({ ...prev, [student.id]: val }));
                             }}
-                            title={!isSelected ? "Activa la casilla del estudiante para modificar calificación" : undefined}
+                            title={!isSelected ? "Activa la casilla del estudiante para modificar calificaciÃ³n" : undefined}
                             className={`w-24 text-center font-black rounded-xl border py-1.5 text-base outline-none transition-all ${
                               isSelected
                                 ? "border-orange-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-white ring-2 ring-orange-500 shadow-sm"
@@ -2595,7 +2595,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                         <td className="py-3.5 px-6">
                           <input
                             type="text"
-                            placeholder={!isSelected ? "Activa la casilla para escribir observación…" : "Comentario u observación opcional para el estudiante…"}
+                            placeholder={!isSelected ? "Activa la casilla para escribir observaciÃ³nâ€¦" : "Comentario u observaciÃ³n opcional para el estudianteâ€¦"}
                             disabled={!isSelected}
                             value={feedbackInputs[student.id] ?? ""}
                             onChange={e => {
@@ -2624,7 +2624,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         <div className="flex-shrink-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md px-5 py-3 rounded-2xl border shadow-lg flex items-center justify-between gap-4 mt-1" style={{ borderColor: "var(--border-color)" }}>
           <div className="flex items-center gap-3 text-xs font-bold text-muted">
             <span>Calificados: <strong className="text-emerald-600 text-sm">{gradedCount}</strong>/{totalCount}</span>
-            <span>•</span>
+            <span>â€¢</span>
             <span>Pendientes: <strong className="text-amber-600 text-sm">{pendingCount}</strong></span>
           </div>
 
@@ -2648,7 +2648,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               ) : gradingSaved ? (
                 <>
                   <CheckCircle size={15} />
-                  ¡Guardado!
+                  Â¡Guardado!
                 </>
               ) : (
                 <>
@@ -2663,7 +2663,453 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     );
   }
 
-  // ── Main render ─────────────────────────────────────────────────────────────
+  // â”€â”€ Full-Page Task / Exam Management View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  if (questionsModalTask) {
+    const isExam = questionsModalTask.type === "EXAM" || questionsModalTask.type === "FINAL";
+    const catInfo = CATEGORIES.find(c => c.type === (questionsModalTask.type === "TASK_SABER" || questionsModalTask.type === "SABER" ? "EXAM" : questionsModalTask.type)) ?? CATEGORIES[1];
+
+    return (
+      <div className="flex flex-col gap-5 animate-fade-in pb-12 w-full">
+        {/* Top Header & Navigation */}
+        <div className="flex items-center justify-between flex-wrap gap-4 bg-white dark:bg-gray-900 p-5 rounded-2xl border shadow-sm" style={{ borderColor: "var(--border-color)" }}>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setQuestionsModalTask(null)}
+              className="p-2.5 rounded-xl border hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-700 dark:text-gray-200 flex items-center gap-2 font-semibold text-sm shadow-sm cursor-pointer"
+              style={{ borderColor: "var(--border-color)" }}
+              title="Volver a la planilla"
+            >
+              <ArrowLeft size={18} />
+              <span>Volver a la Planilla</span>
+            </button>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`px-2.5 py-0.5 rounded-full font-extrabold text-xs uppercase tracking-wider ${catInfo.color.badge}`}>
+                  {catInfo.label} {catInfo.sublabel ? `â€” ${catInfo.sublabel}` : ""}
+                </span>
+                <span className="text-xs text-muted font-semibold">
+                  {selectedCourse?.name ? `${selectedCourse.name} â€¢ ` : ""}{selectedPeriod}
+                </span>
+              </div>
+              <h1 className="text-2xl font-black text-gray-900 dark:text-gray-100 mt-1 flex items-center gap-2">
+                <Clock size={22} className="text-[#f98012]" />
+                {isExam ? "GestiÃ³n de Examen" : "GestiÃ³n de Tarea"}: {questionsModalTask.title}
+              </h1>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setQuestionsModalTask(null)}
+              className="btn btn-secondary px-4 py-2 text-xs font-bold rounded-xl flex items-center gap-1.5 cursor-pointer"
+            >
+              <ArrowLeft size={14} /> Volver a la Planilla
+            </button>
+          </div>
+        </div>
+
+        {/* Tabs for Exams */}
+        {isExam && (
+          <div className="flex gap-4 border-b border-gray-200 dark:border-gray-800 px-2">
+            {(["control", "questions"] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setManageTab(tab)}
+                className={`pb-3 text-sm font-bold uppercase tracking-wider border-b-2 transition-colors cursor-pointer ${
+                  manageTab === tab
+                    ? "border-[#f97316] text-[#f97316]"
+                    : "border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                }`}
+              >
+                {tab === "control" ? "Entregas, PrÃ³rrogas e Intentos" : "Preguntas del Examen"}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {loadingQuestions ? (
+          <div className="flex flex-col items-center justify-center py-28 gap-3 card bg-white dark:bg-gray-900 border rounded-2xl shadow-sm">
+            <Loader2 className="animate-spin text-[#f98012]" size={40} />
+            <p className="text-sm font-semibold text-muted">Cargando informaciÃ³n de la tarea...</p>
+          </div>
+        ) : manageTab === "questions" && isExam ? (
+          <div className="card bg-white dark:bg-gray-900 p-6 rounded-2xl border shadow-sm">
+            <QuestionEditor
+              key={questionsModalTask.id}
+              taskId={questionsModalTask.id}
+              initialQuestions={examQuestions}
+            />
+          </div>
+        ) : (
+          <div className="flex flex-col gap-5">
+            {/* Global late submission toggle */}
+            <div className="p-4 rounded-xl border flex flex-col gap-3 bg-gray-50/40 dark:bg-gray-800/20" style={{ borderColor: "var(--border-color)" }}>
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Clock className="text-[#f98012]" size={18} />
+                  <div>
+                    <h4 className="font-bold text-sm text-gray-800 dark:text-gray-200">PrÃ³rroga Global (Entrega TardÃ­a)</h4>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400">Permite entregar despuÃ©s del plazo a todos los estudiantes.</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setGlobalAllowLate(v => !v)}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors cursor-pointer ${
+                      globalAllowLate ? "bg-[#f97316]" : "bg-gray-300 dark:bg-zinc-700"
+                    }`}
+                  >
+                    <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
+                      globalAllowLate ? "translate-x-[18px]" : "translate-x-1"
+                    }`} />
+                  </button>
+                  <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                    {globalAllowLate ? "Habilitada" : "Deshabilitada"}
+                  </span>
+                </div>
+              </div>
+              {globalAllowLate && (
+                <div className="max-w-xs">
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Hasta:</label>
+                  <input
+                    type="datetime-local"
+                    value={globalLateUntil}
+                    onChange={e => setGlobalLateUntil(e.target.value)}
+                    className="input-field w-full text-xs py-1.5 px-2.5 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
+                  />
+                </div>
+              )}
+              {(globalAllowLate !== savedGlobalAllowLate || globalLateUntil !== savedGlobalLateUntil) && (
+                <div className="flex justify-end gap-2">
+                  <button onClick={() => { setGlobalAllowLate(savedGlobalAllowLate); setGlobalLateUntil(savedGlobalLateUntil); }} className="btn btn-secondary py-1 px-3 text-xs">Cancelar</button>
+                  <button onClick={saveGlobalLateConfig} disabled={savingGlobalLate} className="btn btn-primary py-1 px-3 text-xs flex items-center gap-1">
+                    {savingGlobalLate && <Loader2 className="animate-spin" size={12} />} Guardar PrÃ³rroga
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Students table header & Bulk Actions */}
+            <div className="p-4 bg-orange-50/60 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/40 rounded-xl flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="p-2 bg-[#f97316] text-white rounded-xl shadow-xs">
+                    <Calendar size={18} />
+                  </span>
+                  <div>
+                    <h4 className="font-bold text-sm text-gray-900 dark:text-gray-100">
+                      PrÃ³rroga Masiva a MÃºltiples Estudiantes
+                    </h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      {selectedTaskStudentIds.length === 0 
+                        ? "Marca las casillas de la columna izquierda (o 'Seleccionar todos') para asignarles fecha y hora a la vez." 
+                        : `Tienes ${selectedTaskStudentIds.length} estudiante(s) seleccionado(s).`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (selectedTaskStudentIds.length === 0) {
+                      setSelectedTaskStudentIds(taskStudents.map(s => s.id));
+                    }
+                    const d = new Date();
+                    d.setDate(d.getDate() + 1);
+                    d.setHours(23, 59, 0, 0);
+                    setBulkProrrogaDate(toColombiaISOString(d.toISOString()));
+                    setBulkProrrogaAllow(true);
+                    setShowBulkProrrogaInPlanilla(true);
+                  }}
+                  className="btn btn-primary text-xs px-4 py-2.5 flex items-center gap-2 font-bold shadow-md bg-[#f97316] hover:bg-[#ea580c] text-white rounded-xl transition-all cursor-pointer"
+                >
+                  <Calendar size={15} />
+                  {selectedTaskStudentIds.length > 0
+                    ? `Asignar Fecha y Hora (${selectedTaskStudentIds.length} seleccionados)`
+                    : "ðŸ—“ï¸ Asignar PrÃ³rroga a Varios Estudiantes"}
+                </button>
+
+                {selectedTaskStudentIds.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTaskStudentIds([])}
+                    className="btn btn-secondary text-xs px-3 py-2.5 text-gray-600 dark:text-gray-300 rounded-xl cursor-pointer"
+                  >
+                    Deseleccionar
+                  </button>
+                )}
+
+                {(questionsModalTask.type === "EXAM" || questionsModalTask.type === "FINAL") && (
+                  <button
+                    onClick={resetAllGroupSubmissions}
+                    disabled={resettingSubmissions !== null || taskStudents.length === 0}
+                    className="btn btn-secondary text-xs px-3 py-2.5 flex items-center gap-1.5 border border-orange-200 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20 disabled:opacity-50 rounded-xl cursor-pointer"
+                  >
+                    {resettingSubmissions === "all" ? <Loader2 className="animate-spin" size={13} /> : <Users size={13} />}
+                    Reiniciar Todo el Grupo
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Panel de PrÃ³rroga Masiva inline en Planilla */}
+            {showBulkProrrogaInPlanilla && (
+              <div className="p-5 rounded-2xl border border-orange-300 dark:border-orange-800 bg-white dark:bg-zinc-900 shadow-xl flex flex-col gap-4 animate-fade-in">
+                <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
+                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                    <Calendar size={18} className="text-[#f97316]" /> Configurar PrÃ³rroga para {selectedTaskStudentIds.length} Estudiante(s)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowBulkProrrogaInPlanilla(false)}
+                    className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between p-3.5 bg-orange-50/50 dark:bg-orange-950/20 rounded-xl border border-orange-100 dark:border-zinc-800">
+                  <div>
+                    <span className="text-xs font-bold text-gray-800 dark:text-zinc-200 block">
+                      Habilitar entrega fuera de plazo
+                    </span>
+                    <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                      Los estudiantes seleccionados podrÃ¡n subir la tarea tras el vencimiento.
+                    </span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={bulkProrrogaAllow}
+                    onChange={e => setBulkProrrogaAllow(e.target.checked)}
+                    className="w-5 h-5 rounded accent-[#f97316] cursor-pointer"
+                  />
+                </div>
+
+                {bulkProrrogaAllow && (
+                  <div className="space-y-3 p-4 bg-gray-50 dark:bg-zinc-800/40 rounded-xl border border-gray-200 dark:border-zinc-700">
+                    <label className="text-xs font-bold text-gray-800 dark:text-zinc-200 flex items-center gap-1.5">
+                      <Clock size={15} className="text-[#f98012]" /> Nueva fecha y hora lÃ­mite de entrega:
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={bulkProrrogaDate}
+                      onChange={e => setBulkProrrogaDate(e.target.value)}
+                      className="input-field w-full max-w-md text-sm py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-[#f97316] bg-white dark:bg-zinc-900 font-semibold"
+                    />
+                    <div className="pt-1">
+                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1.5">
+                        Atajos de fecha rÃ¡pida:
+                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(23, 59, 0, 0);
+                            setBulkProrrogaDate(toColombiaISOString(d.toISOString()));
+                          }}
+                          className="px-3 py-1 text-xs font-bold rounded-lg bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 hover:border-[#f97316] text-gray-700 dark:text-zinc-300 shadow-xs cursor-pointer"
+                        >
+                          +1 DÃ­a
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const d = new Date(); d.setDate(d.getDate() + 2); d.setHours(23, 59, 0, 0);
+                            setBulkProrrogaDate(toColombiaISOString(d.toISOString()));
+                          }}
+                          className="px-3 py-1 text-xs font-bold rounded-lg bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 hover:border-[#f97316] text-gray-700 dark:text-zinc-300 shadow-xs cursor-pointer"
+                        >
+                          +2 DÃ­as
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const d = new Date(); d.setDate(d.getDate() + 3); d.setHours(23, 59, 0, 0);
+                            setBulkProrrogaDate(toColombiaISOString(d.toISOString()));
+                          }}
+                          className="px-3 py-1 text-xs font-bold rounded-lg bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 hover:border-[#f97316] text-gray-700 dark:text-zinc-300 shadow-xs cursor-pointer"
+                        >
+                          +3 DÃ­as
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const d = new Date(); d.setDate(d.getDate() + 7); d.setHours(23, 59, 0, 0);
+                            setBulkProrrogaDate(toColombiaISOString(d.toISOString()));
+                          }}
+                          className="px-3 py-1 text-xs font-bold rounded-lg bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 hover:border-[#f97316] text-gray-700 dark:text-zinc-300 shadow-xs cursor-pointer"
+                        >
+                          +1 Semana
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBulkProrrogaDate("")}
+                          className="px-3 py-1 text-xs font-medium rounded-lg bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 text-muted cursor-pointer"
+                        >
+                          Sin fecha lÃ­mite (Indefinido)
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+                  <button
+                    type="button"
+                    onClick={() => setShowBulkProrrogaInPlanilla(false)}
+                    className="btn btn-secondary py-2 px-4 text-xs font-semibold rounded-xl cursor-pointer"
+                    disabled={savingBulkProrroga}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveBulkProrrogaInPlanilla}
+                    disabled={savingBulkProrroga}
+                    className="btn btn-primary py-2 px-5 text-xs font-bold flex items-center gap-2 bg-[#f97316] hover:bg-[#ea580c] text-white shadow-md rounded-xl cursor-pointer"
+                  >
+                    {savingBulkProrroga && <Loader2 className="animate-spin" size={14} />}
+                    Guardar PrÃ³rroga para {selectedTaskStudentIds.length} Estudiantes
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Students table Card */}
+            <div className="card border rounded-2xl bg-white dark:bg-gray-900 shadow-sm overflow-hidden" style={{ borderColor: "var(--border-color)" }}>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm" style={{ borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr className="bg-gray-50/80 dark:bg-gray-800/60 font-bold text-xs uppercase tracking-wider text-muted border-b" style={{ borderColor: "var(--border-color)" }}>
+                      <th className="py-3 px-4 w-12 text-center bg-orange-50/70 dark:bg-orange-950/30">
+                        <input
+                          type="checkbox"
+                          checked={selectedTaskStudentIds.length === taskStudents.length && taskStudents.length > 0}
+                          onChange={handleSelectAllTaskStudents}
+                          className="w-4 h-4 rounded accent-[#f97316] cursor-pointer"
+                          title="Seleccionar / Deseleccionar todos los estudiantes"
+                        />
+                      </th>
+                      <th className="py-3 px-4 min-w-[220px]">Estudiante</th>
+                      <th className="py-3 px-4 min-w-[150px]">Estado de Entrega</th>
+                      <th className="py-3 px-4 min-w-[220px]">PrÃ³rroga Individual</th>
+                      <th className="py-3 px-4 min-w-[160px]">Fecha de EnvÃ­o</th>
+                      <th className="py-3 px-4 text-right min-w-[130px]">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y" style={{ borderColor: "var(--border-color)" }}>
+                    {taskStudents.length === 0 ? (
+                      <tr><td colSpan={6} className="py-12 text-center text-muted italic">No hay estudiantes en este grupo.</td></tr>
+                    ) : taskStudents.map((s, idx) => {
+                      const sub = s.submission;
+                      const isGraded = sub?.status === "GRADED";
+                      const isSubmitted = sub && sub.status !== "PENDING";
+                      const hasSub = !!sub;
+                      const indAllow = sub?.allowLateSubmission ?? false;
+                      const indUntil = sub?.lateSubmissionUntil ? toColombiaISOString(sub.lateSubmissionUntil) : "";
+                      const isSelected = selectedTaskStudentIds.includes(s.id);
+                      return (
+                        <tr key={s.id} className={`transition-all ${isSelected ? "bg-orange-50/50 dark:bg-orange-950/20 border-l-4 border-l-[#f98012]" : "hover:bg-gray-50/60 dark:hover:bg-gray-800/30 border-l-4 border-l-transparent"}`}>
+                          <td className="py-3.5 px-4 text-center">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => handleToggleSelectTaskStudent(s.id)}
+                              className="w-4 h-4 rounded accent-[#f97316] cursor-pointer"
+                            />
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white shadow-xs"
+                                style={{ background: "linear-gradient(135deg, #f98012, #e06d09)" }}
+                              >
+                                {s.name.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <div className="font-bold text-gray-900 dark:text-gray-100">{s.name}</div>
+                                <div className="text-xs text-muted mt-0.5">{s.groupName}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            {isGraded ? (
+                              <span className="badge badge-success flex w-fit items-center gap-1"><CheckCircle size={12} /> Calificada: {sub.grade}</span>
+                            ) : isSubmitted ? (
+                              <span className="badge badge-info flex w-fit items-center gap-1"><Clock size={12} /> Entregada</span>
+                            ) : (
+                              <span className="badge badge-warning flex w-fit items-center gap-1"><Clock size={12} /> Pendiente</span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            {globalAllowLate ? (
+                              <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-1 rounded-lg w-fit border border-emerald-200 dark:border-emerald-900/40">
+                                <CheckCircle size={13}/> PrÃ³rroga Global Activa
+                              </span>
+                            ) : (
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <input
+                                  type="checkbox"
+                                  checked={indAllow}
+                                  onChange={e => saveIndividualLateConfig(s.id, e.target.checked, indUntil)}
+                                  className="w-4 h-4 rounded accent-[#f97316] cursor-pointer"
+                                  title="Activar/Desactivar prÃ³rroga individual"
+                                />
+                                {indAllow && (
+                                  <input
+                                    type="datetime-local"
+                                    value={indUntil}
+                                    onChange={e => saveIndividualLateConfig(s.id, true, e.target.value)}
+                                    className="text-xs py-1 px-2 border rounded-lg bg-white dark:bg-gray-800 outline-none focus:ring-1 focus:ring-[#f97316] border-gray-300 dark:border-gray-700"
+                                  />
+                                )}
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4 text-xs text-muted">
+                            {sub?.submittedAt ? new Date(sub.submittedAt).toLocaleString() : "-"}
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="flex justify-end gap-2">
+                              {questionsModalTask.type !== "EXAM" && questionsModalTask.type !== "FINAL" && sub?.fileUrl && (
+                                <a href={sub.fileUrl} target="_blank" rel="noopener noreferrer"
+                                  className="btn btn-secondary text-xs px-2.5 py-1.5 flex items-center gap-1.5 rounded-lg"
+                                  title="Descargar archivo de entrega"
+                                >
+                                  <Download size={13} />
+                                  Descargar
+                                </a>
+                              )}
+                              {(questionsModalTask.type === "EXAM" || questionsModalTask.type === "FINAL") && (
+                                <button
+                                  onClick={() => resetStudentSubmission(s.id, s.name, hasSub)}
+                                  disabled={resettingSubmissions === s.id}
+                                  className="btn btn-secondary text-xs px-2.5 py-1.5 flex items-center gap-1 border border-red-200 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 disabled:opacity-50 rounded-lg"
+                                >
+                                  {resettingSubmissions === s.id
+                                    ? <Loader2 className="animate-spin" size={13} />
+                                    : <RotateCcw size={13} />}
+                                  {hasSub ? "Reiniciar" : "Habilitar"}
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // â”€â”€ Main render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
     <div className="flex flex-col gap-5 animate-fade-in pb-12">
 
@@ -2703,7 +3149,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           </label>
 
 
-          <button onClick={exportToOfficialTemplate} className="btn btn-secondary flex items-center gap-1.5 text-sm" style={{ background: "#1d4ed8", borderColor: "#1e40af", color: "#fff" }} title="Genera la planilla oficial en formato Monseñor Díaz Plata con todas las notas">
+          <button onClick={exportToOfficialTemplate} className="btn btn-secondary flex items-center gap-1.5 text-sm" style={{ background: "#1d4ed8", borderColor: "#1e40af", color: "#fff" }} title="Genera la planilla oficial en formato MonseÃ±or DÃ­az Plata con todas las notas">
             <FileSpreadsheet size={15} /> Planilla Oficial
           </button>
           <button onClick={exportToPDF} className="btn btn-primary flex items-center gap-1.5 text-sm" style={{ background: "#f97316", borderColor: "#ea580c" }}>
@@ -2733,7 +3179,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 rel="noopener noreferrer"
                 className="text-xs font-bold text-emerald-700 dark:text-emerald-300 underline hover:no-underline"
               >
-                Abrir en Drive →
+                Abrir en Drive â†’
               </a>
             )}
             <button
@@ -2778,7 +3224,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               setSelectedGroupId(val);
               updateUrlAndStorage(selectedCourseId, selectedPeriod, val, null);
             },
-            options: groups.map(g => ({ value: g.id, label: g.grade?.name ? `${g.grade.name} — ${g.name}` : g.name })) 
+            options: groups.map(g => ({ value: g.id, label: g.grade?.name ? `${g.grade.name} â€” ${g.name}` : g.name })) 
           },
         ].map(({ label, value, onChange, options }) => (
           <div key={label} className="flex-1 min-w-[170px]">
@@ -2837,8 +3283,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         <div className="grid grid-cols-2 md:grid-cols-4 text-sm p-4 border-b gap-4" style={{ borderColor: "var(--border-color)" }}>
           {[
             { label: "Docente",      value: teacherName },
-            { label: "Asignatura",   value: selectedCourse?.name ?? "—" },
-            { label: "Año Lectivo",  value: new Date().getFullYear() },
+            { label: "Asignatura",   value: selectedCourse?.name ?? "â€”" },
+            { label: "AÃ±o Lectivo",  value: new Date().getFullYear() },
             { label: "Periodo",      value: selectedPeriod },
           ].map(({ label, value }) => (
             <div key={label}>
@@ -2855,7 +3301,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             {/* Icon + Title */}
             <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="5" x2="5" y2="19"></line><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg>
-              <span>Pesos de Evaluación</span>
+              <span>Pesos de EvaluaciÃ³n</span>
             </div>
 
             {/* SABER */}
@@ -2884,7 +3330,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
             {/* Actions aligned to the right or next in line */}
             <div className="flex items-center gap-2 ml-auto">
-              <span className="text-[10px] text-gray-400 dark:text-gray-500 italic mr-2">Configurables en Gestión Asignaturas</span>
+              <span className="text-[10px] text-gray-400 dark:text-gray-500 italic mr-2">Configurables en GestiÃ³n Asignaturas</span>
               <button
                 onClick={() => openAddModal("FINAL")}
                 className="text-xs font-bold text-sky-600 border border-sky-200 bg-white dark:bg-gray-900 px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-sky-50 transition-colors"
@@ -2927,7 +3373,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 <col style={{ width: "56px" }} />{/* DEF Ser */}
                 {showFinal && <col style={{ width: "56px" }} />}{/* DEF Final */}
                 <col style={{ width: "80px" }} />{/* Def Final */}
-                <col style={{ width: "90px" }} />{/* Desempeño */}
+                <col style={{ width: "90px" }} />{/* DesempeÃ±o */}
               </colgroup>
               <thead>
                 {/* Row 1: Category headers */}
@@ -2943,7 +3389,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     DEF (Ponderada)
                   </th>
                   <th rowSpan={2} className="border border-gray-200 dark:border-gray-700 p-2 bg-gray-100 dark:bg-gray-800 font-bold">Def Final</th>
-                  <th rowSpan={2} className="border border-gray-200 dark:border-gray-700 p-2 font-bold">Desempeño</th>
+                  <th rowSpan={2} className="border border-gray-200 dark:border-gray-700 p-2 font-bold">DesempeÃ±o</th>
                 </tr>
 
                 {/* Row 2: Task numbers */}
@@ -2964,7 +3410,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 {students.length === 0 ? (
                   <tr>
                     <td colSpan={30} className="py-14 text-muted font-medium italic">
-                      No hay estudiantes en este grupo o aún no hay actividades para este periodo.
+                      No hay estudiantes en este grupo o aÃºn no hay actividades para este periodo.
                     </td>
                   </tr>
                 ) : (
@@ -2977,7 +3423,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                         <td className="p-2 border border-gray-200 dark:border-gray-700 text-gray-400 font-medium text-center">{idx + 1}</td>
                         <td className="p-2 border border-gray-200 dark:border-gray-700 text-left">
                           <div className="font-bold text-gray-800 dark:text-gray-200 leading-tight">{student.name}</div>
-                          <div className="text-[10px] text-gray-400 mt-0.5">{student.group.grade?.name} — {student.group.name}</div>
+                          <div className="text-[10px] text-gray-400 mt-0.5">{student.group.grade?.name} â€” {student.group.name}</div>
                         </td>
 
                         {/* Category cells */}
@@ -2993,7 +3439,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                         {pondCell(stats.pondSer,   "#b45309")}
                         {showFinal && pondCell(stats.pondFinal, "#0ea5e9")}
 
-                        {/* Final — same color scale as Desempeño */}
+                        {/* Final â€” same color scale as DesempeÃ±o */}
                         <td className="p-2 border border-gray-200 dark:border-gray-700 text-center">
                           {stats.total !== null ? (() => {
                             const d = getDesempeno(stats.total);
@@ -3002,14 +3448,14 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                                 {stats.total.toFixed(2)}
                               </span>
                             );
-                          })() : <span className="text-gray-400 font-bold">—</span>}
+                          })() : <span className="text-gray-400 font-bold">â€”</span>}
                         </td>
 
-                        {/* Desempeño */}
+                        {/* DesempeÃ±o */}
                         <td className="p-2 border border-gray-200 dark:border-gray-700 text-center">
                           {desemp
                             ? <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${desemp.cls}`}>{desemp.label}</span>
-                            : "—"}
+                            : "â€”"}
                         </td>
                       </tr>
                     );
@@ -3026,7 +3472,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         <div className="card p-5 border rounded-xl bg-gray-50 dark:bg-gray-900" style={{ borderColor: "var(--border-color)" }}>
           <h3 className="font-bold text-sm text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-1.5">
             <Info size={16} className="text-gray-400" />
-            Directorio de Evaluaciones — {selectedPeriod}
+            Directorio de Evaluaciones â€” {selectedPeriod}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
             {tasks.map(t => {
@@ -3042,12 +3488,12 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     <div className="min-w-0 flex-1">
                       <p className="font-bold text-gray-800 dark:text-gray-200 leading-tight truncate" title={t.title}>{t.title}</p>
                       <p className="text-gray-400 mt-0.5">
-                        {t.type === "TASK_SABER" || t.type === "SABER" ? "SABER — Tarea" : t.type === "EXAM" ? "SABER — Examen" : `${cat.label}${cat.sublabel ? ` — ${cat.sublabel}` : ""}`}
+                        {t.type === "TASK_SABER" || t.type === "SABER" ? "SABER â€” Tarea" : t.type === "EXAM" ? "SABER â€” Examen" : `${cat.label}${cat.sublabel ? ` â€” ${cat.sublabel}` : ""}`}
                       </p>
                       {t.isExternal ? (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border mt-1 inline-block" style={{ background: "#f1f5f9", color: "#475569", borderColor: "#cbd5e1" }}>📁 Entrega en clase</span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border mt-1 inline-block" style={{ background: "#f1f5f9", color: "#475569", borderColor: "#cbd5e1" }}>ðŸ“ Entrega en clase</span>
                       ) : (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border mt-1 inline-block" style={{ background: "#f0f9ff", color: "#0369a1", borderColor: "#b9e6fe" }}>💻 Entrega en plataforma</span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border mt-1 inline-block" style={{ background: "#f0f9ff", color: "#0369a1", borderColor: "#b9e6fe" }}>ðŸ’» Entrega en plataforma</span>
                       )}
                     </div>
                   </div>
@@ -3059,7 +3505,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                         type="button"
                         onClick={() => handleToggleActive(t.id, isActive)}
                         disabled={togglingId === t.id}
-                        title={isActive ? "Visible para alumnos — clic para ocultar" : "Oculto para alumnos — clic para activar"}
+                        title={isActive ? "Visible para alumnos â€” clic para ocultar" : "Oculto para alumnos â€” clic para activar"}
                         className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-150 dark:hover:bg-gray-800/60 transition-colors cursor-pointer focus:outline-none disabled:opacity-50"
                       >
                         {togglingId === t.id ? (
@@ -3081,10 +3527,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                         <button onClick={() => openDuplicateModal(t)} className="p-1 rounded hover:bg-purple-50 dark:hover:bg-purple-900/20 text-gray-400 hover:text-purple-600 transition-colors" title="Clonar / Duplicar a otro curso o grupo (con notas limpias)">
                           <Copy size={13} />
                         </button>
-                        <button onClick={() => openEditModal(t)} disabled={loadingEdit} className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-400 hover:text-blue-600 transition-colors" title={t.type === "EXAM" ? "Editar examen" : t.type === "TASK" ? "Editar tarea" : "Editar evaluación"}>
+                        <button onClick={() => openEditModal(t)} disabled={loadingEdit} className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-400 hover:text-blue-600 transition-colors" title={t.type === "EXAM" ? "Editar examen" : t.type === "TASK" ? "Editar tarea" : "Editar evaluaciÃ³n"}>
                           {loadingEdit ? <Loader2 size={13} className="animate-spin" /> : <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>}
                         </button>
-                        <button onClick={() => handleDeleteTask(t.id, t.title)} disabled={deletingId === t.id} className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100" title={t.type === "EXAM" ? "Eliminar examen" : t.type === "TASK" ? "Eliminar tarea" : "Eliminar evaluación"}>
+                        <button onClick={() => handleDeleteTask(t.id, t.title)} disabled={deletingId === t.id} className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100" title={t.type === "EXAM" ? "Eliminar examen" : t.type === "TASK" ? "Eliminar tarea" : "Eliminar evaluaciÃ³n"}>
                           {deletingId === t.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
                         </button>
                       </div>
@@ -3098,7 +3544,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                             ? "bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40"
                             : "bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40"
                         }`}
-                        title={(t.type === "EXAM" || t.type === "FINAL") ? "Gestionar preguntas, entregas e intentos" : "Gestionar entregas y prórrogas"}
+                        title={(t.type === "EXAM" || t.type === "FINAL") ? "Gestionar preguntas, entregas e intentos" : "Gestionar entregas y prÃ³rrogas"}
                       >
                         {(t.type === "EXAM" || t.type === "FINAL") ? "Gestionar Examen" : "Gestionar Entregas"}
                       </button>
@@ -3120,8 +3566,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             <div className="flex justify-between items-center pb-2 border-b border-gray-200 dark:border-gray-800">
               <h3 className="font-bold text-xl text-gray-900 dark:text-gray-100">
                 {editTaskId
-                  ? (addModal.type === "EXAM" ? "Editar Examen" : addModal.type === "TASK" ? "Editar Tarea" : addModal.type === "SER" ? "Editar Evaluación Actitudinal" : "Editar Evaluación")
-                  : (addModal.type === "EXAM" ? "Nuevo Examen" : addModal.type === "TASK" ? "Nueva Tarea" : addModal.type === "SER" ? "Nueva Evaluación Actitudinal" : "Nueva Evaluación")}
+                  ? (addModal.type === "EXAM" ? "Editar Examen" : addModal.type === "TASK" ? "Editar Tarea" : addModal.type === "SER" ? "Editar EvaluaciÃ³n Actitudinal" : "Editar EvaluaciÃ³n")
+                  : (addModal.type === "EXAM" ? "Nuevo Examen" : addModal.type === "TASK" ? "Nueva Tarea" : addModal.type === "SER" ? "Nueva EvaluaciÃ³n Actitudinal" : "Nueva EvaluaciÃ³n")}
               </h3>
               <button onClick={() => { setAddModal(null); setEditTaskId(null); setShowReusePicker(false); }} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
                 <X size={24} />
@@ -3139,7 +3585,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                       : "text-muted hover:text-gray-800 dark:hover:text-gray-200"
                   }`}
                 >
-                  ✨ Crear Desde Cero
+                  âœ¨ Crear Desde Cero
                 </button>
                 <button
                   type="button"
@@ -3154,7 +3600,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                   }`}
                 >
                   <Copy size={13} />
-                  📋 Clonar / Reutilizar Existente
+                  ðŸ“‹ Clonar / Reutilizar Existente
                 </button>
               </div>
             )}
@@ -3162,7 +3608,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             {showReusePicker && !editTaskId ? (
               <div className="flex flex-col gap-4 py-2">
                 <div className="p-3 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900 rounded-xl text-xs text-orange-800 dark:text-orange-300">
-                  💡 <strong>Clonación Limpia:</strong> Se copiarán todas las preguntas, opciones, adjuntos e instrucciones de la actividad seleccionada a esta asignatura (<strong>{selectedCourse?.name}</strong>), pero las calificaciones empezarán 100% limpias (0 entregas/notas). ¡Nunca se mezclarán con el otro grupo!
+                  ðŸ’¡ <strong>ClonaciÃ³n Limpia:</strong> Se copiarÃ¡n todas las preguntas, opciones, adjuntos e instrucciones de la actividad seleccionada a esta asignatura (<strong>{selectedCourse?.name}</strong>), pero las calificaciones empezarÃ¡n 100% limpias (0 entregas/notas). Â¡Nunca se mezclarÃ¡n con el otro grupo!
                 </div>
 
                 <div className="input-group">
@@ -3198,8 +3644,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                             <div className="min-w-0">
                               <p className="font-bold text-xs text-gray-900 dark:text-gray-100">{t.title}</p>
                               <p className="text-[11px] text-muted mt-0.5">
-                                Asignatura origen: <strong>{t.course?.name || "Sin curso"}</strong> • {t.period || "Periodo 1"}
-                                {t._count?.questions > 0 && ` • 📝 ${t._count.questions} preguntas`}
+                                Asignatura origen: <strong>{t.course?.name || "Sin curso"}</strong> â€¢ {t.period || "Periodo 1"}
+                                {t._count?.questions > 0 && ` â€¢ ðŸ“ ${t._count.questions} preguntas`}
                               </p>
                             </div>
                             <input
@@ -3221,11 +3667,11 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
                 <div className="input-group">
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Título para la nueva copia (Opcional)
+                    TÃ­tulo para la nueva copia (Opcional)
                   </label>
                   <input
                     type="text"
-                    placeholder="Dejar igual o personalizar título..."
+                    placeholder="Dejar igual o personalizar tÃ­tulo..."
                     value={newTaskName}
                     onChange={e => setNewTaskName(e.target.value)}
                     className="input-field w-full text-xs font-semibold py-2 px-3 border rounded-lg"
@@ -3240,7 +3686,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     </label>
                     <div className="flex flex-col gap-2 p-3 bg-slate-50 dark:bg-slate-800/20 border rounded-lg">
                       {groups.map(g => {
-                        const label = g.grade?.name ? `${g.grade.name} — ${g.name}` : g.name;
+                        const label = g.grade?.name ? `${g.grade.name} â€” ${g.name}` : g.name;
                         const isChecked = newTaskGroupIds.includes(g.id);
                         return (
                           <label key={g.id} className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none">
@@ -3274,7 +3720,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     onChange={e => setNewTaskDueDate(e.target.value)}
                     className="input-field w-full text-xs font-semibold py-2 px-3 border rounded-lg"
                   />
-                  <p className="text-[10px] text-muted mt-0.5">Por defecto se configura para mañana a las 23:59 para evitar que quede vencida.</p>
+                  <p className="text-[10px] text-muted mt-0.5">Por defecto se configura para maÃ±ana a las 23:59 para evitar que quede vencida.</p>
                 </div>
 
                 <div className="flex justify-end gap-3 pt-3 border-t border-gray-200 dark:border-gray-800 mt-2">
@@ -3316,7 +3762,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 </div>
               </div>
 
-              {/* Subtipo de Dimensión Saber (Tarea vs Examen) */}
+              {/* Subtipo de DimensiÃ³n Saber (Tarea vs Examen) */}
               {addModal.type === "EXAM" && (
                 <div className="input-group">
                   <label className="block text-xs font-bold text-purple-900 dark:text-purple-300 mb-1.5">
@@ -3333,10 +3779,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                       }`}
                     >
                       <span className="font-extrabold text-xs flex items-center gap-1.5 text-purple-700 dark:text-purple-300">
-                        📖 Tarea / Taller (Saber)
+                        ðŸ“– Tarea / Taller (Saber)
                       </span>
                       <span className="text-[11px] text-muted leading-tight">
-                        Entrega de guías, talleres escritos, consultas o calificación manual.
+                        Entrega de guÃ­as, talleres escritos, consultas o calificaciÃ³n manual.
                       </span>
                     </button>
 
@@ -3350,39 +3796,39 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                       }`}
                     >
                       <span className="font-extrabold text-xs flex items-center gap-1.5 text-purple-700 dark:text-purple-300">
-                        📝 Examen en Línea (Saber)
+                        ðŸ“ Examen en LÃ­nea (Saber)
                       </span>
                       <span className="text-[11px] text-muted leading-tight">
-                        Cuestionario interactivo con preguntas y tiempo límite en plataforma.
+                        Cuestionario interactivo con preguntas y tiempo lÃ­mite en plataforma.
                       </span>
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* Row 2: Título */}
+              {/* Row 2: TÃ­tulo */}
               <div className="input-group">
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
                   {addModal.type === "SER"
-                    ? "Nombre de la Evaluación Actitudinal *"
+                    ? "Nombre de la EvaluaciÃ³n Actitudinal *"
                     : addModal.type === "EXAM"
-                    ? (selectedSaberSubtype === "EXAM" ? "Título del Examen (Saber) *" : "Título de la Tarea (Saber) *")
+                    ? (selectedSaberSubtype === "EXAM" ? "TÃ­tulo del Examen (Saber) *" : "TÃ­tulo de la Tarea (Saber) *")
                     : addModal.type === "TASK"
-                    ? "Título de la Tarea (Hacer) *"
+                    ? "TÃ­tulo de la Tarea (Hacer) *"
                     : addModal.type === "FINAL"
-                    ? "Título del Examen Final *"
-                    : "Título de la Evaluación *"}
+                    ? "TÃ­tulo del Examen Final *"
+                    : "TÃ­tulo de la EvaluaciÃ³n *"}
                 </label>
                 <input
                   type="text"
                   autoFocus
                   placeholder={
                     addModal.type === "SER"
-                      ? "Ej. Coevaluación, Autoevaluación"
+                      ? "Ej. CoevaluaciÃ³n, AutoevaluaciÃ³n"
                       : addModal.type === "EXAM"
-                      ? (selectedSaberSubtype === "EXAM" ? "Ej. Examen de Cinética Química" : "Ej. Taller de Comprensión, Guía de Consulta...")
+                      ? (selectedSaberSubtype === "EXAM" ? "Ej. Examen de CinÃ©tica QuÃ­mica" : "Ej. Taller de ComprensiÃ³n, GuÃ­a de Consulta...")
                       : addModal.type === "TASK"
-                      ? "Ej. Taller Práctico, Maqueta, Ejercicios"
+                      ? "Ej. Taller PrÃ¡ctico, Maqueta, Ejercicios"
                       : addModal.type === "FINAL"
                       ? "Ej. Examen Final del Periodo"
                       : "Ej. Asistencia Semana 1"
@@ -3412,7 +3858,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 </div>
                 <div className="input-group">
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    {addModal.type === "SER" ? "Fecha Límite (Opcional)" : `Fecha Límite de Entrega ${newTaskIsExternal ? "(Opcional)" : "*"}`}
+                    {addModal.type === "SER" ? "Fecha LÃ­mite (Opcional)" : `Fecha LÃ­mite de Entrega ${newTaskIsExternal ? "(Opcional)" : "*"}`}
                   </label>
                   <input
                     type="datetime-local"
@@ -3425,7 +3871,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 {(addModal?.type === "FINAL" || (addModal?.type === "EXAM" && selectedSaberSubtype === "EXAM")) && (
                   <div className="input-group">
                     <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                      Límite de Tiempo (minutos, opcional)
+                      LÃ­mite de Tiempo (minutos, opcional)
                     </label>
                     <input
                       type="number"
@@ -3440,13 +3886,13 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 )}
               </div>
 
-              {/* Row 4 & Checkboxes — hidden for SER */}
+              {/* Row 4 & Checkboxes â€” hidden for SER */}
               {addModal.type !== "SER" && (
                 <>
-                  {/* Row 4: Programar Publicación Automática */}
+                  {/* Row 4: Programar PublicaciÃ³n AutomÃ¡tica */}
                   <div className="input-group">
                     <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                      Programar Publicación Automática (Fecha y Hora - Opcional)
+                      Programar PublicaciÃ³n AutomÃ¡tica (Fecha y Hora - Opcional)
                     </label>
                     <input
                       type="datetime-local"
@@ -3455,7 +3901,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                       className="input-field w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
                     />
                     <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 block">
-                      Dejar vacío para publicar inmediatamente. Si se define, la tarea se publicará automáticamente al llegar el momento.
+                      Dejar vacÃ­o para publicar inmediatamente. Si se define, la tarea se publicarÃ¡ automÃ¡ticamente al llegar el momento.
                     </span>
                   </div>
 
@@ -3472,10 +3918,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                       />
                       <div className="flex flex-col gap-0.5">
                         <label htmlFor="isExternalCheck" className="font-bold text-xs text-gray-800 dark:text-gray-200 cursor-pointer select-none">
-                          Trabajo fuera de la plataforma (Calificación manual)
+                          Trabajo fuera de la plataforma (CalificaciÃ³n manual)
                         </label>
                         <span className="text-[10px] text-gray-400 dark:text-gray-500 leading-tight">
-                          Si se activa, los estudiantes no tendrán que entregar archivos ni responder cuestionarios. La calificación la registrarás tú directamente.
+                          Si se activa, los estudiantes no tendrÃ¡n que entregar archivos ni responder cuestionarios. La calificaciÃ³n la registrarÃ¡s tÃº directamente.
                         </span>
                       </div>
                     </div>
@@ -3491,14 +3937,14 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                           className="w-4 h-4 rounded text-[#f97316] focus:ring-[#f97316] cursor-pointer"
                         />
                         <label htmlFor="allowLateCheck" className="font-bold text-xs text-gray-800 dark:text-gray-200 cursor-pointer select-none">
-                          Permitir entregas tardías (Prórroga)
+                          Permitir entregas tardÃ­as (PrÃ³rroga)
                         </label>
                       </div>
 
                       {newTaskAllowLateSubmission && (
                         <div className="mt-2 pl-7 flex flex-col gap-1 animate-fade-in">
                           <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300">
-                            Fecha y hora límite de prórroga (Opcional):
+                            Fecha y hora lÃ­mite de prÃ³rroga (Opcional):
                           </label>
                           <input
                             type="datetime-local"
@@ -3507,7 +3953,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                             className="w-full px-3 py-1.5 text-xs rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#f97316]"
                           />
                           <span className="text-[10px] text-gray-400 dark:text-gray-500">
-                            * Si se deja vacío, la prórroga será sin fecha límite de expiración.
+                            * Si se deja vacÃ­o, la prÃ³rroga serÃ¡ sin fecha lÃ­mite de expiraciÃ³n.
                           </span>
                         </div>
                       )}
@@ -3520,11 +3966,11 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               {groups.length > 0 && (
                 <div className="input-group">
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                    Asignar a Grupos (Múltiple) *
+                    Asignar a Grupos (MÃºltiple) *
                   </label>
                   <div className="flex flex-col gap-2 p-3 bg-slate-50 dark:bg-slate-800/20 border border-gray-200 dark:border-gray-800 rounded-lg">
                     {groups.map(g => {
-                      const label = g.grade?.name ? `${g.grade.name} — ${g.name}` : g.name;
+                      const label = g.grade?.name ? `${g.grade.name} â€” ${g.name}` : g.name;
                       const isChecked = newTaskGroupIds.includes(g.id);
                       return (
                         <label key={g.id} className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none text-gray-700 dark:text-gray-300">
@@ -3548,12 +3994,12 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 </div>
               )}
 
-              {/* Asignación a Estudiantes Específicos (Opcional) */}
+              {/* AsignaciÃ³n a Estudiantes EspecÃ­ficos (Opcional) */}
               <div className="input-group">
                 <div className="flex justify-between items-center mb-1">
                   <label className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                    <span>Asignar a Estudiantes Específicos</span>
-                    <span className="text-[10px] font-normal text-muted">(Opcional: asignación individual)</span>
+                    <span>Asignar a Estudiantes EspecÃ­ficos</span>
+                    <span className="text-[10px] font-normal text-muted">(Opcional: asignaciÃ³n individual)</span>
                   </label>
                   {newTaskStudentIds.length > 0 && (
                     <button
@@ -3589,7 +4035,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     if (filteredStudents.length === 0) {
                       return (
                         <p className="text-[11px] text-muted text-center py-2">
-                          No se encontraron estudiantes {studentSearch ? "con esa búsqueda" : "en los grupos seleccionados"}.
+                          No se encontraron estudiantes {studentSearch ? "con esa bÃºsqueda" : "en los grupos seleccionados"}.
                         </p>
                       );
                     }
@@ -3657,12 +4103,12 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                   {/* Archivo Adjunto */}
                   <div className="input-group">
                     <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                      Archivo Adjunto / Guía de Apoyo (Opcional)
+                      Archivo Adjunto / GuÃ­a de Apoyo (Opcional)
                     </label>
                     {existingAttachmentUrl && !newTaskFile && (
                       <div className="flex items-center justify-between p-2.5 mb-2 rounded-lg bg-orange-50/50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 text-xs">
                         <span className="font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-1.5 truncate">
-                          📎 Guía adjunta actual
+                          ðŸ“Ž GuÃ­a adjunta actual
                         </span>
                         <a
                           href={existingAttachmentUrl}
@@ -3688,7 +4134,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                       </svg>
                       <span className="text-xs font-bold text-gray-650 dark:text-gray-350 block">
-                        {newTaskFile ? newTaskFile.name : (existingAttachmentUrl ? "Cambiar guía o archivo..." : "Selecciona una guía o archivo")}
+                        {newTaskFile ? newTaskFile.name : (existingAttachmentUrl ? "Cambiar guÃ­a o archivo..." : "Selecciona una guÃ­a o archivo")}
                       </span>
                     </div>
                   </div>
@@ -3715,7 +4161,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 ) : (
                   <>
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                    <span>{editTaskId ? "Guardar Cambios" : (addModal.type === "EXAM" ? (selectedSaberSubtype === "EXAM" ? "Crear Examen" : "Crear Tarea (Saber)") : addModal.type === "TASK" ? "Crear Tarea" : addModal.type === "SER" ? "Crear Evaluación Actitudinal" : "Crear Evaluación")}</span>
+                    <span>{editTaskId ? "Guardar Cambios" : (addModal.type === "EXAM" ? (selectedSaberSubtype === "EXAM" ? "Crear Examen" : "Crear Tarea (Saber)") : addModal.type === "TASK" ? "Crear Tarea" : addModal.type === "SER" ? "Crear EvaluaciÃ³n Actitudinal" : "Crear EvaluaciÃ³n")}</span>
                   </>
                 )}
               </button>
@@ -3727,427 +4173,11 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         </div>
       )}
 
-
-
-      {/* Exam / Task Management Modal */}
-      {questionsModalTask && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4 animate-fade-in">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-4xl shadow-2xl animate-scale-in max-h-[90vh] overflow-y-auto flex flex-col gap-4">
-
-            {/* Header */}
-            <div className="flex justify-between items-center pb-2 border-b border-gray-200 dark:border-gray-800">
-              <div>
-                <h3 className="font-bold text-xl text-gray-900 dark:text-gray-100">
-                  {(questionsModalTask.type === "EXAM" || questionsModalTask.type === "FINAL") ? "Gestión de Examen" : "Gestión de Tarea"}: {questionsModalTask.title}
-                </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-450 mt-0.5">
-                  Administra entregas, prórrogas e intentos directamente desde la planilla.
-                </p>
-              </div>
-              <button onClick={() => setQuestionsModalTask(null)} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
-                <X size={24} />
-              </button>
-            </div>
-
-            {/* Tabs — only for exams */}
-            {(questionsModalTask.type === "EXAM" || questionsModalTask.type === "FINAL") && (
-              <div className="flex gap-4 border-b border-gray-200 dark:border-gray-800">
-                {(["control", "questions"] as const).map(tab => (
-                  <button
-                    key={tab}
-                    onClick={() => setManageTab(tab)}
-                    className={`pb-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors ${
-                      manageTab === tab
-                        ? "border-[#f97316] text-[#f97316]"
-                        : "border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                    }`}
-                  >
-                    {tab === "control" ? "Entregas e Intentos" : "Preguntas del Examen"}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto">
-              {loadingQuestions ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-3">
-                  <Loader2 className="animate-spin text-[#f98012]" size={32} />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold">Cargando información...</p>
-                </div>
-              ) : manageTab === "questions" && (questionsModalTask.type === "EXAM" || questionsModalTask.type === "FINAL") ? (
-                <QuestionEditor
-                  key={questionsModalTask.id}
-                  taskId={questionsModalTask.id}
-                  initialQuestions={examQuestions}
-                />
-              ) : (
-                <div className="flex flex-col gap-5">
-
-                  {/* Global late submission toggle */}
-                  <div className="p-4 rounded-xl border flex flex-col gap-3 bg-gray-50/40 dark:bg-gray-800/20" style={{ borderColor: "var(--border-color)" }}>
-                    <div className="flex items-center justify-between gap-4 flex-wrap">
-                      <div className="flex items-center gap-2">
-                        <Clock className="text-[#f98012]" size={18} />
-                        <div>
-                          <h4 className="font-bold text-sm text-gray-800 dark:text-gray-200">Prórroga Global (Entrega Tardía)</h4>
-                          <p className="text-[11px] text-gray-500 dark:text-gray-400">Permite entregar después del plazo a todos los estudiantes.</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setGlobalAllowLate(v => !v)}
-                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                            globalAllowLate ? "bg-[#f97316]" : "bg-gray-300 dark:bg-zinc-700"
-                          }`}
-                        >
-                          <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
-                            globalAllowLate ? "translate-x-[18px]" : "translate-x-1"
-                          }`} />
-                        </button>
-                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                          {globalAllowLate ? "Habilitada" : "Deshabilitada"}
-                        </span>
-                      </div>
-                    </div>
-                    {globalAllowLate && (
-                      <div className="max-w-xs">
-                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Hasta:</label>
-                        <input
-                          type="datetime-local"
-                          value={globalLateUntil}
-                          onChange={e => setGlobalLateUntil(e.target.value)}
-                          className="input-field w-full text-xs py-1.5 px-2.5 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
-                        />
-                      </div>
-                    )}
-                    {(globalAllowLate !== savedGlobalAllowLate || globalLateUntil !== savedGlobalLateUntil) && (
-                      <div className="flex justify-end gap-2">
-                        <button onClick={() => { setGlobalAllowLate(savedGlobalAllowLate); setGlobalLateUntil(savedGlobalLateUntil); }} className="btn btn-secondary py-1 px-3 text-xs">Cancelar</button>
-                        <button onClick={saveGlobalLateConfig} disabled={savingGlobalLate} className="btn btn-primary py-1 px-3 text-xs flex items-center gap-1">
-                          {savingGlobalLate && <Loader2 className="animate-spin" size={12} />} Guardar Prórroga
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Students table header & Bulk Actions */}
-                  <div className="p-3 bg-orange-50/60 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/40 rounded-xl flex items-center justify-between flex-wrap gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2">
-                        <span className="p-1.5 bg-[#f97316] text-white rounded-lg">
-                          <Calendar size={15} />
-                        </span>
-                        <div>
-                          <h4 className="font-bold text-xs text-gray-900 dark:text-gray-100">
-                            Prórroga Masiva a Múltiples Estudiantes
-                          </h4>
-                          <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                            {selectedTaskStudentIds.length === 0 
-                              ? "Marca las casillas de la columna izquierda (o 'Seleccionar todos') para asignarles fecha y hora." 
-                              : `Tienes ${selectedTaskStudentIds.length} estudiante(s) seleccionado(s).`}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (selectedTaskStudentIds.length === 0) {
-                            // Si no hay ninguno seleccionado, seleccionar todos por defecto para facilitar
-                            setSelectedTaskStudentIds(taskStudents.map(s => s.id));
-                          }
-                          const d = new Date();
-                          d.setDate(d.getDate() + 1);
-                          d.setHours(23, 59, 0, 0);
-                          setBulkProrrogaDate(toColombiaISOString(d.toISOString()));
-                          setBulkProrrogaAllow(true);
-                          setShowBulkProrrogaInPlanilla(true);
-                        }}
-                        className="btn btn-primary text-xs px-3.5 py-2 flex items-center gap-2 font-bold shadow-md bg-[#f97316] hover:bg-[#ea580c] text-white rounded-lg transition-all"
-                      >
-                        <Calendar size={14} />
-                        {selectedTaskStudentIds.length > 0
-                          ? `Asignar Fecha y Hora (${selectedTaskStudentIds.length} seleccionados)`
-                          : "🗓️ Asignar Prórroga a Varios Estudiantes"}
-                      </button>
-
-                      {selectedTaskStudentIds.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedTaskStudentIds([])}
-                          className="btn btn-secondary text-xs px-2.5 py-2 text-gray-600 dark:text-gray-300"
-                        >
-                          Deseleccionar
-                        </button>
-                      )}
-
-                      {(questionsModalTask.type === "EXAM" || questionsModalTask.type === "FINAL") && (
-                        <button
-                          onClick={resetAllGroupSubmissions}
-                          disabled={resettingSubmissions !== null || taskStudents.length === 0}
-                          className="btn btn-secondary text-xs px-2.5 py-2 flex items-center gap-1.5 border border-orange-200 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20 disabled:opacity-50"
-                        >
-                          {resettingSubmissions === "all" ? <Loader2 className="animate-spin" size={13} /> : <Users size={13} />}
-                          Reiniciar Todo el Grupo
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Panel de Prórroga Masiva inline en Planilla */}
-                  {showBulkProrrogaInPlanilla && (
-                    <div className="p-4 rounded-xl border border-orange-300 dark:border-orange-800 bg-white dark:bg-zinc-900 shadow-lg flex flex-col gap-3 animate-fade-in">
-                      <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
-                        <span className="text-xs font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
-                          <Calendar size={16} className="text-[#f97316]" /> Configurar Prórroga para {selectedTaskStudentIds.length} Estudiante(s)
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setShowBulkProrrogaInPlanilla(false)}
-                          className="text-gray-400 hover:text-gray-600 p-1"
-                        >
-                          <X size={16} />
-                        </button>
-                      </div>
-
-                      <div className="flex items-center justify-between p-2.5 bg-orange-50/50 dark:bg-orange-950/20 rounded-lg border border-orange-100 dark:border-zinc-800">
-                        <div>
-                          <span className="text-xs font-bold text-gray-800 dark:text-zinc-200 block">
-                            Habilitar entrega fuera de plazo
-                          </span>
-                          <span className="text-[11px] text-gray-500 dark:text-gray-400">
-                            Los estudiantes seleccionados podrán subir la tarea tras el vencimiento.
-                          </span>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={bulkProrrogaAllow}
-                          onChange={e => setBulkProrrogaAllow(e.target.checked)}
-                          className="w-5 h-5 rounded accent-[#f97316] cursor-pointer"
-                        />
-                      </div>
-
-                      {bulkProrrogaAllow && (
-                        <div className="space-y-2 p-3 bg-gray-50 dark:bg-zinc-800/40 rounded-lg border border-gray-200 dark:border-zinc-700">
-                          <label className="text-xs font-bold text-gray-800 dark:text-zinc-200 flex items-center gap-1.5">
-                            <Clock size={14} className="text-[#f97316]" /> Nueva fecha y hora límite de entrega:
-                          </label>
-                          <input
-                            type="datetime-local"
-                            value={bulkProrrogaDate}
-                            onChange={e => setBulkProrrogaDate(e.target.value)}
-                            className="input-field w-full max-w-sm text-xs py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316] bg-white dark:bg-zinc-900 font-semibold"
-                          />
-                          <div className="pt-1">
-                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
-                              Atajos de fecha rápida:
-                            </span>
-                            <div className="flex flex-wrap gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(23, 59, 0, 0);
-                                  setBulkProrrogaDate(toColombiaISOString(d.toISOString()));
-                                }}
-                                className="px-2.5 py-1 text-xs font-bold rounded bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 hover:border-[#f97316] text-gray-700 dark:text-zinc-300 shadow-xs"
-                              >
-                                +1 Día
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const d = new Date(); d.setDate(d.getDate() + 2); d.setHours(23, 59, 0, 0);
-                                  setBulkProrrogaDate(toColombiaISOString(d.toISOString()));
-                                }}
-                                className="px-2.5 py-1 text-xs font-bold rounded bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 hover:border-[#f97316] text-gray-700 dark:text-zinc-300 shadow-xs"
-                              >
-                                +2 Días
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const d = new Date(); d.setDate(d.getDate() + 3); d.setHours(23, 59, 0, 0);
-                                  setBulkProrrogaDate(toColombiaISOString(d.toISOString()));
-                                }}
-                                className="px-2.5 py-1 text-xs font-bold rounded bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 hover:border-[#f97316] text-gray-700 dark:text-zinc-300 shadow-xs"
-                              >
-                                +3 Días
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const d = new Date(); d.setDate(d.getDate() + 7); d.setHours(23, 59, 0, 0);
-                                  setBulkProrrogaDate(toColombiaISOString(d.toISOString()));
-                                }}
-                                className="px-2.5 py-1 text-xs font-bold rounded bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 hover:border-[#f97316] text-gray-700 dark:text-zinc-300 shadow-xs"
-                              >
-                                +1 Semana
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setBulkProrrogaDate("")}
-                                className="px-2.5 py-1 text-xs font-medium rounded bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 text-muted"
-                              >
-                                Sin fecha límite (Indefinido)
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
-                        <button
-                          type="button"
-                          onClick={() => setShowBulkProrrogaInPlanilla(false)}
-                          className="btn btn-secondary py-1.5 px-3 text-xs"
-                          disabled={savingBulkProrroga}
-                        >
-                          Cancelar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleSaveBulkProrrogaInPlanilla}
-                          disabled={savingBulkProrroga}
-                          className="btn btn-primary py-1.5 px-4 text-xs font-bold flex items-center gap-1.5 bg-[#f97316] hover:bg-[#ea580c] text-white shadow-sm"
-                        >
-                          {savingBulkProrroga && <Loader2 className="animate-spin" size={13} />}
-                          Guardar Prórroga para {selectedTaskStudentIds.length} Estudiantes
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Students table */}
-                  <div className="overflow-x-auto border rounded-xl" style={{ borderColor: "var(--border-color)" }}>
-                    <table className="w-full text-left text-xs" style={{ borderCollapse: "collapse" }}>
-                      <thead>
-                        <tr className="bg-gray-50 dark:bg-gray-800/40 font-bold text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
-                          <th className="py-2 px-3 w-12 text-center bg-orange-50/70 dark:bg-orange-950/30">
-                            <div className="flex items-center justify-center gap-1">
-                              <input
-                                type="checkbox"
-                                checked={selectedTaskStudentIds.length === taskStudents.length && taskStudents.length > 0}
-                                onChange={handleSelectAllTaskStudents}
-                                className="w-4 h-4 rounded accent-[#f97316] cursor-pointer"
-                                title="Seleccionar / Deseleccionar todos los estudiantes"
-                              />
-                            </div>
-                          </th>
-                          <th className="py-2 px-4">Estudiante</th>
-                          <th className="py-2 px-4">Estado</th>
-                          <th className="py-2 px-4">Prórroga Individual</th>
-                          <th className="py-2 px-4">Fecha Envío</th>
-                          <th className="py-2 px-4 text-right">Acciones</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {taskStudents.length === 0 ? (
-                          <tr><td colSpan={6} className="py-8 text-center text-gray-400 italic">No hay estudiantes en este grupo.</td></tr>
-                        ) : taskStudents.map(s => {
-                          const sub = s.submission;
-                          const isGraded = sub?.status === "GRADED";
-                          const isSubmitted = sub && sub.status !== "PENDING";
-                          const hasSub = !!sub;
-                          const indAllow = sub?.allowLateSubmission ?? false;
-                          const indUntil = sub?.lateSubmissionUntil ? toColombiaISOString(sub.lateSubmissionUntil) : "";
-                          const isSelected = selectedTaskStudentIds.includes(s.id);
-                          return (
-                            <tr key={s.id} className={`border-b border-gray-100 dark:border-gray-800 transition-colors ${isSelected ? "bg-orange-50/50 dark:bg-orange-950/20" : "hover:bg-gray-50/40 dark:hover:bg-gray-900/10"}`}>
-                              <td className="py-3 px-3 text-center">
-                                <input
-                                  type="checkbox"
-                                  checked={isSelected}
-                                  onChange={() => handleToggleSelectTaskStudent(s.id)}
-                                  className="w-3.5 h-3.5 rounded accent-[#f97316] cursor-pointer"
-                                />
-                              </td>
-                              <td className="py-3 px-4">
-                                <div className="font-semibold text-gray-800 dark:text-gray-200">{s.name}</div>
-                                <div className="text-[10px] text-gray-400">{s.groupName}</div>
-                              </td>
-                              <td className="py-3 px-4">
-                                {isGraded ? (
-                                  <span className="badge badge-success flex w-fit items-center gap-1"><CheckCircle size={11} /> Calificada: {sub.grade}</span>
-                                ) : isSubmitted ? (
-                                  <span className="badge badge-info">Entregada</span>
-                                ) : (
-                                  <span className="badge badge-warning flex w-fit items-center gap-1"><Clock size={11} /> Pendiente</span>
-                                )}
-                              </td>
-                              <td className="py-3 px-4">
-                                {globalAllowLate ? (
-                                  <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1"><CheckCircle size={11}/> Global</span>
-                                ) : (
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <input
-                                      type="checkbox"
-                                      checked={indAllow}
-                                      onChange={e => saveIndividualLateConfig(s.id, e.target.checked, indUntil)}
-                                      className="w-3.5 h-3.5 rounded accent-[#f97316]"
-                                    />
-                                    {indAllow && (
-                                      <input
-                                        type="datetime-local"
-                                        value={indUntil}
-                                        onChange={e => saveIndividualLateConfig(s.id, true, e.target.value)}
-                                        className="text-[10px] py-0.5 px-1 border rounded bg-white dark:bg-gray-800 outline-none focus:ring-1 focus:ring-[#f97316] border-gray-300 dark:border-gray-700"
-                                      />
-                                    )}
-                                  </div>
-                                )}
-                              </td>
-                              <td className="py-3 px-4 text-gray-400">
-                                {sub?.submittedAt ? new Date(sub.submittedAt).toLocaleString() : "-"}
-                              </td>
-                              <td className="py-3 px-4 text-right">
-                                <div className="flex justify-end gap-2">
-                                  {questionsModalTask.type !== "EXAM" && questionsModalTask.type !== "FINAL" && sub?.fileUrl && (
-                                    <a href={sub.fileUrl} target="_blank" rel="noopener noreferrer"
-                                      className="btn btn-secondary text-[11px] px-2 py-1 flex items-center gap-1"
-                                      title="Descargar archivo de entrega"
-                                    >
-                                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                                      Descargar
-                                    </a>
-                                  )}
-                                  {(questionsModalTask.type === "EXAM" || questionsModalTask.type === "FINAL") && (
-                                    <button
-                                      onClick={() => resetStudentSubmission(s.id, s.name, hasSub)}
-                                      disabled={resettingSubmissions === s.id}
-                                      className="btn btn-secondary text-[11px] px-2 py-1 flex items-center gap-1 border border-red-100 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 disabled:opacity-50"
-                                    >
-                                      {resettingSubmissions === s.id
-                                        ? <Loader2 className="animate-spin" size={12} />
-                                        : <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38"/></svg>}
-                                      {hasSub ? "Reiniciar" : "Habilitar"}
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="flex justify-end border-t pt-4" style={{ borderColor: "var(--border-color)" }}>
-              <button className="btn btn-secondary" onClick={() => setQuestionsModalTask(null)}>Cerrar</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Custom Excel Synchronization Mapping Modal */}
+      {/* â”€â”€ Fallback wizard: only shown when auto-detection couldn't find student column â”€â”€ */}
 
       {/* Custom Excel Synchronization Mapping Modal */}
-      {/* ── Fallback wizard: only shown when auto-detection couldn't find student column ── */}
+      {/* â”€â”€ Fallback wizard: only shown when auto-detection couldn't find student column â”€â”€ */}
       {customExcelData && (
         <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50 animate-fade-in px-4">
           <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-lg shadow-2xl animate-scale-in" style={{ color: "var(--text-primary)" }}>
@@ -4159,7 +4189,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                   <FileSpreadsheet className="text-orange-500" size={22} /> Necesito un poco de ayuda
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  No pude detectar automáticamente la columna de nombres en <strong>{customExcelData.fileName}</strong>.
+                  No pude detectar automÃ¡ticamente la columna de nombres en <strong>{customExcelData.fileName}</strong>.
                 </p>
               </div>
               <button
@@ -4175,7 +4205,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               {/* Header Row Selector */}
               <div className="p-4 rounded-xl border bg-slate-50 dark:bg-slate-800/30 flex flex-col gap-2" style={{ borderColor: "var(--border-color)" }}>
                 <label className="font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                  <span className="text-base">📋</span> ¿En qué fila están los títulos de las columnas?
+                  <span className="text-base">ðŸ“‹</span> Â¿En quÃ© fila estÃ¡n los tÃ­tulos de las columnas?
                 </label>
                 <select
                   value={customExcelData.headerIndex}
@@ -4190,7 +4220,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                       .join(" | ");
                     return (
                       <option key={idx} value={idx}>
-                        Fila {idx + 1}: {rowPreview ? (rowPreview.length > 70 ? rowPreview.substring(0, 70) + "..." : rowPreview) : "(Vacía)"}
+                        Fila {idx + 1}: {rowPreview ? (rowPreview.length > 70 ? rowPreview.substring(0, 70) + "..." : rowPreview) : "(VacÃ­a)"}
                       </option>
                     );
                   })}
@@ -4200,7 +4230,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               {/* Student Column Selector */}
               <div className="p-4 rounded-xl border bg-orange-50 dark:bg-orange-900/20 flex flex-col gap-2" style={{ borderColor: "rgba(251,146,60,0.4)" }}>
                 <label className="font-bold text-orange-700 dark:text-orange-300 flex items-center gap-2">
-                  <span className="text-base">👤</span> ¿Cuál columna tiene los nombres de los estudiantes?
+                  <span className="text-base">ðŸ‘¤</span> Â¿CuÃ¡l columna tiene los nombres de los estudiantes?
                 </label>
                 <select
                   value={excelStudentCol}
@@ -4214,7 +4244,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                   ))}
                 </select>
                 <p className="text-[11px] text-orange-600 dark:text-orange-400">
-                  Las evaluaciones se detectan automáticamente por el nombre de las columnas.
+                  Las evaluaciones se detectan automÃ¡ticamente por el nombre de las columnas.
                 </p>
               </div>
 
@@ -4245,7 +4275,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         </div>
       )}
 
-      {/* ── Sync Confirm Modal (portal → escapes overflow:hidden) ── */}
+      {/* â”€â”€ Sync Confirm Modal (portal â†’ escapes overflow:hidden) â”€â”€ */}
       {isMounted && syncConfirmOpen && createPortal(
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999] px-4 animate-fade-in">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in">
@@ -4256,7 +4286,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-base font-extrabold text-gray-800 dark:text-gray-100">¿Confirmar sincronización?</h3>
+                  <h3 className="text-base font-extrabold text-gray-800 dark:text-gray-100">Â¿Confirmar sincronizaciÃ³n?</h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
                     Revisa el resumen antes de confirmar:
                   </p>
@@ -4268,20 +4298,20 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 <div className="flex flex-col gap-2 mb-4">
                   <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
                     <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
-                      <span>✅</span> Notas nuevas a agregar
+                      <span>âœ…</span> Notas nuevas a agregar
                     </span>
                     <span className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400">{syncPreview.toAdd}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700">
                     <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
-                      <span>🔒</span> Notas ya existentes (no se tocan)
+                      <span>ðŸ”’</span> Notas ya existentes (no se tocan)
                     </span>
                     <span className="text-sm font-extrabold text-slate-500">{syncPreview.toSkip}</span>
                   </div>
                   {syncPreview.unmatched > 0 && (
                     <div className="flex items-center justify-between p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
                       <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
-                        <span>⚠️</span> Estudiantes sin coincidencia
+                        <span>âš ï¸</span> Estudiantes sin coincidencia
                       </span>
                       <span className="text-sm font-extrabold text-amber-600">{syncPreview.unmatched}</span>
                     </div>
@@ -4290,7 +4320,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               )}
 
               <p className="text-[11px] text-orange-600 dark:text-orange-400 font-semibold flex items-center gap-1">
-                <span>💾</span> Recuerda hacer clic en &quot;Guardar&quot; al finalizar.
+                <span>ðŸ’¾</span> Recuerda hacer clic en &quot;Guardar&quot; al finalizar.
               </p>
 
               <div className="flex gap-2 mt-4 justify-end">
@@ -4317,7 +4347,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         document.body
       )}
 
-      {/* ── Sync Result Modal (portal → escapes overflow:hidden) ── */}
+      {/* â”€â”€ Sync Result Modal (portal â†’ escapes overflow:hidden) â”€â”€ */}
       {isMounted && syncResultMsg && createPortal(
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999] px-4 animate-fade-in">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in">
@@ -4328,25 +4358,25 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                   <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-base font-extrabold text-gray-800 dark:text-gray-100">¡Sincronización completada!</h3>
+                  <h3 className="text-base font-extrabold text-gray-800 dark:text-gray-100">Â¡SincronizaciÃ³n completada!</h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Resumen de lo que se hizo:</p>
                 </div>
               </div>
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between p-3 rounded-lg border bg-slate-50 dark:bg-slate-800/20" style={{ borderColor: "var(--border-color)" }}>
-                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">👥 Estudiantes encontrados</span>
+                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">ðŸ‘¥ Estudiantes encontrados</span>
                   <span className="text-sm font-extrabold text-gray-700 dark:text-gray-200">{syncResultMsg.matched} / {syncResultMsg.total}</span>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
-                  <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">✅ Notas nuevas agregadas</span>
+                  <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">âœ… Notas nuevas agregadas</span>
                   <span className="text-sm font-extrabold text-emerald-600">{syncResultMsg.added}</span>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700">
-                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">🔒 Notas existentes protegidas</span>
+                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">ðŸ”’ Notas existentes protegidas</span>
                   <span className="text-sm font-extrabold text-slate-500">{syncResultMsg.skipped}</span>
                 </div>
                 <div className="p-3 rounded-lg border bg-amber-50/50 dark:bg-amber-950/20 text-xs" style={{ borderColor: "rgba(245,158,11,0.2)", color: "#78350f" }}>
-                  💾 Haz clic en <strong>&quot;Guardar&quot;</strong> para confirmar los cambios.
+                  ðŸ’¾ Haz clic en <strong>&quot;Guardar&quot;</strong> para confirmar los cambios.
                 </div>
               </div>
               <div className="flex justify-end mt-4">
@@ -4355,7 +4385,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                   className="px-5 py-2 rounded-lg text-xs font-bold text-white transition-all hover:brightness-110 shadow-md"
                   style={{ background: "linear-gradient(135deg,#10b981,#059669)" }}
                 >
-                  Entendido ✓
+                  Entendido âœ“
                 </button>
               </div>
             </div>
@@ -4364,7 +4394,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         document.body
       )}
 
-      {/* ── Duplicate / Clone Task Modal ── */}
+      {/* â”€â”€ Duplicate / Clone Task Modal â”€â”€ */}
       {isMounted && duplicateModalTask && createPortal(
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] px-4 animate-fade-in">
           <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-lg shadow-2xl animate-scale-in flex flex-col gap-4 border" style={{ borderColor: "var(--border-color)" }}>
@@ -4403,9 +4433,9 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             )}
 
             <div className="p-3 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/40 rounded-xl text-xs text-purple-900 dark:text-purple-300">
-              💡 <strong>Actividad Original:</strong> &quot;{duplicateModalTask.title}&quot; ({duplicateModalTask.type === "EXAM" ? "Examen" : "Tarea"}).
+              ðŸ’¡ <strong>Actividad Original:</strong> &quot;{duplicateModalTask.title}&quot; ({duplicateModalTask.type === "EXAM" ? "Examen" : "Tarea"}).
               <br />
-              Se copiarán todas sus preguntas, opciones y archivos, pero la planilla de notas empezará <strong>100% limpia (en blanco)</strong>.
+              Se copiarÃ¡n todas sus preguntas, opciones y archivos, pero la planilla de notas empezarÃ¡ <strong>100% limpia (en blanco)</strong>.
             </div>
 
             <div className="flex flex-col gap-3 text-xs">
@@ -4459,14 +4489,14 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 return (
                   <div className="input-group">
                     <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                      Asignar a Grupos en Destino (Múltiple) *
+                      Asignar a Grupos en Destino (MÃºltiple) *
                     </label>
                     {targetGroups.length === 0 ? (
                       <p className="text-xs text-muted italic">Esta asignatura no tiene grupos asociados.</p>
                     ) : (
                       <div className="flex flex-col gap-2 p-3 bg-slate-50 dark:bg-slate-800/30 border rounded-lg max-h-36 overflow-y-auto" style={{ borderColor: "var(--border-color)" }}>
                         {targetGroups.map(g => {
-                          const label = g.grade?.name ? `${g.grade.name} — ${g.name}` : g.name;
+                          const label = g.grade?.name ? `${g.grade.name} â€” ${g.name}` : g.name;
                           const isChecked = duplicateTargetGroupIds.includes(g.id);
                           return (
                             <label key={g.id} className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none">
@@ -4492,10 +4522,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 );
               })()}
 
-              {/* Título de la copia */}
+              {/* TÃ­tulo de la copia */}
               <div className="input-group">
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                  Título para la nueva copia (Opcional)
+                  TÃ­tulo para la nueva copia (Opcional)
                 </label>
                 <input
                   type="text"
@@ -4517,7 +4547,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                   onChange={e => setDuplicateDueDate(e.target.value)}
                   className="input-field w-full text-xs font-semibold py-2 px-3 border rounded-lg"
                 />
-                <p className="text-[10px] text-muted mt-0.5">Por defecto configurado para mañana a las 23:59.</p>
+                <p className="text-[10px] text-muted mt-0.5">Por defecto configurado para maÃ±ana a las 23:59.</p>
               </div>
             </div>
 
