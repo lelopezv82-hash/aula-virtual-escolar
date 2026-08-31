@@ -133,7 +133,8 @@ export default async function TableroVirtualPage() {
         startedAt: sub.startedAt ? sub.startedAt.toISOString() : null,
         attempt: sub.attempt ?? 1,
         allowLateSubmission: sub.allowLateSubmission ?? false,
-        lateSubmissionUntil: sub.lateSubmissionUntil ? sub.lateSubmissionUntil.toISOString() : null
+        lateSubmissionUntil: sub.lateSubmissionUntil ? sub.lateSubmissionUntil.toISOString() : null,
+        fileUrl: sub.fileUrl || null
       } : null
     };
   });

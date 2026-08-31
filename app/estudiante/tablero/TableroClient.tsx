@@ -55,6 +55,7 @@ export interface TableroTask {
     attempt: number;
     allowLateSubmission?: boolean;
     lateSubmissionUntil?: string | null;
+    fileUrl?: string | null;
   } | null;
 }
 
@@ -115,12 +116,22 @@ export default function TableroClient({
     const diffHours = diffMs / (1000 * 60 * 60);
     const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
-    const isSubmitted = !!(task.submission && task.submission.status !== "PENDING");
+    // Detect auto-grade (grade=1.0 assigned by system when deadline passed, no real file upload)
+    const hasUploadedFile = !!(task.submission?.fileUrl && task.submission.fileUrl.trim() !== "");
+    const hasActiveExtension = !!(task.submission?.allowLateSubmission || task.allowLateSubmission);
+    const isAutoGrade1 = (
+      task.submission !== null &&
+      (task.submission?.grade === 1 || task.submission?.grade === 1.0) &&
+      hasActiveExtension &&
+      !hasUploadedFile
+    );
+    // isSubmitted = student actually submitted something (not just an auto-grade)
+    const isSubmitted = !!(task.submission && task.submission.status !== "PENDING" && !isAutoGrade1);
     const isExpired = isClosed && !isSubmitted;
     const isDueToday = diffHours > 0 && diffHours <= 24 && !hasExtension;
     const isUrgent = diffHours > 0 && diffHours <= 48 && !hasExtension;
-    const isGraded = !!(task.submission && (task.submission.status === "GRADED" || task.submission.grade != null)) || (isExpired && !isSubmitted);
-    const grade = task.submission?.grade ?? (isExpired && !isSubmitted ? 1.0 : null);
+    const isGraded = (!isAutoGrade1 && !!(task.submission && (task.submission.status === "GRADED" || task.submission.grade != null))) || (isExpired && !isSubmitted);
+    const grade = (!isAutoGrade1 ? task.submission?.grade : null) ?? (isExpired && !isSubmitted ? 1.0 : null);
 
     let timeText = "";
     if (diffMs < 0) {
