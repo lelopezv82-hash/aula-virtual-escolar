@@ -26,6 +26,7 @@ import {
   Download,
   Paperclip
 } from "lucide-react";
+import { getTaskDeadlineStatus, formatToColombiaString } from "@/lib/dateUtils";
 
 export interface TableroTask {
   id: string;
@@ -52,6 +53,8 @@ export interface TableroTask {
     submittedAt: string | null;
     startedAt: string | null;
     attempt: number;
+    allowLateSubmission?: boolean;
+    lateSubmissionUntil?: string | null;
   } | null;
 }
 
@@ -90,15 +93,32 @@ export default function TableroClient({
   // Helper to compute deadline & remaining status
   const getTaskInfo = (task: TableroTask) => {
     const due = new Date(task.dueDate);
-    const diffMs = due.getTime() - now.getTime();
+    const deadlineStatus = getTaskDeadlineStatus(
+      {
+        dueDate: task.dueDate,
+        allowLateSubmission: !!task.allowLateSubmission,
+        lateSubmissionUntil: task.lateSubmissionUntil,
+        type: task.type,
+      },
+      {
+        allowLateSubmission: !!task.submission?.allowLateSubmission,
+        lateSubmissionUntil: task.submission?.lateSubmissionUntil,
+      }
+    );
+
+    const hasExtension = deadlineStatus && deadlineStatus.isLate && !deadlineStatus.isClosed;
+    const isClosed = !task.isExternal && deadlineStatus.isClosed;
+    const activeDeadline = deadlineStatus.activeDeadline;
+
+    const effectiveDue = hasExtension ? activeDeadline : due;
+    const diffMs = effectiveDue.getTime() - now.getTime();
     const diffHours = diffMs / (1000 * 60 * 60);
     const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
     const isSubmitted = !!(task.submission && task.submission.status !== "PENDING");
-    const isLateAllowed = task.allowLateSubmission && task.lateSubmissionUntil && new Date(task.lateSubmissionUntil) > now;
-    const isExpired = diffMs < 0 && !isLateAllowed;
-    const isDueToday = diffHours > 0 && diffHours <= 24;
-    const isUrgent = diffHours > 0 && diffHours <= 48;
+    const isExpired = isClosed && !isSubmitted;
+    const isDueToday = diffHours > 0 && diffHours <= 24 && !hasExtension;
+    const isUrgent = diffHours > 0 && diffHours <= 48 && !hasExtension;
     const isGraded = !!(task.submission && (task.submission.status === "GRADED" || task.submission.grade != null)) || (isExpired && !isSubmitted);
     const grade = task.submission?.grade ?? (isExpired && !isSubmitted ? 1.0 : null);
 
@@ -118,6 +138,10 @@ export default function TableroClient({
 
     return {
       due,
+      activeDeadline,
+      hasExtension,
+      isUnlimitedExtension: deadlineStatus.isUnlimitedExtension,
+      deadlineStatus,
       diffMs,
       diffHours,
       diffDays,
@@ -143,6 +167,9 @@ export default function TableroClient({
         const matchesDesc = task.description ? task.description.toLowerCase().includes(query) : false;
         if (!matchesTitle && !matchesCourse && !matchesDesc) return false;
       }
+
+      if (selectedCourse !== "all" && task.courseId !== selectedCourse) return false;
+      if (selectedPeriod !== "all" && task.period !== selectedPeriod) return false;
 
       if (selectedType !== "all") {
         if (selectedType === "TASK" && task.type !== "TASK" && task.type !== "TASK_HACER" && task.type !== "HACER") return false;
@@ -856,7 +883,9 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
           {!info.isSubmitted && (
             <span
               className={`text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1 ${
-                info.isDueToday
+                info.hasExtension
+                  ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50"
+                  : info.isDueToday
                   ? "bg-red-600 text-white animate-pulse"
                   : info.isUrgent
                   ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
@@ -865,8 +894,12 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
                   : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/40"
               }`}
             >
-              <Clock size={12} />
-              {info.isExpired ? "Cerrada · No entregado (plazo vencido) · Nota: 1.0" : info.timeText}
+              <Clock size={12} className={info.hasExtension ? "text-amber-600 shrink-0" : "shrink-0"} />
+              {info.hasExtension
+                ? "⏰ Prórroga Activa"
+                : info.isExpired
+                ? "Cerrada · No entregado (plazo vencido) · Nota: 1.0"
+                : info.timeText}
             </span>
           )}
 
@@ -888,6 +921,20 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
           <p className="text-xs text-muted line-clamp-2 mb-2">
             <span className="font-bold text-slate-700 dark:text-slate-300">Instrucciones: </span>{task.description}
           </p>
+        )}
+
+        {/* Plazo Extemporáneo / Prórroga Activa Banner */}
+        {info.hasExtension && !info.isSubmitted && (
+          <div className="mt-2.5 mb-2 p-2.5 rounded-xl border bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/40 text-amber-900 dark:text-amber-200 text-xs flex flex-col gap-1">
+            <div className="font-bold flex items-center gap-1.5 text-amber-800 dark:text-amber-300">
+              <Clock size={14} className="text-amber-600 shrink-0" /> Plazo Extemporáneo Activo
+            </div>
+            <div className="text-[11px] text-amber-700 dark:text-amber-400">
+              {info.isUnlimitedExtension
+                ? "El plazo de entrega original ha vencido, pero tienes permiso para entregar tu tarea tarde sin fecha de expiración."
+                : `El plazo de entrega original ha vencido, pero tienes permiso para entregar tu tarea tarde hasta el ${formatToColombiaString(info.activeDeadline)}.`}
+            </div>
+          </div>
         )}
 
         {/* Attached Guide and Resources */}
@@ -934,7 +981,12 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
       <div className="border-t pt-3 mt-3 flex items-center justify-between gap-3" style={{ borderColor: "var(--border-color)" }}>
         <div className="flex flex-col text-[11px] text-muted">
           <span className="flex items-center gap-1">
-            <CalendarIcon size={11} /> Vence: <strong>{dueFormatted}</strong>
+            <CalendarIcon size={11} />
+            {info.hasExtension ? (
+              <span>Prórroga hasta: <strong className="text-amber-700 dark:text-amber-400">{formatToColombiaString(info.activeDeadline)}</strong></span>
+            ) : (
+              <span>Vence: <strong>{dueFormatted}</strong></span>
+            )}
           </span>
           {task.period && <span>Periodo: {task.period}</span>}
         </div>

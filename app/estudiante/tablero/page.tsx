@@ -131,7 +131,9 @@ export default async function TableroVirtualPage() {
         grade: sub.grade,
         submittedAt: sub.submittedAt ? sub.submittedAt.toISOString() : null,
         startedAt: sub.startedAt ? sub.startedAt.toISOString() : null,
-        attempt: sub.attempt ?? 1
+        attempt: sub.attempt ?? 1,
+        allowLateSubmission: sub.allowLateSubmission ?? false,
+        lateSubmissionUntil: sub.lateSubmissionUntil ? sub.lateSubmissionUntil.toISOString() : null
       } : null
     };
   });
