@@ -3832,48 +3832,63 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                   </div>
 
                   {/* Students table header & Bulk Actions */}
-                  <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="p-3 bg-orange-50/60 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/40 rounded-xl flex items-center justify-between flex-wrap gap-3">
                     <div className="flex items-center gap-3">
-                      <h4 className="font-bold text-sm text-gray-800 dark:text-gray-200">
-                        Entregas ({taskStudents.length} estudiantes)
-                      </h4>
-                      {selectedTaskStudentIds.length > 0 && (
-                        <span className="text-xs font-bold text-[#f97316] bg-orange-50 dark:bg-orange-950/30 px-2.5 py-0.5 rounded-full border border-orange-200 dark:border-orange-800 animate-fade-in">
-                          {selectedTaskStudentIds.length} seleccionados
+                      <div className="flex items-center gap-2">
+                        <span className="p-1.5 bg-[#f97316] text-white rounded-lg">
+                          <Calendar size={15} />
                         </span>
-                      )}
+                        <div>
+                          <h4 className="font-bold text-xs text-gray-900 dark:text-gray-100">
+                            Prórroga Masiva a Múltiples Estudiantes
+                          </h4>
+                          <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                            {selectedTaskStudentIds.length === 0 
+                              ? "Marca las casillas de la columna izquierda (o 'Seleccionar todos') para asignarles fecha y hora." 
+                              : `Tienes ${selectedTaskStudentIds.length} estudiante(s) seleccionado(s).`}
+                          </p>
+                        </div>
+                      </div>
                     </div>
+
                     <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (selectedTaskStudentIds.length === 0) {
+                            // Si no hay ninguno seleccionado, seleccionar todos por defecto para facilitar
+                            setSelectedTaskStudentIds(taskStudents.map(s => s.id));
+                          }
+                          const d = new Date();
+                          d.setDate(d.getDate() + 1);
+                          d.setHours(23, 59, 0, 0);
+                          setBulkProrrogaDate(toColombiaISOString(d.toISOString()));
+                          setBulkProrrogaAllow(true);
+                          setShowBulkProrrogaInPlanilla(true);
+                        }}
+                        className="btn btn-primary text-xs px-3.5 py-2 flex items-center gap-2 font-bold shadow-md bg-[#f97316] hover:bg-[#ea580c] text-white rounded-lg transition-all"
+                      >
+                        <Calendar size={14} />
+                        {selectedTaskStudentIds.length > 0
+                          ? `Asignar Fecha y Hora (${selectedTaskStudentIds.length} seleccionados)`
+                          : "🗓️ Asignar Prórroga a Varios Estudiantes"}
+                      </button>
+
                       {selectedTaskStudentIds.length > 0 && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const d = new Date();
-                              d.setDate(d.getDate() + 1);
-                              d.setHours(23, 59, 0, 0);
-                              setBulkProrrogaDate(toColombiaISOString(d.toISOString()));
-                              setBulkProrrogaAllow(true);
-                              setShowBulkProrrogaInPlanilla(true);
-                            }}
-                            className="btn btn-primary text-xs px-3 py-1.5 flex items-center gap-1.5 font-bold shadow-xs animate-fade-in"
-                          >
-                            <Calendar size={13} /> Asignar Prórroga ({selectedTaskStudentIds.length})
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedTaskStudentIds([])}
-                            className="btn btn-secondary text-xs px-2.5 py-1.5 text-gray-500"
-                          >
-                            Deseleccionar
-                          </button>
-                        </>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedTaskStudentIds([])}
+                          className="btn btn-secondary text-xs px-2.5 py-2 text-gray-600 dark:text-gray-300"
+                        >
+                          Deseleccionar
+                        </button>
                       )}
+
                       {(questionsModalTask.type === "EXAM" || questionsModalTask.type === "FINAL") && (
                         <button
                           onClick={resetAllGroupSubmissions}
                           disabled={resettingSubmissions !== null || taskStudents.length === 0}
-                          className="btn btn-secondary text-xs px-2.5 py-1.5 flex items-center gap-1.5 border border-orange-200 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20 disabled:opacity-50"
+                          className="btn btn-secondary text-xs px-2.5 py-2 flex items-center gap-1.5 border border-orange-200 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20 disabled:opacity-50"
                         >
                           {resettingSubmissions === "all" ? <Loader2 className="animate-spin" size={13} /> : <Users size={13} />}
                           Reiniciar Todo el Grupo
@@ -3884,10 +3899,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
                   {/* Panel de Prórroga Masiva inline en Planilla */}
                   {showBulkProrrogaInPlanilla && (
-                    <div className="p-4 rounded-xl border border-orange-200 dark:border-orange-900 bg-orange-50/50 dark:bg-orange-950/20 flex flex-col gap-3 animate-fade-in">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-gray-800 dark:text-gray-100 flex items-center gap-1.5">
-                          <Calendar size={14} className="text-[#f97316]" /> Configurar Prórroga para {selectedTaskStudentIds.length} Estudiantes:
+                    <div className="p-4 rounded-xl border border-orange-300 dark:border-orange-800 bg-white dark:bg-zinc-900 shadow-lg flex flex-col gap-3 animate-fade-in">
+                      <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
+                        <span className="text-xs font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
+                          <Calendar size={16} className="text-[#f97316]" /> Configurar Prórroga para {selectedTaskStudentIds.length} Estudiante(s)
                         </span>
                         <button
                           type="button"
@@ -3898,86 +3913,96 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                         </button>
                       </div>
 
-                      <div className="flex items-center justify-between p-2.5 bg-white dark:bg-zinc-900 rounded-lg border border-orange-100 dark:border-zinc-800">
-                        <span className="text-xs font-semibold text-gray-700 dark:text-zinc-200">
-                          Habilitar entrega fuera de plazo
-                        </span>
+                      <div className="flex items-center justify-between p-2.5 bg-orange-50/50 dark:bg-orange-950/20 rounded-lg border border-orange-100 dark:border-zinc-800">
+                        <div>
+                          <span className="text-xs font-bold text-gray-800 dark:text-zinc-200 block">
+                            Habilitar entrega fuera de plazo
+                          </span>
+                          <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                            Los estudiantes seleccionados podrán subir la tarea tras el vencimiento.
+                          </span>
+                        </div>
                         <input
                           type="checkbox"
                           checked={bulkProrrogaAllow}
                           onChange={e => setBulkProrrogaAllow(e.target.checked)}
-                          className="w-4 h-4 rounded accent-[#f97316] cursor-pointer"
+                          className="w-5 h-5 rounded accent-[#f97316] cursor-pointer"
                         />
                       </div>
 
                       {bulkProrrogaAllow && (
-                        <div className="space-y-2">
-                          <label className="text-[11px] font-bold text-gray-700 dark:text-zinc-300 block">
-                            Nueva fecha y hora límite:
+                        <div className="space-y-2 p-3 bg-gray-50 dark:bg-zinc-800/40 rounded-lg border border-gray-200 dark:border-zinc-700">
+                          <label className="text-xs font-bold text-gray-800 dark:text-zinc-200 flex items-center gap-1.5">
+                            <Clock size={14} className="text-[#f97316]" /> Nueva fecha y hora límite de entrega:
                           </label>
                           <input
                             type="datetime-local"
                             value={bulkProrrogaDate}
                             onChange={e => setBulkProrrogaDate(e.target.value)}
-                            className="input-field w-full max-w-sm text-xs py-1.5 px-2.5 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316] bg-white dark:bg-zinc-900"
+                            className="input-field w-full max-w-sm text-xs py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316] bg-white dark:bg-zinc-900 font-semibold"
                           />
-                          <div className="flex flex-wrap gap-1.5 pt-1">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(23, 59, 0, 0);
-                                setBulkProrrogaDate(toColombiaISOString(d.toISOString()));
-                              }}
-                              className="px-2 py-0.5 text-[11px] font-medium rounded bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 hover:border-[#f97316] text-gray-700 dark:text-zinc-300"
-                            >
-                              +1 Día
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const d = new Date(); d.setDate(d.getDate() + 2); d.setHours(23, 59, 0, 0);
-                                setBulkProrrogaDate(toColombiaISOString(d.toISOString()));
-                              }}
-                              className="px-2 py-0.5 text-[11px] font-medium rounded bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 hover:border-[#f97316] text-gray-700 dark:text-zinc-300"
-                            >
-                              +2 Días
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const d = new Date(); d.setDate(d.getDate() + 3); d.setHours(23, 59, 0, 0);
-                                setBulkProrrogaDate(toColombiaISOString(d.toISOString()));
-                              }}
-                              className="px-2 py-0.5 text-[11px] font-medium rounded bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 hover:border-[#f97316] text-gray-700 dark:text-zinc-300"
-                            >
-                              +3 Días
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const d = new Date(); d.setDate(d.getDate() + 7); d.setHours(23, 59, 0, 0);
-                                setBulkProrrogaDate(toColombiaISOString(d.toISOString()));
-                              }}
-                              className="px-2 py-0.5 text-[11px] font-medium rounded bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 hover:border-[#f97316] text-gray-700 dark:text-zinc-300"
-                            >
-                              +1 Sem
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setBulkProrrogaDate("")}
-                              className="px-2 py-0.5 text-[11px] font-medium rounded bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 text-muted"
-                            >
-                              Sin fecha límite
-                            </button>
+                          <div className="pt-1">
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
+                              Atajos de fecha rápida:
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(23, 59, 0, 0);
+                                  setBulkProrrogaDate(toColombiaISOString(d.toISOString()));
+                                }}
+                                className="px-2.5 py-1 text-xs font-bold rounded bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 hover:border-[#f97316] text-gray-700 dark:text-zinc-300 shadow-xs"
+                              >
+                                +1 Día
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const d = new Date(); d.setDate(d.getDate() + 2); d.setHours(23, 59, 0, 0);
+                                  setBulkProrrogaDate(toColombiaISOString(d.toISOString()));
+                                }}
+                                className="px-2.5 py-1 text-xs font-bold rounded bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 hover:border-[#f97316] text-gray-700 dark:text-zinc-300 shadow-xs"
+                              >
+                                +2 Días
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const d = new Date(); d.setDate(d.getDate() + 3); d.setHours(23, 59, 0, 0);
+                                  setBulkProrrogaDate(toColombiaISOString(d.toISOString()));
+                                }}
+                                className="px-2.5 py-1 text-xs font-bold rounded bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 hover:border-[#f97316] text-gray-700 dark:text-zinc-300 shadow-xs"
+                              >
+                                +3 Días
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const d = new Date(); d.setDate(d.getDate() + 7); d.setHours(23, 59, 0, 0);
+                                  setBulkProrrogaDate(toColombiaISOString(d.toISOString()));
+                                }}
+                                className="px-2.5 py-1 text-xs font-bold rounded bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 hover:border-[#f97316] text-gray-700 dark:text-zinc-300 shadow-xs"
+                              >
+                                +1 Semana
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setBulkProrrogaDate("")}
+                                className="px-2.5 py-1 text-xs font-medium rounded bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 text-muted"
+                              >
+                                Sin fecha límite (Indefinido)
+                              </button>
+                            </div>
                           </div>
                         </div>
                       )}
 
-                      <div className="flex justify-end gap-2 pt-2 border-t border-orange-100 dark:border-orange-900/40">
+                      <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
                         <button
                           type="button"
                           onClick={() => setShowBulkProrrogaInPlanilla(false)}
-                          className="btn btn-secondary py-1 px-3 text-xs"
+                          className="btn btn-secondary py-1.5 px-3 text-xs"
                           disabled={savingBulkProrroga}
                         >
                           Cancelar
@@ -3986,10 +4011,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                           type="button"
                           onClick={handleSaveBulkProrrogaInPlanilla}
                           disabled={savingBulkProrroga}
-                          className="btn btn-primary py-1 px-4 text-xs font-bold flex items-center gap-1.5"
+                          className="btn btn-primary py-1.5 px-4 text-xs font-bold flex items-center gap-1.5 bg-[#f97316] hover:bg-[#ea580c] text-white shadow-sm"
                         >
-                          {savingBulkProrroga && <Loader2 className="animate-spin" size={12} />}
-                          Aplicar a {selectedTaskStudentIds.length} Estudiantes
+                          {savingBulkProrroga && <Loader2 className="animate-spin" size={13} />}
+                          Guardar Prórroga para {selectedTaskStudentIds.length} Estudiantes
                         </button>
                       </div>
                     </div>
@@ -4000,14 +4025,16 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     <table className="w-full text-left text-xs" style={{ borderCollapse: "collapse" }}>
                       <thead>
                         <tr className="bg-gray-50 dark:bg-gray-800/40 font-bold text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
-                          <th className="py-2 px-3 w-10 text-center">
-                            <input
-                              type="checkbox"
-                              checked={selectedTaskStudentIds.length === taskStudents.length && taskStudents.length > 0}
-                              onChange={handleSelectAllTaskStudents}
-                              className="w-3.5 h-3.5 rounded accent-[#f97316] cursor-pointer"
-                              title="Seleccionar / Deseleccionar todos"
-                            />
+                          <th className="py-2 px-3 w-12 text-center bg-orange-50/70 dark:bg-orange-950/30">
+                            <div className="flex items-center justify-center gap-1">
+                              <input
+                                type="checkbox"
+                                checked={selectedTaskStudentIds.length === taskStudents.length && taskStudents.length > 0}
+                                onChange={handleSelectAllTaskStudents}
+                                className="w-4 h-4 rounded accent-[#f97316] cursor-pointer"
+                                title="Seleccionar / Deseleccionar todos los estudiantes"
+                              />
+                            </div>
                           </th>
                           <th className="py-2 px-4">Estudiante</th>
                           <th className="py-2 px-4">Estado</th>
