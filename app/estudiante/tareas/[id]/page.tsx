@@ -609,7 +609,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                   <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Calificación obtenida</td>
                   <td className="p-4 align-middle">
                     {effectiveGrade !== null && effectiveGrade !== undefined ? (
-                      <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-2">
                         <span className={`inline-flex items-center px-3 py-1 rounded-md font-black text-sm ${
                           Number(effectiveGrade) >= 4.0
                             ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
@@ -619,9 +619,6 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                         }`}>
                           {Number(effectiveGrade).toFixed(1).replace('.', ',')} / 5,0
                         </span>
-                        {gradeReason && (
-                          <span className="text-xs text-red-600 font-medium">({gradeReason})</span>
-                        )}
                       </div>
                     ) : (
                       <span className="text-gray-400 font-medium">-</span>
@@ -667,8 +664,8 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
             </table>
           </div>
 
-          {/* Overdue/Closed/Grace messages if not submitted */}
-          {!isSubmitted && (isSubmissionBlocked || isDeadlinePassed || (isTimerExpired && !submission?.allowLateSubmission)) && !task.isExternal && (
+          {/* Overdue/Closed/Grace messages if not submitted and not yet graded */}
+          {!isSubmitted && !isGraded && (isSubmissionBlocked || isDeadlinePassed || (isTimerExpired && !submission?.allowLateSubmission)) && !task.isExternal && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800 flex flex-col gap-1 mb-8 animate-scale-in">
               <h3 className="font-bold flex items-center gap-2">
                 <Clock size={18} /> Plazo de Entrega Vencido / Tiempo Agotado
