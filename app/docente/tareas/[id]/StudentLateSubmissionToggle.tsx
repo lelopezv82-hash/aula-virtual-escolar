@@ -1,8 +1,8 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Clock, Calendar, Check, X } from "lucide-react";
+import { Clock, Calendar, Check, X, Sparkles } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { toColombiaISOString, fromColombiaLocalStringToDate } from "@/lib/dateUtils";
 
@@ -29,6 +29,13 @@ export default function StudentLateSubmissionToggle({
   const [allowLate, setAllowLate] = useState(initialAllowLate);
   const [lateUntil, setLateUntil] = useState<string>(toColombiaISOString(initialLateUntil));
   const [loading, setLoading] = useState(false);
+
+  const setPresetDays = (days: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    d.setHours(23, 59, 0, 0);
+    setLateUntil(toColombiaISOString(d.toISOString()));
+  };
 
   const handleSave = async () => {
     setLoading(true);
@@ -91,13 +98,13 @@ export default function StudentLateSubmissionToggle({
         minute: "2-digit"
       });
       statusBadge = (
-        <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium bg-orange-50 text-[#e06d09] border border-indigo-100 dark:bg-orange-950/20 dark:text-[#f98012] dark:border-indigo-900/30">
+        <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium bg-orange-50 text-[#e06d09] border border-orange-100 dark:bg-orange-950/20 dark:text-[#f98012] dark:border-orange-900/30 shadow-2xs">
           <Clock size={12} /> Prórroga: {dateFormatted}
         </span>
       );
     } else {
       statusBadge = (
-        <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium bg-orange-50 text-[#e06d09] border border-indigo-100 dark:bg-orange-950/20 dark:text-[#f98012] dark:border-indigo-900/30">
+        <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium bg-orange-50 text-[#e06d09] border border-orange-100 dark:bg-orange-950/20 dark:text-[#f98012] dark:border-orange-900/30 shadow-2xs">
           <Check size={12} /> Habilitado Sin Límite
         </span>
       );
@@ -110,13 +117,13 @@ export default function StudentLateSubmissionToggle({
         onClick={() => !disabled && setShowModal(true)}
         disabled={disabled}
         title={disabled ? "Ya está habilitado globalmente para la tarea" : "Configurar plazo de entrega para este estudiante"}
-        className={`focus:outline-none transition-all ${disabled ? "cursor-not-allowed opacity-80" : "hover:scale-105 active:scale-95"}`}
+        className={`focus:outline-none transition-all ${disabled ? "cursor-not-allowed opacity-80" : "hover:scale-105 active:scale-95 cursor-pointer"}`}
       >
         {statusBadge}
       </button>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/45 backdrop-blur-xs flex items-center justify-center z-50 no-print">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 no-print animate-fade-in">
           <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-100 dark:border-zinc-800 animate-fade-in text-left">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-zinc-800">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -125,7 +132,7 @@ export default function StudentLateSubmissionToggle({
               </h3>
               <button 
                 onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200 transition-colors"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200 transition-colors p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800"
               >
                 <X size={20} />
               </button>
@@ -136,7 +143,7 @@ export default function StudentLateSubmissionToggle({
                 Estudiante: <span className="text-[#f98012] dark:text-[#f98012] font-bold">{studentName}</span>
               </p>
               
-              <div className="mt-5 flex items-center justify-between p-3 rounded-xl bg-gray-50/50 dark:bg-zinc-800/40 border border-gray-100 dark:border-zinc-800">
+              <div className="mt-4 flex items-center justify-between p-3 rounded-xl bg-gray-50/70 dark:bg-zinc-800/40 border border-gray-100 dark:border-zinc-800">
                 <div>
                   <span className="text-sm font-semibold text-gray-800 dark:text-zinc-200 block">
                     Permitir entrega tardía
@@ -146,6 +153,7 @@ export default function StudentLateSubmissionToggle({
                   </span>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setAllowLate(!allowLate)}
                   className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                     allowLate ? "bg-[#f98012]" : "bg-gray-200 dark:bg-zinc-700"
@@ -160,18 +168,63 @@ export default function StudentLateSubmissionToggle({
               </div>
 
               {allowLate && (
-                <div className="mt-4 animate-fade-in">
-                  <label className="text-sm font-semibold text-gray-700 dark:text-zinc-300 flex items-center gap-1.5 mb-1.5">
-                    <Calendar size={16} className="text-[#f98012]" />
-                    Fecha y hora límite de prórroga (Opcional):
+                <div className="mt-4 space-y-3 animate-fade-in p-3.5 rounded-xl bg-gray-50/50 dark:bg-zinc-800/30 border border-gray-100 dark:border-zinc-800">
+                  <label className="text-xs font-bold text-gray-800 dark:text-zinc-200 flex items-center gap-1.5">
+                    <Calendar size={15} className="text-[#f98012]" />
+                    Fecha y hora límite de prórroga:
                   </label>
                   <input
                     type="datetime-local"
                     value={lateUntil}
                     onChange={(e) => setLateUntil(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-zinc-850 dark:bg-zinc-950 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#f98012]/25 focus:border-[#f98012]"
+                    className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-zinc-800 dark:bg-zinc-950 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#f98012]/25 focus:border-[#f98012]"
                   />
-                  <p className="text-[11px] text-muted mt-1.5 italic">
+
+                  {/* Preset quick buttons */}
+                  <div>
+                    <span className="text-[11px] font-semibold text-muted flex items-center gap-1 mb-1.5">
+                      <Sparkles size={12} className="text-[#f98012]" /> Atajos de fecha rápida:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setPresetDays(1)}
+                        className="px-2.5 py-1 text-xs font-medium rounded-lg bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 hover:border-[#f98012] text-gray-700 dark:text-zinc-300 hover:text-[#f98012] transition-colors"
+                      >
+                        +1 Día
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPresetDays(2)}
+                        className="px-2.5 py-1 text-xs font-medium rounded-lg bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 hover:border-[#f98012] text-gray-700 dark:text-zinc-300 hover:text-[#f98012] transition-colors"
+                      >
+                        +2 Días
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPresetDays(3)}
+                        className="px-2.5 py-1 text-xs font-medium rounded-lg bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 hover:border-[#f98012] text-gray-700 dark:text-zinc-300 hover:text-[#f98012] transition-colors"
+                      >
+                        +3 Días
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPresetDays(7)}
+                        className="px-2.5 py-1 text-xs font-medium rounded-lg bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 hover:border-[#f98012] text-gray-700 dark:text-zinc-300 hover:text-[#f98012] transition-colors"
+                      >
+                        +1 Sem
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setLateUntil("")}
+                        className="px-2.5 py-1 text-xs font-medium rounded-lg bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 text-muted hover:border-gray-400 transition-colors"
+                      >
+                        Sin límite
+                      </button>
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-muted italic">
                     * Si no seleccionas una fecha, el alumno podrá entregar su tarea en cualquier momento sin fecha de expiración.
                   </p>
                 </div>
@@ -180,6 +233,7 @@ export default function StudentLateSubmissionToggle({
 
             <div className="mt-6 flex justify-end gap-3 pt-3 border-t border-gray-100 dark:border-zinc-800">
               <button
+                type="button"
                 onClick={() => setShowModal(false)}
                 className="btn btn-secondary px-4 py-2 text-sm rounded-xl font-medium"
                 disabled={loading}
@@ -187,6 +241,7 @@ export default function StudentLateSubmissionToggle({
                 Cancelar
               </button>
               <button
+                type="button"
                 onClick={handleSave}
                 className="btn btn-primary px-4 py-2 text-sm rounded-xl font-semibold flex items-center gap-1.5"
                 disabled={loading}
