@@ -673,9 +673,9 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                       </td>
                     </tr>
                     
-                    {/* Calificado sobre */}
+                    {/* Calificado el */}
                     <tr className="border-b border-gray-100">
-                      <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Calificado sobre</td>
+                      <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Calificado el</td>
                       <td className="p-4 align-middle">
                         {activeSubmission.updatedAt ? formatMoodleDate(activeSubmission.updatedAt, true) : "-"}
                       </td>
