@@ -308,7 +308,7 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                               className="text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border border-red-200 dark:border-red-900/50"
                             >
                               <Clock size={12} className="shrink-0 text-red-600" />
-                              <span>Cerrada · Nota: 1.0</span>
+                              <span>Cerrada · No entregada a tiempo · Nota: 1.0</span>
                             </span>
                           )}
                           {item.isExternal && (
