@@ -6,7 +6,7 @@ import {
   ArrowLeft, FileSpreadsheet, FileText, Loader2,
   Save, Undo2, AlertTriangle, Check, Info,
   Plus, Trash2, X, Pencil, CheckCircle, AlertCircle, Clock,
-  Eye, EyeOff, Users, Search, Sparkles, Copy
+  Eye, EyeOff, Users, Search, Sparkles, Copy, Calendar
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -337,6 +337,11 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [savedGlobalLateUntil, setSavedGlobalLateUntil] = useState("");
   const [savingGlobalLate, setSavingGlobalLate] = useState(false);
   const [resettingSubmissions, setResettingSubmissions] = useState<string | null>(null);
+  const [selectedTaskStudentIds, setSelectedTaskStudentIds] = useState<string[]>([]);
+  const [showBulkProrrogaInPlanilla, setShowBulkProrrogaInPlanilla] = useState(false);
+  const [bulkProrrogaAllow, setBulkProrrogaAllow] = useState(true);
+  const [bulkProrrogaDate, setBulkProrrogaDate] = useState("");
+  const [savingBulkProrroga, setSavingBulkProrroga] = useState(false);
 
   // ── Custom Excel Sync Wizard State ──
   const [customExcelData, setCustomExcelData] = useState<{
@@ -1180,6 +1185,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     setLoadingQuestions(true);
     setExamQuestions([]);
     setTaskStudents([]);
+    setSelectedTaskStudentIds([]);
+    setShowBulkProrrogaInPlanilla(false);
     setGlobalAllowLate(false);
     setGlobalLateUntil("");
     setSavedGlobalAllowLate(false);
@@ -1205,6 +1212,51 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       alert("Error de conexión al cargar la información de la tarea");
     } finally {
       setLoadingQuestions(false);
+    }
+  };
+
+  const handleToggleSelectTaskStudent = (studentId: string) => {
+    setSelectedTaskStudentIds(prev =>
+      prev.includes(studentId) ? prev.filter(id => id !== studentId) : [...prev, studentId]
+    );
+  };
+
+  const handleSelectAllTaskStudents = () => {
+    if (selectedTaskStudentIds.length === taskStudents.length) {
+      setSelectedTaskStudentIds([]);
+    } else {
+      setSelectedTaskStudentIds(taskStudents.map(s => s.id));
+    }
+  };
+
+  const handleSaveBulkProrrogaInPlanilla = async () => {
+    if (!questionsModalTask || selectedTaskStudentIds.length === 0) return;
+    setSavingBulkProrroga(true);
+    try {
+      const res = await fetch(`/api/docente/tareas/${questionsModalTask.id}/prorroga`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          studentIds: selectedTaskStudentIds,
+          allowLateSubmission: bulkProrrogaAllow,
+          lateSubmissionUntil: bulkProrrogaAllow && bulkProrrogaDate ? bulkProrrogaDate : null
+        })
+      });
+      if (res.ok) {
+        const r = await fetch(`/api/docente/tareas/${questionsModalTask.id}/students-grades`);
+        const d = await r.json();
+        if (r.ok) setTaskStudents(d.students || []);
+        setSelectedTaskStudentIds([]);
+        setShowBulkProrrogaInPlanilla(false);
+        toast.success("Prórroga aplicada", `Se configuró la prórroga para los ${selectedTaskStudentIds.length} estudiantes seleccionados.`);
+      } else {
+        const errData = await res.json();
+        toast.error("Error", errData.error || "No se pudo aplicar la prórroga.");
+      }
+    } catch {
+      toast.error("Error de conexión");
+    } finally {
+      setSavingBulkProrroga(false);
     }
   };
 
@@ -3779,28 +3831,184 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     )}
                   </div>
 
-                  {/* Students table header */}
+                  {/* Students table header & Bulk Actions */}
                   <div className="flex items-center justify-between flex-wrap gap-2">
-                    <h4 className="font-bold text-sm text-gray-800 dark:text-gray-200">
-                      Entregas ({taskStudents.length} estudiantes)
-                    </h4>
-                    {(questionsModalTask.type === "EXAM" || questionsModalTask.type === "FINAL") && (
-                      <button
-                        onClick={resetAllGroupSubmissions}
-                        disabled={resettingSubmissions !== null || taskStudents.length === 0}
-                        className="btn btn-secondary text-xs px-2.5 py-1.5 flex items-center gap-1.5 border border-orange-200 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20 disabled:opacity-50"
-                      >
-                        {resettingSubmissions === "all" ? <Loader2 className="animate-spin" size={13} /> : <Users size={13} />}
-                        Reiniciar Todo el Grupo
-                      </button>
-                    )}
+                    <div className="flex items-center gap-3">
+                      <h4 className="font-bold text-sm text-gray-800 dark:text-gray-200">
+                        Entregas ({taskStudents.length} estudiantes)
+                      </h4>
+                      {selectedTaskStudentIds.length > 0 && (
+                        <span className="text-xs font-bold text-[#f97316] bg-orange-50 dark:bg-orange-950/30 px-2.5 py-0.5 rounded-full border border-orange-200 dark:border-orange-800 animate-fade-in">
+                          {selectedTaskStudentIds.length} seleccionados
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {selectedTaskStudentIds.length > 0 && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const d = new Date();
+                              d.setDate(d.getDate() + 1);
+                              d.setHours(23, 59, 0, 0);
+                              setBulkProrrogaDate(toColombiaISOString(d.toISOString()));
+                              setBulkProrrogaAllow(true);
+                              setShowBulkProrrogaInPlanilla(true);
+                            }}
+                            className="btn btn-primary text-xs px-3 py-1.5 flex items-center gap-1.5 font-bold shadow-xs animate-fade-in"
+                          >
+                            <Calendar size={13} /> Asignar Prórroga ({selectedTaskStudentIds.length})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedTaskStudentIds([])}
+                            className="btn btn-secondary text-xs px-2.5 py-1.5 text-gray-500"
+                          >
+                            Deseleccionar
+                          </button>
+                        </>
+                      )}
+                      {(questionsModalTask.type === "EXAM" || questionsModalTask.type === "FINAL") && (
+                        <button
+                          onClick={resetAllGroupSubmissions}
+                          disabled={resettingSubmissions !== null || taskStudents.length === 0}
+                          className="btn btn-secondary text-xs px-2.5 py-1.5 flex items-center gap-1.5 border border-orange-200 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20 disabled:opacity-50"
+                        >
+                          {resettingSubmissions === "all" ? <Loader2 className="animate-spin" size={13} /> : <Users size={13} />}
+                          Reiniciar Todo el Grupo
+                        </button>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Panel de Prórroga Masiva inline en Planilla */}
+                  {showBulkProrrogaInPlanilla && (
+                    <div className="p-4 rounded-xl border border-orange-200 dark:border-orange-900 bg-orange-50/50 dark:bg-orange-950/20 flex flex-col gap-3 animate-fade-in">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-gray-800 dark:text-gray-100 flex items-center gap-1.5">
+                          <Calendar size={14} className="text-[#f97316]" /> Configurar Prórroga para {selectedTaskStudentIds.length} Estudiantes:
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowBulkProrrogaInPlanilla(false)}
+                          className="text-gray-400 hover:text-gray-600 p-1"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between p-2.5 bg-white dark:bg-zinc-900 rounded-lg border border-orange-100 dark:border-zinc-800">
+                        <span className="text-xs font-semibold text-gray-700 dark:text-zinc-200">
+                          Habilitar entrega fuera de plazo
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={bulkProrrogaAllow}
+                          onChange={e => setBulkProrrogaAllow(e.target.checked)}
+                          className="w-4 h-4 rounded accent-[#f97316] cursor-pointer"
+                        />
+                      </div>
+
+                      {bulkProrrogaAllow && (
+                        <div className="space-y-2">
+                          <label className="text-[11px] font-bold text-gray-700 dark:text-zinc-300 block">
+                            Nueva fecha y hora límite:
+                          </label>
+                          <input
+                            type="datetime-local"
+                            value={bulkProrrogaDate}
+                            onChange={e => setBulkProrrogaDate(e.target.value)}
+                            className="input-field w-full max-w-sm text-xs py-1.5 px-2.5 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316] bg-white dark:bg-zinc-900"
+                          />
+                          <div className="flex flex-wrap gap-1.5 pt-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(23, 59, 0, 0);
+                                setBulkProrrogaDate(toColombiaISOString(d.toISOString()));
+                              }}
+                              className="px-2 py-0.5 text-[11px] font-medium rounded bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 hover:border-[#f97316] text-gray-700 dark:text-zinc-300"
+                            >
+                              +1 Día
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const d = new Date(); d.setDate(d.getDate() + 2); d.setHours(23, 59, 0, 0);
+                                setBulkProrrogaDate(toColombiaISOString(d.toISOString()));
+                              }}
+                              className="px-2 py-0.5 text-[11px] font-medium rounded bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 hover:border-[#f97316] text-gray-700 dark:text-zinc-300"
+                            >
+                              +2 Días
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const d = new Date(); d.setDate(d.getDate() + 3); d.setHours(23, 59, 0, 0);
+                                setBulkProrrogaDate(toColombiaISOString(d.toISOString()));
+                              }}
+                              className="px-2 py-0.5 text-[11px] font-medium rounded bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 hover:border-[#f97316] text-gray-700 dark:text-zinc-300"
+                            >
+                              +3 Días
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const d = new Date(); d.setDate(d.getDate() + 7); d.setHours(23, 59, 0, 0);
+                                setBulkProrrogaDate(toColombiaISOString(d.toISOString()));
+                              }}
+                              className="px-2 py-0.5 text-[11px] font-medium rounded bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 hover:border-[#f97316] text-gray-700 dark:text-zinc-300"
+                            >
+                              +1 Sem
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setBulkProrrogaDate("")}
+                              className="px-2 py-0.5 text-[11px] font-medium rounded bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 text-muted"
+                            >
+                              Sin fecha límite
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex justify-end gap-2 pt-2 border-t border-orange-100 dark:border-orange-900/40">
+                        <button
+                          type="button"
+                          onClick={() => setShowBulkProrrogaInPlanilla(false)}
+                          className="btn btn-secondary py-1 px-3 text-xs"
+                          disabled={savingBulkProrroga}
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSaveBulkProrrogaInPlanilla}
+                          disabled={savingBulkProrroga}
+                          className="btn btn-primary py-1 px-4 text-xs font-bold flex items-center gap-1.5"
+                        >
+                          {savingBulkProrroga && <Loader2 className="animate-spin" size={12} />}
+                          Aplicar a {selectedTaskStudentIds.length} Estudiantes
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Students table */}
                   <div className="overflow-x-auto border rounded-xl" style={{ borderColor: "var(--border-color)" }}>
                     <table className="w-full text-left text-xs" style={{ borderCollapse: "collapse" }}>
                       <thead>
                         <tr className="bg-gray-50 dark:bg-gray-800/40 font-bold text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
+                          <th className="py-2 px-3 w-10 text-center">
+                            <input
+                              type="checkbox"
+                              checked={selectedTaskStudentIds.length === taskStudents.length && taskStudents.length > 0}
+                              onChange={handleSelectAllTaskStudents}
+                              className="w-3.5 h-3.5 rounded accent-[#f97316] cursor-pointer"
+                              title="Seleccionar / Deseleccionar todos"
+                            />
+                          </th>
                           <th className="py-2 px-4">Estudiante</th>
                           <th className="py-2 px-4">Estado</th>
                           <th className="py-2 px-4">Prórroga Individual</th>
@@ -3810,7 +4018,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                       </thead>
                       <tbody>
                         {taskStudents.length === 0 ? (
-                          <tr><td colSpan={5} className="py-8 text-center text-gray-400 italic">No hay estudiantes en este grupo.</td></tr>
+                          <tr><td colSpan={6} className="py-8 text-center text-gray-400 italic">No hay estudiantes en este grupo.</td></tr>
                         ) : taskStudents.map(s => {
                           const sub = s.submission;
                           const isGraded = sub?.status === "GRADED";
@@ -3818,8 +4026,17 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                           const hasSub = !!sub;
                           const indAllow = sub?.allowLateSubmission ?? false;
                           const indUntil = sub?.lateSubmissionUntil ? toColombiaISOString(sub.lateSubmissionUntil) : "";
+                          const isSelected = selectedTaskStudentIds.includes(s.id);
                           return (
-                            <tr key={s.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/40 dark:hover:bg-gray-900/10">
+                            <tr key={s.id} className={`border-b border-gray-100 dark:border-gray-800 transition-colors ${isSelected ? "bg-orange-50/50 dark:bg-orange-950/20" : "hover:bg-gray-50/40 dark:hover:bg-gray-900/10"}`}>
+                              <td className="py-3 px-3 text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => handleToggleSelectTaskStudent(s.id)}
+                                  className="w-3.5 h-3.5 rounded accent-[#f97316] cursor-pointer"
+                                />
+                              </td>
                               <td className="py-3 px-4">
                                 <div className="font-semibold text-gray-800 dark:text-gray-200">{s.name}</div>
                                 <div className="text-[10px] text-gray-400">{s.groupName}</div>
