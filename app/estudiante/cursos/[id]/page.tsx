@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import Link from "next/link";
+import { Clock } from "lucide-react";
 import { formatToColombiaString, getTaskDeadlineStatus } from "@/lib/dateUtils";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
@@ -240,13 +241,11 @@ export default async function CursoDescripcionPage({
                         </span>
                       )}
                       {isClosedWithoutSubmission && (
-                        <span style={{
-                          fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
-                          borderRadius: 3,
-                          background: "#f8d7da", color: "#721c24",
-                          border: "1px solid #f5c6cb",
-                        }}>
-                          Cerrada nota 1
+                        <span
+                          className="text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border border-red-200 dark:border-red-900/50"
+                        >
+                          <Clock size={12} className="shrink-0 text-red-600" />
+                          <span>Cerrada · Nota: 1.0</span>
                         </span>
                       )}
                     </div>

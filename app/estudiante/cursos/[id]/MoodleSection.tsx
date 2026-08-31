@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { Folder, ChevronDown } from "lucide-react";
+import { Folder, ChevronDown, Clock } from "lucide-react";
 import { formatToColombiaString, getTaskDeadlineStatus } from "@/lib/dateUtils";
 
 export type MoodleResource = {
@@ -304,12 +304,11 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                             </span>
                           )}
                           {isClosedWithoutSubmission && (
-                            <span style={{
-                              fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
-                              borderRadius: 3, background: "#f8d7da", color: "#721c24",
-                              border: "1px solid #f5c6cb",
-                            }}>
-                              Cerrada nota 1
+                            <span
+                              className="text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border border-red-200 dark:border-red-900/50"
+                            >
+                              <Clock size={12} className="shrink-0 text-red-600" />
+                              <span>Cerrada · Nota: 1.0</span>
                             </span>
                           )}
                           {item.isExternal && (
