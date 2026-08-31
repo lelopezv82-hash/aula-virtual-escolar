@@ -156,12 +156,10 @@ export default async function CursoDescripcionPage({
         }}>
           {tasks.map((task, idx) => {
             const submission = task.submissions[0];
-            const hasActiveExtension = !!(submission?.allowLateSubmission || task.allowLateSubmission);
-            const hasUploadedFile = !!(submission?.fileUrl && submission.fileUrl.trim() !== "");
-            const isAutomaticGrade1 = (submission?.grade === 1 || submission?.grade === 1.0) && hasActiveExtension && !hasUploadedFile;
-
-            const isSubmitted = !!(submission && (submission.status !== "PENDING" || (submission.grade != null && !isAutomaticGrade1) || hasUploadedFile));
-            const isGraded = !!(submission && ((submission.status === "GRADED" && !isAutomaticGrade1) || (submission.grade != null && !isAutomaticGrade1)));
+            const isExam = task.type === "EXAM" || task.type === "FINAL";
+            const hasUploadedFile = isExam ? false : (task.isExternal || !!(submission?.fileUrl && submission.fileUrl.trim() !== ""));
+            const isExamSubmitted = isExam && !!(submission && submission.status !== "PENDING" && submission.startedAt);
+            const isSubmitted = isExam ? isExamSubmitted : hasUploadedFile;
 
             const href = task.id.startsWith("ex-")
               ? "#"
@@ -189,7 +187,8 @@ export default async function CursoDescripcionPage({
             );
 
             const hasExtension = deadlineStatus && deadlineStatus.isLate && !deadlineStatus.isClosed;
-            const isClosedWithoutSubmission = !isSubmitted && !hasExtension && deadlineStatus?.isClosed && !task.isExternal;
+            const isClosedWithoutSubmission = !isSubmitted && !hasExtension && (deadlineStatus?.isClosed || (submission?.grade === 1 || submission?.grade === 1.0));
+            const isGraded = isSubmitted && !!(submission && (submission.status === "GRADED" || submission.grade != null));
 
             return (
               <div

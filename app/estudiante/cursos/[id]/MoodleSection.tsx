@@ -255,7 +255,7 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                   );
                 }
                 const hasExtension = !item.isResource && deadlineStatus && deadlineStatus.isLate && !deadlineStatus.isClosed;
-                const isClosedWithoutSubmission = !item.isResource && !item.isSubmitted && !hasExtension && deadlineStatus?.isClosed && !item.isExternal;
+                const isClosedWithoutSubmission = !item.isResource && !item.isSubmitted && !hasExtension && (deadlineStatus?.isClosed || item.grade === 1 || item.grade === 1.0);
 
                 return (
                   <div key={item.id} style={{

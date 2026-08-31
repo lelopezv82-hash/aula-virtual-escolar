@@ -116,22 +116,17 @@ export default function TableroClient({
     const diffHours = diffMs / (1000 * 60 * 60);
     const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
-    // Detect auto-grade (grade=1.0 assigned by system when deadline passed, no real file upload)
-    const hasUploadedFile = !!(task.submission?.fileUrl && task.submission.fileUrl.trim() !== "");
-    const hasActiveExtension = !!(task.submission?.allowLateSubmission || task.allowLateSubmission);
-    const isAutoGrade1 = (
-      task.submission !== null &&
-      (task.submission?.grade === 1 || task.submission?.grade === 1.0) &&
-      hasActiveExtension &&
-      !hasUploadedFile
-    );
-    // isSubmitted = student actually submitted something (not just an auto-grade)
-    const isSubmitted = !!(task.submission && task.submission.status !== "PENDING" && !isAutoGrade1);
-    const isExpired = isClosed && !isSubmitted;
+    const isExam = task.type === "EXAM" || task.type === "FINAL";
+    const hasUploadedFile = isExam ? false : (task.isExternal || !!(task.submission?.fileUrl && task.submission.fileUrl.trim() !== ""));
+    const isExamSubmitted = isExam && !!(task.submission && task.submission.status !== "PENDING" && task.submission.startedAt);
+    const isSubmitted = isExam ? isExamSubmitted : hasUploadedFile;
+
+    const isClosedWithoutSubmission = !isSubmitted && !hasExtension && (isClosed || (task.submission?.grade === 1 || task.submission?.grade === 1.0));
+    const isExpired = isClosedWithoutSubmission;
     const isDueToday = diffHours > 0 && diffHours <= 24 && !hasExtension;
     const isUrgent = diffHours > 0 && diffHours <= 48 && !hasExtension;
-    const isGraded = (!isAutoGrade1 && !!(task.submission && (task.submission.status === "GRADED" || task.submission.grade != null))) || (isExpired && !isSubmitted);
-    const grade = (!isAutoGrade1 ? task.submission?.grade : null) ?? (isExpired && !isSubmitted ? 1.0 : null);
+    const isGraded = isSubmitted && !!(task.submission && (task.submission.status === "GRADED" || task.submission.grade != null));
+    const grade = isGraded ? task.submission?.grade : (isExpired ? 1.0 : null);
 
     let timeText = "";
     if (diffMs < 0) {
