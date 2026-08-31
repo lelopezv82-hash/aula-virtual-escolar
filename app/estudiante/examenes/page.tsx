@@ -159,7 +159,7 @@ export default async function ExamenesEstudiantePage() {
                     </span>
                     {isGraded && (
                       <span className={`badge flex items-center gap-1 ${gradeReason ? 'badge-danger' : 'badge-success'}`}>
-                        <CheckCircle size={12} /> Calificado
+                        <CheckCircle size={12} /> Calificado {activeGrade !== null && activeGrade !== undefined ? `· Nota: ${Number(activeGrade).toFixed(1)}` : ""}
                       </span>
                     )}
                     {isGraded && gradeReason && (

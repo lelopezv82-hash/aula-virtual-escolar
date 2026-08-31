@@ -282,7 +282,7 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                               background: "#d4edda", color: "#155724",
                               border: "1px solid #b8ddbf",
                             }}>
-                              ✓ Calificado
+                              ✓ Calificado {item.grade !== null && item.grade !== undefined ? `· Nota: ${Number(item.grade).toFixed(1)}` : ""}
                             </span>
                           )}
                           {item.isSubmitted && !item.isGraded && (

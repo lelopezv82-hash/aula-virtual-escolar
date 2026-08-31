@@ -219,7 +219,7 @@ export default async function CursoDescripcionPage({
                           background: "#d4edda", color: "#155724",
                           border: "1px solid #b8ddbf",
                         }}>
-                          ✓ Calificado
+                          ✓ Calificado {submission?.grade !== null && submission?.grade !== undefined ? `· Nota: ${Number(submission.grade).toFixed(1)}` : ""}
                         </span>
                       )}
                       {isSubmitted && !isGraded && (
