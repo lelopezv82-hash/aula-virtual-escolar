@@ -155,8 +155,12 @@ export default async function CursoDescripcionPage({
         }}>
           {tasks.map((task, idx) => {
             const submission = task.submissions[0];
-            const isSubmitted = !!(submission && (submission.status !== "PENDING" || submission.grade != null || !!submission.fileUrl));
-            const isGraded = !!(submission && (submission.status === "GRADED" || submission.grade != null));
+            const hasActiveExtension = !!(submission?.allowLateSubmission || task.allowLateSubmission);
+            const hasUploadedFile = !!(submission?.fileUrl && submission.fileUrl.trim() !== "");
+            const isAutomaticGrade1 = (submission?.grade === 1 || submission?.grade === 1.0) && hasActiveExtension && !hasUploadedFile;
+
+            const isSubmitted = !!(submission && (submission.status !== "PENDING" || (submission.grade != null && !isAutomaticGrade1) || hasUploadedFile));
+            const isGraded = !!(submission && ((submission.status === "GRADED" && !isAutomaticGrade1) || (submission.grade != null && !isAutomaticGrade1)));
 
             const href = task.id.startsWith("ex-")
               ? "#"
@@ -184,6 +188,7 @@ export default async function CursoDescripcionPage({
             );
 
             const hasExtension = deadlineStatus && deadlineStatus.isLate && !deadlineStatus.isClosed;
+            const isClosedWithoutSubmission = !isSubmitted && !hasExtension && deadlineStatus?.isClosed && !task.isExternal;
 
             return (
               <div
@@ -232,6 +237,16 @@ export default async function CursoDescripcionPage({
                           border: "1px solid #ffedd5",
                         }}>
                           ⏰ Prórroga Activa
+                        </span>
+                      )}
+                      {isClosedWithoutSubmission && (
+                        <span style={{
+                          fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
+                          borderRadius: 3,
+                          background: "#f8d7da", color: "#721c24",
+                          border: "1px solid #f5c6cb",
+                        }}>
+                          Cerrada nota 1
                         </span>
                       )}
                     </div>

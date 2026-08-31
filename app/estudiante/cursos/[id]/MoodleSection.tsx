@@ -255,6 +255,7 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                   );
                 }
                 const hasExtension = !item.isResource && deadlineStatus && deadlineStatus.isLate && !deadlineStatus.isClosed;
+                const isClosedWithoutSubmission = !item.isResource && !item.isSubmitted && !hasExtension && deadlineStatus?.isClosed && !item.isExternal;
 
                 return (
                   <div key={item.id} style={{
@@ -300,6 +301,15 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                               border: "1px solid #ffedd5",
                             }}>
                               ⏰ Prórroga Activa
+                            </span>
+                          )}
+                          {isClosedWithoutSubmission && (
+                            <span style={{
+                              fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
+                              borderRadius: 3, background: "#f8d7da", color: "#721c24",
+                              border: "1px solid #f5c6cb",
+                            }}>
+                              Cerrada nota 1
                             </span>
                           )}
                           {item.isExternal && (
