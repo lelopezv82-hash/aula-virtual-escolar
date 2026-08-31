@@ -702,7 +702,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                       <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Calificación</td>
                       <td className="p-4 align-middle font-bold text-gray-950 text-base">
                         {effectiveGrade !== null && effectiveGrade !== undefined 
-                          ? `${Number(effectiveGrade).toFixed(2).replace('.', ',')}` 
+                          ? `${Number(effectiveGrade).toFixed(1).replace('.', ',')}` 
                           : "Pendiente"}
                       </td>
                     </tr>
