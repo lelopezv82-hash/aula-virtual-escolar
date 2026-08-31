@@ -866,7 +866,7 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
               }`}
             >
               <Clock size={12} />
-              {info.isExpired ? "Cerrada · No entregada a tiempo · Nota: 1.0" : info.timeText}
+              {info.isExpired ? "Cerrada · No entregado (plazo vencido) · Nota: 1.0" : info.timeText}
             </span>
           )}
 
