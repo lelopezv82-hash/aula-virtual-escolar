@@ -617,7 +617,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                             ? "bg-amber-100 text-amber-800 border border-amber-300"
                             : "bg-red-100 text-red-800 border border-red-300"
                         }`}>
-                          {Number(effectiveGrade).toFixed(1).replace('.', ',')} / 5,0
+                          {Number(effectiveGrade).toFixed(1).replace('.', ',')}
                         </span>
                       </div>
                     ) : (
@@ -702,7 +702,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                       <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Calificación</td>
                       <td className="p-4 align-middle font-bold text-gray-950 text-base">
                         {effectiveGrade !== null && effectiveGrade !== undefined 
-                          ? `${Number(effectiveGrade).toFixed(2).replace('.', ',')} / 5,00` 
+                          ? `${Number(effectiveGrade).toFixed(2).replace('.', ',')}` 
                           : "Pendiente"}
                       </td>
                     </tr>
