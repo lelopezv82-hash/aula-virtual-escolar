@@ -2125,23 +2125,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     r7[COL_DEF_HACER] = "HACER";
     r7[COL_DEF_SER]   = "SER";
 
-    // ─── Row 8: Activity Names for each column ───
-    const r8 = emptyRow();
-    r8[1] = "Nombre de la Actividad:";
-    for (let j = 0; j < SABER_SLOTS; j++) {
-      r8[SABER_START + j] = saberTasks[j]?.title ? saberTasks[j].title : "—";
-    }
-    for (let j = 0; j < HACER_SLOTS; j++) {
-      r8[HACER_START + j] = hacerTasks[j]?.title ? hacerTasks[j].title : "—";
-    }
-    for (let j = 0; j < SER_SLOTS; j++) {
-      r8[SER_START + j] = serTasks[j]?.title ? serTasks[j].title : "—";
-    }
+    const wsData: any[][] = [r0, r1, r2, r3, r4, r5, r6, r7];
 
-    const wsData: any[][] = [r0, r1, r2, r3, r4, r5, r6, r7, r8];
-
-    // ─── Data rows start at Excel row 10 (1-indexed), index 9 ───
-    const FIRST_DATA_EXCEL_ROW = 10;
+    // ─── Data rows start at Excel row 9 (1-indexed), index 8 ───
+    const FIRST_DATA_EXCEL_ROW = 9;
 
     students.forEach((student, i) => {
       const grades = gradesGrid[student.id] || {};
@@ -2220,13 +2207,48 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
     const ws = XLSX.utils.aoa_to_sheet(wsData);
 
+    // ─── Attach Excel Notes / Comments (Notas de Celda) on Column Number Headers (Row 8, index 7) ───
+    for (let j = 0; j < SABER_SLOTS; j++) {
+      const task = saberTasks[j];
+      if (task) {
+        const cellRef = XLSX.utils.encode_cell({ r: 7, c: SABER_START + j });
+        if (!ws[cellRef]) ws[cellRef] = { t: "n", v: j + 1 };
+        ws[cellRef].c = [{
+          a: "Aula Virtual",
+          t: `Actividad: ${task.title}\\nModalidad: ${task.isExternal ? "Entrega en clase" : "Entrega en plataforma"}${task.dueDate ? `\\nFecha límite: ${new Date(task.dueDate).toLocaleDateString('es-CO')}` : ""}`
+        }];
+      }
+    }
+    for (let j = 0; j < HACER_SLOTS; j++) {
+      const task = hacerTasks[j];
+      if (task) {
+        const cellRef = XLSX.utils.encode_cell({ r: 7, c: HACER_START + j });
+        if (!ws[cellRef]) ws[cellRef] = { t: "n", v: j + 1 };
+        ws[cellRef].c = [{
+          a: "Aula Virtual",
+          t: `Actividad: ${task.title}\\nModalidad: ${task.isExternal ? "Entrega en clase" : "Entrega en plataforma"}${task.dueDate ? `\\nFecha límite: ${new Date(task.dueDate).toLocaleDateString('es-CO')}` : ""}`
+        }];
+      }
+    }
+    for (let j = 0; j < SER_SLOTS; j++) {
+      const task = serTasks[j];
+      if (task) {
+        const cellRef = XLSX.utils.encode_cell({ r: 7, c: SER_START + j });
+        if (!ws[cellRef]) ws[cellRef] = { t: "n", v: j + 1 };
+        ws[cellRef].c = [{
+          a: "Aula Virtual",
+          t: `Actividad: ${task.title}\\nModalidad: ${task.isExternal ? "Entrega en clase" : "Entrega en plataforma"}${task.dueDate ? `\\nFecha límite: ${new Date(task.dueDate).toLocaleDateString('es-CO')}` : ""}`
+        }];
+      }
+    }
+
     // ─── Column widths ───
     ws["!cols"] = [
       { wch: 5 },   // A: No.
-      { wch: 32 },  // B: Nombre
-      ...Array(SABER_SLOTS).fill(null).map(() => ({ wch: 14 })),  // C-F: Saber (expanded to show activity titles)
-      ...Array(HACER_SLOTS).fill(null).map(() => ({ wch: 14 })),  // G-P: Hacer (expanded to show activity titles)
-      ...Array(SER_SLOTS).fill(null).map(() => ({ wch: 14 })),    // Q-S: Ser (expanded to show activity titles)
+      { wch: 28 },  // B: Nombre
+      ...Array(SABER_SLOTS).fill(null).map(() => ({ wch: 7 })),  // C-F: Saber
+      ...Array(HACER_SLOTS).fill(null).map(() => ({ wch: 7 })),  // G-P: Hacer
+      ...Array(SER_SLOTS).fill(null).map(() => ({ wch: 7 })),    // Q-S: Ser
       { wch: 10 }, { wch: 10 }, { wch: 10 },  // T-V: DEF sub
       { wch: 10 },  // W: DEF
       { wch: 13 },  // X: DESEMPEÑO
@@ -2240,9 +2262,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       { hpt: 10 }, // Row 4: empty
       { hpt: 20 }, // Row 5: meta
       { hpt: 10 }, // Row 6: empty
-      { hpt: 28 }, // Row 7: category headers
+      { hpt: 30 }, // Row 7: category headers
       { hpt: 20 }, // Row 8: sub-numbers
-      { hpt: 35 }, // Row 9: activity titles
     ];
 
     // ─── Cell merges ───
@@ -2259,15 +2280,15 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       { s: { r: 4, c: 5  }, e: { r: 4, c: 10 } },  // Subject value
       { s: { r: 4, c: 12 }, e: { r: 4, c: 15 } },  // Grade value
       { s: { r: 4, c: 17 }, e: { r: 4, c: TOTAL_COLS - 1 } }, // Period value
-      // Category header rows (rows 6..8)
-      { s: { r: 6, c: 0 }, e: { r: 8, c: 0 } },  // No.
+      // Category header row (row 6) - "No." and "NOMBRE" span 2 rows (6 and 7)
+      { s: { r: 6, c: 0 }, e: { r: 7, c: 0 } },  // No.
       { s: { r: 6, c: 1 }, e: { r: 7, c: 1 } },  // NOMBRE COMPLETO
       { s: { r: 6, c: SABER_START }, e: { r: 6, c: SABER_START + SABER_SLOTS - 1 } }, // SABER
       { s: { r: 6, c: HACER_START }, e: { r: 6, c: HACER_START + HACER_SLOTS - 1 } }, // HACER
       { s: { r: 6, c: SER_START   }, e: { r: 6, c: SER_START   + SER_SLOTS   - 1 } }, // SER
       { s: { r: 6, c: COL_DEF_SABER }, e: { r: 6, c: COL_DEF_SER } }, // DEF (3 sub-cols)
-      { s: { r: 6, c: COL_DEF    }, e: { r: 8, c: COL_DEF    } }, // DEF final spans 3 rows
-      { s: { r: 6, c: COL_DESEMP }, e: { r: 8, c: COL_DESEMP } }, // DESEMPEÑO spans 3 rows
+      { s: { r: 6, c: COL_DEF    }, e: { r: 7, c: COL_DEF    } }, // DEF final spans 2 rows
+      { s: { r: 6, c: COL_DESEMP }, e: { r: 7, c: COL_DESEMP } }, // DESEMPEÑO spans 2 rows
       // Legend section merges
       { s: { r: legendHeaderRowIndex, c: 0 }, e: { r: legendHeaderRowIndex, c: TOTAL_COLS - 1 } },
       { s: { r: legendSubHeaderRowIndex, c: 3 }, e: { r: legendSubHeaderRowIndex, c: 11 } },
