@@ -2726,18 +2726,20 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                               )}
                             </div>
 
-                            {/* Direct Prorroga action button */}
-                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                              <button
-                                type="button"
-                                onClick={() => openGradingProrrogaModal([student.id])}
-                                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#ea580c] dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-200 hover:underline cursor-pointer"
-                                title="Abrir configuración de prórroga para este estudiante"
-                              >
-                                <Calendar size={11} className="text-[#f98012]" />
-                                <span>{student.submission?.allowLateSubmission ? "Modificar Prórroga" : "Dar Prórroga"}</span>
-                              </button>
-                            </div>
+                            {/* Direct Prorroga action button - solo para no entregados o con prorroga activa */}
+                            {(student.submission?.allowLateSubmission || !student.submission || student.submission.status === "PENDING" || student.submission.status === "OVERDUE" || (!student.submission.submittedAt && !student.submission.fileUrl)) && (
+                              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                <button
+                                  type="button"
+                                  onClick={() => openGradingProrrogaModal([student.id])}
+                                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#ea580c] dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-200 hover:underline cursor-pointer"
+                                  title="Abrir configuración de prórroga para este estudiante"
+                                >
+                                  <Calendar size={11} className="text-[#f98012]" />
+                                  <span>{student.submission?.allowLateSubmission ? "Modificar Prórroga" : "Dar Prórroga"}</span>
+                                </button>
+                              </div>
+                            )}
 
                             {student.submission?.submittedAt && (
                               <div className="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">
