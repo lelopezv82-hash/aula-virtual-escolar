@@ -25,6 +25,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
   const [allCourses, setAllCourses] = useState<{id: string, name: string, groups: {id: string, name: string, grade?: {name: string}}[]}[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [existingAttachment, setExistingAttachment] = useState<string | null>(null);
+  const [removeExistingAttachment, setRemoveExistingAttachment] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState("");
@@ -142,6 +143,9 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
     formData.append("resourceIds", JSON.stringify(selectedResourceIds));
     formData.append("type", type);
     formData.append("isExternal", String(isExternal));
+    if (removeExistingAttachment && !file) {
+      formData.append("removeAttachment", "true");
+    }
     if (file) {
       formData.append("file", file);
     }
@@ -426,12 +430,34 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
 
-        {existingAttachment && (
-          <div className="p-3 border rounded-md" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
-            <p className="text-xs text-muted">Archivo adjunto actual:</p>
-            <a href={existingAttachment} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold hover:underline block truncate" style={{ color: 'var(--primary-color)' }}>
-              {existingAttachment.split('/').pop()}
-            </a>
+        {existingAttachment && !removeExistingAttachment && (
+          <div className="p-3 border rounded-md flex items-center justify-between gap-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-muted">Archivo adjunto actual:</p>
+              <a href={existingAttachment} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold hover:underline block truncate" style={{ color: 'var(--primary-color)' }}>
+                {existingAttachment.split('/').pop()}
+              </a>
+            </div>
+            <button
+              type="button"
+              onClick={() => setRemoveExistingAttachment(true)}
+              className="text-xs font-bold text-red-500 hover:text-red-700 hover:underline shrink-0"
+            >
+              Eliminar archivo
+            </button>
+          </div>
+        )}
+
+        {existingAttachment && removeExistingAttachment && (
+          <div className="p-3 border border-red-200 dark:border-red-800 rounded-md flex items-center justify-between bg-red-50/50 dark:bg-red-950/20 text-red-600 dark:text-red-400 text-xs">
+            <span>🗑️ El archivo adjunto se eliminará al guardar cambios</span>
+            <button
+              type="button"
+              onClick={() => setRemoveExistingAttachment(false)}
+              className="font-bold underline ml-2 hover:opacity-80"
+            >
+              Deshacer
+            </button>
           </div>
         )}
 

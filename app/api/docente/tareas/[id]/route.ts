@@ -190,10 +190,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ error: 'Faltan datos obligatorios (título, fecha límite, tema, periodo y al menos un grupo)' }, { status: 400 });
     }
 
+    const removeAttachmentRaw = formData.get('removeAttachment') as string | null;
+    const removeAttachment = removeAttachmentRaw === 'true';
+
     let attachmentUrl = task.attachmentUrl;
     let gdriveEmail: string | null = task.gdriveEmail;
-    if (externalUrl !== null) {
-      attachmentUrl = externalUrl || null;
+
+    if (removeAttachment) {
+      attachmentUrl = null;
+      gdriveEmail = null;
+    }
+
+    if (externalUrl !== null && externalUrl !== undefined && externalUrl.trim() !== "") {
+      attachmentUrl = externalUrl.trim();
       gdriveEmail = null;
     }
 
