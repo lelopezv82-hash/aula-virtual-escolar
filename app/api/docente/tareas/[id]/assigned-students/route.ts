@@ -50,7 +50,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     }
 
     // Get all groups related to this course (or task groups)
-    const targetGroupIds = task.course.groups.map(g => g.id);
+    const targetGroupIds = task.groups.length > 0 ? task.groups.map(g => g.id) : task.course.groups.map(g => g.id);
 
     // Fetch all students belonging to these groups
     const availableStudents = await prisma.user.findMany({
@@ -83,10 +83,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       ]
     });
 
+    const assignedIds = task.assignedStudents.map(s => s.id);
+
     return NextResponse.json({
       taskId: task.id,
       assignedStudents: task.assignedStudents,
+      assignedStudentIds: assignedIds,
       availableStudents,
+      students: availableStudents,
       taskGroups: task.groups
     });
   } catch (error) {
@@ -95,10 +99,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   }
 }
 
-// PUT update the assigned students list
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+async function handleUpdateAssigned(request: Request, resolvedParams: { id: string }) {
   try {
-    const resolvedParams = await params;
     const cookieStore = await cookies();
     const token = cookieStore.get("auth_token")?.value;
 
@@ -152,10 +154,23 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     return NextResponse.json({
       success: true,
-      assignedStudents: updatedTask.assignedStudents
+      assignedStudents: updatedTask.assignedStudents,
+      assignedStudentIds: updatedTask.assignedStudents.map(s => s.id)
     });
   } catch (error) {
     console.error('Error updating assigned students:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
+}
+
+// PUT update the assigned students list
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+  return handleUpdateAssigned(request, resolvedParams);
+}
+
+// POST update the assigned students list (alias)
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+  return handleUpdateAssigned(request, resolvedParams);
 }

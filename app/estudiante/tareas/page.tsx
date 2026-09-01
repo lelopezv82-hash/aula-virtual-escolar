@@ -57,6 +57,9 @@ export default async function TareasEstudiantePage() {
     },
     include: {
       course: true,
+      assignedStudents: {
+        select: { id: true }
+      },
       submissions: {
         where: { studentId }
       }
@@ -64,7 +67,13 @@ export default async function TareasEstudiantePage() {
     orderBy: { createdAt: "desc" }
   });
 
+  // Helper: check if a task is not activated for this student
+  const isNotActivated = (task: typeof tasks[0]) =>
+    task.assignedStudents.length > 0 && !task.assignedStudents.some(s => s.id === studentId);
+
   const pendingTasks = tasks.filter(task => {
+    // Non-activated tasks (absent student) always show as graded 1.0, never pending
+    if (isNotActivated(task)) return false;
     const submission = task.submissions[0];
     const { isClosed } = getTaskDeadlineStatus(task, submission);
     const virtualGraded = !task.isExternal && ((!submission && isClosed) || (submission && submission.status === "PENDING" && isClosed));

@@ -23,11 +23,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const studentId = payload.id as string;
 
     const task = await prisma.task.findUnique({
-      where: { id: taskId }
+      where: { id: taskId },
+      include: {
+        assignedStudents: {
+          select: { id: true }
+        }
+      }
     });
 
     if (!task) {
       return NextResponse.json({ error: 'Tarea no encontrada' }, { status: 404 });
+    }
+
+    // Check if task is restricted to specific activated students
+    if (task.assignedStudents && task.assignedStudents.length > 0 && !task.assignedStudents.some(s => s.id === studentId)) {
+      return NextResponse.json({ error: 'Esta actividad no fue activada para ti por inasistencia a clase.' }, { status: 403 });
     }
 
     const submission = await prisma.submission.findUnique({

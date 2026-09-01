@@ -25,14 +25,23 @@ async function getStudentAndTask(taskId: string) {
 
   const task = await prisma.task.findUnique({
     where: { id: taskId },
-    include: { groups: true }
+    include: {
+      groups: true,
+      assignedStudents: {
+        select: { id: true }
+      }
+    }
   });
 
   if (!task || !task.active) {
     throw new Error('404');
   }
 
-  if (task.groups.length > 0 && !task.groups.some(g => g.id === student?.groupId)) {
+  if (task.groups.length > 0 && !task.groups.some(g => g.id === student?.groupId) && !task.assignedStudents.some(s => s.id === studentId)) {
+    throw new Error('403');
+  }
+
+  if (task.assignedStudents && task.assignedStudents.length > 0 && !task.assignedStudents.some(s => s.id === studentId)) {
     throw new Error('403');
   }
 

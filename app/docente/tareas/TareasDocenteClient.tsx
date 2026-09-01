@@ -1100,18 +1100,21 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
           className="modal-overlay"
           onClick={e => e.target === e.currentTarget && setAssigningTask(null)}
         >
-          <div className="modal-content" style={{ maxWidth: "620px", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
+          <div className="modal-content" style={{ maxWidth: "660px", maxHeight: "92vh", display: "flex", flexDirection: "column" }}>
             {/* Modal header */}
             <div className="flex justify-between items-start mb-3" style={{ flexShrink: 0 }}>
               <div>
                 <h2 className="text-xl font-bold flex items-center gap-2">
-                  <Users size={20} className="text-blue-600" />
-                  Asignar a Estudiantes Específicos
+                  <Users size={22} className="text-blue-600" />
+                  Activar Actividad por Asistencia en Clase
                 </h2>
-                <p className="text-sm text-muted mt-0.5">{assigningTask.title}</p>
-                <p className="text-xs text-muted mt-0.5">
-                  Selecciona los estudiantes individuales que tendrán acceso a esta actividad además de los grupos asignados.
-                </p>
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mt-0.5">{assigningTask.title}</p>
+                <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 rounded-xl p-2.5 mt-2 text-xs text-blue-900 dark:text-blue-200 flex items-start gap-2">
+                  <Sparkles size={16} className="text-blue-600 shrink-0 mt-0.5" />
+                  <div>
+                    <strong>Control de Asistencia:</strong> Marca únicamente a los estudiantes presentes en clase. A los estudiantes que <strong>no</strong> queden marcados, la actividad les aparecerá automáticamente <strong>cerrada con nota 1.0</strong> por inasistencia.
+                  </div>
+                </div>
               </div>
               <button onClick={() => setAssigningTask(null)} className="p-1 rounded-lg hover:bg-gray-100 flex-shrink-0">
                 <X size={20} />
@@ -1121,7 +1124,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
             {assignError && <div className="alert alert-danger mb-3">{assignError}</div>}
             {assignSaved && (
               <div className="alert alert-success mb-3 flex items-center gap-2">
-                <CheckCircle size={16} /> Asignaciones guardadas correctamente.
+                <CheckCircle size={16} /> Asignaciones y activación de estudiantes guardadas correctamente.
               </div>
             )}
 
@@ -1141,43 +1144,32 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                 <button
                   type="button"
                   onClick={() => {
-                    const filtered = availableStudents.filter(s =>
-                      s.name.toLowerCase().includes(assignSearch.toLowerCase()) ||
-                      (s.groupName && s.groupName.toLowerCase().includes(assignSearch.toLowerCase())) ||
-                      (s.group?.name && s.group.name.toLowerCase().includes(assignSearch.toLowerCase()))
-                    );
-                    const allFilteredIds = filtered.map(s => s.id);
-                    const allSelected = allFilteredIds.every(id => assignedStudentIds.includes(id));
-                    if (allSelected) {
-                      setAssignedStudentIds(prev => prev.filter(id => !allFilteredIds.includes(id)));
-                    } else {
-                      setAssignedStudentIds(prev => Array.from(new Set([...prev, ...allFilteredIds])));
-                    }
+                    const allIds = availableStudents.map(s => s.id);
+                    setAssignedStudentIds(allIds);
                   }}
-                  className="btn btn-secondary text-xs whitespace-nowrap py-1.5"
+                  className="btn btn-secondary text-xs whitespace-nowrap py-1.5 font-bold"
                 >
-                  {availableStudents.filter(s =>
-                    s.name.toLowerCase().includes(assignSearch.toLowerCase()) ||
-                    (s.groupName && s.groupName.toLowerCase().includes(assignSearch.toLowerCase())) ||
-                    (s.group?.name && s.group.name.toLowerCase().includes(assignSearch.toLowerCase()))
-                  ).every(s => assignedStudentIds.includes(s.id)) && availableStudents.length > 0
-                    ? "Deseleccionar filtrados"
-                    : "Seleccionar filtrados"}
+                  Activar Todos ({availableStudents.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAssignedStudentIds([]);
+                  }}
+                  className="btn btn-secondary text-xs whitespace-nowrap py-1.5 text-red-600 hover:text-red-700 font-bold"
+                >
+                  Desactivar Todos
                 </button>
               </div>
 
               <div className="flex justify-between items-center text-xs text-muted px-1">
                 <span>
-                  <strong>{assignedStudentIds.length}</strong> de <strong>{availableStudents.length}</strong> estudiantes asignados
+                  <strong className="text-blue-600">{assignedStudentIds.length}</strong> de <strong>{availableStudents.length}</strong> estudiantes activados (presentes)
                 </span>
-                {assignedStudentIds.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setAssignedStudentIds([])}
-                    className="text-red-500 hover:underline"
-                  >
-                    Deseleccionar todos
-                  </button>
+                {availableStudents.length - assignedStudentIds.length > 0 && assignedStudentIds.length > 0 && (
+                  <span className="text-amber-700 dark:text-amber-400 font-semibold">
+                    {availableStudents.length - assignedStudentIds.length} estudiante(s) quedarán cerrados con nota 1.0 (ausentes)
+                  </span>
                 )}
               </div>
             </div>
@@ -1189,7 +1181,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                   <Loader2 className="animate-spin text-blue-600" size={32} />
                 </div>
               ) : availableStudents.length === 0 ? (
-                <div className="text-center py-8 text-muted text-sm">No hay estudiantes disponibles en este curso.</div>
+                <div className="text-center py-8 text-muted text-sm">No hay estudiantes disponibles en los grupos de esta tarea.</div>
               ) : (
                 <div className="flex flex-col gap-1.5">
                   {availableStudents
@@ -1223,7 +1215,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                                   isChecked ? prev.filter(id => id !== student.id) : [...prev, student.id]
                                 );
                               }}
-                              className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4"
+                              className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
                             />
                             <div
                               className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs text-white ${
@@ -1233,7 +1225,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                               {student.name.charAt(0).toUpperCase()}
                             </div>
                             <div className="min-w-0">
-                              <p className={`font-semibold text-sm truncate ${isChecked ? "text-blue-900 dark:text-blue-200" : ""}`}>
+                              <p className={`font-semibold text-sm truncate ${isChecked ? "text-blue-900 dark:text-blue-200" : "text-gray-700 dark:text-gray-300"}`}>
                                 {student.name}
                               </p>
                               <p className="text-[11px] text-muted truncate">@{student.username}</p>
@@ -1244,9 +1236,13 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                             <span className="text-xs px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium">
                               {groupLabel}
                             </span>
-                            {isChecked && (
-                              <span className="text-xs text-blue-600 font-semibold flex items-center gap-1">
-                                <UserCheck size={14} /> Asignado
+                            {isChecked ? (
+                              <span className="text-xs text-blue-600 font-bold flex items-center gap-1">
+                                <UserCheck size={14} /> Activado (Presente)
+                              </span>
+                            ) : (
+                              <span className="text-xs text-red-600 dark:text-red-400 font-medium">
+                                Inasistencia (1.0)
                               </span>
                             )}
                           </div>
@@ -1260,7 +1256,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
             {/* Modal footer */}
             <div className="flex items-center justify-between border-t pt-4 mt-4" style={{ borderColor: "var(--border-color)", flexShrink: 0 }}>
               <div className="text-xs text-muted">
-                {assignedStudentIds.length} estudiante(s) seleccionado(s)
+                {assignedStudentIds.length} estudiante(s) activado(s)
               </div>
               <div className="flex items-center gap-3">
                 <button className="btn btn-secondary" onClick={() => setAssigningTask(null)}>Cancelar</button>
@@ -1279,7 +1275,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                     </>
                   ) : (
                     <>
-                      <Save size={16} /> Guardar Asignaciones
+                      <Save size={16} /> Guardar Activación
                     </>
                   )}
                 </button>

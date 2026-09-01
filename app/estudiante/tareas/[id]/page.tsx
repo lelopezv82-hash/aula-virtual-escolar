@@ -25,6 +25,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const [errorType, setErrorType] = useState<"danger" | "warning">("danger");
   const [initialLoad, setInitialLoad] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [isNotActivated, setIsNotActivated] = useState(false);
 
   useEffect(() => {
     // Fetch task and existing submission info
@@ -37,6 +38,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
             return;
           }
           setTask(data.task);
+          if (data.isNotActivated) setIsNotActivated(true);
           if (data.studentName) setStudentName(data.studentName);
           if (data.task.submissions && data.task.submissions.length > 0) {
             setSubmission(data.task.submissions[0]);
@@ -47,25 +49,26 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
       .finally(() => setInitialLoad(false));
   }, [taskId, router]);
 
-  const hasActiveExtension = !!(submission?.allowLateSubmission || task?.allowLateSubmission);
+  const hasActiveExtension = !isNotActivated && !!(submission?.allowLateSubmission || task?.allowLateSubmission);
   const hasUploadedFile = !!(submission?.fileUrl && submission.fileUrl.trim() !== "");
   const isAutomaticGrade1 = (submission?.grade === 1 || submission?.grade === 1.0) && hasActiveExtension && !hasUploadedFile;
 
   const isSubmitted = hasUploadedFile || (task?.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")) && submission?.status === "SUBMITTED");
 
   // Check deadline status for grade reason
-  const { activeDeadline, isClosed: isSubmissionBlocked, isLate: isOverdue } = task ? getTaskDeadlineStatus(task, submission) : { activeDeadline: null, isClosed: false, isLate: false };
+  const { activeDeadline, isClosed: isDeadlineBlocked, isLate: isOverdue } = task ? getTaskDeadlineStatus(task, submission) : { activeDeadline: null, isClosed: false, isLate: false };
+  const isSubmissionBlocked = isNotActivated || isDeadlineBlocked;
   const isDeadlinePassed = isSubmissionBlocked;
 
   const neverSubmitted = !hasUploadedFile && !isSubmitted;
-  const isVirtualGraded = neverSubmitted && isDeadlinePassed && !task?.isExternal && !hasActiveExtension;
+  const isVirtualGraded = isNotActivated || (neverSubmitted && isDeadlinePassed && !task?.isExternal && !hasActiveExtension);
 
   const effectiveGrade = (submission?.grade !== null && submission?.grade !== undefined && !isAutomaticGrade1)
     ? submission.grade
     : (isVirtualGraded ? 1.0 : null);
 
-  const isGraded = (submission?.status === "GRADED" && !isAutomaticGrade1) || (submission?.grade != null && !isAutomaticGrade1) || isVirtualGraded;
-  const gradeReason = isVirtualGraded ? "No entregaste la tarea a tiempo" : null;
+  const isGraded = isNotActivated || (submission?.status === "GRADED" && !isAutomaticGrade1) || (submission?.grade != null && !isAutomaticGrade1) || isVirtualGraded;
+  const gradeReason = isNotActivated ? "No asististe a la clase (Actividad no habilitada)" : (isVirtualGraded ? "No entregaste la tarea a tiempo" : null);
 
   const triggerAutoSubmit = async () => {
     setIsTimerExpired(true);

@@ -58,6 +58,9 @@ export default async function ExamenesEstudiantePage() {
     },
     include: {
       course: true,
+      assignedStudents: {
+        select: { id: true }
+      },
       submissions: {
         where: { studentId }
       }
@@ -65,7 +68,13 @@ export default async function ExamenesEstudiantePage() {
     orderBy: { createdAt: "desc" }
   });
 
+  // Helper: check if an exam is not activated for this student (absent)
+  const isNotActivated = (exam: typeof exams[0]) =>
+    exam.assignedStudents.length > 0 && !exam.assignedStudents.some(s => s.id === studentId);
+
   const pendingExams = exams.filter(exam => {
+    // Non-activated exams (absent student) always show as graded 1.0, never pending
+    if (isNotActivated(exam)) return false;
     const submission = exam.submissions[0];
     const { isClosed } = getTaskDeadlineStatus(exam, submission);
     const isTimerExpired = !!(submission?.startedAt && exam.duration &&

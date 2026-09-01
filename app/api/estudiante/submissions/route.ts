@@ -33,11 +33,14 @@ export async function POST(request: Request) {
     let fileUrl = "";
     let gdriveEmail: string | null = null;
 
-    // Find the task, include groups and course details
+    // Find the task, include groups, assignedStudents and course details
     const task = await prisma.task.findUnique({
       where: { id: taskId },
       include: {
         groups: true,
+        assignedStudents: {
+          select: { id: true }
+        },
         course: {
           select: {
             teacherId: true,
@@ -81,8 +84,13 @@ export async function POST(request: Request) {
       }
     });
 
-    if (task.groups.length > 0 && !task.groups.some(g => g.id === student?.groupId)) {
+    if (task.groups.length > 0 && !task.groups.some(g => g.id === student?.groupId) && !task.assignedStudents.some(s => s.id === studentId)) {
       return NextResponse.json({ error: 'No tienes acceso a esta tarea.' }, { status: 403 });
+    }
+
+    // Check if task is restricted to specific activated students
+    if (task.assignedStudents && task.assignedStudents.length > 0 && !task.assignedStudents.some(s => s.id === studentId)) {
+      return NextResponse.json({ error: 'Esta actividad no fue activada para ti por inasistencia a clase.' }, { status: 403 });
     }
 
     const isGoogleFormExam = task.type === "EXAM" && !!(task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));

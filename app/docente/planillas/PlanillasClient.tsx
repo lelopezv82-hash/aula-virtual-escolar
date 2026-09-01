@@ -61,6 +61,7 @@ interface TaskItem {
   allowLateSubmission?: boolean;
   lateSubmissionUntil?: string;
   duration?: number;
+  assignedStudents?: { id: string }[];
   submissions: { 
     studentId: string; 
     grade: number | null; 
@@ -541,7 +542,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         });
       }
 
-      // Build grid from existing submissions and apply auto 1.0 for expired non-submitted tasks
+      // Build grid from existing submissions and apply auto 1.0 for expired non-submitted tasks or unassigned students
       const grid: Record<string, Record<string, string>> = {};
       const now = new Date();
       for (const s of fStudents) {
@@ -551,7 +552,13 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           const hasRealGrade = sub?.grade !== null && sub?.grade !== undefined;
           
           let defaultVal = "";
-          if (!t.isExternal) {
+          // Check if task is restricted to specific assigned students and this student was not assigned (absent)
+          const isRestricted = t.assignedStudents && t.assignedStudents.length > 0;
+          const isStudentAssigned = !isRestricted || t.assignedStudents!.some(as => as.id === s.id);
+
+          if (!isStudentAssigned) {
+            defaultVal = "1.0";
+          } else if (!t.isExternal) {
             const { isClosed } = getTaskDeadlineStatus(t as any, sub as any);
             const isTimerExpired = sub?.startedAt && t.duration &&
               (new Date(sub.startedAt).getTime() + t.duration * 60 * 1000 + 30000 < now.getTime());
@@ -983,6 +990,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
           if (sub?.grade != null) {
             inputs[s.id] = String(sub.grade);
+          } else if (s.isNotActivated) {
+            inputs[s.id] = "1.0";
           } else if (isOverdueWithoutSubmission) {
             inputs[s.id] = "1.0";
           } else {
@@ -991,6 +1000,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
           if (sub?.feedback) {
             fInputs[s.id] = sub.feedback;
+          } else if (s.isNotActivated) {
+            fInputs[s.id] = "No asistió a la clase (Actividad no habilitada)";
           } else if (isOverdueWithoutSubmission) {
             fInputs[s.id] = "Actividad no entregada dentro del plazo establecido.";
           } else {

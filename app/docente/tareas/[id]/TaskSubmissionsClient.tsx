@@ -52,6 +52,7 @@ interface TaskSubmissionsClientProps {
   };
   groups: GroupData[];
   students: StudentData[];
+  assignedStudentIds?: string[];
   submissions: SubmissionData[];
 }
 
@@ -59,6 +60,7 @@ export default function TaskSubmissionsClient({
   task,
   groups,
   students,
+  assignedStudentIds = [],
   submissions
 }: TaskSubmissionsClientProps) {
   const router = useRouter();
@@ -368,17 +370,35 @@ export default function TaskSubmissionsClient({
                               {student.name}
                             </td>
                             <td className="py-3 px-4">
-                              {isGraded || (submission && submission.grade != null) ? (
-                                <span className="badge badge-success flex w-fit items-center gap-1">
-                                  <CheckCircle size={12}/> Calificada: {submission.grade}
-                                </span>
-                              ) : isSubmitted ? (
-                                <span className="badge badge-info">Entregada</span>
-                              ) : (
-                                <span className="badge badge-warning flex w-fit items-center gap-1">
-                                  <Clock size={12}/> Pendiente
-                                </span>
-                              )}
+                              {(() => {
+                                const isTaskRestricted = assignedStudentIds && assignedStudentIds.length > 0;
+                                const isStudentAssigned = !isTaskRestricted || (assignedStudentIds && assignedStudentIds.includes(student.id));
+
+                                if (isGraded || (submission && submission.grade != null)) {
+                                  return (
+                                    <span className="badge badge-success flex w-fit items-center gap-1">
+                                      <CheckCircle size={12}/> Calificada: {submission?.grade}
+                                    </span>
+                                  );
+                                }
+                                if (!isStudentAssigned) {
+                                  return (
+                                    <span className="badge badge-danger flex w-fit items-center gap-1 font-semibold">
+                                      <ShieldAlert size={12}/> No asistió (1.0)
+                                    </span>
+                                  );
+                                }
+                                if (isSubmitted) {
+                                  return (
+                                    <span className="badge badge-info">Entregada</span>
+                                  );
+                                }
+                                return (
+                                  <span className="badge badge-warning flex w-fit items-center gap-1">
+                                    <Clock size={12}/> Pendiente
+                                  </span>
+                                );
+                              })()}
                             </td>
                             <td className="py-3 px-4 text-center">
                               <StudentLateSubmissionToggle

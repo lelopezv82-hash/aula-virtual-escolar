@@ -103,14 +103,22 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     }
 
     const submissionMap = new Map(task.submissions.map(s => [s.studentId, s]));
+    const assignedIds = (task.assignedStudents || []).map(s => s.id);
+    const hasSpecificAssignments = assignedIds.length > 0;
 
-    const students = Array.from(studentMap.values()).map(s => ({
-      ...s,
-      submission: submissionMap.get(s.id) ?? null,
-    }));
+    const students = Array.from(studentMap.values()).map(s => {
+      const isAssigned = !hasSpecificAssignments || assignedIds.includes(s.id);
+      return {
+        ...s,
+        isAssigned,
+        isNotActivated: !isAssigned,
+        submission: submissionMap.get(s.id) ?? null,
+      };
+    });
 
     return NextResponse.json({ 
       students, 
+      assignedStudentIds: assignedIds,
       taskType: task.type, 
       taskTitle: task.title,
       dueDate: task.dueDate ? task.dueDate.toISOString() : null,

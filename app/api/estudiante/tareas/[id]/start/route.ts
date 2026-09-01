@@ -25,7 +25,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     // Check if task exists and student has access
     const task = await prisma.task.findUnique({
       where: { id: taskId },
-      include: { groups: true }
+      include: {
+        groups: true,
+        assignedStudents: {
+          select: { id: true }
+        }
+      }
     });
 
     if (!task || !task.active) {
@@ -37,8 +42,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       select: { groupId: true }
     });
 
-    if (task.groups.length > 0 && !task.groups.some(g => g.id === student?.groupId)) {
+    if (task.groups.length > 0 && !task.groups.some(g => g.id === student?.groupId) && !task.assignedStudents.some(s => s.id === studentId)) {
       return NextResponse.json({ error: 'No tienes acceso a esta tarea.' }, { status: 403 });
+    }
+
+    if (task.assignedStudents && task.assignedStudents.length > 0 && !task.assignedStudents.some(s => s.id === studentId)) {
+      return NextResponse.json({ error: 'Esta actividad no fue activada para ti por inasistencia a clase.' }, { status: 403 });
     }
 
     // Check if submission already exists

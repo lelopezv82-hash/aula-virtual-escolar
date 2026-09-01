@@ -86,17 +86,54 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       }
     }
 
+    let isNotActivatedForStudent = false;
+
     if (!isTeacher) {
       const hasGroupAccess = task.groups.length === 0 || (student?.groupId ? task.groups.some(g => g.id === student.groupId) : false);
       const hasDirectAccess = task.assignedStudents?.some(s => s.id === studentId);
       if (!hasGroupAccess && !hasDirectAccess) {
         return NextResponse.json({ error: 'Tarea no encontrada' }, { status: 404 });
       }
+
+      // Check selective activation (if task has specific assigned students and student is not among them)
+      if (task.assignedStudents && task.assignedStudents.length > 0 && !hasDirectAccess) {
+        isNotActivatedForStudent = true;
+      }
     }
 
     // Fetch feedbackTemplate if the student has finished and unlocked answers
     let feedbackTemplate = null;
-    const submission = task.submissions[0];
+    let submission = task.submissions[0] || null;
+
+    // If student was not activated due to inattendance, ensure submission appears closed with grade 1.0
+    if (isNotActivatedForStudent) {
+      if (!submission) {
+        submission = {
+          id: `unassigned-${task.id}`,
+          taskId: task.id,
+          studentId: studentId!,
+          status: "GRADED",
+          grade: 1.0,
+          feedback: "No asistió a la clase (Actividad no habilitada)",
+          fileUrl: null,
+          submittedAt: null,
+          createdAt: task.createdAt,
+          updatedAt: task.updatedAt,
+          allowLateSubmission: false,
+          lateSubmissionUntil: null,
+          startedAt: null,
+          attempt: 1,
+          unlockedAnswers: false,
+          answers: null,
+        } as any;
+      } else if (submission.grade === null) {
+        submission.grade = 1.0;
+        submission.status = "GRADED";
+        if (!submission.feedback) {
+          submission.feedback = "No asistió a la clase (Actividad no habilitada)";
+        }
+      }
+    }
     const isGoogleForm = !!(task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));
     
     const isNative = task.questions && task.questions.length > 0;
@@ -134,11 +171,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     // Remove groups from response to keep payload clean if needed, or keep it
     const { groups: _groups, ...taskData } = task;
 
+    if (submission) {
+      taskData.submissions = [submission];
+    }
+
     return NextResponse.json({ 
       task: taskData, 
       studentName: student?.name || "Estudiante",
       feedbackTemplate,
-      canSeeAnswers
+      canSeeAnswers,
+      isNotActivated: isNotActivatedForStudent
     });
   } catch {
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });

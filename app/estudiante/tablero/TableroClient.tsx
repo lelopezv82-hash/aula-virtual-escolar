@@ -46,6 +46,7 @@ export interface TableroTask {
   allowLateSubmission: boolean;
   lateSubmissionUntil: string | null;
   isIndividuallyAssigned: boolean;
+  isNotActivated?: boolean;
   submission: {
     id: string;
     status: string;
@@ -120,6 +121,27 @@ export default function TableroClient({
     const hasUploadedFile = isExam ? false : (task.isExternal || !!(task.submission?.fileUrl && task.submission.fileUrl.trim() !== ""));
     const isExamSubmitted = isExam && !!(task.submission && task.submission.status !== "PENDING" && task.submission.startedAt);
     const isSubmitted = isExam ? isExamSubmitted : hasUploadedFile;
+
+    // Non-activated (absent) student: treat as expired/closed with grade 1.0
+    if (task.isNotActivated) {
+      return {
+        due,
+        activeDeadline,
+        hasExtension: false,
+        isUnlimitedExtension: false,
+        deadlineStatus,
+        diffMs: -1,
+        diffHours: -1,
+        diffDays: -1,
+        isSubmitted: false,
+        isGraded: true,
+        grade: 1.0,
+        isExpired: true,
+        isDueToday: false,
+        isUrgent: false,
+        timeText: "No asistió a clase"
+      };
+    }
 
     const isClosedWithoutSubmission = !isSubmitted && !hasExtension && (isClosed || (task.submission?.grade === 1 || task.submission?.grade === 1.0));
     const isExpired = isClosedWithoutSubmission;

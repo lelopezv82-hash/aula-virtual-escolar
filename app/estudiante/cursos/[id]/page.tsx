@@ -123,6 +123,9 @@ export default async function CursoDescripcionPage({
       ],
     },
     include: {
+      assignedStudents: {
+        select: { id: true }
+      },
       submissions: { where: { studentId } },
       resources: true,
     },
@@ -156,6 +159,7 @@ export default async function CursoDescripcionPage({
         }}>
           {tasks.map((task, idx) => {
             const submission = task.submissions[0];
+            const isNotActivatedForStudent = task.assignedStudents.length > 0 && !task.assignedStudents.some(s => s.id === studentId);
             const isExam = task.type === "EXAM" || task.type === "FINAL";
             const hasUploadedFile = isExam ? false : (task.isExternal || !!(submission?.fileUrl && submission.fileUrl.trim() !== ""));
             const isExamSubmitted = isExam && !!(submission && submission.status !== "PENDING" && submission.startedAt);
@@ -202,7 +206,7 @@ export default async function CursoDescripcionPage({
                 }}
               >
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "0.85rem" }}>
-                  <TaskIcon isGraded={isGraded} isSubmitted={isSubmitted} />
+                  <TaskIcon isGraded={isGraded || isNotActivatedForStudent} isSubmitted={isSubmitted} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
                       <Link
@@ -211,7 +215,15 @@ export default async function CursoDescripcionPage({
                       >
                         {task.title}
                       </Link>
-                      {isGraded && (
+                      {isNotActivatedForStudent && (
+                        <span
+                          className="text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border border-red-200 dark:border-red-900/50"
+                        >
+                          <Clock size={12} className="shrink-0 text-red-600" />
+                          <span>Cerrada · No asistió a clase · Nota: 1.0</span>
+                        </span>
+                      )}
+                      {!isNotActivatedForStudent && isGraded && (
                         <span style={{
                           fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
                           borderRadius: 3,
@@ -221,7 +233,7 @@ export default async function CursoDescripcionPage({
                           ✓ Calificado {submission?.grade !== null && submission?.grade !== undefined ? `· Nota: ${Number(submission.grade).toFixed(1)}` : ""}
                         </span>
                       )}
-                      {isSubmitted && !isGraded && (
+                      {!isNotActivatedForStudent && isSubmitted && !isGraded && (
                         <span style={{
                           fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
                           borderRadius: 3, background: "#fff3cd", color: "#856404",
@@ -230,7 +242,7 @@ export default async function CursoDescripcionPage({
                           Pendiente por calificar
                         </span>
                       )}
-                      {hasExtension && !isSubmitted && (
+                      {!isNotActivatedForStudent && hasExtension && !isSubmitted && (
                         <span style={{
                           fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
                           borderRadius: 3, background: "#fff7ed", color: "#c2410c",
@@ -239,7 +251,7 @@ export default async function CursoDescripcionPage({
                           ⏰ Prórroga Activa
                         </span>
                       )}
-                      {isClosedWithoutSubmission && (
+                      {!isNotActivatedForStudent && isClosedWithoutSubmission && (
                         <span
                           className="text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border border-red-200 dark:border-red-900/50"
                         >

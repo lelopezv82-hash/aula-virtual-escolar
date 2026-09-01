@@ -62,6 +62,9 @@ export default async function CalificacionesEstudiantePage() {
     },
     include: {
       course: true,
+      assignedStudents: {
+        select: { id: true }
+      },
       questions: {
         include: {
           options: true
@@ -73,9 +76,34 @@ export default async function CalificacionesEstudiantePage() {
     }
   });
 
-  // Map tasks to their submissions, adding virtual 1.0 graded submissions for expired/closed Google Forms exams
-  // Map tasks to their submissions, adding virtual 1.0 graded submissions for expired/closed Google Forms exams
+  // Map tasks to their submissions, adding virtual 1.0 graded submissions for non-activated (absent) students
+  // and for expired/closed tasks without submission
   const activeSubmissions = (await Promise.all(tasks.map(async task => {
+    // Non-activated student (absent): virtual closed submission with grade 1.0
+    const isNotActivatedForStudent = task.assignedStudents.length > 0 && !task.assignedStudents.some((s: {id: string}) => s.id === studentId);
+    if (isNotActivatedForStudent) {
+      return {
+        id: `unassigned-${task.id}`,
+        taskId: task.id,
+        studentId,
+        status: "GRADED",
+        grade: 1.0,
+        feedback: "No asistió a la clase (Actividad no habilitada)",
+        fileUrl: null,
+        submittedAt: null,
+        createdAt: task.createdAt,
+        updatedAt: task.updatedAt,
+        allowLateSubmission: false,
+        lateSubmissionUntil: null,
+        startedAt: null,
+        attempt: 1,
+        unlockedAnswers: false,
+        feedbackTemplate: null,
+        isNotActivated: true,
+        task
+      };
+    }
+
     const sub = task.submissions[0];
     const { isClosed } = getTaskDeadlineStatus(task, sub);
     const isGoogleForm = !!(task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));

@@ -83,12 +83,41 @@ export default async function CursoCalificacionesPage({
     },
     include: {
       course: true,
+      assignedStudents: {
+        select: { id: true }
+      },
       questions: { include: { options: true } },
       submissions: { where: { studentId } },
     },
   });
 
   const activeSubmissions = (await Promise.all(tasks.map(async task => {
+    // Non-activated student (absent): virtual closed submission with grade 1.0
+    const isNotActivatedForStudent = (task as any).assignedStudents?.length > 0 &&
+      !(task as any).assignedStudents.some((s: {id: string}) => s.id === studentId);
+    if (isNotActivatedForStudent) {
+      return {
+        id: `unassigned-${task.id}`,
+        taskId: task.id,
+        studentId,
+        status: "GRADED",
+        grade: 1.0,
+        feedback: "No asistió a la clase (Actividad no habilitada)",
+        fileUrl: null,
+        submittedAt: null,
+        createdAt: task.createdAt,
+        updatedAt: task.updatedAt,
+        allowLateSubmission: false,
+        lateSubmissionUntil: null,
+        startedAt: null,
+        attempt: 1,
+        unlockedAnswers: false,
+        feedbackTemplate: null,
+        isNotActivated: true,
+        task
+      };
+    }
+
     const sub = task.submissions[0];
     const { isClosed } = getTaskDeadlineStatus(task, sub);
     const isGoogleForm = !!(task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));

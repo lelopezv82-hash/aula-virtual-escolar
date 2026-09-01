@@ -27,6 +27,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const [errorType, setErrorType] = useState<"danger" | "warning">("danger");
   const [initialLoad, setInitialLoad] = useState(true);
   const [hasSentGoogleForm, setHasSentGoogleForm] = useState(false);
+  const [isNotActivated, setIsNotActivated] = useState(false);
 
   const fetchTaskDetails = useCallback(() => {
     // Fetch task and existing submission info
@@ -39,6 +40,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
             return;
           }
           setTask(data.task);
+          if (data.isNotActivated) setIsNotActivated(true);
           if (data.studentName) setStudentName(data.studentName);
           if (data.feedbackTemplate) setFeedbackTemplate(data.feedbackTemplate);
           if (data.task.submissions && data.task.submissions.length > 0) {
@@ -64,41 +66,46 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
     !submission?.allowLateSubmission;
 
   // Check if late submissions are blocked (overdue and no extensions)
-  const { isClosed, isLate: isOverdue, activeDeadline } = getTaskDeadlineStatus(task, submission);
+  const { isClosed: isDeadlineClosed, isLate: isOverdue, activeDeadline } = getTaskDeadlineStatus(task, submission);
+  const isClosed = isNotActivated || isDeadlineClosed;
 
   // If the exam is closed/expired and never finished/submitted:
   // For Google Forms: virtual 1.0 if closed or timer expired.
   // For Native Exams: virtual 1.0 only if never started and closed. If started, we will submit their saved answers.
-  const virtualSubmission = ((!submission || submission.status === "PENDING") && isClosed && isGoogleForm) ||
-                            (submission && submission.status === "PENDING" && timerHasExpired && isGoogleForm) ||
-                            (!submission && isClosed && isNativeExam)
-    ? { status: "GRADED", grade: 1.0, feedback: null, submittedAt: null, fileUrl: null, attempt: submission?.attempt || 1, unlockedAnswers: submission?.unlockedAnswers || false }
-    : null;
+  const virtualSubmission = isNotActivated
+    ? { status: "GRADED", grade: 1.0, feedback: "No asistió a la clase (Actividad no habilitada)", submittedAt: null, fileUrl: null, attempt: 1, unlockedAnswers: false }
+    : ((!submission || submission.status === "PENDING") && isClosed && isGoogleForm) ||
+      (submission && submission.status === "PENDING" && timerHasExpired && isGoogleForm) ||
+      (!submission && isClosed && isNativeExam)
+      ? { status: "GRADED", grade: 1.0, feedback: null, submittedAt: null, fileUrl: null, attempt: submission?.attempt || 1, unlockedAnswers: submission?.unlockedAnswers || false }
+      : null;
 
   const activeSubmission = (submission && submission.status !== "PENDING") ? submission : (virtualSubmission || submission);
 
-  const hasActiveExtension = !!(submission?.allowLateSubmission || task?.allowLateSubmission);
+  const hasActiveExtension = !isNotActivated && !!(submission?.allowLateSubmission || task?.allowLateSubmission);
   const hasUploadedFile = !!(submission?.fileUrl && submission.fileUrl.trim() !== "");
   const isAutomaticGrade1 = (submission?.grade === 1 || submission?.grade === 1.0) && hasActiveExtension && !hasUploadedFile;
 
   const hasAnswers = submission?.answers && Object.keys(submission.answers as Record<string, unknown>).length > 0;
   const hasFinishedExam = (submission?.status === "SUBMITTED" || (submission?.status === "GRADED" && (submission?.submittedAt || hasAnswers || hasUploadedFile))) && !virtualSubmission;
 
-  const isGraded = activeSubmission?.status === "GRADED" && !isAutomaticGrade1;
-  const isSubmitted = hasFinishedExam || (isGraded && !isAutomaticGrade1 && !hasActiveExtension);
+  const isGraded = isNotActivated || (activeSubmission?.status === "GRADED" && !isAutomaticGrade1);
+  const isSubmitted = isNotActivated || hasFinishedExam || (isGraded && !isAutomaticGrade1 && !hasActiveExtension);
 
   // Determine the reason for minimum grade (1.0)
   const neverStarted = !submission || (submission.status === "PENDING" && !submission.startedAt);
   const startedButEmpty = submission && submission.startedAt && submission.status !== "PENDING"
     && submission.grade !== null && submission.grade <= 1.0
     && !hasAnswers;
-  const gradeReason = (virtualSubmission && neverStarted)
-    ? "No presentaste el examen a tiempo"
-    : (virtualSubmission && !neverStarted && !hasAnswers)
-      ? "No respondiste ninguna pregunta"
-      : startedButEmpty
+  const gradeReason = isNotActivated
+    ? "No asististe a la clase (Actividad no habilitada)"
+    : (virtualSubmission && neverStarted)
+      ? "No presentaste el examen a tiempo"
+      : (virtualSubmission && !neverStarted && !hasAnswers)
         ? "No respondiste ninguna pregunta"
-        : null;
+        : startedButEmpty
+          ? "No respondiste ninguna pregunta"
+          : null;
 
   // Polling to check if webhook has graded the exam
   useEffect(() => {

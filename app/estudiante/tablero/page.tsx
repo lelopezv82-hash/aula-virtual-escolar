@@ -104,9 +104,20 @@ export default async function TableroVirtualPage() {
     orderBy: { dueDate: "asc" }
   });
 
+  // Fetch count of all assigned students for each task (to detect selective activation)
+  const taskAssignedCounts = await prisma.task.findMany({
+    where: { id: { in: tasksFromDb.map(t => t.id) } },
+    select: { id: true, _count: { select: { assignedStudents: true } } }
+  });
+  const assignedCountMap = new Map(taskAssignedCounts.map(t => [t.id, t._count.assignedStudents]));
+
   // Serialize tasks safely for client component
   const serializedTasks: TableroTask[] = tasksFromDb.map(t => {
     const sub = t.submissions[0] || null;
+    // Check selective activation: task has specific assigned students but this student is not one
+    const totalAssigned = assignedCountMap.get(t.id) ?? 0;
+    const studentIsAssigned = t.assignedStudents && t.assignedStudents.length > 0;
+    const notActivatedForStudent = totalAssigned > 0 && !studentIsAssigned;
     return {
       id: t.id,
       title: t.title,
@@ -124,18 +135,31 @@ export default async function TableroVirtualPage() {
       isExternal: t.isExternal || false,
       allowLateSubmission: t.allowLateSubmission || false,
       lateSubmissionUntil: t.lateSubmissionUntil ? t.lateSubmissionUntil.toISOString() : null,
-      isIndividuallyAssigned: (t.assignedStudents && t.assignedStudents.length > 0) || false,
-      submission: sub ? {
-        id: sub.id,
-        status: sub.status,
-        grade: sub.grade,
-        submittedAt: sub.submittedAt ? sub.submittedAt.toISOString() : null,
-        startedAt: sub.startedAt ? sub.startedAt.toISOString() : null,
-        attempt: sub.attempt ?? 1,
-        allowLateSubmission: sub.allowLateSubmission ?? false,
-        lateSubmissionUntil: sub.lateSubmissionUntil ? sub.lateSubmissionUntil.toISOString() : null,
-        fileUrl: sub.fileUrl || null
-      } : null
+      isIndividuallyAssigned: studentIsAssigned,
+      isNotActivated: notActivatedForStudent,
+      submission: notActivatedForStudent
+        ? {
+            id: `unassigned-${t.id}`,
+            status: "GRADED",
+            grade: 1.0,
+            submittedAt: null,
+            startedAt: null,
+            attempt: 1,
+            allowLateSubmission: false,
+            lateSubmissionUntil: null,
+            fileUrl: null
+          }
+        : sub ? {
+            id: sub.id,
+            status: sub.status,
+            grade: sub.grade,
+            submittedAt: sub.submittedAt ? sub.submittedAt.toISOString() : null,
+            startedAt: sub.startedAt ? sub.startedAt.toISOString() : null,
+            attempt: sub.attempt ?? 1,
+            allowLateSubmission: sub.allowLateSubmission ?? false,
+            lateSubmissionUntil: sub.lateSubmissionUntil ? sub.lateSubmissionUntil.toISOString() : null,
+            fileUrl: sub.fileUrl || null
+          } : null
     };
   });
 

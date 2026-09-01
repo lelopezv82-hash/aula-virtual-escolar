@@ -189,6 +189,7 @@ export default async function TareaEntregasPage({ params }: { params: Promise<{ 
           name: s.name,
           groupId: s.groupId
         }))}
+        assignedStudentIds={task.assignedStudents.map(s => s.id)}
         submissions={task.submissions.map(s => ({
           id: s.id,
           studentId: s.studentId,

@@ -90,6 +90,9 @@ export async function GET(req: Request) {
         allowLateSubmission: true,
         lateSubmissionUntil: true,
         duration: true,
+        assignedStudents: {
+          select: { id: true }
+        },
         submissions: {
           where: { studentId: { in: studentIds } },
           select: { 
