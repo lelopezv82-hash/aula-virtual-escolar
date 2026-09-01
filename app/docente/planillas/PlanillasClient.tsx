@@ -259,9 +259,14 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [gradingError, setGradingError] = useState("");
   const [gradingSaved, setGradingSaved] = useState(false);
   const [gradingSearch, setGradingSearch] = useState("");
-  const [gradingStatusFilter, setGradingStatusFilter] = useState<"ALL" | "GRADED" | "SUBMITTED" | "PENDING">("ALL");
+  const [gradingStatusFilter, setGradingStatusFilter] = useState<"ALL" | "GRADED" | "SUBMITTED" | "PENDING" | "PRORROGA">("ALL");
   const [bulkGradeValue, setBulkGradeValue] = useState("");
   const [gradingActiveGroupId, setGradingActiveGroupId] = useState<string>("all");
+  const [gradingProrrogaOpen, setGradingProrrogaOpen] = useState(false);
+  const [gradingProrrogaStudentIds, setGradingProrrogaStudentIds] = useState<string[]>([]);
+  const [gradingProrrogaAllow, setGradingProrrogaAllow] = useState(true);
+  const [gradingProrrogaDate, setGradingProrrogaDate] = useState("");
+  const [savingGradingProrroga, setSavingGradingProrroga] = useState(false);
   const [gradingAvailableGroups, setGradingAvailableGroups] = useState<{ id: string; name: string; gradeName?: string; label?: string }[]>([]);
 
   const hasUnsavedGradingChanges = useMemo(() => {
