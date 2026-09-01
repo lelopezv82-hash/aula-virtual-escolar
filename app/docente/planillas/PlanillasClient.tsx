@@ -3953,18 +3953,14 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                         </button>
                       </div>
                     </div>
-                    {/* Gestionar tarea o examen directamente */}
-                    {!t.isExternal && (
+                    {/* Gestionar examen directamente (solo para exámenes) */}
+                    {!t.isExternal && (t.type === "EXAM" || t.type === "FINAL") && (
                       <button
                         onClick={() => openQuestionsModal(t)}
-                        className={`flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-[10px] font-bold transition-colors w-full ${
-                          (t.type === "EXAM" || t.type === "FINAL")
-                            ? "bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40"
-                            : "bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40"
-                        }`}
-                        title={(t.type === "EXAM" || t.type === "FINAL") ? "Gestionar preguntas, entregas e intentos" : "Gestionar entregas y prórrogas"}
+                        className="flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-[10px] font-bold transition-colors w-full bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40"
+                        title="Gestionar preguntas, entregas e intentos"
                       >
-                        {(t.type === "EXAM" || t.type === "FINAL") ? "Gestionar Examen" : "Gestionar Entregas"}
+                        Gestionar Examen
                       </button>
                     )}
                   </div>
