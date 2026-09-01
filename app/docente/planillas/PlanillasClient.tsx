@@ -2208,40 +2208,31 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     const ws = XLSX.utils.aoa_to_sheet(wsData);
 
     // ─── Attach Excel Notes / Comments (Notas de Celda) on Column Number Headers (Row 8, index 7) ───
+    const attachCellComment = (r: number, c: number, numVal: number, task: any) => {
+      const cellRef = XLSX.utils.encode_cell({ r, c });
+      if (!ws[cellRef]) ws[cellRef] = { t: "n", v: numVal };
+      const commentText = `Actividad: ${task.title}\nModalidad: ${task.isExternal ? "Entrega en clase" : "Entrega en plataforma"}${task.dueDate ? `\nFecha límite: ${new Date(task.dueDate).toLocaleDateString('es-CO')}` : ""}`;
+      const commentArr: any = [{
+        a: "Aula Virtual",
+        t: commentText,
+        hidden: true
+      }];
+      commentArr.hidden = true;
+      ws[cellRef].c = commentArr;
+    };
+
     for (let j = 0; j < SABER_SLOTS; j++) {
       const task = saberTasks[j];
-      if (task) {
-        const cellRef = XLSX.utils.encode_cell({ r: 7, c: SABER_START + j });
-        if (!ws[cellRef]) ws[cellRef] = { t: "n", v: j + 1 };
-        ws[cellRef].c = [{
-          a: "Aula Virtual",
-          t: `Actividad: ${task.title}\\nModalidad: ${task.isExternal ? "Entrega en clase" : "Entrega en plataforma"}${task.dueDate ? `\\nFecha límite: ${new Date(task.dueDate).toLocaleDateString('es-CO')}` : ""}`
-        }];
-      }
+      if (task) attachCellComment(7, SABER_START + j, j + 1, task);
     }
     for (let j = 0; j < HACER_SLOTS; j++) {
       const task = hacerTasks[j];
-      if (task) {
-        const cellRef = XLSX.utils.encode_cell({ r: 7, c: HACER_START + j });
-        if (!ws[cellRef]) ws[cellRef] = { t: "n", v: j + 1 };
-        ws[cellRef].c = [{
-          a: "Aula Virtual",
-          t: `Actividad: ${task.title}\\nModalidad: ${task.isExternal ? "Entrega en clase" : "Entrega en plataforma"}${task.dueDate ? `\\nFecha límite: ${new Date(task.dueDate).toLocaleDateString('es-CO')}` : ""}`
-        }];
-      }
+      if (task) attachCellComment(7, HACER_START + j, j + 1, task);
     }
     for (let j = 0; j < SER_SLOTS; j++) {
       const task = serTasks[j];
-      if (task) {
-        const cellRef = XLSX.utils.encode_cell({ r: 7, c: SER_START + j });
-        if (!ws[cellRef]) ws[cellRef] = { t: "n", v: j + 1 };
-        ws[cellRef].c = [{
-          a: "Aula Virtual",
-          t: `Actividad: ${task.title}\\nModalidad: ${task.isExternal ? "Entrega en clase" : "Entrega en plataforma"}${task.dueDate ? `\\nFecha límite: ${new Date(task.dueDate).toLocaleDateString('es-CO')}` : ""}`
-        }];
-      }
+      if (task) attachCellComment(7, SER_START + j, j + 1, task);
     }
-
     // ─── Column widths ───
     ws["!cols"] = [
       { wch: 5 },   // A: No.
