@@ -230,6 +230,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [newTaskExternalUrl, setNewTaskExternalUrl] = useState("");
   const [newTaskFile, setNewTaskFile] = useState<File | null>(null);
   const [existingAttachmentUrl, setExistingAttachmentUrl] = useState<string | null>(null);
+  const [removeExistingAttachment, setRemoveExistingAttachment] = useState(false);
   const [addingTask,  setAddingTask]  = useState(false);
 
  // ─── Resource linking in modal   ───
@@ -711,6 +712,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     setNewTaskLateSubmissionUntil("");
     setNewTaskExternalUrl("");
     setExistingAttachmentUrl(null);
+    setRemoveExistingAttachment(false);
     setNewTaskFile(null);
     setNewTaskResourceIds([]);
     setShowReusePicker(false);
@@ -766,6 +768,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       } else {
         fd.append("lateSubmissionUntil", "");
       }
+      if (removeExistingAttachment && !newTaskFile) fd.append("removeAttachment", "true");
       if (newTaskExternalUrl.trim()) fd.append("externalUrl", newTaskExternalUrl.trim());
       if (newTaskFile) fd.append("file", newTaskFile);
       if (newTaskResourceIds.length > 0) fd.append("resourceIds", JSON.stringify(newTaskResourceIds));
@@ -823,6 +826,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       setNewTaskAllowLateSubmission(!!t.allowLateSubmission);
       setNewTaskLateSubmissionUntil(toLocal(t.lateSubmissionUntil));
       setExistingAttachmentUrl(t.attachmentUrl || null);
+      setRemoveExistingAttachment(false);
       setNewTaskExternalUrl("");
       setNewTaskFile(null);
       setNewTaskResourceIds((t.resources || []).map((r: any) => r.id));
@@ -4634,19 +4638,71 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                       Archivo Adjunto / Guía de Apoyo (Opcional)
                     </label>
-                    {existingAttachmentUrl && !newTaskFile && (
+                    {existingAttachmentUrl && !newTaskFile && !removeExistingAttachment && (
                       <div className="flex items-center justify-between p-2.5 mb-2 rounded-lg bg-orange-50/50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 text-xs">
                         <span className="font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-1.5 truncate">
                           📎 Guía adjunta actual
                         </span>
-                        <a
-                          href={existingAttachmentUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-[#f97316] hover:underline font-bold"
+                        <div className="flex items-center gap-3 shrink-0">
+                          <a
+                            href={existingAttachmentUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[#f97316] hover:underline font-bold"
+                          >
+                            Ver archivo
+                          </a>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRemoveExistingAttachment(true);
+                            }}
+                            className="text-red-600 dark:text-red-400 hover:text-red-700 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                            title="Eliminar guía adjunta"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Eliminar
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {existingAttachmentUrl && !newTaskFile && removeExistingAttachment && (
+                      <div className="flex items-center justify-between p-2.5 mb-2 rounded-lg bg-red-50/70 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-xs text-red-600 dark:text-red-400">
+                        <span className="font-medium flex items-center gap-1.5">
+                          🗑️ Guía marcada para eliminar al guardar
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRemoveExistingAttachment(false);
+                          }}
+                          className="text-gray-600 dark:text-gray-300 hover:underline font-bold ml-2 text-xs cursor-pointer"
                         >
-                          Ver archivo
-                        </a>
+                          Deshacer
+                        </button>
+                      </div>
+                    )}
+                    {newTaskFile && (
+                      <div className="flex items-center justify-between p-2.5 mb-2 rounded-lg bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-xs text-blue-700 dark:text-blue-300">
+                        <span className="font-semibold flex items-center gap-1.5 truncate">
+                          📄 {newTaskFile.name}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setNewTaskFile(null);
+                            const fileInput = document.getElementById("modal-file-upload") as HTMLInputElement | null;
+                            if (fileInput) fileInput.value = "";
+                          }}
+                          className="text-red-500 hover:text-red-700 hover:underline font-bold text-xs shrink-0 ml-2 cursor-pointer"
+                        >
+                          Quitar
+                        </button>
                       </div>
                     )}
                     <div 
@@ -4657,13 +4713,17 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                         id="modal-file-upload"
                         type="file"
                         className="hidden"
-                        onChange={e => setNewTaskFile(e.target.files?.[0] || null)}
+                        onChange={e => {
+                          const f = e.target.files?.[0] || null;
+                          setNewTaskFile(f);
+                          if (f) setRemoveExistingAttachment(false);
+                        }}
                       />
                       <svg className="mx-auto h-8 w-8 text-[#f97316] mb-2" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                       </svg>
                       <span className="text-xs font-bold text-gray-650 dark:text-gray-350 block">
-                        {newTaskFile ? newTaskFile.name : (existingAttachmentUrl ? "Cambiar guía o archivo..." : "Selecciona una guía o archivo")}
+                        {newTaskFile ? "Cambiar archivo seleccionado..." : (existingAttachmentUrl && !removeExistingAttachment ? "Cambiar guía o archivo..." : "Selecciona una guía o archivo")}
                       </span>
                     </div>
                   </div>
