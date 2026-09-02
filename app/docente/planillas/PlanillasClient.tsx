@@ -3657,9 +3657,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     );
   }
 
- // ─── Main render                                                              ───
   return (
-    <div className="flex flex-col gap-5 animate-fade-in pb-12">
+    <div className={`flex flex-col gap-5 animate-fade-in pb-12 ${addModal ? "hidden" : ""}`}>
 
       {/* Header */}
       <div className="flex justify-between items-center flex-wrap gap-3">
@@ -4101,16 +4100,16 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         </div>
       )}
 
-      {/* Add / Edit Task Full-Page View */}
-      {addModal && isMounted && typeof window !== "undefined" && createPortal(
-        <div className="fixed inset-0 z-[9999] bg-slate-100 dark:bg-gray-950 flex flex-col w-screen h-screen overflow-hidden animate-fade-in">
+      {/* Add / Edit Task In-Page View */}
+      {addModal && (
+        <div className="flex flex-col gap-5 animate-fade-in w-full pb-8">
           {/* Top Navigation Bar */}
-          <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-3.5 flex items-center justify-between shrink-0 shadow-sm z-10">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => { setAddModal(null); setEditTaskId(null); setShowReusePicker(false); }}
-                className="flex items-center gap-1.5 text-xs font-bold text-gray-700 dark:text-gray-200 hover:text-orange-600 dark:hover:text-orange-400 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-700 px-3.5 py-2 rounded-xl transition-all"
+                className="flex items-center gap-1.5 text-xs font-bold text-gray-700 dark:text-gray-200 hover:text-orange-600 dark:hover:text-orange-400 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-700 px-3.5 py-2 rounded-xl transition-all cursor-pointer"
               >
                 <ArrowLeft size={16} />
                 <span>Volver a Planillas</span>
@@ -4134,7 +4133,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               <button
                 type="button"
                 onClick={() => { setAddModal(null); setEditTaskId(null); setShowReusePicker(false); }}
-                className="text-xs font-bold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 px-4 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+                className="text-xs font-bold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 px-4 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
@@ -4142,7 +4141,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 type="button"
                 onClick={editTaskId ? handleEditTask : handleAddTask}
                 disabled={addingTask || !newTaskName.trim() || newTaskGroupIds.length === 0}
-                className="text-xs font-bold text-white bg-[#f97316] hover:bg-[#ea580c] px-5 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="text-xs font-bold text-white bg-[#f97316] hover:bg-[#ea580c] px-5 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {addingTask ? (
                   <>
@@ -4157,11 +4156,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 )}
               </button>
             </div>
-          </header>
+          </div>
 
-          {/* Full Page Scrollable Body */}
-          <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-100 dark:bg-gray-950">
-            <div className="w-full max-w-[1600px] mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-6 md:p-8 flex flex-col gap-6">
+          {/* Form Body */}
+          <div className="w-full bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-6 md:p-8 flex flex-col gap-6">
               
               {!editTaskId && addModal.type !== "SER" && (
                 <div className="flex items-center gap-2 p-1.5 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-gray-750">
@@ -4779,9 +4777,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               )}
 
             </div>
-          </main>
-        </div>,
-        document.body
+        </div>
       )}
 
       {/* Custom Excel Synchronization Mapping Modal */}
