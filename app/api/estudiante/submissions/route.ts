@@ -89,7 +89,7 @@ export async function POST(request: Request) {
     }
 
     // Check if task is restricted to specific activated students
-    if (task.assignedStudents && task.assignedStudents.length > 0 && !task.assignedStudents.some(s => s.id === studentId)) {
+    if (!task.assignedStudents.some((s: any) => s.id === studentId)) {
       return NextResponse.json({ error: 'Esta actividad no fue activada para ti por inasistencia a clase.' }, { status: 403 });
     }
 

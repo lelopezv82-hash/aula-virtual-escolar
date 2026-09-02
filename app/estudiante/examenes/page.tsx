@@ -70,7 +70,7 @@ export default async function ExamenesEstudiantePage() {
 
   // Helper: check if an exam is not activated for this student (absent)
   const isNotActivated = (exam: typeof exams[0]) =>
-    exam.assignedStudents.length > 0 && !exam.assignedStudents.some(s => s.id === studentId);
+    !exam.assignedStudents.some(s => s.id === studentId);
 
   const pendingExams = exams.filter(exam => {
     // Non-activated exams (absent student) always show as graded 1.0, never pending

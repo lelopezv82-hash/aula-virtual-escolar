@@ -552,9 +552,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           const hasRealGrade = sub?.grade !== null && sub?.grade !== undefined;
           
           let defaultVal = "";
-          // Check if task is restricted to specific assigned students and this student was not assigned (absent)
-          const isRestricted = t.assignedStudents && t.assignedStudents.length > 0;
-          const isStudentAssigned = !isRestricted || t.assignedStudents!.some(as => as.id === s.id);
+          // Check if student is assigned/activated for this task
+          const isStudentAssigned = t.assignedStudents ? t.assignedStudents.some(as => as.id === s.id) : false;
 
           if (!isStudentAssigned) {
             defaultVal = "1.0";
@@ -710,8 +709,16 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     setNewTaskIsExternal(type === "SER" ? true : false);
     setNewTaskDuration("");
     setNewTaskWeight("0");
-    setNewTaskGroupIds(selectedGroupId ? [selectedGroupId] : []);
-    setNewTaskStudentIds([]);
+    const initialGroups = selectedGroupId ? [selectedGroupId] : [];
+    setNewTaskGroupIds(initialGroups);
+    if (initialGroups.length > 0 && allCourseStudents.length > 0) {
+      const autoSelected = allCourseStudents
+        .filter(s => (s.groupId && initialGroups.includes(s.groupId)) || (s.group?.id && initialGroups.includes(s.group.id)))
+        .map(s => s.id);
+      setNewTaskStudentIds(autoSelected);
+    } else {
+      setNewTaskStudentIds([]);
+    }
     setStudentSearch("");
     setNewTaskSelectedThemes([]);
     setNewTaskPublishAt("");
@@ -739,7 +746,22 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         .catch(() => {});
       fetch("/api/docente/estudiantes")
         .then(r => r.json())
-        .then(d => { if (d.students) setAllCourseStudents(d.students); })
+        .then(d => {
+          if (d.students) {
+            setAllCourseStudents(d.students);
+            // Auto-populate activated students once the list loads
+            // (avoids race condition where groups are pre-selected before students load)
+            setNewTaskGroupIds(prev => {
+              if (prev.length > 0) {
+                const autoSelected = d.students
+                  .filter((s: any) => (s.groupId && prev.includes(s.groupId)) || (s.group?.id && prev.includes(s.group.id)))
+                  .map((s: any) => s.id);
+                setNewTaskStudentIds(autoSelected);
+              }
+              return prev;
+            });
+          }
+        })
         .catch(() => {});
     }
   };

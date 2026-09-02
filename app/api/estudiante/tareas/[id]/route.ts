@@ -95,8 +95,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         return NextResponse.json({ error: 'Tarea no encontrada' }, { status: 404 });
       }
 
-      // Check selective activation (if task has specific assigned students and student is not among them)
-      if (task.assignedStudents && task.assignedStudents.length > 0 && !hasDirectAccess) {
+      // Check selective activation (student must be in assignedStudents to be activated)
+      if (!hasDirectAccess) {
         isNotActivatedForStudent = true;
       }
     }

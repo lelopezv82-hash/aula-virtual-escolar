@@ -93,8 +93,7 @@ export default async function CursoCalificacionesPage({
 
   const activeSubmissions = (await Promise.all(tasks.map(async task => {
     // Non-activated student (absent): virtual closed submission with grade 1.0
-    const isNotActivatedForStudent = (task as any).assignedStudents?.length > 0 &&
-      !(task as any).assignedStudents.some((s: {id: string}) => s.id === studentId);
+    const isNotActivatedForStudent = !task.assignedStudents.some(s => s.id === studentId);
     if (isNotActivatedForStudent) {
       return {
         id: `unassigned-${task.id}`,

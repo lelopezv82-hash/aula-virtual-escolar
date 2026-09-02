@@ -41,7 +41,7 @@ async function getStudentAndTask(taskId: string) {
     throw new Error('403');
   }
 
-  if (task.assignedStudents && task.assignedStudents.length > 0 && !task.assignedStudents.some(s => s.id === studentId)) {
+  if (!task.assignedStudents.some(s => s.id === studentId)) {
     throw new Error('403');
   }
 

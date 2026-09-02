@@ -104,10 +104,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
     const submissionMap = new Map(task.submissions.map(s => [s.studentId, s]));
     const assignedIds = (task.assignedStudents || []).map(s => s.id);
-    const hasSpecificAssignments = assignedIds.length > 0;
 
     const students = Array.from(studentMap.values()).map(s => {
-      const isAssigned = !hasSpecificAssignments || assignedIds.includes(s.id);
+      const isAssigned = assignedIds.includes(s.id);
       return {
         ...s,
         isAssigned,

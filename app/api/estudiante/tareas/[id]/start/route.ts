@@ -46,7 +46,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'No tienes acceso a esta tarea.' }, { status: 403 });
     }
 
-    if (task.assignedStudents && task.assignedStudents.length > 0 && !task.assignedStudents.some(s => s.id === studentId)) {
+    if (!task.assignedStudents.some(s => s.id === studentId)) {
       return NextResponse.json({ error: 'Esta actividad no fue activada para ti por inasistencia a clase.' }, { status: 403 });
     }
 

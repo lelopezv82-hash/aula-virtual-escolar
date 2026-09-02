@@ -159,7 +159,7 @@ export default async function CursoDescripcionPage({
         }}>
           {tasks.map((task, idx) => {
             const submission = task.submissions[0];
-            const isNotActivatedForStudent = task.assignedStudents.length > 0 && !task.assignedStudents.some(s => s.id === studentId);
+            const isNotActivatedForStudent = !task.assignedStudents.some(s => s.id === studentId);
             const isExam = task.type === "EXAM" || task.type === "FINAL";
             const hasUploadedFile = isExam ? false : (task.isExternal || !!(submission?.fileUrl && submission.fileUrl.trim() !== ""));
             const isExamSubmitted = isExam && !!(submission && submission.status !== "PENDING" && submission.startedAt);

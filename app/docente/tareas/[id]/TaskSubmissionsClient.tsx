@@ -371,8 +371,7 @@ export default function TaskSubmissionsClient({
                             </td>
                             <td className="py-3 px-4">
                               {(() => {
-                                const isTaskRestricted = assignedStudentIds && assignedStudentIds.length > 0;
-                                const isStudentAssigned = !isTaskRestricted || (assignedStudentIds && assignedStudentIds.includes(student.id));
+                                const isStudentAssigned = assignedStudentIds ? assignedStudentIds.includes(student.id) : false;
 
                                 if (isGraded || (submission && submission.grade != null)) {
                                   return (

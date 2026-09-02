@@ -104,20 +104,14 @@ export default async function TableroVirtualPage() {
     orderBy: { dueDate: "asc" }
   });
 
-  // Fetch count of all assigned students for each task (to detect selective activation)
-  const taskAssignedCounts = await prisma.task.findMany({
-    where: { id: { in: tasksFromDb.map(t => t.id) } },
-    select: { id: true, _count: { select: { assignedStudents: true } } }
-  });
-  const assignedCountMap = new Map(taskAssignedCounts.map(t => [t.id, t._count.assignedStudents]));
+
 
   // Serialize tasks safely for client component
   const serializedTasks: TableroTask[] = tasksFromDb.map(t => {
     const sub = t.submissions[0] || null;
-    // Check selective activation: task has specific assigned students but this student is not one
-    const totalAssigned = assignedCountMap.get(t.id) ?? 0;
+    // Check selective activation: student must be in assignedStudents to be activated
     const studentIsAssigned = t.assignedStudents && t.assignedStudents.length > 0;
-    const notActivatedForStudent = totalAssigned > 0 && !studentIsAssigned;
+    const notActivatedForStudent = !studentIsAssigned;
     return {
       id: t.id,
       title: t.title,
