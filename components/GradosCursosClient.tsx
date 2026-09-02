@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Plus, Trash2, Layers, Users, Loader2, Save, X, Copy, Check, UserPlus, Eye, EyeOff, Edit2, FileSpreadsheet, Upload, Key } from "lucide-react";
+import { Plus, Trash2, Layers, Users, Loader2, Save, X, Copy, Check, UserPlus, Eye, EyeOff, Edit2, FileSpreadsheet, Upload, Key, ArrowLeft } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
 import * as XLSX from "xlsx";
 import mammoth from "mammoth";
@@ -984,388 +984,374 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
         </div>
       )}
 
-      {/* Students in Group Modal */}
+      {/* Students in Group Full-Screen View */}
       {showStudentListModal && selectedGroupForStudents && parentGradeOfSelectedGroup && (
-        <div
-          className="modal-overlay"
-          onClick={(e) => e.target === e.currentTarget && !showCreateStudentInGroupModal && setShowStudentListModal(false)}
-        >
-          <div className="modal-content flex flex-col max-h-[88vh] p-6" style={{ maxWidth: "850px" }}>
-            <div className="flex justify-between items-center border-b pb-4 mb-4" style={{ borderColor: "var(--border-color)" }}>
-              <div>
-                <h2 className="text-xl font-extrabold flex items-center gap-2">
-                  <Users className="text-[#f98012]" size={24} />
-                  Estudiantes del Curso {parentGradeOfSelectedGroup.name} - {selectedGroupForStudents.name}
-                </h2>
-                <p className="text-xs text-muted mt-1">Registra y administra los estudiantes inscritos en esta sección.</p>
-              </div>
+        <div className="fixed inset-0 z-[100] bg-slate-100 dark:bg-gray-950 flex flex-col w-screen h-screen overflow-hidden animate-fade-in">
+          {/* Top Navigation Bar */}
+          <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-3.5 flex items-center justify-between shrink-0 shadow-sm z-10">
+            <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={() => setShowStudentListModal(false)}
-                className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                onClick={() => {
+                  setShowCreateStudentInGroupModal(false);
+                  setNewStudentCredentials(null);
+                  setShowStudentListModal(false);
+                }}
+                className="flex items-center gap-1.5 text-xs font-bold text-gray-700 dark:text-gray-200 hover:text-orange-600 dark:hover:text-orange-400 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-700 px-3.5 py-2 rounded-xl transition-all"
               >
-                <X size={20} />
+                <ArrowLeft size={16} />
+                <span>Volver a Grados</span>
               </button>
+              <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
+              <div>
+                <h1 className="text-base md:text-lg font-extrabold text-gray-900 dark:text-white flex items-center gap-2 leading-tight">
+                  <Users className="text-[#f98012]" size={20} />
+                  Estudiantes del Curso {parentGradeOfSelectedGroup.name} - {selectedGroupForStudents.name}
+                </h1>
+                <p className="text-xs text-muted">
+                  Registra y administra los estudiantes inscritos en esta sección
+                </p>
+              </div>
             </div>
 
-            {selectedStudents.length > 0 && !showCreateStudentInGroupModal && (
-              <div className="flex justify-between items-center bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/30 text-red-800 dark:text-red-300 p-3 rounded-xl mb-4">
-                <span className="font-semibold text-sm">{selectedStudents.length} estudiante(s) seleccionado(s)</span>
-                <button 
-                  type="button"
-                  onClick={handleBulkDeleteStudents}
-                  className="btn btn-primary bg-red-600 hover:bg-red-700 text-white border-none py-1.5 px-3 text-xs flex items-center gap-1.5"
-                >
-                  <Trash2 size={14} /> Eliminar Seleccionados
-                </button>
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={exportStudentList}
+                className="btn btn-secondary py-2 px-3.5 text-xs font-bold flex items-center gap-1.5 rounded-xl"
+                disabled={students.length === 0}
+                title="Exportar listado a Excel y respaldar en Google Drive"
+              >
+                <FileSpreadsheet size={14} /> Exportar Lista
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setImportFile(null);
+                  setDetectedNames([]);
+                  setImportError("");
+                  setShowImportModal(true);
+                }}
+                className="btn btn-secondary py-2 px-3.5 text-xs font-bold flex items-center gap-1.5 rounded-xl"
+              >
+                <Upload size={14} /> Importar (Excel/Word/PDF)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setNewStudentCredentials(null);
+                  setShowCreateStudentInGroupModal(true);
+                }}
+                className="btn btn-primary py-2 px-4 text-xs font-bold flex items-center gap-1.5 rounded-xl shadow-sm"
+              >
+                <Plus size={14} /> Registrar Estudiante
+              </button>
+            </div>
+          </header>
 
-            {studentError && <div className="alert alert-danger mb-4 py-2 px-3 text-sm">{studentError}</div>}
+          {/* Full Page Content */}
+          <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-100 dark:bg-gray-950">
+            <div className="max-w-6xl mx-auto flex flex-col gap-5">
+              {selectedStudents.length > 0 && !showCreateStudentInGroupModal && (
+                <div className="flex justify-between items-center bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/30 text-red-800 dark:text-red-300 p-4 rounded-2xl shadow-sm">
+                  <span className="font-bold text-sm">{selectedStudents.length} estudiante(s) seleccionado(s)</span>
+                  <button 
+                    type="button"
+                    onClick={handleBulkDeleteStudents}
+                    className="btn btn-primary bg-red-600 hover:bg-red-700 text-white border-none py-2 px-4 text-xs font-bold flex items-center gap-1.5 rounded-xl shadow-sm"
+                  >
+                    <Trash2 size={14} /> Eliminar Seleccionados
+                  </button>
+                </div>
+              )}
 
-            {/* Main content split: List or Create Form */}
-            <div className="flex-1 overflow-y-auto pr-1">
-              {showCreateStudentInGroupModal ? (
-                <form 
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    if (!studentName.trim()) return;
-                    setSavingStudent(true);
-                    setStudentError("");
-                    try {
-                      const endpoint = role === "admin" ? "/api/admin/estudiantes" : "/api/docente/estudiantes";
-                      const res = await fetch(endpoint, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          name: studentName.trim(),
-                          groupId: selectedGroupForStudents.id,
-                          password: studentPassword.trim() || undefined
-                        })
-                      });
-                      const data = await res.json();
-                      if (res.ok) {
-                        setNewStudentCredentials({
-                          username: data.student.username,
-                          plainPassword: data.plainPassword
+              {studentError && <div className="alert alert-danger py-2.5 px-4 text-sm rounded-2xl">{studentError}</div>}
+
+              {/* Main Card */}
+              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-6 flex flex-col gap-4">
+                {showCreateStudentInGroupModal ? (
+                  <form 
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      if (!studentName.trim()) return;
+                      setSavingStudent(true);
+                      setStudentError("");
+                      try {
+                        const endpoint = role === "admin" ? "/api/admin/estudiantes" : "/api/docente/estudiantes";
+                        const res = await fetch(endpoint, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            name: studentName.trim(),
+                            groupId: selectedGroupForStudents.id,
+                            password: studentPassword.trim() || undefined
+                          })
                         });
-                        setStudentName("");
-                        setStudentPassword("");
-                        fetchStudents();
-                        fetchGrades();
-                      } else {
-                        setStudentError(data.error || "Error al crear el estudiante");
+                        const data = await res.json();
+                        if (res.ok) {
+                          setNewStudentCredentials({
+                            username: data.student.username,
+                            plainPassword: data.plainPassword
+                          });
+                          setStudentName("");
+                          setStudentPassword("");
+                          fetchStudents();
+                          fetchGrades();
+                        } else {
+                          setStudentError(data.error || "Error al crear el estudiante");
+                        }
+                      } catch {
+                        setStudentError("Error de conexión");
+                      } finally {
+                        setSavingStudent(false);
                       }
-                    } catch {
-                      setStudentError("Error de conexión");
-                    } finally {
-                      setSavingStudent(false);
-                    }
-                  }}
-                  className="space-y-4 p-4 border rounded-xl bg-gray-50 dark:bg-gray-900/40"
-                  style={{ borderColor: "var(--border-color)" }}
-                >
-                  <h3 className="font-bold text-md text-[#f98012] dark:text-[#f98012] flex items-center gap-1.5">
-                    <UserPlus size={18} /> Registrar Nuevo Estudiante
-                  </h3>
-                  
-                  {newStudentCredentials ? (
-                    <div className="p-4 rounded-xl bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900/30 text-green-800 dark:text-green-300 space-y-3">
-                      <p className="text-sm font-semibold">¡Estudiante creado con éxito!</p>
-                      <div className="grid grid-cols-2 gap-4 text-xs bg-white dark:bg-gray-800 p-3 rounded-lg border border-green-100 dark:border-green-900/20">
-                        <div>
-                          <span className="block text-muted font-medium">Usuario:</span>
-                          <span className="font-bold text-sm select-all">{newStudentCredentials.username}</span>
-                        </div>
-                        <div>
-                          <span className="block text-muted font-medium">Contraseña:</span>
-                          <span className="font-bold text-sm select-all">{newStudentCredentials.plainPassword}</span>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center pt-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            navigator.clipboard.writeText(`Usuario: ${newStudentCredentials.username}\nContraseña: ${newStudentCredentials.plainPassword}`);
-                            setCopiedStudent(true);
-                            setTimeout(() => setCopiedStudent(false), 2000);
-                          }}
-                          className="btn btn-secondary py-1 px-3 text-xs flex items-center gap-1.5"
-                        >
-                          {copiedStudent ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
-                          {copiedStudent ? "Copiado" : "Copiar credenciales"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setNewStudentCredentials(null);
-                            setShowCreateStudentInGroupModal(false);
-                          }}
-                          className="btn btn-primary py-1 px-3 text-xs"
-                        >
-                          Listo / Volver
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="input-group">
-                          <label className="font-semibold text-xs mb-1 block">Nombre Completo *</label>
-                          <input
-                            type="text"
-                            className="input-field"
-                            placeholder="Ej. Juan Pérez"
-                            value={studentName}
-                            onChange={(e) => setStudentName(e.target.value)}
-                            required
-                          />
-                        </div>
-                        <div className="input-group">
-                          <div className="flex justify-between items-center mb-1">
-                            <label className="font-semibold text-xs block">Contraseña (Opcional)</label>
-                            <button
-                              type="button"
-                              onClick={() => setStudentPassword(generateRandomPassword())}
-                              className="text-xs font-bold text-[#f98012] hover:underline flex items-center gap-1"
-                            >
-                              <Key size={12} /> Generar aleatoria
-                            </button>
+                    }}
+                    className="space-y-4 p-5 border rounded-2xl bg-gray-50 dark:bg-gray-900/40"
+                    style={{ borderColor: "var(--border-color)" }}
+                  >
+                    <h3 className="font-bold text-md text-[#f98012] dark:text-[#f98012] flex items-center gap-1.5">
+                      <UserPlus size={18} /> Registrar Nuevo Estudiante
+                    </h3>
+                    
+                    {newStudentCredentials ? (
+                      <div className="p-4 rounded-xl bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900/30 text-green-800 dark:text-green-300 space-y-3">
+                        <p className="text-sm font-semibold">¡Estudiante creado con éxito!</p>
+                        <div className="grid grid-cols-2 gap-4 text-xs bg-white dark:bg-gray-800 p-3 rounded-lg border border-green-100 dark:border-green-900/20">
+                          <div>
+                            <span className="block text-muted font-medium">Usuario:</span>
+                            <span className="font-bold text-sm select-all">{newStudentCredentials.username}</span>
                           </div>
-                          <input
-                            type="text"
-                            className="input-field"
-                            placeholder="Dejar en blanco para autogenerar"
-                            value={studentPassword}
-                            onChange={(e) => setStudentPassword(e.target.value)}
-                          />
+                          <div>
+                            <span className="block text-muted font-medium">Contraseña:</span>
+                            <span className="font-bold text-sm select-all">{newStudentCredentials.plainPassword}</span>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center pt-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(`Usuario: ${newStudentCredentials.username}\nContraseña: ${newStudentCredentials.plainPassword}`);
+                              setCopiedStudent(true);
+                              setTimeout(() => setCopiedStudent(false), 2000);
+                            }}
+                            className="btn btn-secondary py-1 px-3 text-xs flex items-center gap-1.5"
+                          >
+                            {copiedStudent ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
+                            {copiedStudent ? "Copiado" : "Copiar credenciales"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setNewStudentCredentials(null);
+                              setShowCreateStudentInGroupModal(false);
+                            }}
+                            className="btn btn-primary py-1 px-3 text-xs"
+                          >
+                            Listo / Volver
+                          </button>
                         </div>
                       </div>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="input-group">
+                            <label className="font-semibold text-xs mb-1 block">Nombre Completo *</label>
+                            <input
+                              type="text"
+                              className="input-field"
+                              placeholder="Ej. Juan Pérez"
+                              value={studentName}
+                              onChange={(e) => setStudentName(e.target.value)}
+                              required
+                            />
+                          </div>
+                          <div className="input-group">
+                            <div className="flex justify-between items-center mb-1">
+                              <label className="font-semibold text-xs block">Contraseña (Opcional)</label>
+                              <button
+                                type="button"
+                                onClick={() => setStudentPassword(generateRandomPassword())}
+                                className="text-xs font-bold text-[#f98012] hover:underline flex items-center gap-1"
+                              >
+                                <Key size={12} /> Generar aleatoria
+                              </button>
+                            </div>
+                            <input
+                              type="text"
+                              className="input-field"
+                              placeholder="Dejar en blanco para autogenerar"
+                              value={studentPassword}
+                              onChange={(e) => setStudentPassword(e.target.value)}
+                            />
+                          </div>
+                        </div>
 
-                      <div className="flex justify-end gap-2 border-t pt-3" style={{ borderColor: "var(--border-color)" }}>
-                        <button
-                          type="button"
-                          className="btn btn-secondary py-1.5 text-xs"
-                          onClick={() => {
-                            setShowCreateStudentInGroupModal(false);
-                            setStudentName("");
-                            setStudentPassword("");
-                            setStudentError("");
-                          }}
-                        >
-                          Cancelar
-                        </button>
-                <button type="submit" className="btn btn-primary py-1.5 text-xs" disabled={savingStudent}>
-                          {savingStudent ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
-                          Crear Estudiante
-                        </button>
+                        <div className="flex justify-end gap-2 border-t pt-3" style={{ borderColor: "var(--border-color)" }}>
+                          <button
+                            type="button"
+                            className="btn btn-secondary py-1.5 text-xs"
+                            onClick={() => {
+                              setShowCreateStudentInGroupModal(false);
+                              setStudentName("");
+                              setStudentPassword("");
+                              setStudentError("");
+                            }}
+                          >
+                            Cancelar
+                          </button>
+                          <button type="submit" className="btn btn-primary py-1.5 text-xs" disabled={savingStudent}>
+                            {savingStudent ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
+                            Crear Estudiante
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </form>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-sm font-semibold text-muted">
+                        {students.length} {students.length === 1 ? "estudiante inscrito" : "estudiantes inscritos"}
+                      </span>
+                    </div>
+
+                    {loadingStudents ? (
+                      <div className="flex justify-center py-16">
+                        <Loader2 className="animate-spin text-[#f98012]" size={36} />
                       </div>
-                    </>
-                  )}
-                </form>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center gap-2">
-                    <span className="text-sm font-semibold text-muted">
-                      {students.length} {students.length === 1 ? "estudiante inscrito" : "estudiantes inscritos"}
-                    </span>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={exportStudentList}
-                        className="btn btn-secondary py-1.5 px-3 text-xs flex items-center gap-1.5"
-                        disabled={students.length === 0}
-                        title="Exportar listado a Excel y respaldar en Google Drive"
-                      >
-                        <FileSpreadsheet size={14} /> Exportar Lista
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setImportFile(null);
-                          setDetectedNames([]);
-                          setImportError("");
-                          setShowImportModal(true);
-                        }}
-                        className="btn btn-secondary py-1.5 px-3 text-xs flex items-center gap-1"
-                      >
-                        <Upload size={14} /> Importar (Excel/Word/PDF)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setNewStudentCredentials(null);
-                          setShowCreateStudentInGroupModal(true);
-                        }}
-                        className="btn btn-primary py-1.5 px-3 text-xs flex items-center gap-1"
-                      >
-                        <Plus size={14} /> Registrar Estudiante
-                      </button>
-                    </div>
-                  </div>
-
-                  {loadingStudents ? (
-                    <div className="flex justify-center py-12">
-                      <Loader2 className="animate-spin text-[#f98012]" size={30} />
-                    </div>
-                  ) : students.length === 0 ? (
-                    <div className="text-center py-12 border rounded-xl border-dashed" style={{ borderColor: "var(--border-color)" }}>
-                      <Users size={36} className="mx-auto text-muted opacity-30 mb-2" />
-                      <p className="text-sm font-semibold text-muted">No hay estudiantes en este curso.</p>
-                      <p className="text-xs text-muted mt-1">Registra tu primer estudiante haciendo clic en el botón superior.</p>
-                    </div>
-                  ) : (
-                    <div className="border rounded-xl" style={{ borderColor: "var(--border-color)", overflowX: "auto" }}>
-                      <table className="w-full text-left border-collapse" style={{ minWidth: "600px" }}>
-                        <thead>
-                          <tr className="bg-gray-50 dark:bg-gray-900/60 text-xs font-bold text-muted border-b" style={{ borderColor: "var(--border-color)" }}>
-                            <th className="p-3 w-10 text-center">
-                              <input 
-                                type="checkbox"
-                                checked={students.length > 0 && selectedStudents.length === students.length}
-                                onChange={(e) => {
-                                  if (e.target.checked) setSelectedStudents(students.map(s => s.id));
-                                  else setSelectedStudents([]);
-                                }}
-                                className="rounded border-gray-300 text-[#f98012] focus:ring-[#f98012] cursor-pointer"
-                              />
-                            </th>
-                            <th className="p-3" style={{ paddingLeft: "8px" }}>Nombre</th>
-                            <th className="p-3">Usuario</th>
-                            <th className="p-3">Contraseña</th>
-                            <th className="p-3 text-center">Acciones</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y text-sm" style={{ borderColor: "var(--border-color)" }}>
-                          {students.map((student) => (
-                            <tr key={student.id} className={`hover:bg-gray-50/55 dark:hover:bg-gray-900/20 ${selectedStudents.includes(student.id) ? 'bg-orange-50/30 dark:bg-orange-900/10' : ''}`}>
-                              <td className="p-3 text-center">
+                    ) : students.length === 0 ? (
+                      <div className="text-center py-16 border rounded-2xl border-dashed" style={{ borderColor: "var(--border-color)" }}>
+                        <Users size={44} className="mx-auto text-muted opacity-30 mb-2" />
+                        <p className="text-sm font-semibold text-muted">No hay estudiantes en este curso.</p>
+                        <p className="text-xs text-muted mt-1">Registra tu primer estudiante haciendo clic en el botón superior.</p>
+                      </div>
+                    ) : (
+                      <div className="border rounded-2xl overflow-hidden" style={{ borderColor: "var(--border-color)", overflowX: "auto" }}>
+                        <table className="w-full text-left border-collapse" style={{ minWidth: "600px" }}>
+                          <thead>
+                            <tr className="bg-gray-50 dark:bg-gray-900/60 text-xs font-bold text-muted border-b" style={{ borderColor: "var(--border-color)" }}>
+                              <th className="p-3.5 w-10 text-center">
                                 <input 
                                   type="checkbox"
-                                  checked={selectedStudents.includes(student.id)}
+                                  checked={students.length > 0 && selectedStudents.length === students.length}
                                   onChange={(e) => {
-                                    if (e.target.checked) setSelectedStudents([...selectedStudents, student.id]);
-                                    else setSelectedStudents(selectedStudents.filter(id => id !== student.id));
+                                    if (e.target.checked) setSelectedStudents(students.map(s => s.id));
+                                    else setSelectedStudents([]);
                                   }}
                                   className="rounded border-gray-300 text-[#f98012] focus:ring-[#f98012] cursor-pointer"
                                 />
-                              </td>
-                              <td className="p-3 font-semibold" style={{ paddingLeft: "8px" }}>{student.name}</td>
-                              <td className="p-3 font-mono text-xs">{student.username}</td>
-                              <td className="p-3">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="font-mono text-xs select-all">
-                                    {visiblePasswords[student.id] 
-                                      ? (student.passwordPlain || "(Cambiada por el estudiante)") 
-                                      : "••••••••"}
-                                  </span>
-                                  <button
-                                    onClick={() => setVisiblePasswords(prev => ({ ...prev, [student.id]: !prev[student.id] }))}
-                                    className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-muted"
-                                    title={visiblePasswords[student.id] ? "Ocultar" : "Mostrar"}
-                                  >
-                                    {visiblePasswords[student.id] ? <EyeOff size={13} /> : <Eye size={13} />}
-                                  </button>
-                                </div>
-                              </td>
-                              <td className="p-3">
-                                <div className="flex justify-center items-center gap-2">
-                                  <button
-                                    onClick={() => {
-                                      const text = `Usuario: ${student.username}\nContraseña: ${student.passwordPlain || "(Cambiada por el estudiante)"}`;
-                                      navigator.clipboard.writeText(text);
-                                      setCopiedStudentId(student.id);
-                                      setTimeout(() => setCopiedStudentId(null), 2000);
-                                    }}
-                                    className="p-1.5 rounded hover:bg-orange-50 dark:hover:bg-orange-900/20 text-[#f98012] relative group transition-colors cursor-pointer"
-                                    title="Copiar credenciales"
-                                  >
-                                    {copiedStudentId === student.id ? (
-                                      <Check size={16} className="text-emerald-500 animate-scale-in" />
-                                    ) : (
-                                      <Copy size={16} />
-                                    )}
-                                    {copiedStudentId === student.id && (
-                                      <span className="absolute -top-7 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded font-bold whitespace-nowrap shadow-md animate-fade-in z-10">
-                                        ¡Copiado!
-                                      </span>
-                                    )}
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setEditingStudent(student);
-                                      setEditStudentName(student.name);
-                                      setEditStudentPassword(student.passwordPlain || "");
-                                      setStudentError("");
-                                      setShowEditStudentModal(true);
-                                    }}
-                                    className="p-1.5 rounded hover:bg-orange-50 dark:hover:bg-orange-900/20 text-[#f98012] transition-colors cursor-pointer"
-                                    title="Editar estudiante"
-                                  >
-                                    <Edit2 size={16} />
-                                  </button>
-                                  <button
-                                    onClick={async () => {
-                                      const ok = await confirm({
-                                        title: "Eliminar Estudiante",
-                                        message: `¿Estás seguro de que deseas eliminar a "${student.name}"? Se perderán todas sus notas y registros de tareas.`,
-                                        confirmText: "Eliminar",
-                                        type: "danger"
-                                      });
-                                      if (!ok) return;
-                                      
-                                      try {
-                                        const endpoint = role === "admin" ? "/api/admin/estudiantes" : "/api/docente/estudiantes";
-                                        const res = await fetch(endpoint, {
-                                          method: "DELETE",
-                                          headers: { "Content-Type": "application/json" },
-                                          body: JSON.stringify({ id: student.id })
-                                        });
-                                        if (res.ok) {
-                                          fetchStudents();
-                                          fetchGrades();
-                                        } else {
-                                          const data = await res.json();
-                                          setStudentError(data.error || "Error al eliminar el estudiante");
-                                        }
-                                      } catch {
-                                        setStudentError("Error de conexión");
-                                      }
-                                    }}
-                                    className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 transition-colors cursor-pointer"
-                                    title="Eliminar estudiante"
-                                  >
-                                    <Trash2 size={16} />
-                                  </button>
-                                </div>
-                              </td>
+                              </th>
+                              <th className="p-3.5" style={{ paddingLeft: "8px" }}>Nombre</th>
+                              <th className="p-3.5">Usuario</th>
+                              <th className="p-3.5">Contraseña</th>
+                              <th className="p-3.5 text-center">Acciones</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              )}
+                          </thead>
+                          <tbody className="divide-y text-sm" style={{ borderColor: "var(--border-color)" }}>
+                            {students.map((student) => (
+                              <tr key={student.id} className={`hover:bg-gray-50/55 dark:hover:bg-gray-900/20 ${selectedStudents.includes(student.id) ? 'bg-orange-50/30 dark:bg-orange-900/10' : ''}`}>
+                                <td className="p-3.5 text-center">
+                                  <input 
+                                    type="checkbox"
+                                    checked={selectedStudents.includes(student.id)}
+                                    onChange={(e) => {
+                                      if (e.target.checked) setSelectedStudents([...selectedStudents, student.id]);
+                                      else setSelectedStudents(selectedStudents.filter(id => id !== student.id));
+                                    }}
+                                    className="rounded border-gray-300 text-[#f98012] focus:ring-[#f98012] cursor-pointer"
+                                  />
+                                </td>
+                                <td className="p-3.5 font-bold" style={{ paddingLeft: "8px" }}>{student.name}</td>
+                                <td className="p-3.5 font-mono text-xs text-muted">{student.username}</td>
+                                <td className="p-3.5 font-mono text-xs">
+                                  <div className="flex items-center gap-2">
+                                    <span>
+                                      {visiblePasswords[student.id] 
+                                        ? (student.passwordPlain || "(Cambiada por el estudiante)") 
+                                        : "••••••••"}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setVisiblePasswords(prev => ({ ...prev, [student.id]: !prev[student.id] }))}
+                                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                                      title={visiblePasswords[student.id] ? "Ocultar" : "Mostrar"}
+                                    >
+                                      {visiblePasswords[student.id] ? <EyeOff size={14} /> : <Eye size={14} />}
+                                    </button>
+                                  </div>
+                                </td>
+                                <td className="p-3.5 text-center">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <button
+                                      onClick={() => {
+                                        const pass = student.passwordPlain || "••••••••";
+                                        navigator.clipboard.writeText(`Usuario: ${student.username}\nContraseña: ${pass}`);
+                                        setCopiedStudentId(student.id);
+                                        setTimeout(() => setCopiedStudentId(null), 2000);
+                                      }}
+                                      className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors cursor-pointer"
+                                      title="Copiar credenciales"
+                                    >
+                                      {copiedStudentId === student.id ? <Check size={16} className="text-green-600" /> : <Copy size={16} />}
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setEditingStudent(student);
+                                        setEditStudentName(student.name);
+                                        setEditStudentPassword("");
+                                        setShowEditStudentModal(true);
+                                      }}
+                                      className="p-1.5 rounded hover:bg-orange-50 dark:hover:bg-orange-900/20 text-[#f98012] transition-colors cursor-pointer"
+                                      title="Editar estudiante"
+                                    >
+                                      <Edit2 size={16} />
+                                    </button>
+                                    <button
+                                      onClick={async () => {
+                                        const ok = await confirm({
+                                          title: "Eliminar Estudiante",
+                                          message: `¿Estás seguro de que deseas eliminar a "${student.name}"? Se perderán todas sus notas y registros de tareas.`,
+                                          confirmText: "Eliminar",
+                                          type: "danger"
+                                        });
+                                        if (!ok) return;
+                                        
+                                        try {
+                                          const endpoint = role === "admin" ? "/api/admin/estudiantes" : "/api/docente/estudiantes";
+                                          const res = await fetch(endpoint, {
+                                            method: "DELETE",
+                                            headers: { "Content-Type": "application/json" },
+                                            body: JSON.stringify({ id: student.id })
+                                          });
+                                          if (res.ok) {
+                                            fetchStudents();
+                                            fetchGrades();
+                                          } else {
+                                            const data = await res.json();
+                                            setStudentError(data.error || "Error al eliminar el estudiante");
+                                          }
+                                        } catch {
+                                          setStudentError("Error de conexión");
+                                        }
+                                      }}
+                                      className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 transition-colors cursor-pointer"
+                                      title="Eliminar estudiante"
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-
-            <div className="flex justify-end gap-3 border-t pt-4 mt-4" style={{ borderColor: "var(--border-color)" }}>
-              <button
-                type="button"
-                className="btn btn-secondary w-full sm:w-auto"
-                onClick={() => {
-                  if (showCreateStudentInGroupModal) {
-                    setShowCreateStudentInGroupModal(false);
-                    setNewStudentCredentials(null);
-                  } else {
-                    setShowStudentListModal(false);
-                  }
-                }}
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
+          </main>
         </div>
       )}
 
