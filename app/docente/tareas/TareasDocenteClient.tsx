@@ -1094,42 +1094,78 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
 
 
 
-      {/* Assign Specific Students Panel — full page */}
+      {/* Assign Specific Students Full-Page View */}
       {assigningTask && typeof window !== "undefined" && createPortal(
-        <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex animate-fade-in"
-          onClick={e => e.target === e.currentTarget && setAssigningTask(null)}
-        >
-          <div
-            className="absolute inset-0"
-            onClick={() => setAssigningTask(null)}
-          />
-          <div
-            className="relative ml-auto w-full max-w-2xl h-full bg-white dark:bg-gray-900 shadow-2xl flex flex-col animate-slide-in-right overflow-hidden"
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Panel header */}
-            <div className="flex justify-between items-start px-6 py-5 border-b border-gray-200 dark:border-gray-800 shrink-0">
-              <div>
-                <h2 className="text-xl font-bold flex items-center gap-2">
-                  <Users size={22} className="text-blue-600" />
-                  Activar Actividad por Asistencia en Clase
-                </h2>
-                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mt-0.5">{assigningTask.title}</p>
-                <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 rounded-xl p-2.5 mt-2 text-xs text-blue-900 dark:text-blue-200 flex items-start gap-2">
-                  <Sparkles size={16} className="text-blue-600 shrink-0 mt-0.5" />
-                  <div>
-                    <strong>Control de Asistencia:</strong> Marca únicamente a los estudiantes presentes en clase. A los estudiantes que <strong>no</strong> queden marcados, la actividad les aparecerá automáticamente <strong>cerrada con nota 1.0</strong> por inasistencia.
-                  </div>
-                </div>
-              </div>
-              <button onClick={() => setAssigningTask(null)} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex-shrink-0 ml-4">
-                <X size={20} />
+        <div className="fixed inset-0 z-[100] bg-slate-100 dark:bg-gray-950 flex flex-col w-screen h-screen overflow-hidden animate-fade-in">
+          {/* Top Navigation Header */}
+          <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-3.5 flex items-center justify-between shrink-0 shadow-sm z-10">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setAssigningTask(null)}
+                className="flex items-center gap-1.5 text-xs font-bold text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-700 px-3.5 py-2 rounded-xl transition-all"
+              >
+                <ArrowLeft size={16} />
+                <span>Volver a Tareas</span>
               </button>
+              <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
+              <div>
+                <h1 className="text-base md:text-lg font-extrabold text-gray-900 dark:text-white flex items-center gap-2 leading-tight">
+                  <Users size={20} className="text-blue-600" />
+                  Activar Actividad por Asistencia en Clase
+                </h1>
+                <p className="text-xs text-muted font-semibold mt-0.5">
+                  {assigningTask.title}
+                </p>
+              </div>
             </div>
 
-            {/* Scrollable body */}
-            <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-3">
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => setAssigningTask(null)}
+                className="text-xs font-bold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 px-4 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-5 py-2 rounded-xl flex items-center gap-2 transition-all shadow-sm disabled:opacity-50"
+                disabled={savingAssign || loadingAssign}
+                onClick={saveAssignedStudents}
+              >
+                {savingAssign ? (
+                  <>
+                    <Loader2 className="animate-spin" size={14} /> Guardando...
+                  </>
+                ) : assignSaved ? (
+                  <>
+                    <CheckCircle size={14} /> ¡Guardado!
+                  </>
+                ) : (
+                  <>
+                    <Save size={14} /> Guardar Activación
+                  </>
+                )}
+              </button>
+            </div>
+          </header>
+
+          {/* Full Page Content */}
+          <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-100 dark:bg-gray-950">
+            <div className="max-w-5xl mx-auto flex flex-col gap-5">
+              
+              {/* Info Notice Box */}
+              <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 rounded-2xl p-4 text-xs text-blue-900 dark:text-blue-200 flex items-start gap-3 shadow-sm">
+                <Sparkles size={20} className="text-blue-600 shrink-0 mt-0.5" />
+                <div className="flex flex-col gap-1">
+                  <strong className="text-sm">Control de Asistencia para la Actividad</strong>
+                  <p>
+                    Marca únicamente a los estudiantes que <strong>asistieron a la clase</strong>. Los estudiantes que queden desmarcados tendrán la actividad automáticamente <strong>cerrada con nota 1.0</strong> por inasistencia y no podrán presentarla.
+                  </p>
+                </div>
+              </div>
+
               {assignError && <div className="alert alert-danger">{assignError}</div>}
               {assignSaved && (
                 <div className="alert alert-success flex items-center gap-2">
@@ -1137,159 +1173,166 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                 </div>
               )}
 
-              {/* Search and selection toolbar */}
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+              {/* Main Card */}
+              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-6 flex flex-col gap-4">
+                
+                {/* Search and Action Toolbar */}
+                <div className="flex flex-col md:flex-row items-center justify-between gap-3 pb-4 border-b border-gray-200 dark:border-gray-800">
+                  <div className="relative w-full md:w-96">
+                    <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
                     <input
                       type="text"
-                      placeholder="Buscar estudiante por nombre o grupo..."
+                      placeholder="Buscar por nombre, grado o grupo..."
                       value={assignSearch}
                       onChange={e => setAssignSearch(e.target.value)}
-                      className="input-field pl-8 text-sm py-1.5"
+                      className="input-field pl-9 pr-3 text-xs py-2 w-full border border-gray-300 dark:border-gray-750 rounded-xl"
                     />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const allIds = availableStudents.map(s => s.id);
-                      setAssignedStudentIds(allIds);
-                    }}
-                    className="btn btn-secondary text-xs whitespace-nowrap py-1.5 font-bold"
-                  >
-                    Activar Todos ({availableStudents.length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAssignedStudentIds([]);
-                    }}
-                    className="btn btn-secondary text-xs whitespace-nowrap py-1.5 text-red-600 hover:text-red-700 font-bold"
-                  >
-                    Desactivar Todos
-                  </button>
+
+                  <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const allIds = availableStudents.map(s => s.id);
+                        setAssignedStudentIds(allIds);
+                      }}
+                      className="btn btn-secondary text-xs py-2 px-3.5 rounded-xl font-bold whitespace-nowrap"
+                    >
+                      Activar Todos ({availableStudents.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAssignedStudentIds([]);
+                      }}
+                      className="btn btn-secondary text-xs py-2 px-3.5 rounded-xl text-red-600 hover:text-red-700 font-bold whitespace-nowrap"
+                    >
+                      Desactivar Todos
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex justify-between items-center text-xs text-muted px-1">
+                {/* Counters */}
+                <div className="flex items-center justify-between text-xs px-1 text-muted">
                   <span>
-                    <strong className="text-blue-600">{assignedStudentIds.length}</strong> de <strong>{availableStudents.length}</strong> estudiantes activados (presentes)
+                    <strong className="text-blue-600 font-bold">{assignedStudentIds.length}</strong> de <strong>{availableStudents.length}</strong> estudiantes activados (presentes)
                   </span>
                   {availableStudents.length - assignedStudentIds.length > 0 && assignedStudentIds.length > 0 && (
-                    <span className="text-amber-700 dark:text-amber-400 font-semibold">
-                      {availableStudents.length - assignedStudentIds.length} estudiante(s) quedarán cerrados con nota 1.0 (ausentes)
+                    <span className="text-amber-700 dark:text-amber-400 font-semibold bg-amber-50 dark:bg-amber-950/30 px-2.5 py-1 rounded-lg border border-amber-200 dark:border-amber-800">
+                      {availableStudents.length - assignedStudentIds.length} estudiante(s) quedarán con nota 1.0 (ausentes)
                     </span>
                   )}
                 </div>
-              </div>
 
-              {/* Students list */}
-              {loadingAssign ? (
-                <div className="flex justify-center py-10">
-                  <Loader2 className="animate-spin text-blue-600" size={32} />
-                </div>
-              ) : availableStudents.length === 0 ? (
-                <div className="text-center py-8 text-muted text-sm">No hay estudiantes disponibles en los grupos de esta tarea.</div>
-              ) : (
-                <div className="flex flex-col gap-1.5">
-                  {availableStudents
-                    .filter(s =>
-                      s.name.toLowerCase().includes(assignSearch.toLowerCase()) ||
-                      (s.groupName && s.groupName.toLowerCase().includes(assignSearch.toLowerCase())) ||
-                      (s.group?.name && s.group.name.toLowerCase().includes(assignSearch.toLowerCase())) ||
-                      (s.group?.grade?.name && s.group.grade.name.toLowerCase().includes(assignSearch.toLowerCase()))
-                    )
-                    .map(student => {
-                      const isChecked = assignedStudentIds.includes(student.id);
-                      const groupLabel = student.group?.grade?.name
-                        ? `${student.group.grade.name} - ${student.group.name}`
-                        : (student.groupName || "Sin grupo");
+                {/* Students Grid */}
+                {loadingAssign ? (
+                  <div className="flex justify-center py-16">
+                    <Loader2 className="animate-spin text-blue-600" size={36} />
+                  </div>
+                ) : availableStudents.length === 0 ? (
+                  <div className="text-center py-12 text-muted text-sm">No hay estudiantes disponibles en los grupos de esta tarea.</div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-2">
+                    {availableStudents
+                      .filter(s =>
+                        s.name.toLowerCase().includes(assignSearch.toLowerCase()) ||
+                        (s.groupName && s.groupName.toLowerCase().includes(assignSearch.toLowerCase())) ||
+                        (s.group?.name && s.group.name.toLowerCase().includes(assignSearch.toLowerCase())) ||
+                        (s.group?.grade?.name && s.group.grade.name.toLowerCase().includes(assignSearch.toLowerCase()))
+                      )
+                      .map(student => {
+                        const isChecked = assignedStudentIds.includes(student.id);
+                        const groupLabel = student.group?.grade?.name
+                          ? `${student.group.grade.name} - ${student.group.name}`
+                          : (student.groupName || "Sin grupo");
 
-                      return (
-                        <label
-                          key={student.id}
-                          className={`flex items-center justify-between gap-3 p-2.5 rounded-xl cursor-pointer transition-all ${
-                            isChecked
-                              ? "bg-blue-50/80 dark:bg-blue-950/30 border-blue-300 dark:border-blue-800"
-                              : "bg-slate-50 dark:bg-slate-900/50 border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800"
-                          } border`}
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() => {
-                                setAssignedStudentIds(prev =>
-                                  isChecked ? prev.filter(id => id !== student.id) : [...prev, student.id]
-                                );
-                              }}
-                              className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
-                            />
-                            <div
-                              className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs text-white ${
-                                isChecked ? "bg-blue-600" : "bg-gray-400"
-                              }`}
-                            >
-                              {student.name.charAt(0).toUpperCase()}
+                        return (
+                          <label
+                            key={student.id}
+                            className={`flex items-center justify-between gap-2.5 p-3 rounded-xl cursor-pointer transition-all border select-none ${
+                              isChecked
+                                ? "bg-blue-50/80 dark:bg-blue-950/30 border-blue-300 dark:border-blue-800 text-blue-900 dark:text-blue-200 shadow-sm"
+                                : "bg-slate-50 dark:bg-slate-900/50 border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800/80 text-gray-700 dark:text-gray-300"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => {
+                                  setAssignedStudentIds(prev =>
+                                    isChecked ? prev.filter(id => id !== student.id) : [...prev, student.id]
+                                  );
+                                }}
+                                className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer shrink-0"
+                              />
+                              <div
+                                className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs text-white ${
+                                  isChecked ? "bg-blue-600" : "bg-gray-400"
+                                }`}
+                              >
+                                {student.name.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <p className={`font-semibold text-xs truncate ${isChecked ? "text-blue-900 dark:text-blue-200" : "text-gray-800 dark:text-gray-200"}`}>
+                                  {student.name}
+                                </p>
+                                <p className="text-[10px] text-muted truncate">@{student.username}</p>
+                              </div>
                             </div>
-                            <div className="min-w-0">
-                              <p className={`font-semibold text-sm truncate ${isChecked ? "text-blue-900 dark:text-blue-200" : "text-gray-700 dark:text-gray-300"}`}>
-                                {student.name}
-                              </p>
-                              <p className="text-[11px] text-muted truncate">@{student.username}</p>
+
+                            <div className="flex flex-col items-end gap-1 shrink-0">
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold">
+                                {groupLabel}
+                              </span>
+                              {isChecked ? (
+                                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold flex items-center gap-0.5">
+                                  <UserCheck size={12} /> Presente
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-red-600 dark:text-red-400 font-medium">
+                                  Ausente (1.0)
+                                </span>
+                              )}
                             </div>
-                          </div>
+                          </label>
+                        );
+                      })}
+                  </div>
+                )}
 
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <span className="text-xs px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium">
-                              {groupLabel}
-                            </span>
-                            {isChecked ? (
-                              <span className="text-xs text-blue-600 font-bold flex items-center gap-1">
-                                <UserCheck size={14} /> Activado (Presente)
-                              </span>
-                            ) : (
-                              <span className="text-xs text-red-600 dark:text-red-400 font-medium">
-                                Inasistencia (1.0)
-                              </span>
-                            )}
-                          </div>
-                        </label>
-                      );
-                    })}
+                {/* Bottom Card Footer */}
+                <div className="flex items-center justify-between pt-5 mt-4 border-t border-gray-200 dark:border-gray-800">
+                  <div className="text-xs text-muted">
+                    {assignedStudentIds.length} estudiante(s) activado(s)
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button className="btn btn-secondary text-xs px-4 py-2 rounded-xl" onClick={() => setAssigningTask(null)}>Cancelar</button>
+                    <button
+                      className="btn btn-primary bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-6 py-2 rounded-xl flex items-center gap-2"
+                      disabled={savingAssign || loadingAssign}
+                      onClick={saveAssignedStudents}
+                    >
+                      {savingAssign ? (
+                        <>
+                          <Loader2 className="animate-spin" size={14} /> Guardando...
+                        </>
+                      ) : assignSaved ? (
+                        <>
+                          <CheckCircle size={14} /> ¡Guardado!
+                        </>
+                      ) : (
+                        <>
+                          <Save size={14} /> Guardar Activación
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
-              )}
-            </div>
 
-            {/* Panel footer */}
-            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 dark:border-gray-800 shrink-0">
-              <div className="text-xs text-muted">
-                {assignedStudentIds.length} estudiante(s) activado(s)
-              </div>
-              <div className="flex items-center gap-3">
-                <button className="btn btn-secondary" onClick={() => setAssigningTask(null)}>Cancelar</button>
-                <button
-                  className="btn btn-primary bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
-                  disabled={savingAssign || loadingAssign}
-                  onClick={saveAssignedStudents}
-                >
-                  {savingAssign ? (
-                    <>
-                      <Loader2 className="animate-spin" size={16} /> Guardando...
-                    </>
-                  ) : assignSaved ? (
-                    <>
-                      <CheckCircle size={16} /> ¡Guardado!
-                    </>
-                  ) : (
-                    <>
-                      <Save size={16} /> Guardar Activación
-                    </>
-                  )}
-                </button>
               </div>
             </div>
-          </div>
+          </main>
         </div>,
         document.body
       )}

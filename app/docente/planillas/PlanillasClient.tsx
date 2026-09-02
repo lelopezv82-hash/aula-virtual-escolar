@@ -4077,7 +4077,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                         </button>
                         <button onClick={() => openEditModal(t)} disabled={loadingEdit} className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-400 hover:text-blue-600 transition-colors" title={t.type === "EXAM" ? "Editar examen" : t.type === "TASK" ? "Editar tarea" : "Editar evaluación"}>
                           {loadingEdit ? <Loader2 size={13} className="animate-spin" /> : <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>}
-                        </button>
+</button>
                         <button onClick={() => handleDeleteTask(t.id, t.title)} disabled={deletingId === t.id} className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100" title={t.type === "EXAM" ? "Eliminar examen" : t.type === "TASK" ? "Eliminar tarea" : "Eliminar evaluación"}>
                           {deletingId === t.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
                         </button>
@@ -4101,680 +4101,692 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         </div>
       )}
 
-      {/* Add column modal — full page panel */}
+      {/* Add / Edit Task Full-Page View */}
       {addModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 animate-fade-in flex">
-          <div
-            className="absolute inset-0"
-            onClick={() => { setAddModal(null); setEditTaskId(null); setShowReusePicker(false); }}
-          />
-          <div className="relative ml-auto w-full max-w-3xl h-full bg-white dark:bg-gray-900 shadow-2xl flex flex-col animate-slide-in-right overflow-hidden">
-            
-            {/* Header */}
-            <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-gray-800 shrink-0">
-              <h3 className="font-bold text-xl text-gray-900 dark:text-gray-100">
-                {editTaskId
-                  ? (addModal.type === "EXAM" ? "Editar Examen" : addModal.type === "TASK" ? "Editar Tarea" : addModal.type === "SER" ? "Editar Evaluación Actitudinal" : "Editar Evaluación")
-                  : (addModal.type === "EXAM" ? "Nuevo Examen" : addModal.type === "TASK" ? "Nueva Tarea" : addModal.type === "SER" ? "Nueva Evaluación Actitudinal" : "Nueva Evaluación")}
-              </h3>
-              <button onClick={() => { setAddModal(null); setEditTaskId(null); setShowReusePicker(false); }} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
-                <X size={24} />
+        <div className="fixed inset-0 z-[100] bg-slate-100 dark:bg-gray-950 flex flex-col w-screen h-screen overflow-hidden animate-fade-in">
+          {/* Top Navigation Bar */}
+          <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-3.5 flex items-center justify-between shrink-0 shadow-sm z-10">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => { setAddModal(null); setEditTaskId(null); setShowReusePicker(false); }}
+                className="flex items-center gap-1.5 text-xs font-bold text-gray-700 dark:text-gray-200 hover:text-orange-600 dark:hover:text-orange-400 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-700 px-3.5 py-2 rounded-xl transition-all"
+              >
+                <ArrowLeft size={16} />
+                <span>Volver a Planillas</span>
+              </button>
+              <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
+              <div>
+                <h1 className="text-base md:text-lg font-extrabold text-gray-900 dark:text-white leading-tight">
+                  {editTaskId
+                    ? (addModal.type === "EXAM" ? "Editar Examen (Saber)" : addModal.type === "TASK" ? "Editar Tarea (Hacer)" : addModal.type === "SER" ? "Editar Evaluación Actitudinal" : "Editar Evaluación")
+                    : (addModal.type === "EXAM" ? "Nuevo Examen / Tarea (Saber)" : addModal.type === "TASK" ? "Nueva Tarea (Hacer)" : addModal.type === "SER" ? "Nueva Evaluación Actitudinal" : "Nueva Evaluación")}
+                </h1>
+                <p className="text-xs text-muted flex items-center gap-2">
+                  <span className="font-semibold text-gray-700 dark:text-gray-300">{selectedCourse?.name || "Asignatura"}</span>
+                  <span>•</span>
+                  <span>Periodo {selectedPeriod}</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => { setAddModal(null); setEditTaskId(null); setShowReusePicker(false); }}
+                className="text-xs font-bold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 px-4 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={editTaskId ? handleEditTask : handleAddTask}
+                disabled={addingTask || !newTaskName.trim() || newTaskGroupIds.length === 0}
+                className="text-xs font-bold text-white bg-[#f97316] hover:bg-[#ea580c] px-5 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {addingTask ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>Guardando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save size={14} />
+                    <span>{editTaskId ? "Guardar Cambios" : "Crear Actividad"}</span>
+                  </>
+                )}
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-4">
+          </header>
 
-            {!editTaskId && addModal.type !== "SER" && (
-              <div className="flex items-center gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-gray-750">
-                <button
-                  type="button"
-                  onClick={() => setShowReusePicker(false)}
-                  className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
-                    !showReusePicker
-                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
-                      : "text-muted hover:text-gray-800 dark:hover:text-gray-200"
-                  }`}
-                >
-                  ✨ Crear Desde Cero
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowReusePicker(true);
-                    fetchReusableTasks(addModal.type);
-                  }}
-                  className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                    showReusePicker
-                      ? "bg-orange-500 text-white shadow-sm"
-                      : "text-muted hover:text-gray-800 dark:hover:text-gray-200"
-                  }`}
-                >
-                  <Copy size={13} />
-                  📋 Clonar / Reutilizar Existente
-                </button>
-              </div>
-            )}
-
-            {showReusePicker && !editTaskId ? (
-              <div className="flex flex-col gap-4 py-2">
-                <div className="p-3 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900 rounded-xl text-xs text-orange-800 dark:text-orange-300">
-                  💡 <strong>Clonación Limpia:</strong> Se copiarán todas las preguntas, opciones, adjuntos e instrucciones de la actividad seleccionada a esta asignatura (<strong>{selectedCourse?.name}</strong>), pero las calificaciones empezarán 100% limpias (0 entregas/notas). ¡Nunca se mezclarán con el otro grupo!
+          {/* Full Page Scrollable Body */}
+          <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-100 dark:bg-gray-950">
+            <div className="max-w-4xl mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-6 md:p-8 flex flex-col gap-6">
+              
+              {!editTaskId && addModal.type !== "SER" && (
+                <div className="flex items-center gap-2 p-1.5 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-gray-750">
+                  <button
+                    type="button"
+                    onClick={() => setShowReusePicker(false)}
+                    className={`flex-1 py-2 px-4 rounded-xl text-xs font-bold transition-all ${
+                      !showReusePicker
+                        ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                        : "text-muted hover:text-gray-800 dark:hover:text-gray-200"
+                    }`}
+                  >
+                    ✨ Crear Desde Cero
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowReusePicker(true);
+                      fetchReusableTasks(addModal.type);
+                    }}
+                    className={`flex-1 py-2 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                      showReusePicker
+                        ? "bg-orange-500 text-white shadow-sm"
+                        : "text-muted hover:text-gray-800 dark:hover:text-gray-200"
+                    }`}
+                  >
+                    <Copy size={14} />
+                    📋 Clonar / Reutilizar Existente
+                  </button>
                 </div>
+              )}
 
-                <div className="input-group">
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                    Selecciona la actividad a clonar *
-                  </label>
-                  {loadingReusableTasks ? (
-                    <div className="flex items-center gap-2 py-4 text-xs text-muted">
-                      <Loader2 size={16} className="animate-spin text-orange-500" />
-                      Cargando actividades disponibles...
-                    </div>
-                  ) : reusableTasks.length === 0 ? (
-                    <div className="p-4 border rounded-xl text-xs text-muted text-center">
-                      No tienes otras actividades creadas de tipo {addModal.type} para clonar.
-                    </div>
-                  ) : (
-                    <div className="max-h-60 overflow-y-auto border rounded-xl divide-y divide-gray-100 dark:divide-gray-800 bg-slate-50 dark:bg-slate-800/30">
-                      {reusableTasks.map((t: any) => {
-                        const isSelected = selectedReuseTaskId === t.id;
-                        return (
-                          <div
-                            key={t.id}
-                            onClick={() => {
-                              setSelectedReuseTaskId(t.id);
-                              if (!newTaskName) setNewTaskName(t.title);
-                            }}
-                            className={`p-3 cursor-pointer transition-all flex items-start justify-between gap-3 ${
-                              isSelected
-                                ? "bg-orange-100/70 dark:bg-orange-950/40 border-l-4 border-orange-500"
-                                : "hover:bg-gray-100 dark:hover:bg-gray-800"
-                            }`}
-                          >
-                            <div className="min-w-0">
-                              <p className="font-bold text-xs text-gray-900 dark:text-gray-100">{t.title}</p>
-                              <p className="text-[11px] text-muted mt-0.5">
-                                Asignatura origen: <strong>{t.course?.name || "Sin curso"}</strong> ⬢ {t.period || "Periodo 1"}
-                                {t._count?.questions > 0 && ` ⬢ 📝 ${t._count.questions} preguntas`}
-                              </p>
-                            </div>
-                            <input
-                              type="radio"
-                              name="reuseTask"
-                              checked={isSelected}
-                              onChange={() => {
-                                setSelectedReuseTaskId(t.id);
-                                if (!newTaskName) setNewTaskName(t.title);
-                              }}
-                              className="mt-1 text-orange-500 focus:ring-orange-500 cursor-pointer"
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
+              {showReusePicker && !editTaskId ? (
+                <div className="flex flex-col gap-4 py-2">
+                  <div className="p-4 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900 rounded-2xl text-xs text-orange-800 dark:text-orange-300">
+                    💡 <strong>Clonación Limpia:</strong> Se copiarán todas las preguntas, opciones, adjuntos e instrucciones de la actividad seleccionada a esta asignatura (<strong>{selectedCourse?.name}</strong>), pero las calificaciones empezarán 100% limpias (0 entregas/notas). ¡Nunca se mezclarán con el otro grupo!
+                  </div>
 
-                <div className="input-group">
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Título para la nueva copia (Opcional)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Dejar igual o personalizar título..."
-                    value={newTaskName}
-                    onChange={e => setNewTaskName(e.target.value)}
-                    className="input-field w-full text-xs font-semibold py-2 px-3 border rounded-lg"
-                  />
-                </div>
-
-                {/* Course Groups Assignment Checkboxes */}
-                {groups.length > 0 && (
                   <div className="input-group">
                     <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                      Asignar a Grupos en este Curso *
+                      Selecciona la actividad a clonar *
                     </label>
-                    <div className="flex flex-col gap-2 p-3 bg-slate-50 dark:bg-slate-800/20 border rounded-lg">
-                      {groups.map(g => {
-                        const label = g.grade?.name ? `${g.grade.name} — ${g.name}` : g.name;
-                        const isChecked = newTaskGroupIds.includes(g.id);
-                        return (
-                          <label key={g.id} className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none">
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() => {
-                                if (isChecked) {
-                                  setNewTaskGroupIds(prev => prev.filter(id => id !== g.id));
-                                } else {
-                                  setNewTaskGroupIds(prev => [...prev, g.id]);
-                                }
-                              }}
-                              className="rounded text-[#f97316] focus:ring-[#f97316] w-4 h-4"
-                            />
-                            <span>{label}</span>
-                          </label>
-                        );
-                      })}
+                    {loadingReusableTasks ? (
+                      <div className="flex items-center gap-2 py-4 text-xs text-muted">
+                        <Loader2 size={16} className="animate-spin text-orange-500" />
+                        Cargando actividades disponibles...
+                      </div>
+                    ) : reusableTasks.length === 0 ? (
+                      <div className="p-6 border rounded-2xl text-xs text-muted text-center bg-slate-50 dark:bg-slate-800/20">
+                        No tienes otras actividades creadas de tipo {addModal.type} para clonar.
+                      </div>
+                    ) : (
+                      <div className="max-h-80 overflow-y-auto border rounded-2xl divide-y divide-gray-100 dark:divide-gray-800 bg-slate-50 dark:bg-slate-800/30">
+                        {reusableTasks.map((t: any) => {
+                          const isSelected = selectedReuseTaskId === t.id;
+                          return (
+                            <div
+                              key={t.id}
+                              onClick={() => setSelectedReuseTaskId(t.id)}
+                              className={`p-3.5 flex items-center justify-between cursor-pointer transition-colors ${
+                                isSelected
+                                  ? "bg-orange-100 dark:bg-orange-950/40 border-l-4 border-orange-500"
+                                  : "hover:bg-gray-100 dark:hover:bg-gray-750"
+                              }`}
+                            >
+                              <div className="flex flex-col min-w-0 pr-2">
+                                <span className="font-bold text-xs text-gray-800 dark:text-gray-200 truncate">
+                                  {t.title}
+                                </span>
+                                <span className="text-[11px] text-muted">
+                                  {t.course?.name || "Sin curso"} • {t.period?.name || t.periodId || "Sin periodo"}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                {t.questions?.length > 0 && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 font-bold">
+                                    {t.questions.length} preguntas
+                                  </span>
+                                )}
+                                {t.attachmentUrl && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-bold">
+                                    Guía adjunta
+                                  </span>
+                                )}
+                                <input
+                                  type="radio"
+                                  name="reuseTaskRadio"
+                                  checked={isSelected}
+                                  onChange={() => setSelectedReuseTaskId(t.id)}
+                                  className="accent-orange-500 w-4 h-4 cursor-pointer"
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Reuse Footer Buttons */}
+                  <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
+                    <button
+                      type="button"
+                      onClick={() => setShowReusePicker(false)}
+                      className="text-xs font-bold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 px-4 py-2 rounded-xl hover:bg-gray-50 transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCloneFromPicker}
+                      disabled={!selectedReuseTaskId || addingTask}
+                      className="btn btn-primary text-xs font-bold flex items-center gap-2"
+                    >
+                      {addingTask ? <Loader2 size={14} className="animate-spin" /> : <Copy size={14} />}
+                      Clonar Actividad (Limpia)
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex flex-col gap-5">
+                
+                {/* Row 1: Asignatura & Periodo */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="input-group">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Asignatura *</label>
+                    <select className="w-full p-2.5 rounded-xl border border-gray-300 dark:border-gray-750 bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-450 cursor-not-allowed text-xs font-semibold" disabled>
+                      <option>{selectedCourse?.name || "Asignatura"}</option>
+                    </select>
+                  </div>
+                  <div className="input-group">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Periodo *</label>
+                    <select className="w-full p-2.5 rounded-xl border border-gray-300 dark:border-gray-750 bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-450 cursor-not-allowed text-xs font-semibold" disabled>
+                      <option>{selectedPeriod}</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Subtipo de Dimensión Saber (Tarea vs Examen) */}
+                {addModal.type === "EXAM" && (
+                  <div className="input-group">
+                    <label className="block text-xs font-bold text-purple-900 dark:text-purple-300 mb-1.5">
+                      Modalidad en El Saber (Cognitivo) *
+                    </label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSaberSubtype("TASK_SABER")}
+                        className={`p-3.5 rounded-2xl border text-left flex flex-col gap-1 transition-all ${
+                          selectedSaberSubtype === "TASK_SABER"
+                            ? "border-purple-500 bg-purple-50/90 dark:bg-purple-950/40 text-purple-900 dark:text-purple-200 ring-2 ring-purple-400/50 shadow-sm"
+                            : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/40 text-gray-700 dark:text-gray-300"
+                        }`}
+                      >
+                        <span className="font-extrabold text-xs flex items-center gap-1.5 text-purple-700 dark:text-purple-300">
+                          📝 Tarea / Taller (Saber)
+                        </span>
+                        <span className="text-[11px] text-muted leading-tight">
+                          Entrega de guías, talleres escritos, consultas o calificación manual.
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSaberSubtype("EXAM")}
+                        className={`p-3.5 rounded-2xl border text-left flex flex-col gap-1 transition-all ${
+                          selectedSaberSubtype === "EXAM"
+                            ? "border-purple-500 bg-purple-50/90 dark:bg-purple-950/40 text-purple-900 dark:text-purple-200 ring-2 ring-purple-400/50 shadow-sm"
+                            : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/40 text-gray-700 dark:text-gray-300"
+                        }`}
+                      >
+                        <span className="font-extrabold text-xs flex items-center gap-1.5 text-purple-700 dark:text-purple-300">
+                          🧠 Examen en Línea (Saber)
+                        </span>
+                        <span className="text-[11px] text-muted leading-tight">
+                          Cuestionario interactivo con preguntas y tiempo límite en plataforma.
+                        </span>
+                      </button>
                     </div>
                   </div>
                 )}
 
+                {/* Row 2: Título */}
                 <div className="input-group">
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Nueva Fecha y Hora de Vencimiento *
+                    {addModal.type === "SER"
+                      ? "Nombre de la Evaluación Actitudinal *"
+                      : addModal.type === "EXAM"
+                      ? (selectedSaberSubtype === "EXAM" ? "Título del Examen (Saber) *" : "Título de la Tarea (Saber) *")
+                      : addModal.type === "TASK"
+                      ? "Título de la Tarea (Hacer) *"
+                      : addModal.type === "FINAL"
+                      ? "Título del Examen Final *"
+                      : "Título de la Evaluación *"}
                   </label>
                   <input
-                    type="datetime-local"
-                    value={newTaskDueDate}
-                    onChange={e => setNewTaskDueDate(e.target.value)}
-                    className="input-field w-full text-xs font-semibold py-2 px-3 border rounded-lg"
+                    type="text"
+                    autoFocus
+                    placeholder={
+                      addModal.type === "SER"
+                        ? "Ej. Coevaluación, Autoevaluación"
+                        : addModal.type === "EXAM"
+                        ? (selectedSaberSubtype === "EXAM" ? "Ej. Examen de Cinética Química" : "Ej. Taller de Comprensión, Guía de Consulta...")
+                        : addModal.type === "TASK"
+                        ? "Ej. Taller Práctico, Maqueta, Ejercicios"
+                        : addModal.type === "FINAL"
+                        ? "Ej. Examen Final del Periodo"
+                        : "Ej. Asistencia Semana 1"
+                    }
+                    value={newTaskName}
+                    onChange={e => setNewTaskName(e.target.value)}
+                    className="input-field w-full text-sm font-semibold py-2.5 px-3.5 border border-gray-300 dark:border-gray-750 rounded-xl outline-none focus:ring-2 focus:ring-[#f97316]"
+                    required
                   />
-                  <p className="text-[10px] text-muted mt-0.5">Por defecto se configura para mañana a las 23:59 para evitar que quede vencida.</p>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-3 border-t border-gray-200 dark:border-gray-800 mt-2">
+                {/* Row 3: Porcentaje & Fecha */}
+                <div className={(addModal?.type === "FINAL" || (addModal?.type === "EXAM" && selectedSaberSubtype === "EXAM")) ? "grid grid-cols-1 md:grid-cols-3 gap-4" : "grid grid-cols-1 md:grid-cols-2 gap-4"}>
+                  <div className="input-group">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                      Porcentaje de la Nota (0-100) *
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={newTaskWeight}
+                      onChange={e => setNewTaskWeight(e.target.value)}
+                      className="input-field w-full text-xs font-semibold py-2.5 px-3 border border-gray-300 dark:border-gray-750 rounded-xl outline-none focus:ring-2 focus:ring-[#f97316]"
+                      required
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                      {addModal.type === "SER" ? "Fecha Límite (Opcional)" : `Fecha Límite de Entrega ${newTaskIsExternal ? "(Opcional)" : "*"}`}
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={newTaskDueDate}
+                      onChange={e => setNewTaskDueDate(e.target.value)}
+                      className="input-field w-full text-xs font-semibold py-2.5 px-3 border border-gray-300 dark:border-gray-750 rounded-xl outline-none focus:ring-2 focus:ring-[#f97316]"
+                      required={addModal.type === "SER" ? false : !newTaskIsExternal}
+                    />
+                  </div>
+                  {(addModal?.type === "FINAL" || (addModal?.type === "EXAM" && selectedSaberSubtype === "EXAM")) && (
+                    <div className="input-group">
+                      <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                        Límite de Tiempo (minutos, opcional)
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="Ej. 60"
+                        value={newTaskDuration}
+                        onChange={e => setNewTaskDuration(e.target.value)}
+                        className="input-field w-full text-xs font-semibold py-2.5 px-3 border border-gray-300 dark:border-gray-750 rounded-xl outline-none focus:ring-2 focus:ring-[#f97316] disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400 disabled:cursor-not-allowed"
+                        disabled={newTaskIsExternal}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Row 4 & Checkboxes hidden for SER */}
+                {addModal.type !== "SER" && (
+                  <>
+                    {/* Row 4: Programar Publicación Automática */}
+                    <div className="input-group">
+                      <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                        Programar Publicación Automática (Fecha y Hora - Opcional)
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={newTaskPublishAt}
+                        onChange={e => setNewTaskPublishAt(e.target.value)}
+                        className="input-field w-full text-xs font-semibold py-2.5 px-3 border border-gray-300 dark:border-gray-750 rounded-xl outline-none focus:ring-2 focus:ring-[#f97316]"
+                      />
+                    </div>
+
+                    {/* Grupo Selector */}
+                    <div className="input-group">
+                      <div className="flex justify-between items-center mb-1.5">
+                        <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
+                          Grupos / Grados donde se publicará *
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (newTaskGroupIds.length === (selectedCourse?.groups?.length || 0)) {
+                              setNewTaskGroupIds([]);
+                              setNewTaskStudentIds([]);
+                            } else {
+                              const allG = (selectedCourse?.groups || []).map(g => g.id);
+                              setNewTaskGroupIds(allG);
+                              const allS = allCourseStudents.map(s => s.id);
+                              setNewTaskStudentIds(allS);
+                            }
+                          }}
+                          className="text-[11px] font-bold text-[#f97316] hover:underline"
+                        >
+                          {newTaskGroupIds.length === (selectedCourse?.groups?.length || 0) ? "Deseleccionar todos" : "Seleccionar todos"}
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 border rounded-xl bg-slate-50 dark:bg-slate-900 border-gray-200 dark:border-gray-800">
+                        {(selectedCourse?.groups || []).map(g => {
+                          const isChecked = newTaskGroupIds.includes(g.id);
+                          return (
+                            <label key={g.id} className="flex items-center gap-2 text-xs font-semibold cursor-pointer hover:text-primary py-1 px-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-750">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => {
+                                  const updated = isChecked
+                                    ? newTaskGroupIds.filter(id => id !== g.id)
+                                    : [...newTaskGroupIds, g.id];
+                                  setNewTaskGroupIds(updated);
+                                  const currentActiveStudents = allCourseStudents
+                                    .filter(s => (s.groupId && updated.includes(s.groupId)) || (s.group?.id && updated.includes(s.group.id)))
+                                    .map(s => s.id);
+                                  setNewTaskStudentIds(currentActiveStudents);
+                                }}
+                                className="rounded text-[#f97316] focus:ring-[#f97316] w-4 h-4"
+                              />
+                              <span className="truncate">{g.grade?.name ? `${g.grade.name} - ` : ""}{g.name}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Asignación de Estudiantes Específicos (Control de Asistencia) */}
+                    <div className="input-group">
+                      <div className="flex justify-between items-center mb-1.5">
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
+                            Activar Estudiantes (Control de Asistencia)
+                          </label>
+                          <span className="text-[11px] text-muted">
+                            {newTaskStudentIds.length} estudiante(s) activados. Los estudiantes desmarcados no podrán presentar la actividad y tendrán nota 1.0 por inasistencia.
+                          </span>
+                        </div>
+                        {newTaskGroupIds.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const availableForGroups = allCourseStudents
+                                .filter(s => (s.groupId && newTaskGroupIds.includes(s.groupId)) || (s.group?.id && newTaskGroupIds.includes(s.group.id)))
+                                .map(s => s.id);
+                              
+                              if (newTaskStudentIds.length === availableForGroups.length) {
+                                setNewTaskStudentIds([]);
+                              } else {
+                                setNewTaskStudentIds(availableForGroups);
+                              }
+                            }}
+                            className="text-[11px] font-bold text-[#f97316] hover:underline shrink-0"
+                          >
+                            {(() => {
+                              const availableCount = allCourseStudents.filter(s => (s.groupId && newTaskGroupIds.includes(s.groupId)) || (s.group?.id && newTaskGroupIds.includes(s.group.id))).length;
+                              return newTaskStudentIds.length === availableCount ? "Desactivar todos" : "Activar todos";
+                            })()}
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        className="input-field mb-2 text-xs py-2 px-3 border rounded-xl w-full"
+                        placeholder="Buscar estudiante por nombre o grupo..."
+                        value={studentSearch}
+                        onChange={(e) => setStudentSearch(e.target.value)}
+                      />
+                      <div className="border rounded-xl p-3 min-h-[160px] max-h-[360px] overflow-y-auto bg-slate-50 dark:bg-slate-900 border-gray-200 dark:border-gray-800">
+                        {newTaskGroupIds.length === 0 ? (
+                          <p className="text-[11px] text-muted text-center py-4">
+                            Selecciona al menos un grupo arriba para ver y asignar estudiantes.
+                          </p>
+                        ) : (() => {
+                          const filteredStudents = allCourseStudents.filter(s => {
+                            const belongsToSelectedGroup = (s.groupId && newTaskGroupIds.includes(s.groupId)) || (s.group?.id && newTaskGroupIds.includes(s.group.id));
+                            if (!belongsToSelectedGroup) return false;
+                            if (!studentSearch) return true;
+                            const q = studentSearch.toLowerCase().trim();
+                            return s.name.toLowerCase().includes(q) || (s.groupName && s.groupName.toLowerCase().includes(q));
+                          });
+
+                          if (filteredStudents.length === 0) {
+                            return (
+                              <p className="text-[11px] text-muted text-center py-4">
+                                No se encontraron estudiantes {studentSearch ? "con esa búsqueda" : "en los grupos seleccionados"}.
+                              </p>
+                            );
+                          }
+
+                          return (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                              {filteredStudents.map(s => {
+                                const isChecked = newTaskStudentIds.includes(s.id);
+                                return (
+                                  <label
+                                    key={s.id}
+                                    className={`flex items-center justify-between gap-2 text-xs cursor-pointer p-2.5 rounded-xl border transition-all select-none ${
+                                      isChecked
+                                        ? "bg-blue-50/80 dark:bg-blue-950/30 border-blue-300 dark:border-blue-800 text-blue-900 dark:text-blue-200"
+                                        : "bg-white dark:bg-gray-800/80 border-gray-200 dark:border-gray-750 text-gray-700 dark:text-gray-300 hover:border-gray-300"
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <input
+                                        type="checkbox"
+                                        checked={isChecked}
+                                        onChange={() => {
+                                          setNewTaskStudentIds(prev =>
+                                            isChecked ? prev.filter(id => id !== s.id) : [...prev, s.id]
+                                          );
+                                        }}
+                                        className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer shrink-0"
+                                      />
+                                      <span className="font-semibold truncate">{s.name}</span>
+                                    </div>
+                                    {s.groupName && (
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-medium shrink-0">
+                                        {s.groupName}
+                                      </span>
+                                    )}
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
+
+                    {/* Checkboxes adicionales */}
+                    <div className="flex flex-col gap-3 py-1">
+                      {/* Checkbox: isExternal */}
+                      <div className="border border-gray-200 dark:border-gray-750 rounded-xl p-3 bg-white dark:bg-gray-800/60 flex items-start gap-3">
+                        <input
+                          id="isExternalCheck"
+                          type="checkbox"
+                          checked={newTaskIsExternal}
+                          onChange={e => setNewTaskIsExternal(e.target.checked)}
+                          className="w-4 h-4 rounded text-[#f97316] focus:ring-[#f97316] mt-0.5 cursor-pointer"
+                        />
+                        <div className="flex flex-col gap-0.5">
+                          <label htmlFor="isExternalCheck" className="font-bold text-xs text-gray-800 dark:text-gray-200 cursor-pointer select-none">
+                            Trabajo fuera de la plataforma (Calificación manual)
+                          </label>
+                          <span className="text-[11px] text-muted leading-tight">
+                            Si se activa, los estudiantes no tendrán que entregar archivos ni responder cuestionarios. La calificación la registrarás tú directamente.
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Checkbox: allowLateSubmission */}
+                      <div className="border border-gray-200 dark:border-gray-750 rounded-xl p-3 bg-white dark:bg-gray-800/60 flex flex-col gap-2">
+                        <div className="flex items-center gap-3">
+                          <input
+                            id="allowLateCheck"
+                            type="checkbox"
+                            checked={newTaskAllowLateSubmission}
+                            onChange={e => setNewTaskAllowLateSubmission(e.target.checked)}
+                            className="w-4 h-4 rounded text-[#f97316] focus:ring-[#f97316] cursor-pointer"
+                          />
+                          <label htmlFor="allowLateCheck" className="font-bold text-xs text-gray-800 dark:text-gray-200 cursor-pointer select-none">
+                            Permitir entregas tardías (Prórroga)
+                          </label>
+                        </div>
+
+                        {newTaskAllowLateSubmission && (
+                          <div className="mt-2 pl-7 flex flex-col gap-1 animate-fade-in">
+                            <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300">
+                              Fecha y hora límite de prórroga (Opcional):
+                            </label>
+                            <input
+                              type="datetime-local"
+                              value={newTaskLateSubmissionUntil}
+                              onChange={e => setNewTaskLateSubmissionUntil(e.target.value)}
+                              className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#f97316]"
+                            />
+                            <span className="text-[10px] text-muted">
+                              * Si se deja vacío, la prórroga será sin fecha límite de expiración.
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Description */}
+                <div className="input-group">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                    {addModal.type === "SER" ? "Descripción (Opcional)" : (addModal.type === "EXAM" && selectedSaberSubtype === "EXAM") ? "Descripción del Examen" : "Descripción / Instrucciones de la Tarea"}
+                  </label>
+                  <textarea
+                    placeholder={addModal.type === "SER" ? "Ej. Criterios de evaluación actitudinal..." : "Escribe las instrucciones aquí..."}
+                    value={newTaskDescription}
+                    onChange={e => setNewTaskDescription(e.target.value)}
+                    className="w-full text-xs font-semibold py-2.5 px-3 border border-gray-300 dark:border-gray-750 rounded-xl outline-none focus:ring-2 focus:ring-[#f97316]"
+                    rows={3}
+                  />
+                </div>
+
+                {/* External URL */}
+                <div className="input-group">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                    {newTaskIsExternal ? "Enlace del Examen Externo (Google Forms, Microsoft Forms, Quizizz, etc.) *" : "Enlace Externo (Opcional, ej. YouTube, lectura web)"}
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="Ej. https://docs.google.com/forms/d/e/.../viewform"
+                    value={newTaskExternalUrl}
+                    onChange={e => setNewTaskExternalUrl(e.target.value)}
+                    className="input-field w-full text-xs font-semibold py-2.5 px-3 border border-gray-300 dark:border-gray-750 rounded-xl outline-none focus:ring-2 focus:ring-[#f97316]"
+                    required={newTaskIsExternal}
+                  />
+                </div>
+
+                {/* File Upload / Attachment */}
+                <div className="input-group">
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
+                      Archivo Adjunto / Guía de Apoyo (Opcional)
+                    </label>
+                    {existingAttachmentUrl && !removeExistingAttachment && (
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={existingAttachmentUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] font-bold text-[#f97316] hover:underline flex items-center gap-1"
+                        >
+                          Ver archivo
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRemoveExistingAttachment(true);
+                            setNewTaskFile(null);
+                          }}
+                          className="text-[11px] font-bold text-red-500 hover:underline flex items-center gap-0.5"
+                        >
+                          <Trash2 size={11} /> Eliminar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {existingAttachmentUrl && !removeExistingAttachment && (
+                    <div className="text-[11px] text-gray-500 dark:text-gray-400 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900 rounded-xl p-2.5 mb-2 flex items-center gap-1.5">
+                      <span>📎 Guía adjunta actual</span>
+                    </div>
+                  )}
+
+                  {newTaskFile && (
+                    <div className="text-[11px] text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl p-2.5 mb-2 flex items-center justify-between">
+                      <span className="font-semibold">Nuevo archivo: {newTaskFile.name} ({(newTaskFile.size / 1024).toFixed(0)} KB)</span>
+                      <button
+                        type="button"
+                        onClick={() => setNewTaskFile(null)}
+                        className="text-red-500 hover:text-red-700 ml-2"
+                      >
+                        <X size={13} />
+                      </button>
+                    </div>
+                  )}
+
+                  <div
+                    className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl p-4 text-center hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors cursor-pointer relative"
+                    onClick={() => document.getElementById("modal-file-upload")?.click()}
+                  >
+                    <input
+                      id="modal-file-upload"
+                      type="file"
+                      className="hidden"
+                      onChange={e => {
+                        const f = e.target.files?.[0] || null;
+                        setNewTaskFile(f);
+                        if (f) setRemoveExistingAttachment(false);
+                      }}
+                    />
+                    <svg className="mx-auto h-8 w-8 text-[#f97316] mb-2" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    <span className="text-xs font-bold text-gray-650 dark:text-gray-350 block">
+                      {newTaskFile ? "Cambiar archivo seleccionado..." : (existingAttachmentUrl && !removeExistingAttachment ? "Cambiar guía o archivo..." : "Selecciona una guía o archivo")}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Footer Buttons at Bottom of Form */}
+                <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 dark:border-gray-800">
                   <button
                     type="button"
-                    onClick={() => { setAddModal(null); setShowReusePicker(false); }}
-                    className="btn btn-secondary text-xs"
+                    onClick={() => { setAddModal(null); setEditTaskId(null); }}
+                    className="text-xs font-bold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 px-5 py-2.5 rounded-xl hover:bg-gray-50 transition-colors"
                   >
                     Cancelar
                   </button>
                   <button
                     type="button"
-                    onClick={handleCloneFromPicker}
-                    disabled={!selectedReuseTaskId || addingTask}
-                    className="btn btn-primary text-xs font-bold flex items-center gap-2"
+                    onClick={editTaskId ? handleEditTask : handleAddTask}
+                    disabled={addingTask || !newTaskName.trim() || newTaskGroupIds.length === 0}
+                    className="text-xs font-bold text-white bg-[#f97316] border border-[#ea580c] px-6 py-2.5 rounded-xl hover:bg-[#ea580c] transition-colors flex items-center justify-center gap-1.5 min-w-[150px] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                   >
-                    {addingTask ? <Loader2 size={14} className="animate-spin" /> : <Copy size={14} />}
-                    Clonar Actividad (Limpia)
+                    {addingTask ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin shrink-0" />
+                        <span>Guardando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save size={14} />
+                        <span>{editTaskId ? "Guardar Cambios" : (addModal.type === "EXAM" ? (selectedSaberSubtype === "EXAM" ? "Crear Examen" : "Crear Tarea (Saber)") : addModal.type === "TASK" ? "Crear Tarea" : addModal.type === "SER" ? "Crear Evaluación Actitudinal" : "Crear Evaluación")}</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
-            ) : (
-              <>
-                <div className="flex flex-col gap-4">
-              
-              {/* Row 1: Asignatura & Periodo */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="input-group">
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Asignatura *</label>
-                  <select className="w-full p-2.5 rounded-lg border border-gray-300 dark:border-gray-750 bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-450 cursor-not-allowed text-xs font-semibold" disabled>
-                    <option>{selectedCourse?.name || "Asignatura"}</option>
-                  </select>
-                </div>
-                <div className="input-group">
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Periodo *</label>
-                  <select className="w-full p-2.5 rounded-lg border border-gray-300 dark:border-gray-750 bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-450 cursor-not-allowed text-xs font-semibold" disabled>
-                    <option>{selectedPeriod}</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Subtipo de Dimensión Saber (Tarea vs Examen) */}
-              {addModal.type === "EXAM" && (
-                <div className="input-group">
-                  <label className="block text-xs font-bold text-purple-900 dark:text-purple-300 mb-1.5">
-                    Modalidad en El Saber (Cognitivo) *
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedSaberSubtype("TASK_SABER")}
-                      className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition-all ${
-                        selectedSaberSubtype === "TASK_SABER"
-                          ? "border-purple-500 bg-purple-50/90 dark:bg-purple-950/40 text-purple-900 dark:text-purple-200 ring-2 ring-purple-400/50 shadow-sm"
-                          : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/40 text-gray-700 dark:text-gray-300"
-                      }`}
-                    >
-                      <span className="font-extrabold text-xs flex items-center gap-1.5 text-purple-700 dark:text-purple-300">
-                        📝 Tarea / Taller (Saber)
-                      </span>
-                      <span className="text-[11px] text-muted leading-tight">
-                        Entrega de guías, talleres escritos, consultas o calificación manual.
-                      </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setSelectedSaberSubtype("EXAM")}
-                      className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition-all ${
-                        selectedSaberSubtype === "EXAM"
-                          ? "border-purple-500 bg-purple-50/90 dark:bg-purple-950/40 text-purple-900 dark:text-purple-200 ring-2 ring-purple-400/50 shadow-sm"
-                          : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/40 text-gray-700 dark:text-gray-300"
-                      }`}
-                    >
-                      <span className="font-extrabold text-xs flex items-center gap-1.5 text-purple-700 dark:text-purple-300">
-                        🧠 Examen en Línea (Saber)
-                      </span>
-                      <span className="text-[11px] text-muted leading-tight">
-                        Cuestionario interactivo con preguntas y tiempo límite en plataforma.
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Row 2: Título */}
-              <div className="input-group">
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                  {addModal.type === "SER"
-                    ? "Nombre de la Evaluación Actitudinal *"
-                    : addModal.type === "EXAM"
-                    ? (selectedSaberSubtype === "EXAM" ? "Título del Examen (Saber) *" : "Título de la Tarea (Saber) *")
-                    : addModal.type === "TASK"
-                    ? "Título de la Tarea (Hacer) *"
-                    : addModal.type === "FINAL"
-                    ? "Título del Examen Final *"
-                    : "Título de la Evaluación *"}
-                </label>
-                <input
-                  type="text"
-                  autoFocus
-                  placeholder={
-                    addModal.type === "SER"
-                      ? "Ej. Coevaluación, Autoevaluación"
-                      : addModal.type === "EXAM"
-                      ? (selectedSaberSubtype === "EXAM" ? "Ej. Examen de Cinética Química" : "Ej. Taller de Comprensión, Guía de Consulta...")
-                      : addModal.type === "TASK"
-                      ? "Ej. Taller Práctico, Maqueta, Ejercicios"
-                      : addModal.type === "FINAL"
-                      ? "Ej. Examen Final del Periodo"
-                      : "Ej. Asistencia Semana 1"
-                  }
-                  value={newTaskName}
-                  onChange={e => setNewTaskName(e.target.value)}
-                  className="input-field w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
-                  required
-                />
-              </div>
-
-              {/* Row 3: Porcentaje & Fecha */}
-              <div className={(addModal?.type === "FINAL" || (addModal?.type === "EXAM" && selectedSaberSubtype === "EXAM")) ? "grid grid-cols-3 gap-4" : "grid grid-cols-2 gap-4"}>
-                <div className="input-group">
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Porcentaje de la Nota (0-100) *
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={newTaskWeight}
-                    onChange={e => setNewTaskWeight(e.target.value)}
-                    className="input-field w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
-                    required
-                  />
-                </div>
-                <div className="input-group">
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    {addModal.type === "SER" ? "Fecha Límite (Opcional)" : `Fecha Límite de Entrega ${newTaskIsExternal ? "(Opcional)" : "*"}`}
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={newTaskDueDate}
-                    onChange={e => setNewTaskDueDate(e.target.value)}
-                    className="input-field w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
-                    required={addModal.type === "SER" ? false : !newTaskIsExternal}
-                  />
-                </div>
-                {(addModal?.type === "FINAL" || (addModal?.type === "EXAM" && selectedSaberSubtype === "EXAM")) && (
-                  <div className="input-group">
-                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                      Límite de Tiempo (minutos, opcional)
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      placeholder="Ej. 60"
-                      value={newTaskDuration}
-                      onChange={e => setNewTaskDuration(e.target.value)}
-                      className="input-field w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316] disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400 disabled:cursor-not-allowed"
-                      disabled={newTaskIsExternal}
-                    />
-                  </div>
-                )}
-              </div>
-
- {/* Row 4 & Checkboxes  hidden for SER */}
-              {addModal.type !== "SER" && (
-                <>
-                  {/* Row 4: Programar Publicación Automática */}
-                  <div className="input-group">
-                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                      Programar Publicación Automática (Fecha y Hora - Opcional)
-                    </label>
-                    <input
-                      type="datetime-local"
-                      value={newTaskPublishAt}
-                      onChange={e => setNewTaskPublishAt(e.target.value)}
-                      className="input-field w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
-                    />
-                    <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 block">
-                      Dejar vacío para publicar inmediatamente. Si se define, la tarea se publicará automáticamente al llegar el momento.
-                    </span>
-                  </div>
-
-                  {/* Checkboxes structured in styled containers */}
-                  <div className="flex flex-col gap-3">
-                    {/* Checkbox 1: isExternal */}
-                    <div className="border border-gray-300 dark:border-gray-750 rounded-lg p-3 bg-white dark:bg-gray-900 flex items-start gap-3">
-                      <input
-                        id="isExternalCheck"
-                        type="checkbox"
-                        checked={newTaskIsExternal}
-                        onChange={e => setNewTaskIsExternal(e.target.checked)}
-                        className="w-4 h-4 rounded text-[#f97316] focus:ring-[#f97316] mt-0.5 cursor-pointer"
-                      />
-                      <div className="flex flex-col gap-0.5">
-                        <label htmlFor="isExternalCheck" className="font-bold text-xs text-gray-800 dark:text-gray-200 cursor-pointer select-none">
-                          Trabajo fuera de la plataforma (Calificación manual)
-                        </label>
-                        <span className="text-[10px] text-gray-400 dark:text-gray-500 leading-tight">
-                          Si se activa, los estudiantes no tendrán que entregar archivos ni responder cuestionarios. La calificación la registrarás tú directamente.
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Checkbox 2: allowLateSubmission */}
-                    <div className="border border-gray-300 dark:border-gray-750 rounded-lg p-3 bg-white dark:bg-gray-900 flex flex-col gap-2">
-                      <div className="flex items-center gap-3">
-                        <input
-                          id="allowLateCheck"
-                          type="checkbox"
-                          checked={newTaskAllowLateSubmission}
-                          onChange={e => setNewTaskAllowLateSubmission(e.target.checked)}
-                          className="w-4 h-4 rounded text-[#f97316] focus:ring-[#f97316] cursor-pointer"
-                        />
-                        <label htmlFor="allowLateCheck" className="font-bold text-xs text-gray-800 dark:text-gray-200 cursor-pointer select-none">
-                          Permitir entregas tardías (Prórroga)
-                        </label>
-                      </div>
-
-                      {newTaskAllowLateSubmission && (
-                        <div className="mt-2 pl-7 flex flex-col gap-1 animate-fade-in">
-                          <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300">
-                            Fecha y hora límite de prórroga (Opcional):
-                          </label>
-                          <input
-                            type="datetime-local"
-                            value={newTaskLateSubmissionUntil}
-                            onChange={e => setNewTaskLateSubmissionUntil(e.target.value)}
-                            className="w-full px-3 py-1.5 text-xs rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#f97316]"
-                          />
-                          <span className="text-[10px] text-gray-400 dark:text-gray-500">
-                            * Si se deja vacío, la prórroga será sin fecha límite de expiración.
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* Course Groups Assignment Checkboxes */}
-              {groups.length > 0 && (
-                <div className="input-group">
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                    Asignar a Grupos (Múltiple) *
-                  </label>
-                  <div className="flex flex-col gap-2 p-3 bg-slate-50 dark:bg-slate-800/20 border border-gray-200 dark:border-gray-800 rounded-lg">
-                    {groups.map(g => {
-                      const label = g.grade?.name ? `${g.grade.name} — ${g.name}` : g.name;
-                      const isChecked = newTaskGroupIds.includes(g.id);
-                      return (
-                        <label key={g.id} className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none text-gray-700 dark:text-gray-300">
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => {
-                              if (isChecked) {
-                                setNewTaskGroupIds(prev => prev.filter(id => id !== g.id));
-                              } else {
-                                setNewTaskGroupIds(prev => [...prev, g.id]);
-                              }
-                            }}
-                            className="rounded text-[#f97316] focus:ring-[#f97316] w-4 h-4"
-                          />
-                          <span>{label}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Asignación a Estudiantes Específicos (Opcional) */}
-              <div className="input-group">
-                <div className="flex justify-between items-center mb-1">
-                  <label className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                    <span>Asignar a Estudiantes Específicos</span>
-                    <span className="text-[10px] font-normal text-muted">(Opcional: asignación individual)</span>
-                  </label>
-                  {newTaskStudentIds.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setNewTaskStudentIds([])}
-                      className="text-[11px] font-bold text-red-500 hover:underline"
-                    >
-                      Limpiar ({newTaskStudentIds.length} seleccionados)
-                    </button>
-                  )}
-                </div>
-                <input
-                  type="text"
-                  className="input-field mb-2 text-xs py-1.5 px-3 border rounded-lg w-full"
-                  placeholder="Buscar estudiante por nombre o grupo..."
-                  value={studentSearch}
-                  onChange={(e) => setStudentSearch(e.target.value)}
-                />
-                <div className="border rounded-lg p-2.5 flex-1 min-h-[220px] max-h-[420px] overflow-y-auto flex flex-col gap-1.5 bg-slate-50 dark:bg-slate-900 border-gray-200 dark:border-gray-800">
-                  {newTaskGroupIds.length === 0 ? (
-                    <p className="text-[11px] text-muted text-center py-2">
-                      Selecciona al menos un grupo arriba para ver y asignar estudiantes.
-                    </p>
-                  ) : (() => {
-                    const filteredStudents = allCourseStudents.filter(s => {
-                      const belongsToSelectedGroup = (s.groupId && newTaskGroupIds.includes(s.groupId)) || (s.group?.id && newTaskGroupIds.includes(s.group.id));
-                      if (!belongsToSelectedGroup) return false;
-                      if (!studentSearch) return true;
-                      const q = studentSearch.toLowerCase().trim();
-                      return s.name.toLowerCase().includes(q) || (s.groupName && s.groupName.toLowerCase().includes(q));
-                    });
-
-                    if (filteredStudents.length === 0) {
-                      return (
-                        <p className="text-[11px] text-muted text-center py-2">
-                          No se encontraron estudiantes {studentSearch ? "con esa búsqueda" : "en los grupos seleccionados"}.
-                        </p>
-                      );
-                    }
-
-                    return filteredStudents.map(s => {
-                      const isChecked = newTaskStudentIds.includes(s.id);
-                      return (
-                        <label key={s.id} className="flex items-center justify-between gap-2 text-xs cursor-pointer hover:text-primary py-0.5 select-none">
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() => {
-                                setNewTaskStudentIds(prev =>
-                                  isChecked ? prev.filter(id => id !== s.id) : [...prev, s.id]
-                                );
-                              }}
-                              className="rounded text-[#f97316] focus:ring-[#f97316] w-3.5 h-3.5"
-                            />
-                            <span className="font-semibold text-gray-800 dark:text-gray-200">{s.name}</span>
-                          </div>
-                          {s.groupName && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-medium">
-                              {s.groupName}
-                            </span>
-                          )}
-                        </label>
-                      );
-                    });
-                  })()}
-                </div>
-              </div>
-
-              {/* Description */}
-              <div className="input-group">
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                  {addModal.type === "SER" ? "Descripción (Opcional)" : (addModal.type === "EXAM" && selectedSaberSubtype === "EXAM") ? "Descripción del Examen" : "Descripción / Instrucciones de la Tarea"}
-                </label>
-                <textarea
-                  placeholder={addModal.type === "SER" ? "Ej. Criterios de evaluación actitudinal..." : "Escribe las instrucciones aquí..."}
-                  value={newTaskDescription}
-                  onChange={e => setNewTaskDescription(e.target.value)}
-                  className="w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
-                  rows={4}
-                />
-              </div>
-
-              {/* Task Additions: Enlace Externo & Archivo Adjunto */}
-              {(addModal.type === "TASK" || (addModal.type === "EXAM" && selectedSaberSubtype === "TASK_SABER")) && (
-                <>
-                  {/* Enlace Externo */}
-                  <div className="input-group">
-                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                      Enlace Externo (Opcional, ej. YouTube, lectura web)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Ej. https://www.youtube.com/watch?v=..."
-                      value={newTaskExternalUrl}
-                      onChange={e => setNewTaskExternalUrl(e.target.value)}
-                      className="w-full text-xs font-semibold py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-[#f97316]"
-                    />
-                  </div>
-
-                  {/* Archivo Adjunto */}
-                  <div className="input-group">
-                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                      Archivo Adjunto / Guía de Apoyo (Opcional)
-                    </label>
-                    {existingAttachmentUrl && !newTaskFile && !removeExistingAttachment && (
-                      <div className="flex items-center justify-between p-2.5 mb-2 rounded-lg bg-orange-50/50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 text-xs">
-                        <span className="font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-1.5 truncate">
-                          📎 Guía adjunta actual
-                        </span>
-                        <div className="flex items-center gap-3 shrink-0">
-                          <a
-                            href={existingAttachmentUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-[#f97316] hover:underline font-bold"
-                          >
-                            Ver archivo
-                          </a>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setRemoveExistingAttachment(true);
-                            }}
-                            className="text-red-600 dark:text-red-400 hover:text-red-700 hover:underline font-bold flex items-center gap-1 cursor-pointer"
-                            title="Eliminar guía adjunta"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            Eliminar
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                    {existingAttachmentUrl && !newTaskFile && removeExistingAttachment && (
-                      <div className="flex items-center justify-between p-2.5 mb-2 rounded-lg bg-red-50/70 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-xs text-red-600 dark:text-red-400">
-                        <span className="font-medium flex items-center gap-1.5">
-                          🗑️ Guía marcada para eliminar al guardar
-                        </span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setRemoveExistingAttachment(false);
-                          }}
-                          className="text-gray-600 dark:text-gray-300 hover:underline font-bold ml-2 text-xs cursor-pointer"
-                        >
-                          Deshacer
-                        </button>
-                      </div>
-                    )}
-                    {newTaskFile && (
-                      <div className="flex items-center justify-between p-2.5 mb-2 rounded-lg bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-xs text-blue-700 dark:text-blue-300">
-                        <span className="font-semibold flex items-center gap-1.5 truncate">
-                          📄 {newTaskFile.name}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setNewTaskFile(null);
-                            const fileInput = document.getElementById("modal-file-upload") as HTMLInputElement | null;
-                            if (fileInput) fileInput.value = "";
-                          }}
-                          className="text-red-500 hover:text-red-700 hover:underline font-bold text-xs shrink-0 ml-2 cursor-pointer"
-                        >
-                          Quitar
-                        </button>
-                      </div>
-                    )}
-                    <div 
-                      className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-4 text-center hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors cursor-pointer relative"
-                      onClick={() => document.getElementById("modal-file-upload")?.click()}
-                    >
-                      <input
-                        id="modal-file-upload"
-                        type="file"
-                        className="hidden"
-                        onChange={e => {
-                          const f = e.target.files?.[0] || null;
-                          setNewTaskFile(f);
-                          if (f) setRemoveExistingAttachment(false);
-                        }}
-                      />
-                      <svg className="mx-auto h-8 w-8 text-[#f97316] mb-2" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                      </svg>
-                      <span className="text-xs font-bold text-gray-650 dark:text-gray-350 block">
-                        {newTaskFile ? "Cambiar archivo seleccionado..." : (existingAttachmentUrl && !removeExistingAttachment ? "Cambiar guía o archivo..." : "Selecciona una guía o archivo")}
-                      </span>
-                    </div>
-                  </div>
-                </>
+              </>
               )}
 
             </div>
-            {/* Footer Buttons */}
-            <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-800 shrink-0">
-              <button onClick={() => { setAddModal(null); setEditTaskId(null); }} className="text-xs font-bold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">
-                Cancelar
-              </button>
-              <button
-                onClick={editTaskId ? handleEditTask : handleAddTask}
-                disabled={addingTask || !newTaskName.trim() || newTaskGroupIds.length === 0}
-                className="text-xs font-bold text-white bg-[#f97316] border border-[#ea580c] px-4 py-2 rounded-lg hover:bg-[#ea580c] transition-colors flex items-center justify-center gap-1.5 min-w-[140px] disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {addingTask ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin shrink-0" />
-                    <span>Guardando...</span>
-                  </>
-                ) : (
-                  <>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                    <span>{editTaskId ? "Guardar Cambios" : (addModal.type === "EXAM" ? (selectedSaberSubtype === "EXAM" ? "Crear Examen" : "Crear Tarea (Saber)") : addModal.type === "TASK" ? "Crear Tarea" : addModal.type === "SER" ? "Crear Evaluación Actitudinal" : "Crear Evaluación")}</span>
-                  </>
-                )}
-              </button>
-            </div>
-            </>
-            )}
-
-            </div>
-          </div>
+          </main>
         </div>
       )}
 
