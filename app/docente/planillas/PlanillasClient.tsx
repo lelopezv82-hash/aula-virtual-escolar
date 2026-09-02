@@ -4160,8 +4160,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           </header>
 
           {/* Full Page Scrollable Body */}
-          <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-100 dark:bg-gray-950">
-            <div className="max-w-4xl mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-6 md:p-8 flex flex-col gap-6">
+          <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-100 dark:bg-gray-950">
+            <div className="w-full max-w-[1600px] mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-6 md:p-8 flex flex-col gap-6">
               
               {!editTaskId && addModal.type !== "SER" && (
                 <div className="flex items-center gap-2 p-1.5 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-gray-750">
@@ -4465,7 +4465,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                           {newTaskGroupIds.length === (selectedCourse?.groups?.length || 0) ? "Deseleccionar todos" : "Seleccionar todos"}
                         </button>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 border rounded-xl bg-slate-50 dark:bg-slate-900 border-gray-200 dark:border-gray-800">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 p-3 border rounded-xl bg-slate-50 dark:bg-slate-900 border-gray-200 dark:border-gray-800">
                         {(selectedCourse?.groups || []).map(g => {
                           const isChecked = newTaskGroupIds.includes(g.id);
                           return (
@@ -4533,7 +4533,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                         value={studentSearch}
                         onChange={(e) => setStudentSearch(e.target.value)}
                       />
-                      <div className="border rounded-xl p-3 min-h-[160px] max-h-[360px] overflow-y-auto bg-slate-50 dark:bg-slate-900 border-gray-200 dark:border-gray-800">
+                      <div className="border rounded-xl p-3 min-h-[160px] max-h-[460px] overflow-y-auto bg-slate-50 dark:bg-slate-900 border-gray-200 dark:border-gray-800">
                         {newTaskGroupIds.length === 0 ? (
                           <p className="text-[11px] text-muted text-center py-4">
                             Selecciona al menos un grupo arriba para ver y asignar estudiantes.
@@ -4556,7 +4556,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                           }
 
                           return (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
                               {filteredStudents.map(s => {
                                 const isChecked = newTaskStudentIds.includes(s.id);
                                 return (
