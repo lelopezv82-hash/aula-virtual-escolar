@@ -847,7 +847,19 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       setNewTaskWeight(t.weight != null ? String(t.weight) : "0");
       const taskGroupIds = (t.groups || []).map((g: any) => g.id);
       setNewTaskGroupIds(taskGroupIds);
-      setNewTaskStudentIds((t.assignedStudents || []).map((s: any) => s.id));
+      const initialAssignedIds = (t.assignedStudents || []).map((s: any) => s.id);
+      if (initialAssignedIds.length > 0) {
+        setNewTaskStudentIds(initialAssignedIds);
+      } else if (taskGroupIds.length > 0 && allCourseStudents.length > 0) {
+        // Auto-selección inteligente: si la actividad no tenía estudiantes asignados (ej. clonada),
+        // precargar a todos los estudiantes de los grupos seleccionados como presentes
+        const autoSelected = allCourseStudents
+          .filter(s => (s.groupId && taskGroupIds.includes(s.groupId)) || (s.group?.id && taskGroupIds.includes(s.group.id)))
+          .map(s => s.id);
+        setNewTaskStudentIds(autoSelected);
+      } else {
+        setNewTaskStudentIds([]);
+      }
       setStudentSearch("");
       if (selectedGroupId && taskGroupIds.includes(selectedGroupId)) {
         setModalActiveGroupFilter(selectedGroupId);
@@ -883,7 +895,18 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           .catch(() => {});
         fetch("/api/docente/estudiantes")
           .then(r => r.json())
-          .then(d => { if (d.students) setAllCourseStudents(d.students); })
+          .then(d => {
+            if (d.students) {
+              setAllCourseStudents(d.students);
+              // Si la actividad no tenía estudiantes asignados, auto-activar todos una vez cargada la lista
+              if (initialAssignedIds.length === 0 && taskGroupIds.length > 0) {
+                const autoSelected = d.students
+                  .filter((s: any) => (s.groupId && taskGroupIds.includes(s.groupId)) || (s.group?.id && taskGroupIds.includes(s.group.id)))
+                  .map((s: any) => s.id);
+                setNewTaskStudentIds(autoSelected);
+              }
+            }
+          })
           .catch(() => {});
       }
     } catch { alert("Error de conexión."); }
@@ -4486,7 +4509,9 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                             } else {
                               const allG = (selectedCourse?.groups || []).map(g => g.id);
                               setNewTaskGroupIds(allG);
-                              const allS = allCourseStudents.map(s => s.id);
+                              const allS = allCourseStudents
+                                .filter(s => (s.groupId && allG.includes(s.groupId)) || (s.group?.id && allG.includes(s.group.id)))
+                                .map(s => s.id);
                               setNewTaskStudentIds(allS);
                             }
                           }}
@@ -4504,14 +4529,23 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                                 type="checkbox"
                                 checked={isChecked}
                                 onChange={() => {
-                                  const updated = isChecked
-                                    ? newTaskGroupIds.filter(id => id !== g.id)
-                                    : [...newTaskGroupIds, g.id];
-                                  setNewTaskGroupIds(updated);
-                                  const currentActiveStudents = allCourseStudents
-                                    .filter(s => (s.groupId && updated.includes(s.groupId)) || (s.group?.id && updated.includes(s.group.id)))
-                                    .map(s => s.id);
-                                  setNewTaskStudentIds(currentActiveStudents);
+                                  if (!isChecked) {
+                                    const updated = [...newTaskGroupIds, g.id];
+                                    setNewTaskGroupIds(updated);
+                                    const newGroupStudents = allCourseStudents
+                                      .filter(s => (s.groupId && s.groupId === g.id) || (s.group?.id && s.group.id === g.id))
+                                      .map(s => s.id);
+                                    setNewTaskStudentIds(prev => Array.from(new Set([...prev, ...newGroupStudents])));
+                                  } else {
+                                    const updated = newTaskGroupIds.filter(id => id !== g.id);
+                                    setNewTaskGroupIds(updated);
+                                    const removedGroupStudents = new Set(
+                                      allCourseStudents
+                                        .filter(s => (s.groupId && s.groupId === g.id) || (s.group?.id && s.group.id === g.id))
+                                        .map(s => s.id)
+                                    );
+                                    setNewTaskStudentIds(prev => prev.filter(id => !removedGroupStudents.has(id)));
+                                  }
                                 }}
                                 className="rounded text-[#f97316] focus:ring-[#f97316] w-4 h-4"
                               />
@@ -4581,7 +4615,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                               <div className="flex items-center gap-1.5 mb-2 overflow-x-auto pb-1">
                                 <span className="text-[11px] font-bold text-gray-500 mr-1 shrink-0">Grupo a gestionar:</span>
                                 {newTaskGroupIds.map(gId => {
-                                  const gObj = (selectedCourse?.groups || []).find(g => g.id === gId);
+                                  const allAvailableGroups = courses.flatMap(c => c.groups || []);
+                                  const gObj = allAvailableGroups.find(g => g.id === gId) || (selectedCourse?.groups || []).find(g => g.id === gId);
                                   const label = gObj ? (gObj.grade?.name ? `${gObj.grade.name} - ${gObj.name}` : gObj.name) : gId;
                                   const isCurrent = effectiveGroupFilter === gId;
                                   const gStudents = allCourseStudents.filter(s => (s.groupId && s.groupId === gId) || (s.group?.id && s.group.id === gId));

@@ -74,6 +74,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         })
       : [];
 
+    // 3.1 Fetch all students belonging to the target groups for auto-attendance activation
+    const targetStudents = await prisma.user.findMany({
+      where: {
+        role: "STUDENT",
+        groupId: { in: targetGroupIds }
+      },
+      select: { id: true }
+    });
+
     // 4. Create cloned task
     const newTask = await prisma.task.create({
       data: {
@@ -94,6 +103,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         active: true,
         groups: {
           connect: targetGroupIds.map(id => ({ id }))
+        },
+        assignedStudents: {
+          connect: targetStudents.map(s => ({ id: s.id }))
         },
         resources: {
           connect: sourceTask.resources.map(r => ({ id: r.id }))
