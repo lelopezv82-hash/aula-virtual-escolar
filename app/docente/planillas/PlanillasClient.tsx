@@ -4101,13 +4101,17 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         </div>
       )}
 
-      {/* Add column modal styled exactly as requested */}
+      {/* Add column modal — full page panel */}
       {addModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4 animate-fade-in">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-2xl shadow-2xl animate-scale-in max-h-[90vh] overflow-y-auto flex flex-col gap-4">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 animate-fade-in flex">
+          <div
+            className="absolute inset-0"
+            onClick={() => { setAddModal(null); setEditTaskId(null); setShowReusePicker(false); }}
+          />
+          <div className="relative ml-auto w-full max-w-3xl h-full bg-white dark:bg-gray-900 shadow-2xl flex flex-col animate-slide-in-right overflow-hidden">
             
             {/* Header */}
-            <div className="flex justify-between items-center pb-2 border-b border-gray-200 dark:border-gray-800">
+            <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-gray-800 shrink-0">
               <h3 className="font-bold text-xl text-gray-900 dark:text-gray-100">
                 {editTaskId
                   ? (addModal.type === "EXAM" ? "Editar Examen" : addModal.type === "TASK" ? "Editar Tarea" : addModal.type === "SER" ? "Editar Evaluación Actitudinal" : "Editar Evaluación")
@@ -4117,6 +4121,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 <X size={24} />
               </button>
             </div>
+            <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-4">
 
             {!editTaskId && addModal.type !== "SER" && (
               <div className="flex items-center gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-gray-750">
@@ -4562,7 +4567,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                   value={studentSearch}
                   onChange={(e) => setStudentSearch(e.target.value)}
                 />
-                <div className="border rounded-lg p-2.5 max-h-[140px] overflow-y-auto flex flex-col gap-1.5 bg-slate-50 dark:bg-slate-900 border-gray-200 dark:border-gray-800">
+                <div className="border rounded-lg p-2.5 flex-1 min-h-[220px] max-h-[420px] overflow-y-auto flex flex-col gap-1.5 bg-slate-50 dark:bg-slate-900 border-gray-200 dark:border-gray-800">
                   {newTaskGroupIds.length === 0 ? (
                     <p className="text-[11px] text-muted text-center py-2">
                       Selecciona al menos un grupo arriba para ver y asignar estudiantes.
@@ -4743,8 +4748,9 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
             </div>
 
+            </div>
             {/* Footer Buttons */}
-            <div className="flex justify-end gap-3 pt-3 border-t border-gray-200 dark:border-gray-800">
+            <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-800 shrink-0">
               <button onClick={() => { setAddModal(null); setEditTaskId(null); }} className="text-xs font-bold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">
                 Cancelar
               </button>

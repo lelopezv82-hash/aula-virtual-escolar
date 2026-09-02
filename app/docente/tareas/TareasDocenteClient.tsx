@@ -1094,15 +1094,22 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
 
 
 
-      {/* Assign Specific Students Modal */}
+      {/* Assign Specific Students Panel — full page */}
       {assigningTask && typeof window !== "undefined" && createPortal(
         <div
-          className="modal-overlay"
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex animate-fade-in"
           onClick={e => e.target === e.currentTarget && setAssigningTask(null)}
         >
-          <div className="modal-content" style={{ maxWidth: "660px", maxHeight: "92vh", display: "flex", flexDirection: "column" }}>
-            {/* Modal header */}
-            <div className="flex justify-between items-start mb-3" style={{ flexShrink: 0 }}>
+          <div
+            className="absolute inset-0"
+            onClick={() => setAssigningTask(null)}
+          />
+          <div
+            className="relative ml-auto w-full max-w-2xl h-full bg-white dark:bg-gray-900 shadow-2xl flex flex-col animate-slide-in-right overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Panel header */}
+            <div className="flex justify-between items-start px-6 py-5 border-b border-gray-200 dark:border-gray-800 shrink-0">
               <div>
                 <h2 className="text-xl font-bold flex items-center gap-2">
                   <Users size={22} className="text-blue-600" />
@@ -1116,66 +1123,67 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                   </div>
                 </div>
               </div>
-              <button onClick={() => setAssigningTask(null)} className="p-1 rounded-lg hover:bg-gray-100 flex-shrink-0">
+              <button onClick={() => setAssigningTask(null)} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex-shrink-0 ml-4">
                 <X size={20} />
               </button>
             </div>
 
-            {assignError && <div className="alert alert-danger mb-3">{assignError}</div>}
-            {assignSaved && (
-              <div className="alert alert-success mb-3 flex items-center gap-2">
-                <CheckCircle size={16} /> Asignaciones y activación de estudiantes guardadas correctamente.
-              </div>
-            )}
-
-            {/* Search and selection toolbar */}
-            <div className="flex flex-col gap-2 mb-3" style={{ flexShrink: 0 }}>
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-                  <input
-                    type="text"
-                    placeholder="Buscar estudiante por nombre o grupo..."
-                    value={assignSearch}
-                    onChange={e => setAssignSearch(e.target.value)}
-                    className="input-field pl-8 text-sm py-1.5"
-                  />
+            {/* Scrollable body */}
+            <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-3">
+              {assignError && <div className="alert alert-danger">{assignError}</div>}
+              {assignSaved && (
+                <div className="alert alert-success flex items-center gap-2">
+                  <CheckCircle size={16} /> Asignaciones y activación de estudiantes guardadas correctamente.
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const allIds = availableStudents.map(s => s.id);
-                    setAssignedStudentIds(allIds);
-                  }}
-                  className="btn btn-secondary text-xs whitespace-nowrap py-1.5 font-bold"
-                >
-                  Activar Todos ({availableStudents.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAssignedStudentIds([]);
-                  }}
-                  className="btn btn-secondary text-xs whitespace-nowrap py-1.5 text-red-600 hover:text-red-700 font-bold"
-                >
-                  Desactivar Todos
-                </button>
-              </div>
+              )}
 
-              <div className="flex justify-between items-center text-xs text-muted px-1">
-                <span>
-                  <strong className="text-blue-600">{assignedStudentIds.length}</strong> de <strong>{availableStudents.length}</strong> estudiantes activados (presentes)
-                </span>
-                {availableStudents.length - assignedStudentIds.length > 0 && assignedStudentIds.length > 0 && (
-                  <span className="text-amber-700 dark:text-amber-400 font-semibold">
-                    {availableStudents.length - assignedStudentIds.length} estudiante(s) quedarán cerrados con nota 1.0 (ausentes)
+              {/* Search and selection toolbar */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+                    <input
+                      type="text"
+                      placeholder="Buscar estudiante por nombre o grupo..."
+                      value={assignSearch}
+                      onChange={e => setAssignSearch(e.target.value)}
+                      className="input-field pl-8 text-sm py-1.5"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const allIds = availableStudents.map(s => s.id);
+                      setAssignedStudentIds(allIds);
+                    }}
+                    className="btn btn-secondary text-xs whitespace-nowrap py-1.5 font-bold"
+                  >
+                    Activar Todos ({availableStudents.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAssignedStudentIds([]);
+                    }}
+                    className="btn btn-secondary text-xs whitespace-nowrap py-1.5 text-red-600 hover:text-red-700 font-bold"
+                  >
+                    Desactivar Todos
+                  </button>
+                </div>
+
+                <div className="flex justify-between items-center text-xs text-muted px-1">
+                  <span>
+                    <strong className="text-blue-600">{assignedStudentIds.length}</strong> de <strong>{availableStudents.length}</strong> estudiantes activados (presentes)
                   </span>
-                )}
+                  {availableStudents.length - assignedStudentIds.length > 0 && assignedStudentIds.length > 0 && (
+                    <span className="text-amber-700 dark:text-amber-400 font-semibold">
+                      {availableStudents.length - assignedStudentIds.length} estudiante(s) quedarán cerrados con nota 1.0 (ausentes)
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
 
-            {/* Students list */}
-            <div style={{ overflowY: "auto", flex: 1, paddingRight: "2px" }}>
+              {/* Students list */}
               {loadingAssign ? (
                 <div className="flex justify-center py-10">
                   <Loader2 className="animate-spin text-blue-600" size={32} />
@@ -1253,8 +1261,8 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
               )}
             </div>
 
-            {/* Modal footer */}
-            <div className="flex items-center justify-between border-t pt-4 mt-4" style={{ borderColor: "var(--border-color)", flexShrink: 0 }}>
+            {/* Panel footer */}
+            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 dark:border-gray-800 shrink-0">
               <div className="text-xs text-muted">
                 {assignedStudentIds.length} estudiante(s) activado(s)
               </div>
