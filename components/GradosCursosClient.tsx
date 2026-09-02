@@ -1051,8 +1051,8 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
           </header>
 
           {/* Full Page Content */}
-          <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-100 dark:bg-gray-950">
-            <div className="max-w-6xl mx-auto flex flex-col gap-5">
+          <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-100 dark:bg-gray-950">
+            <div className="w-full flex flex-col gap-5">
               {selectedStudents.length > 0 && !showCreateStudentInGroupModal && (
                 <div className="flex justify-between items-center bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/30 text-red-800 dark:text-red-300 p-4 rounded-2xl shadow-sm">
                   <span className="font-bold text-sm">{selectedStudents.length} estudiante(s) seleccionado(s)</span>
@@ -1228,10 +1228,17 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                       </div>
                     ) : (
                       <div className="border rounded-2xl overflow-hidden" style={{ borderColor: "var(--border-color)", overflowX: "auto" }}>
-                        <table className="w-full text-left border-collapse" style={{ minWidth: "600px" }}>
+                        <table className="w-full text-left border-collapse table-fixed">
+                          <colgroup>
+                            <col style={{ width: "40px" }} />
+                            <col style={{ width: "35%" }} />
+                            <col style={{ width: "28%" }} />
+                            <col style={{ width: "25%" }} />
+                            <col style={{ width: "110px" }} />
+                          </colgroup>
                           <thead>
                             <tr className="bg-gray-50 dark:bg-gray-900/60 text-xs font-bold text-muted border-b" style={{ borderColor: "var(--border-color)" }}>
-                              <th className="p-3.5 w-10 text-center">
+                              <th className="p-3 text-center">
                                 <input 
                                   type="checkbox"
                                   checked={students.length > 0 && selectedStudents.length === students.length}
@@ -1242,16 +1249,16 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                                   className="rounded border-gray-300 text-[#f98012] focus:ring-[#f98012] cursor-pointer"
                                 />
                               </th>
-                              <th className="p-3.5" style={{ paddingLeft: "8px" }}>Nombre</th>
-                              <th className="p-3.5">Usuario</th>
-                              <th className="p-3.5">Contraseña</th>
-                              <th className="p-3.5 text-center">Acciones</th>
+                              <th className="p-3 pl-2">Nombre</th>
+                              <th className="p-3">Usuario</th>
+                              <th className="p-3">Contraseña</th>
+                              <th className="p-3 text-center">Acciones</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y text-sm" style={{ borderColor: "var(--border-color)" }}>
                             {students.map((student) => (
                               <tr key={student.id} className={`hover:bg-gray-50/55 dark:hover:bg-gray-900/20 ${selectedStudents.includes(student.id) ? 'bg-orange-50/30 dark:bg-orange-900/10' : ''}`}>
-                                <td className="p-3.5 text-center">
+                                <td className="p-3 text-center">
                                   <input 
                                     type="checkbox"
                                     checked={selectedStudents.includes(student.id)}
@@ -1262,9 +1269,9 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                                     className="rounded border-gray-300 text-[#f98012] focus:ring-[#f98012] cursor-pointer"
                                   />
                                 </td>
-                                <td className="p-3.5 font-bold" style={{ paddingLeft: "8px" }}>{student.name}</td>
-                                <td className="p-3.5 font-mono text-xs text-muted">{student.username}</td>
-                                <td className="p-3.5 font-mono text-xs">
+                                <td className="p-3 pl-2 font-bold truncate">{student.name}</td>
+                                <td className="p-3 font-mono text-xs text-muted truncate">{student.username}</td>
+                                <td className="p-3 font-mono text-xs">
                                   <div className="flex items-center gap-2">
                                     <span>
                                       {visiblePasswords[student.id] 
@@ -1281,7 +1288,7 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
                                     </button>
                                   </div>
                                 </td>
-                                <td className="p-3.5 text-center">
+                                <td className="p-3 text-center">
                                   <div className="flex items-center justify-center gap-1">
                                     <button
                                       onClick={() => {
