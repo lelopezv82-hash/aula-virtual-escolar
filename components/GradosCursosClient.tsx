@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, Suspense } from "react";
+import { createPortal } from "react-dom";
 import { useSearchParams } from "next/navigation";
 import { Plus, Trash2, Layers, Users, Loader2, Save, X, Copy, Check, UserPlus, Eye, EyeOff, Edit2, FileSpreadsheet, Upload, Key, ArrowLeft } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
@@ -985,8 +986,8 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
       )}
 
       {/* Students in Group Full-Screen View */}
-      {showStudentListModal && selectedGroupForStudents && parentGradeOfSelectedGroup && (
-        <div className="fixed inset-0 z-[100] bg-slate-100 dark:bg-gray-950 flex flex-col w-screen h-screen overflow-hidden animate-fade-in">
+      {showStudentListModal && selectedGroupForStudents && parentGradeOfSelectedGroup && typeof window !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[9999] bg-slate-100 dark:bg-gray-950 flex flex-col w-screen h-screen overflow-hidden animate-fade-in">
           {/* Top Navigation Bar */}
           <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-3.5 flex items-center justify-between shrink-0 shadow-sm z-10">
             <div className="flex items-center gap-3">
@@ -1352,7 +1353,8 @@ export default function GradosCursosClient({ role }: GradosCursosClientProps) {
               </div>
             </div>
           </main>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Edit Grade Modal */}

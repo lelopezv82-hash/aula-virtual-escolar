@@ -1281,16 +1281,13 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                               </div>
                             </div>
 
-                            <div className="flex flex-col items-end gap-1 shrink-0">
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold">
-                                {groupLabel}
-                              </span>
+                            <div className="shrink-0">
                               {isChecked ? (
-                                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold flex items-center gap-0.5">
+                                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold flex items-center gap-0.5 bg-blue-100 dark:bg-blue-900/40 px-2 py-0.5 rounded-full">
                                   <UserCheck size={12} /> Presente
                                 </span>
                               ) : (
-                                <span className="text-[10px] text-red-600 dark:text-red-400 font-medium">
+                                <span className="text-[10px] text-red-600 dark:text-red-400 font-semibold bg-red-50 dark:bg-red-950/40 px-2 py-0.5 rounded-full">
                                   Ausente (1.0)
                                 </span>
                               )}

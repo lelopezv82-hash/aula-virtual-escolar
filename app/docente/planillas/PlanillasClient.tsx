@@ -4102,8 +4102,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       )}
 
       {/* Add / Edit Task Full-Page View */}
-      {addModal && (
-        <div className="fixed inset-0 z-[100] bg-slate-100 dark:bg-gray-950 flex flex-col w-screen h-screen overflow-hidden animate-fade-in">
+      {addModal && isMounted && typeof window !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[9999] bg-slate-100 dark:bg-gray-950 flex flex-col w-screen h-screen overflow-hidden animate-fade-in">
           {/* Top Navigation Bar */}
           <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-3.5 flex items-center justify-between shrink-0 shadow-sm z-10">
             <div className="flex items-center gap-3">
@@ -4562,30 +4562,23 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                                 return (
                                   <label
                                     key={s.id}
-                                    className={`flex items-center justify-between gap-2 text-xs cursor-pointer p-2.5 rounded-xl border transition-all select-none ${
+                                    className={`flex items-center gap-2.5 text-xs cursor-pointer p-2.5 rounded-xl border transition-all select-none ${
                                       isChecked
                                         ? "bg-blue-50/80 dark:bg-blue-950/30 border-blue-300 dark:border-blue-800 text-blue-900 dark:text-blue-200"
                                         : "bg-white dark:bg-gray-800/80 border-gray-200 dark:border-gray-750 text-gray-700 dark:text-gray-300 hover:border-gray-300"
                                     }`}
                                   >
-                                    <div className="flex items-center gap-2 min-w-0">
-                                      <input
-                                        type="checkbox"
-                                        checked={isChecked}
-                                        onChange={() => {
-                                          setNewTaskStudentIds(prev =>
-                                            isChecked ? prev.filter(id => id !== s.id) : [...prev, s.id]
-                                          );
-                                        }}
-                                        className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer shrink-0"
-                                      />
-                                      <span className="font-semibold truncate">{s.name}</span>
-                                    </div>
-                                    {s.groupName && (
-                                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-medium shrink-0">
-                                        {s.groupName}
-                                      </span>
-                                    )}
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={() => {
+                                        setNewTaskStudentIds(prev =>
+                                          isChecked ? prev.filter(id => id !== s.id) : [...prev, s.id]
+                                        );
+                                      }}
+                                      className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer shrink-0"
+                                    />
+                                    <span className="font-semibold truncate">{s.name}</span>
                                   </label>
                                 );
                               })}
@@ -4787,7 +4780,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
             </div>
           </main>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Custom Excel Synchronization Mapping Modal */}
