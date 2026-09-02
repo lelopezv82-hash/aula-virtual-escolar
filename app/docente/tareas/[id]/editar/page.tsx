@@ -37,6 +37,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
   const [allStudents, setAllStudents] = useState<{id: string, name: string, groupName?: string, grade?: string, groupId?: string, group?: any}[]>([]);
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [studentSearch, setStudentSearch] = useState("");
+  const [activeStudentGroupFilter, setActiveStudentGroupFilter] = useState<string>("all");
 
   useEffect(() => {
     if (!courseId) {
@@ -245,18 +246,61 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
           <div className="flex justify-between items-center mb-1">
             <label className="text-sm font-semibold flex items-center gap-1.5">
               <span>Estudiantes Específicos</span>
-              <span className="text-xs font-normal text-muted">(Opcional: asignación individual adicional)</span>
+              <span className="text-xs font-normal text-muted">(Control de asistencia por inasistencia)</span>
             </label>
             {selectedStudentIds.length > 0 && (
               <button
                 type="button"
                 onClick={() => setSelectedStudentIds([])}
-                className="text-xs text-red-500 hover:underline"
+                className="text-xs text-red-500 hover:underline cursor-pointer"
               >
                 Limpiar ({selectedStudentIds.length} seleccionados)
               </button>
             )}
           </div>
+
+          {groupIds.length > 1 && (
+            <div className="flex items-center gap-1.5 mb-2 overflow-x-auto pb-1">
+              <span className="text-xs font-bold text-gray-500 mr-1 shrink-0">Filtrar por grupo:</span>
+              {groupIds.map(gId => {
+                const gObj = gradeGroups.find(g => g.id === gId);
+                const isCurrent = activeStudentGroupFilter === gId;
+                const gStudents = allStudents.filter(s => (s.groupId && s.groupId === gId) || (s.group?.id && s.group.id === gId));
+                const gActive = gStudents.filter(s => selectedStudentIds.includes(s.id)).length;
+                return (
+                  <button
+                    key={gId}
+                    type="button"
+                    onClick={() => setActiveStudentGroupFilter(gId)}
+                    className={`text-xs px-2.5 py-1 rounded-lg font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                      isCurrent
+                        ? "bg-[#f98012] text-white shadow-xs"
+                        : "bg-slate-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-slate-200"
+                    }`}
+                  >
+                    <span>{gObj?.name || gId}</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-semibold ${
+                      isCurrent ? "bg-white/20 text-white" : "bg-gray-200 dark:bg-gray-700 text-gray-500"
+                    }`}>
+                      {gActive}/{gStudents.length}
+                    </span>
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                onClick={() => setActiveStudentGroupFilter("all")}
+                className={`text-xs px-2.5 py-1 rounded-lg font-bold transition-all shrink-0 cursor-pointer ${
+                  activeStudentGroupFilter === "all"
+                    ? "bg-[#f98012] text-white shadow-xs"
+                    : "bg-slate-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-slate-200"
+                }`}
+              >
+                Ver todos
+              </button>
+            </div>
+          )}
+
           <input
             type="text"
             className="input-field mb-2 text-sm py-1.5"
@@ -271,8 +315,10 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
               </p>
             ) : (() => {
               const filtered = allStudents.filter(s => {
-                const belongsToGroup = (s.groupId && groupIds.includes(s.groupId)) || (s.group?.id && groupIds.includes(s.group.id));
-                if (!belongsToGroup) return false;
+                const belongsToActiveGroup = activeStudentGroupFilter !== "all"
+                  ? ((s.groupId && s.groupId === activeStudentGroupFilter) || (s.group?.id && s.group.id === activeStudentGroupFilter))
+                  : ((s.groupId && groupIds.includes(s.groupId)) || (s.group?.id && groupIds.includes(s.group.id)));
+                if (!belongsToActiveGroup) return false;
                 if (!studentSearch) return true;
                 const q = studentSearch.toLowerCase().trim();
                 return s.name.toLowerCase().includes(q) || (s.groupName && s.groupName.toLowerCase().includes(q));

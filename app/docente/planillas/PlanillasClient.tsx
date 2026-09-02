@@ -216,6 +216,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [allCourseStudents, setAllCourseStudents] = useState<{ id: string; name: string; groupName?: string; grade?: string; groupId?: string; group?: any }[]>([]);
   const [newTaskStudentIds, setNewTaskStudentIds] = useState<string[]>([]);
   const [studentSearch, setStudentSearch] = useState("");
+  const [modalActiveGroupFilter, setModalActiveGroupFilter] = useState<string>("");
   const [newTaskName, setNewTaskName] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
   const [newTaskDueDate, setNewTaskDueDate] = useState("");
@@ -720,6 +721,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       setNewTaskStudentIds([]);
     }
     setStudentSearch("");
+    setModalActiveGroupFilter(selectedGroupId || (initialGroups[0] || "all"));
     setNewTaskSelectedThemes([]);
     setNewTaskPublishAt("");
     setNewTaskAllowLateSubmission(false);
@@ -843,9 +845,17 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       setNewTaskIsExternal(!!t.isExternal);
       setNewTaskDuration(t.duration ? String(t.duration) : "");
       setNewTaskWeight(t.weight != null ? String(t.weight) : "0");
-      setNewTaskGroupIds((t.groups || []).map((g: any) => g.id));
+      const taskGroupIds = (t.groups || []).map((g: any) => g.id);
+      setNewTaskGroupIds(taskGroupIds);
       setNewTaskStudentIds((t.assignedStudents || []).map((s: any) => s.id));
       setStudentSearch("");
+      if (selectedGroupId && taskGroupIds.includes(selectedGroupId)) {
+        setModalActiveGroupFilter(selectedGroupId);
+      } else if (taskGroupIds.length > 0) {
+        setModalActiveGroupFilter(taskGroupIds[0]);
+      } else {
+        setModalActiveGroupFilter("all");
+      }
       setNewTaskSelectedThemes(
         t.themes && t.themes.length > 0
           ? t.themes.map((th: any) => th.title)
@@ -4514,98 +4524,164 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
                     {/* Asignación de Estudiantes Específicos (Control de Asistencia) */}
                     <div className="input-group">
-                      <div className="flex justify-between items-center mb-1.5">
-                        <div>
-                          <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
-                            Activar Estudiantes (Control de Asistencia)
-                          </label>
-                          <span className="text-[11px] text-muted">
-                            {newTaskStudentIds.length} estudiante(s) activados. Los estudiantes desmarcados no podrán presentar la actividad y tendrán nota 1.0 por inasistencia.
-                          </span>
-                        </div>
-                        {newTaskGroupIds.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const availableForGroups = allCourseStudents
-                                .filter(s => (s.groupId && newTaskGroupIds.includes(s.groupId)) || (s.group?.id && newTaskGroupIds.includes(s.group.id)))
-                                .map(s => s.id);
-                              
-                              if (newTaskStudentIds.length === availableForGroups.length) {
-                                setNewTaskStudentIds([]);
-                              } else {
-                                setNewTaskStudentIds(availableForGroups);
-                              }
-                            }}
-                            className="text-[11px] font-bold text-[#f97316] hover:underline shrink-0"
-                          >
-                            {(() => {
-                              const availableCount = allCourseStudents.filter(s => (s.groupId && newTaskGroupIds.includes(s.groupId)) || (s.group?.id && newTaskGroupIds.includes(s.group.id))).length;
-                              return newTaskStudentIds.length === availableCount ? "Desactivar todos" : "Activar todos";
-                            })()}
-                          </button>
-                        )}
-                      </div>
-                      <input
-                        type="text"
-                        className="input-field mb-2 text-xs py-2 px-3 border rounded-xl w-full"
-                        placeholder="Buscar estudiante por nombre o grupo..."
-                        value={studentSearch}
-                        onChange={(e) => setStudentSearch(e.target.value)}
-                      />
-                      <div className="border rounded-xl p-3 min-h-[160px] max-h-[460px] overflow-y-auto bg-slate-50 dark:bg-slate-900 border-gray-200 dark:border-gray-800">
-                        {newTaskGroupIds.length === 0 ? (
-                          <p className="text-[11px] text-muted text-center py-4">
-                            Selecciona al menos un grupo arriba para ver y asignar estudiantes.
-                          </p>
-                        ) : (() => {
-                          const filteredStudents = allCourseStudents.filter(s => {
-                            const belongsToSelectedGroup = (s.groupId && newTaskGroupIds.includes(s.groupId)) || (s.group?.id && newTaskGroupIds.includes(s.group.id));
-                            if (!belongsToSelectedGroup) return false;
-                            if (!studentSearch) return true;
-                            const q = studentSearch.toLowerCase().trim();
-                            return s.name.toLowerCase().includes(q) || (s.groupName && s.groupName.toLowerCase().includes(q));
-                          });
+                      {(() => {
+                        const effectiveGroupFilter = (modalActiveGroupFilter && (modalActiveGroupFilter === "all" || newTaskGroupIds.includes(modalActiveGroupFilter)))
+                          ? modalActiveGroupFilter
+                          : (selectedGroupId && newTaskGroupIds.includes(selectedGroupId) ? selectedGroupId : (newTaskGroupIds[0] || "all"));
 
-                          if (filteredStudents.length === 0) {
-                            return (
-                              <p className="text-[11px] text-muted text-center py-4">
-                                No se encontraron estudiantes {studentSearch ? "con esa búsqueda" : "en los grupos seleccionados"}.
-                              </p>
-                            );
+                        const targetStudentsForActiveGroup = allCourseStudents.filter(s => {
+                          if (effectiveGroupFilter !== "all") {
+                            return (s.groupId && s.groupId === effectiveGroupFilter) || (s.group?.id && s.group.id === effectiveGroupFilter);
                           }
+                          return (s.groupId && newTaskGroupIds.includes(s.groupId)) || (s.group?.id && newTaskGroupIds.includes(s.group.id));
+                        });
 
-                          return (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
-                              {filteredStudents.map(s => {
-                                const isChecked = newTaskStudentIds.includes(s.id);
-                                return (
-                                  <label
-                                    key={s.id}
-                                    className={`flex items-center gap-2.5 text-xs cursor-pointer p-2.5 rounded-xl border transition-all select-none ${
-                                      isChecked
-                                        ? "bg-blue-50/80 dark:bg-blue-950/30 border-blue-300 dark:border-blue-800 text-blue-900 dark:text-blue-200"
-                                        : "bg-white dark:bg-gray-800/80 border-gray-200 dark:border-gray-750 text-gray-700 dark:text-gray-300 hover:border-gray-300"
-                                    }`}
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      checked={isChecked}
-                                      onChange={() => {
-                                        setNewTaskStudentIds(prev =>
-                                          isChecked ? prev.filter(id => id !== s.id) : [...prev, s.id]
-                                        );
-                                      }}
-                                      className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer shrink-0"
-                                    />
-                                    <span className="font-semibold truncate">{s.name}</span>
-                                  </label>
-                                );
-                              })}
+                        const targetStudentIds = targetStudentsForActiveGroup.map(s => s.id);
+                        const activeInTargetGroup = targetStudentIds.filter(id => newTaskStudentIds.includes(id));
+                        const allTargetActive = targetStudentIds.length > 0 && activeInTargetGroup.length === targetStudentIds.length;
+
+                        return (
+                          <>
+                            <div className="flex justify-between items-center mb-1.5">
+                              <div>
+                                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
+                                  Activar Estudiantes (Control de Asistencia)
+                                </label>
+                                {effectiveGroupFilter !== "all" ? (
+                                  <span className="text-[11px] text-muted">
+                                    <strong className="text-[#f97316] font-bold">{activeInTargetGroup.length}</strong> de <strong>{targetStudentsForActiveGroup.length}</strong> estudiante(s) activados en este curso/grupo. Los desmarcados tendrán nota 1.0 por inasistencia.
+                                  </span>
+                                ) : (
+                                  <span className="text-[11px] text-muted">
+                                    <strong className="text-[#f97316] font-bold">{newTaskStudentIds.length}</strong> estudiante(s) activados en total. Los desmarcados tendrán nota 1.0 por inasistencia.
+                                  </span>
+                                )}
+                              </div>
+                              {targetStudentIds.length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (allTargetActive) {
+                                      setNewTaskStudentIds(prev => prev.filter(id => !targetStudentIds.includes(id)));
+                                    } else {
+                                      setNewTaskStudentIds(prev => Array.from(new Set([...prev, ...targetStudentIds])));
+                                    }
+                                  }}
+                                  className="text-[11px] font-bold text-[#f97316] hover:underline shrink-0"
+                                >
+                                  {allTargetActive
+                                    ? (effectiveGroupFilter !== "all" ? "Desactivar este grupo" : "Desactivar todos")
+                                    : (effectiveGroupFilter !== "all" ? "Activar todos en este grupo" : "Activar todos")}
+                                </button>
+                              )}
                             </div>
-                          );
-                        })()}
-                      </div>
+
+                            {/* Selector de Grupo si la tarea incluye múltiples grupos */}
+                            {newTaskGroupIds.length > 1 && (
+                              <div className="flex items-center gap-1.5 mb-2 overflow-x-auto pb-1">
+                                <span className="text-[11px] font-bold text-gray-500 mr-1 shrink-0">Grupo a gestionar:</span>
+                                {newTaskGroupIds.map(gId => {
+                                  const gObj = (selectedCourse?.groups || []).find(g => g.id === gId);
+                                  const label = gObj ? (gObj.grade?.name ? `${gObj.grade.name} - ${gObj.name}` : gObj.name) : gId;
+                                  const isCurrent = effectiveGroupFilter === gId;
+                                  const gStudents = allCourseStudents.filter(s => (s.groupId && s.groupId === gId) || (s.group?.id && s.group.id === gId));
+                                  const gActiveCount = gStudents.filter(s => newTaskStudentIds.includes(s.id)).length;
+                                  return (
+                                    <button
+                                      key={gId}
+                                      type="button"
+                                      onClick={() => setModalActiveGroupFilter(gId)}
+                                      className={`text-xs px-2.5 py-1 rounded-lg font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                                        isCurrent
+                                          ? "bg-[#f97316] text-white shadow-xs"
+                                          : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100"
+                                      }`}
+                                    >
+                                      <span>{label}</span>
+                                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-semibold ${
+                                        isCurrent ? "bg-white/20 text-white" : "bg-gray-100 dark:bg-gray-700 text-gray-500"
+                                      }`}>
+                                        {gActiveCount}/{gStudents.length}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                                <button
+                                  type="button"
+                                  onClick={() => setModalActiveGroupFilter("all")}
+                                  className={`text-xs px-2.5 py-1 rounded-lg font-bold transition-all shrink-0 ${
+                                    effectiveGroupFilter === "all"
+                                      ? "bg-[#f97316] text-white shadow-xs"
+                                      : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100"
+                                  }`}
+                                >
+                                  Ver todos ({allCourseStudents.filter(s => (s.groupId && newTaskGroupIds.includes(s.groupId)) || (s.group?.id && newTaskGroupIds.includes(s.group.id))).length})
+                                </button>
+                              </div>
+                            )}
+
+                            <input
+                              type="text"
+                              className="input-field mb-2 text-xs py-2 px-3 border rounded-xl w-full"
+                              placeholder="Buscar estudiante por nombre o grupo..."
+                              value={studentSearch}
+                              onChange={(e) => setStudentSearch(e.target.value)}
+                            />
+
+                            <div className="border rounded-xl p-3 min-h-[160px] max-h-[460px] overflow-y-auto bg-slate-50 dark:bg-slate-900 border-gray-200 dark:border-gray-800">
+                              {newTaskGroupIds.length === 0 ? (
+                                <p className="text-[11px] text-muted text-center py-4">
+                                  Selecciona al menos un grupo arriba para ver y asignar estudiantes.
+                                </p>
+                              ) : (() => {
+                                const filteredStudents = targetStudentsForActiveGroup.filter(s => {
+                                  if (!studentSearch) return true;
+                                  const q = studentSearch.toLowerCase().trim();
+                                  return s.name.toLowerCase().includes(q) || (s.groupName && s.groupName.toLowerCase().includes(q));
+                                });
+
+                                if (filteredStudents.length === 0) {
+                                  return (
+                                    <p className="text-[11px] text-muted text-center py-4">
+                                      No se encontraron estudiantes {studentSearch ? "con esa búsqueda" : "en este grupo"}.
+                                    </p>
+                                  );
+                                }
+
+                                return (
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
+                                    {filteredStudents.map(s => {
+                                      const isChecked = newTaskStudentIds.includes(s.id);
+                                      return (
+                                        <label
+                                          key={s.id}
+                                          className={`flex items-center gap-2.5 text-xs cursor-pointer p-2.5 rounded-xl border transition-all select-none ${
+                                            isChecked
+                                              ? "bg-blue-50/80 dark:bg-blue-950/30 border-blue-300 dark:border-blue-800 text-blue-900 dark:text-blue-200"
+                                              : "bg-white dark:bg-gray-800/80 border-gray-200 dark:border-gray-750 text-gray-700 dark:text-gray-300 hover:border-gray-300"
+                                          }`}
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            checked={isChecked}
+                                            onChange={() => {
+                                              setNewTaskStudentIds(prev =>
+                                                isChecked ? prev.filter(id => id !== s.id) : [...prev, s.id]
+                                              );
+                                            }}
+                                            className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer shrink-0"
+                                          />
+                                          <span className="font-semibold truncate">{s.name}</span>
+                                        </label>
+                                      );
+                                    })}
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
 
                     {/* Checkboxes adicionales */}
