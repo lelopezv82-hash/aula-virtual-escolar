@@ -2741,30 +2741,47 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             </div>
 
             {/* Selection Quick Actions Toolbar */}
-            {selectedStudentIds.length > 0 && (
-              <div className="flex items-center gap-2 bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800/60 px-3 py-1.5 rounded-xl shadow-xs flex-wrap">
-                <span className="text-xs font-bold text-orange-800 dark:text-orange-300">
-                  Editando a: <strong>{gradingStudents.find(s => s.id === selectedStudentIds[0])?.name}</strong>
-                </span>
-                <span className="text-orange-300 dark:text-orange-700">|</span>
-                <button
-                  type="button"
-                  onClick={() => handleRemoveProrrogaSelected(selectedStudentIds)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 bg-white dark:bg-slate-800 border rounded-lg transition-colors shadow-2xs cursor-pointer"
-                  title="Quitar prórroga a este estudiante"
-                >
-                  <X size={13} />
-                  <span>Quitar Prórroga</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedStudentIds([])}
-                  className="text-xs font-bold text-orange-600 hover:text-orange-800 dark:hover:text-orange-200 underline ml-1 cursor-pointer"
-                >
-                  Deseleccionar
-                </button>
-              </div>
-            )}
+            {selectedStudentIds.length > 0 && (() => {
+              const selectedStudent = gradingStudents.find(s => s.id === selectedStudentIds[0]);
+              const hasProrroga = !!selectedStudent?.submission?.allowLateSubmission;
+
+              return (
+                <div className="flex items-center gap-2 bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800/60 px-3 py-1.5 rounded-xl shadow-xs flex-wrap">
+                  <span className="text-xs font-bold text-orange-800 dark:text-orange-300">
+                    Editando a: <strong>{selectedStudent?.name}</strong>
+                  </span>
+                  <span className="text-orange-300 dark:text-orange-700">|</span>
+                  {hasProrroga ? (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveProrrogaSelected(selectedStudentIds)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 bg-white dark:bg-slate-800 border rounded-lg transition-colors shadow-2xs cursor-pointer"
+                      title="Quitar prórroga a este estudiante"
+                    >
+                      <X size={13} />
+                      <span>Quitar Prórroga</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => openGradingProrrogaModal(selectedStudentIds)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-[#ea580c] dark:text-orange-300 hover:text-orange-800 dark:hover:text-orange-100 bg-white dark:bg-slate-800 border rounded-lg transition-colors shadow-2xs cursor-pointer"
+                      title="Asignar prórroga a este estudiante"
+                    >
+                      <Calendar size={13} className="text-[#f98012]" />
+                      <span>Asignar Prórroga</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStudentIds([])}
+                    className="text-xs font-bold text-orange-600 hover:text-orange-800 dark:hover:text-orange-200 underline ml-1 cursor-pointer"
+                  >
+                    Deseleccionar
+                  </button>
+                </div>
+              );
+            })()}
 
             {gradingAvailableGroups.length > 1 && (
               <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border" style={{ borderColor: "var(--border-color)" }}>
