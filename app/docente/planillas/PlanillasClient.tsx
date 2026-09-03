@@ -6,7 +6,7 @@ import {
   ArrowLeft, FileSpreadsheet, FileText, Loader2,
   Save, Undo2, AlertTriangle, Check, Info,
   Plus, Trash2, X, Pencil, CheckCircle, AlertCircle, Clock,
-  Eye, EyeOff, Users, Search, Sparkles, Copy, Calendar, Download, RotateCcw
+  Eye, EyeOff, Users, Search, Sparkles, Copy, Calendar, Download, RotateCcw, Lock
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -1292,9 +1292,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           setFeedbackInputs(prev => {
             const updated = { ...prev };
             gradingProrrogaStudentIds.forEach(sid => {
-              const s = gradingStudents.find(x => x.id === sid);
-              if (s && !s.submission?.feedback && updated[sid]?.includes("plazo establecido")) {
-                updated[sid] = "";
+              if (updated[sid]?.includes("plazo establecido")) {
+                updated[sid] = "Prórroga concedida por el docente.";
               }
             });
             return updated;
@@ -2708,41 +2707,54 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             </div>
 
             {/* Selection Quick Actions & Prorroga Toolbar */}
-            {selectedStudentIds.length > 0 ? (
-              <div className="flex items-center gap-2 bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800/60 px-3 py-1.5 rounded-xl shadow-xs flex-wrap">
-                <span className="text-xs font-bold text-orange-800 dark:text-orange-300">
-                  {selectedStudentIds.length === 1
-                    ? <>Editando a: <strong>{gradingStudents.find(s => s.id === selectedStudentIds[0])?.name}</strong></>
-                    : <strong>{selectedStudentIds.length} seleccionados</strong>}
-                </span>
-                <span className="text-orange-300 dark:text-orange-700">|</span>
-                <button
-                  type="button"
-                  onClick={() => openGradingProrrogaModal(selectedStudentIds)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-white bg-[#f98012] hover:bg-[#e06d09] rounded-lg shadow-xs transition-all hover:scale-[1.02]"
-                  title="Asignar o modificar prórroga de entrega para los estudiantes seleccionados"
-                >
-                  <Calendar size={13} />
-                  <span>Asignar Prórroga ({selectedStudentIds.length})</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleRemoveProrrogaSelected(selectedStudentIds)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 bg-white dark:bg-slate-800 border rounded-lg transition-colors shadow-2xs"
-                  title="Quitar prórroga a los estudiantes seleccionados"
-                >
-                  <X size={13} />
-                  <span>Quitar Prórroga</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedStudentIds([])}
-                  className="text-xs font-bold text-orange-600 hover:text-orange-800 dark:hover:text-orange-200 underline ml-1"
-                >
-                  Deseleccionar
-                </button>
-              </div>
-            ) : (
+            {selectedStudentIds.length > 0 ? (() => {
+              const lockedCount = gradingStudents.filter(s => selectedStudentIds.includes(s.id) && (
+                (gradeInputs[s.id] === "1" || gradeInputs[s.id] === "1.0" || Number(gradeInputs[s.id]) === 1 || s.submission?.grade === 1) &&
+                !(s.submission && (s.submission.status === "SUBMITTED" || !!s.submission.fileUrl)) &&
+                !s.submission?.allowLateSubmission
+              )).length;
+
+              return (
+                <div className="flex items-center gap-2 bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800/60 px-3 py-1.5 rounded-xl shadow-xs flex-wrap">
+                  <span className="text-xs font-bold text-orange-800 dark:text-orange-300">
+                    {selectedStudentIds.length === 1
+                      ? <>Editando a: <strong>{gradingStudents.find(s => s.id === selectedStudentIds[0])?.name}</strong></>
+                      : <strong>{selectedStudentIds.length} seleccionados</strong>}
+                  </span>
+                  {lockedCount > 0 && (
+                    <span className="text-[11px] font-bold text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-950/60 px-2 py-0.5 rounded-md border border-red-200 dark:border-red-900 flex items-center gap-1">
+                      <Lock size={11} /> {lockedCount === 1 ? "1 nota 1.0 protegida (asigna prórroga para calificar)" : `${lockedCount} notas 1.0 protegidas (asigna prórroga para calificar)`}
+                    </span>
+                  )}
+                  <span className="text-orange-300 dark:text-orange-700">|</span>
+                  <button
+                    type="button"
+                    onClick={() => openGradingProrrogaModal(selectedStudentIds)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-white bg-[#f98012] hover:bg-[#e06d09] rounded-lg shadow-xs transition-all hover:scale-[1.02] cursor-pointer"
+                    title="Asignar o modificar prórroga de entrega para los estudiantes seleccionados"
+                  >
+                    <Calendar size={13} />
+                    <span>Asignar Prórroga ({selectedStudentIds.length})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveProrrogaSelected(selectedStudentIds)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 bg-white dark:bg-slate-800 border rounded-lg transition-colors shadow-2xs cursor-pointer"
+                    title="Quitar prórroga a los estudiantes seleccionados"
+                  >
+                    <X size={13} />
+                    <span>Quitar Prórroga</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStudentIds([])}
+                    className="text-xs font-bold text-orange-600 hover:text-orange-800 dark:hover:text-orange-200 underline ml-1 cursor-pointer"
+                  >
+                    Deseleccionar
+                  </button>
+                </div>
+              );
+            })() : (
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -2849,6 +2861,25 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     const gradeVal = gradeInputs[student.id] ?? "";
                     const numGrade = parseFloat(gradeVal);
                     const hasValidGrade = !isNaN(numGrade) && numGrade >= 1.0 && numGrade <= 5.0;
+
+                    const sub = student.submission;
+                    const hasActualSubmission = !!sub && (sub.status === "SUBMITTED" || !!sub.fileUrl);
+                    const hasProrroga = !!sub?.allowLateSubmission;
+
+                    // Estudiante con nota 1.0 por falta de entrega
+                    const isMissingSubmission1 = (
+                      (gradeVal === "1" || gradeVal === "1.0" || numGrade === 1.0 || sub?.grade === 1) &&
+                      !hasActualSubmission &&
+                      (
+                        sub?.status === "OVERDUE" ||
+                        (feedbackInputs[student.id] && feedbackInputs[student.id].toLowerCase().includes("plazo establecido")) ||
+                        (sub?.feedback && sub.feedback.toLowerCase().includes("plazo establecido")) ||
+                        (!sub?.submittedAt && !sub?.fileUrl && numGrade === 1.0)
+                      )
+                    );
+
+                    // La nota está bloqueada si tiene 1.0 por falta de entrega Y no tiene prórroga concedida
+                    const isGradeLocked = isMissingSubmission1 && !hasProrroga;
 
                     return (
                       <tr
@@ -2985,48 +3016,77 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
                         {/* Grade Input */}
                         <td className="py-3.5 px-6 text-center">
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            placeholder="—"
-                            disabled={!isSelected}
-                            value={gradeVal}
-                            onChange={e => {
-                              let val = e.target.value.replace(',', '.');
-                              if (val !== "" && !/^\d*\.?\d*$/.test(val)) return;
-                              const num = parseFloat(val);
-                              if (!isNaN(num) && num > 5.0) return;
-                              setGradeInputs(prev => ({ ...prev, [student.id]: val }));
-                            }}
-                            title={!isSelected ? "Activa la casilla del estudiante para modificar calificación" : undefined}
-                            className={`w-24 text-center font-black rounded-xl border py-1.5 text-base outline-none transition-all ${
-                              isSelected
-                                ? "border-orange-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-white ring-2 ring-orange-500 shadow-sm"
-                                : hasValidGrade
-                                ? numGrade < 3.0
-                                  ? "border-red-300 text-red-600 bg-red-50/50 dark:bg-red-950/20 shadow-sm"
-                                  : numGrade < 4.0
-                                  ? "border-amber-300 text-amber-600 bg-amber-50/50 dark:bg-amber-950/20 shadow-sm"
-                                  : "border-emerald-300 text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 shadow-sm"
-                                : "border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
-                            }`}
-                          />
+                          <div className="flex flex-col items-center justify-center">
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              placeholder="—"
+                              disabled={!isSelected || isGradeLocked}
+                              value={gradeVal}
+                              onChange={e => {
+                                if (isGradeLocked) return;
+                                let val = e.target.value.replace(',', '.');
+                                if (val !== "" && !/^\d*\.?\d*$/.test(val)) return;
+                                const num = parseFloat(val);
+                                if (!isNaN(num) && num > 5.0) return;
+                                setGradeInputs(prev => ({ ...prev, [student.id]: val }));
+                              }}
+                              title={
+                                isGradeLocked
+                                  ? "Nota 1.0 protegida por falta de entrega. Para calificar entrega física o modificar la nota, primero debes conceder prórroga con el botón 'Dar Prórroga'."
+                                  : (!isSelected ? "Activa la casilla del estudiante para modificar calificación" : undefined)
+                              }
+                              className={`w-24 text-center font-black rounded-xl border py-1.5 text-base outline-none transition-all ${
+                                isGradeLocked
+                                  ? "border-red-300 dark:border-red-900/60 bg-red-50/70 dark:bg-red-950/30 text-red-600 dark:text-red-400 cursor-not-allowed select-none opacity-90 shadow-2xs"
+                                  : isSelected
+                                  ? "border-orange-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-white ring-2 ring-orange-500 shadow-sm"
+                                  : hasValidGrade
+                                  ? numGrade < 3.0
+                                    ? "border-red-300 text-red-600 bg-red-50/50 dark:bg-red-950/20 shadow-sm"
+                                    : numGrade < 4.0
+                                    ? "border-amber-300 text-amber-600 bg-amber-50/50 dark:bg-amber-950/20 shadow-sm"
+                                    : "border-emerald-300 text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 shadow-sm"
+                                  : "border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
+                              }`}
+                            />
+                            {isGradeLocked && (
+                              <span
+                                className="inline-flex items-center gap-0.5 text-[9px] font-extrabold text-red-600 dark:text-red-400 mt-1 select-none whitespace-nowrap"
+                                title="Para habilitar la calificación, asigna prórroga al estudiante"
+                              >
+                                <Lock size={9} />
+                                Bloqueada (requiere prórroga)
+                              </span>
+                            )}
+                          </div>
                         </td>
 
                         {/* Feedback / Comentario */}
                         <td className="py-3.5 px-6">
                           <input
                             type="text"
-                            placeholder={!isSelected ? "Activa la casilla para escribir observación..." : "Comentario u observación opcional para el estudiante..."}
-                            disabled={!isSelected}
+                            placeholder={
+                              isGradeLocked
+                                ? "Asigna prórroga al estudiante para editar calificación u observación..."
+                                : (!isSelected ? "Activa la casilla para escribir observación..." : "Comentario u observación opcional para el estudiante...")
+                            }
+                            disabled={!isSelected || isGradeLocked}
                             value={feedbackInputs[student.id] ?? ""}
                             onChange={e => {
+                              if (isGradeLocked) return;
                               const val = e.target.value;
                               setFeedbackInputs(prev => ({ ...prev, [student.id]: val }));
                             }}
-                            title={!isSelected ? "Activa la casilla del estudiante para escribir comentario" : undefined}
+                            title={
+                              isGradeLocked
+                                ? "Para modificar observación o nota, primero asigna prórroga al estudiante."
+                                : (!isSelected ? "Activa la casilla del estudiante para escribir comentario" : undefined)
+                            }
                             className={`w-full py-1.5 px-3 rounded-xl border text-sm transition-colors ${
-                              isSelected
+                              isGradeLocked
+                                ? "border-gray-200 dark:border-gray-750 bg-gray-100 dark:bg-slate-900 text-gray-500 dark:text-gray-400 cursor-not-allowed select-none opacity-80"
+                                : isSelected
                                 ? "border-orange-400 bg-white dark:bg-slate-800 text-gray-900 dark:text-white ring-2 ring-orange-500/50 focus:outline-none"
                                 : "border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800/80 text-gray-900 dark:text-white placeholder:text-gray-400"
                             }`}
