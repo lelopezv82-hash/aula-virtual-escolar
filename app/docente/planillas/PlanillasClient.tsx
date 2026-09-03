@@ -271,7 +271,12 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [gradingProrrogaAllow, setGradingProrrogaAllow] = useState(true);
   const [gradingProrrogaDate, setGradingProrrogaDate] = useState("");
   const [savingGradingProrroga, setSavingGradingProrroga] = useState(false);
+  const [gradingProrrogaSearch, setGradingProrrogaSearch] = useState("");
   const [gradingAvailableGroups, setGradingAvailableGroups] = useState<{ id: string; name: string; gradeName?: string; label?: string }[]>([]);
+
+  // ─── Confirm Save Modal ───
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
+  const [confirmSaveStudents, setConfirmSaveStudents] = useState<Array<{ id: string; name: string; oldGrade: string; newGrade: string; oldFeedback: string; newFeedback: string }>>([]);
 
   const hasUnsavedGradingChanges = useMemo(() => {
     if (!gradingTask) return false;
@@ -1218,17 +1223,21 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   };
 
   const toggleStudentSelection = (studentId: string) => {
-    setSelectedStudentIds(prev => (prev.includes(studentId) ? prev.filter(id => id !== studentId) : [...prev, studentId]));
+    // Modo individual seguro: solo un estudiante activo a la vez para proteger de modificaciones accidentales
+    setSelectedStudentIds(prev => (prev.includes(studentId) ? [] : [studentId]));
   };
 
   const openGradingProrrogaModal = (studentIds: string[]) => {
-    if (studentIds.length === 0) {
-      toast.warning("Sin selección", "Selecciona al menos un estudiante para configurar prórroga.");
-      return;
+    let targetIds = studentIds;
+    if (targetIds.length === 0) {
+      // Si no hay ninguno pre-seleccionado, pre-cargamos a los que no tienen entrega
+      const pending = gradingStudents.filter(s => !s.submission || (s.submission.status !== "SUBMITTED" && !(s.submission as any).fileUrl));
+      targetIds = pending.length > 0 ? pending.map(s => s.id) : gradingStudents.map(s => s.id);
     }
-    setGradingProrrogaStudentIds(studentIds);
+    setGradingProrrogaStudentIds(targetIds);
+    setGradingProrrogaSearch("");
     setGradingProrrogaAllow(true);
-    const firstSub = gradingStudents.find(s => studentIds.includes(s.id))?.submission;
+    const firstSub = gradingStudents.find(s => targetIds.includes(s.id))?.submission;
     if (firstSub?.lateSubmissionUntil) {
       setGradingProrrogaDate(toColombiaISOString(firstSub.lateSubmissionUntil));
     } else {
@@ -1548,9 +1557,33 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     } catch { alert("Error de conexión"); } finally { setResettingSubmissions(null); }
   };
 
+  // Opens the confirm-save modal, listing only students whose grade or feedback actually changed
+  const requestSaveManualGrades = () => {
+    if (!gradingTask) return;
+    const changed = gradingStudents
+      .filter(s => {
+        const gradeChanged = (gradeInputs[s.id] ?? "") !== (initialGradeInputs[s.id] ?? "");
+        const feedbackChanged = (feedbackInputs[s.id] ?? "") !== (initialFeedbackInputs[s.id] ?? "");
+        return gradeChanged || feedbackChanged;
+      })
+      .map(s => ({
+        id: s.id,
+        name: s.name,
+        oldGrade: initialGradeInputs[s.id] ?? "",
+        newGrade: gradeInputs[s.id] ?? "",
+        oldFeedback: initialFeedbackInputs[s.id] ?? "",
+        newFeedback: feedbackInputs[s.id] ?? "",
+      }));
+    if (changed.length === 0) {
+      toast.warning("Nada que guardar", "No hay calificaciones modificadas para guardar.");
+      return;
+    }
+    setConfirmSaveStudents(changed);
+    setConfirmSaveOpen(true);
+  };
+
   const saveManualGrades = async () => {
     if (!gradingTask) return;
-    // Save all students who have any grade or feedback entered
     const targetStudents = gradingStudents.filter(
       s => (gradeInputs[s.id] !== undefined && gradeInputs[s.id] !== "") || (feedbackInputs[s.id] !== undefined && feedbackInputs[s.id] !== "")
     );
@@ -1558,6 +1591,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       toast.warning("Nada que guardar", "No hay calificaciones ingresadas para guardar.");
       return;
     }
+    setConfirmSaveOpen(false);
     setSavingGrades(true);
     setGradingError("");
     setGradingSaved(false);
@@ -2710,54 +2744,45 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             {selectedStudentIds.length > 0 ? (
               <div className="flex items-center gap-2 bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800/60 px-3 py-1.5 rounded-xl shadow-xs flex-wrap">
                 <span className="text-xs font-bold text-orange-800 dark:text-orange-300">
-                  {selectedStudentIds.length === 1
-                    ? <>Editando a: <strong>{gradingStudents.find(s => s.id === selectedStudentIds[0])?.name}</strong></>
-                    : <strong>{selectedStudentIds.length} seleccionados</strong>}
+                  Editando a: <strong>{gradingStudents.find(s => s.id === selectedStudentIds[0])?.name}</strong>
                 </span>
                 <span className="text-orange-300 dark:text-orange-700">|</span>
                 <button
                   type="button"
                   onClick={() => openGradingProrrogaModal(selectedStudentIds)}
                   className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-white bg-[#f98012] hover:bg-[#e06d09] rounded-lg shadow-xs transition-all hover:scale-[1.02] cursor-pointer"
-                  title="Asignar o modificar prórroga de entrega para los estudiantes seleccionados"
+                  title="Configurar prórroga para este estudiante o seleccionar a otros en el modal"
                 >
                   <Calendar size={13} />
-                  <span>Asignar Prórroga ({selectedStudentIds.length})</span>
+                  <span>Asignar Prórroga</span>
                 </button>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveProrrogaSelected(selectedStudentIds)}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 bg-white dark:bg-slate-800 border rounded-lg transition-colors shadow-2xs cursor-pointer"
-                    title="Quitar prórroga a los estudiantes seleccionados"
-                  >
-                    <X size={13} />
-                    <span>Quitar Prórroga</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedStudentIds([])}
-                    className="text-xs font-bold text-orange-600 hover:text-orange-800 dark:hover:text-orange-200 underline ml-1 cursor-pointer"
-                  >
-                    Deseleccionar
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveProrrogaSelected(selectedStudentIds)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 bg-white dark:bg-slate-800 border rounded-lg transition-colors shadow-2xs cursor-pointer"
+                  title="Quitar prórroga a este estudiante"
+                >
+                  <X size={13} />
+                  <span>Quitar Prórroga</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedStudentIds([])}
+                  className="text-xs font-bold text-orange-600 hover:text-orange-800 dark:hover:text-orange-200 underline ml-1 cursor-pointer"
+                >
+                  Deseleccionar
+                </button>
+              </div>
             ) : (
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    const pendingStudents = filteredStudents.filter(s => !s.submission || s.submission.status !== "SUBMITTED");
-                    if (pendingStudents.length > 0) {
-                      openGradingProrrogaModal(pendingStudents.map(s => s.id));
-                    } else {
-                      openGradingProrrogaModal(filteredStudents.map(s => s.id));
-                    }
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-orange-700 dark:text-orange-300 bg-orange-100/70 dark:bg-orange-950/40 hover:bg-orange-200 dark:hover:bg-orange-900/60 rounded-xl border border-orange-200 dark:border-orange-800 transition-all shadow-2xs"
-                  title="Asignar prórroga masiva a estudiantes"
+                  onClick={() => openGradingProrrogaModal([])}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-orange-800 dark:text-orange-200 bg-orange-100 dark:bg-orange-950/50 hover:bg-orange-200 dark:hover:bg-orange-900/60 rounded-xl border border-orange-200 dark:border-orange-800 transition-all shadow-2xs cursor-pointer"
+                  title="Asignar prórroga: podrás seleccionar a cualquier estudiante o a varios dentro del modal"
                 >
                   <Calendar size={14} className="text-[#f98012]" />
-                  <span>Prórroga Masiva</span>
+                  <span>Asignar Prórroga a Estudiantes</span>
                 </button>
               </div>
             )}
@@ -2773,21 +2798,24 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                       : "text-muted hover:text-gray-800 dark:hover:text-gray-200"
                   }`}
                 >
-                  Todos ({gradingAvailableGroups.length})
+                  Todos ({gradingStudents.length})
                 </button>
-                {gradingAvailableGroups.map(g => (
-                  <button
-                    key={g.id}
-                    onClick={() => changeGradingGroup(g.id)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                      gradingActiveGroupId === g.id
-                        ? "bg-orange-500 text-white shadow-sm"
-                        : "text-muted hover:text-gray-800 dark:hover:text-gray-200"
-                    }`}
-                  >
-                    {g.name}
-                  </button>
-                ))}
+                {gradingAvailableGroups.map(g => {
+                  const countInGroup = gradingStudents.filter(s => s.groupName === g.name).length;
+                  return (
+                    <button
+                      key={g.id}
+                      onClick={() => changeGradingGroup(g.id)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                        gradingActiveGroupId === g.id
+                          ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                          : "text-muted hover:text-gray-800 dark:hover:text-gray-200"
+                      }`}
+                    >
+                      {g.label || g.name} ({countInGroup})
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -2818,20 +2846,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b bg-gray-50/80 dark:bg-gray-800/60 text-xs font-bold uppercase tracking-wider text-muted" style={{ borderColor: "var(--border-color)" }}>
-                    <th className="py-3.5 px-4 w-12 text-center">
-                      <input
-                        type="checkbox"
-                        checked={allFilteredSelected}
-                        onChange={() => {
-                          if (allFilteredSelected) {
-                            setSelectedStudentIds([]);
-                          } else {
-                            setSelectedStudentIds(filteredStudents.map(s => s.id));
-                          }
-                        }}
-                        className="w-4 h-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500 cursor-pointer accent-[#f98012]"
-                        title={allFilteredSelected ? "Deseleccionar todos los estudiantes" : "Seleccionar todos los estudiantes visibles"}
-                      />
+                    <th className="py-3.5 px-4 w-12 text-center text-[10px] font-bold text-muted uppercase">
+                      Activar
                     </th>
                     <th className="py-3.5 px-2 w-10 text-center">No.</th>
                     <th className="py-3.5 px-4 min-w-[220px]">
@@ -3111,7 +3127,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               Volver a Planilla
             </button>
             <button
-              onClick={saveManualGrades}
+              onClick={requestSaveManualGrades}
               disabled={savingGrades || loadingStudents}
               className={`btn ${gradingSaved ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "btn-primary"} py-2 px-5 text-xs font-bold flex items-center gap-1.5 shadow-md`}
             >
@@ -3165,25 +3181,108 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
               {/* Modal Body */}
               <div className="mt-4 space-y-4 overflow-y-auto pr-1 flex-1">
-                {/* Selected Students Badge Box */}
-                <div className="p-3 rounded-xl bg-orange-50/50 dark:bg-zinc-800/40 border border-orange-100 dark:border-zinc-800">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-[#e06d09] dark:text-[#f98012] flex items-center gap-1.5">
-                      <Users size={14} /> Estudiante(s) a aplicar prórroga ({gradingProrrogaStudentIds.length})
+                {/* Interactive Student Selector for Prorroga */}
+                <div className="p-3.5 rounded-xl bg-orange-50/50 dark:bg-zinc-800/40 border border-orange-100 dark:border-zinc-800">
+                  <div className="flex items-center justify-between mb-2.5 flex-wrap gap-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#e06d09] dark:text-[#f98012] flex items-center gap-1.5">
+                      <Users size={14} /> Estudiantes con prórroga ({gradingProrrogaStudentIds.length} de {gradingStudents.length})
                     </span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pr-1">
-                    {gradingProrrogaStudentIds.map(sid => {
-                      const studentName = gradingStudents.find(s => s.id === sid)?.name || sid;
-                      return (
-                        <span
-                          key={sid}
-                          className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-white dark:bg-zinc-900 text-gray-800 dark:text-zinc-200 border border-gray-200 dark:border-zinc-700 shadow-2xs font-medium"
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const pending = gradingStudents
+                            .filter(s => !s.submission || (s.submission.status !== "SUBMITTED" && !(s.submission as any).fileUrl))
+                            .map(s => s.id);
+                          setGradingProrrogaStudentIds(pending);
+                        }}
+                        className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-orange-100 dark:bg-orange-950/60 hover:bg-orange-200 dark:hover:bg-orange-900/60 text-orange-800 dark:text-orange-300 transition-colors cursor-pointer"
+                        title="Seleccionar a quienes aún no han entregado"
+                      >
+                        Solo sin entrega
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setGradingProrrogaStudentIds(gradingStudents.map(s => s.id))}
+                        className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-white dark:bg-zinc-900 hover:bg-gray-100 dark:hover:bg-zinc-800 border text-gray-700 dark:text-zinc-300 transition-colors cursor-pointer"
+                      >
+                        Todos
+                      </button>
+                      {gradingProrrogaStudentIds.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setGradingProrrogaStudentIds([])}
+                          className="text-[11px] font-semibold px-1.5 py-0.5 rounded-md text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
                         >
-                          {studentName}
-                        </span>
-                      );
-                    })}
+                          Limpiar
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Search inside modal */}
+                  {gradingStudents.length > 5 && (
+                    <div className="relative mb-2">
+                      <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Buscar estudiante en la lista..."
+                        value={gradingProrrogaSearch}
+                        onChange={e => setGradingProrrogaSearch(e.target.value)}
+                        className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border bg-white dark:bg-zinc-900 border-gray-200 dark:border-zinc-700 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                      />
+                    </div>
+                  )}
+
+                  {/* List of students with checkboxes */}
+                  <div className="divide-y divide-gray-100 dark:divide-zinc-800 max-h-48 overflow-y-auto pr-1 rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800">
+                    {gradingStudents
+                      .filter(s => !gradingProrrogaSearch || s.name.toLowerCase().includes(gradingProrrogaSearch.toLowerCase()))
+                      .map(s => {
+                        const isChecked = gradingProrrogaStudentIds.includes(s.id);
+                        const hasSubmitted = s.submission?.status === "SUBMITTED" || !!(s.submission as any)?.fileUrl;
+                        const hasLateAllowed = !!(s.submission as any)?.allowLateSubmission;
+                        return (
+                          <label
+                            key={s.id}
+                            className={`flex items-center justify-between p-2 hover:bg-orange-50/50 dark:hover:bg-orange-950/20 cursor-pointer transition-colors ${
+                              isChecked ? "bg-orange-50/70 dark:bg-orange-950/30 font-medium" : ""
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => {
+                                  setGradingProrrogaStudentIds(prev =>
+                                    prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]
+                                  );
+                                }}
+                                className="w-3.5 h-3.5 rounded border-gray-300 text-orange-600 focus:ring-orange-500 accent-[#f98012] cursor-pointer"
+                              />
+                              <span className="text-xs text-gray-900 dark:text-zinc-100 truncate">
+                                {s.name}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                              {hasLateAllowed && (
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300">
+                                  Con prórroga
+                                </span>
+                              )}
+                              {hasSubmitted ? (
+                                <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                  Entregada
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-semibold text-red-500 dark:text-red-400">
+                                  Sin entrega
+                                </span>
+                              )}
+                            </div>
+                          </label>
+                        );
+                      })}
                   </div>
                 </div>
 
@@ -3305,6 +3404,80 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     )}
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+        {/* ─── Confirm Save Modal ─── */}
+        {isMounted && confirmSaveOpen && createPortal(
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[9999] p-4 animate-fade-in">
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-gray-100 dark:border-zinc-800 text-left relative max-h-[90vh] flex flex-col animate-scale-in">
+              <button
+                onClick={() => setConfirmSaveOpen(false)}
+                className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-950/60 flex items-center justify-center">
+                  <Save size={20} className="text-[#f98012]" />
+                </div>
+                <div>
+                  <h3 className="font-black text-lg text-gray-900 dark:text-white">Confirmar Guardar</h3>
+                  <p className="text-xs text-muted">Revisa los cambios antes de guardar</p>
+                </div>
+              </div>
+
+              <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                Se guardarán las calificaciones de <strong>{confirmSaveStudents.length} estudiante{confirmSaveStudents.length !== 1 ? "s" : ""}</strong>:
+              </p>
+
+              <div className="overflow-y-auto flex-1 border rounded-xl divide-y dark:border-zinc-700 dark:divide-zinc-700 mb-5">
+                {confirmSaveStudents.map(s => (
+                  <div key={s.id} className="flex items-center gap-3 px-3 py-2.5">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#f98012] to-[#e06d09] flex items-center justify-center text-white text-xs font-bold shrink-0">
+                      {s.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{s.name}</p>
+                      {s.oldGrade !== s.newGrade && (
+                        <p className="text-xs">
+                          <span className="text-muted">Nota: </span>
+                          {s.oldGrade ? (
+                            <><span className="line-through text-red-500 mr-1">{s.oldGrade}</span><span className="text-emerald-600 dark:text-emerald-400 font-bold">{s.newGrade || "(vacía)"}</span></>
+                          ) : (
+                            <span className="text-emerald-600 dark:text-emerald-400 font-bold">{s.newGrade}</span>
+                          )}
+                        </p>
+                      )}
+                      {s.oldFeedback !== s.newFeedback && (
+                        <p className="text-xs text-muted truncate">
+                          Obs: <span className="text-gray-700 dark:text-gray-300">{s.newFeedback || "(vacía)"}</span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setConfirmSaveOpen(false)}
+                  className="px-4 py-2 text-sm font-semibold rounded-xl border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={saveManualGrades}
+                  className="px-5 py-2 text-sm font-bold rounded-xl bg-[#f98012] hover:bg-[#e06d09] text-white shadow-sm transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <Save size={15} />
+                  Confirmar y Guardar
+                </button>
               </div>
             </div>
           </div>,
