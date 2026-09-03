@@ -2707,35 +2707,23 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             </div>
 
             {/* Selection Quick Actions & Prorroga Toolbar */}
-            {selectedStudentIds.length > 0 ? (() => {
-              const lockedCount = gradingStudents.filter(s => selectedStudentIds.includes(s.id) && (
-                (gradeInputs[s.id] === "1" || gradeInputs[s.id] === "1.0" || Number(gradeInputs[s.id]) === 1 || s.submission?.grade === 1) &&
-                !(s.submission && (s.submission.status === "SUBMITTED" || !!s.submission.fileUrl)) &&
-                !s.submission?.allowLateSubmission
-              )).length;
-
-              return (
-                <div className="flex items-center gap-2 bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800/60 px-3 py-1.5 rounded-xl shadow-xs flex-wrap">
-                  <span className="text-xs font-bold text-orange-800 dark:text-orange-300">
-                    {selectedStudentIds.length === 1
-                      ? <>Editando a: <strong>{gradingStudents.find(s => s.id === selectedStudentIds[0])?.name}</strong></>
-                      : <strong>{selectedStudentIds.length} seleccionados</strong>}
-                  </span>
-                  {lockedCount > 0 && (
-                    <span className="text-[11px] font-bold text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-950/60 px-2 py-0.5 rounded-md border border-red-200 dark:border-red-900 flex items-center gap-1">
-                      <Lock size={11} /> {lockedCount === 1 ? "1 nota 1.0 protegida (asigna prórroga para calificar)" : `${lockedCount} notas 1.0 protegidas (asigna prórroga para calificar)`}
-                    </span>
-                  )}
-                  <span className="text-orange-300 dark:text-orange-700">|</span>
-                  <button
-                    type="button"
-                    onClick={() => openGradingProrrogaModal(selectedStudentIds)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-white bg-[#f98012] hover:bg-[#e06d09] rounded-lg shadow-xs transition-all hover:scale-[1.02] cursor-pointer"
-                    title="Asignar o modificar prórroga de entrega para los estudiantes seleccionados"
-                  >
-                    <Calendar size={13} />
-                    <span>Asignar Prórroga ({selectedStudentIds.length})</span>
-                  </button>
+            {selectedStudentIds.length > 0 ? (
+              <div className="flex items-center gap-2 bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800/60 px-3 py-1.5 rounded-xl shadow-xs flex-wrap">
+                <span className="text-xs font-bold text-orange-800 dark:text-orange-300">
+                  {selectedStudentIds.length === 1
+                    ? <>Editando a: <strong>{gradingStudents.find(s => s.id === selectedStudentIds[0])?.name}</strong></>
+                    : <strong>{selectedStudentIds.length} seleccionados</strong>}
+                </span>
+                <span className="text-orange-300 dark:text-orange-700">|</span>
+                <button
+                  type="button"
+                  onClick={() => openGradingProrrogaModal(selectedStudentIds)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-white bg-[#f98012] hover:bg-[#e06d09] rounded-lg shadow-xs transition-all hover:scale-[1.02] cursor-pointer"
+                  title="Asignar o modificar prórroga de entrega para los estudiantes seleccionados"
+                >
+                  <Calendar size={13} />
+                  <span>Asignar Prórroga ({selectedStudentIds.length})</span>
+                </button>
                   <button
                     type="button"
                     onClick={() => handleRemoveProrrogaSelected(selectedStudentIds)}
@@ -2753,8 +2741,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     Deseleccionar
                   </button>
                 </div>
-              );
-            })() : (
+            ) : (
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -3050,6 +3037,15 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                                   : "border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
                               }`}
                             />
+                            {isSelected && isGradeLocked && (
+                              <span
+                                className="inline-flex items-center gap-0.5 text-[10px] font-extrabold text-red-600 dark:text-red-400 mt-1 select-none whitespace-nowrap animate-fade-in"
+                                title="Asigna prórroga al estudiante para habilitar la calificación"
+                              >
+                                <Lock size={10} />
+                                Bloqueada (requiere prórroga)
+                              </span>
+                            )}
                           </div>
                         </td>
 

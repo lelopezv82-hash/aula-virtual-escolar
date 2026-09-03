@@ -855,6 +855,15 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                                   : "border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
                               }`}
                             />
+                            {isSelected && isGradeLocked && (
+                              <span
+                                className="inline-flex items-center gap-0.5 text-[10px] font-extrabold text-red-600 dark:text-red-400 mt-1 select-none whitespace-nowrap animate-fade-in"
+                                title="Asigna prórroga al estudiante para habilitar la calificación"
+                              >
+                                <Lock size={10} />
+                                Bloqueada (requiere prórroga)
+                              </span>
+                            )}
                           </div>
                         </td>
 
