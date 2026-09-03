@@ -838,7 +838,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                               }}
                               title={
                                 isGradeLocked
-                                  ? "Nota 1.0 protegida por falta de entrega. Para calificar entrega física o modificar la nota, primero debes conceder prórroga al estudiante."
+                                  ? "Nota 1.0 protegida por falta de entrega. Para modificar la nota, primero debes conceder prórroga al estudiante."
                                   : (!isSelected ? "Activa la casilla del estudiante para modificar calificación" : undefined)
                               }
                               className={`w-24 text-center font-black rounded-xl border py-1.5 text-base outline-none transition-all ${
@@ -855,15 +855,6 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                                   : "border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
                               }`}
                             />
-                            {isGradeLocked && (
-                              <span
-                                className="inline-flex items-center gap-0.5 text-[9px] font-extrabold text-red-600 dark:text-red-400 mt-1 select-none whitespace-nowrap"
-                                title="Para habilitar la calificación, asigna prórroga al estudiante"
-                              >
-                                <Lock size={9} />
-                                Bloqueada (requiere prórroga)
-                              </span>
-                            )}
                           </div>
                         </td>
 
