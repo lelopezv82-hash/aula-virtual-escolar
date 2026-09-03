@@ -2642,14 +2642,14 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             <button
               type="button"
               onClick={() => {
-                const targetIds = selectedStudentIds.length > 0 ? selectedStudentIds : gradingStudents.map(s => s.id);
+                const targetIds = selectedStudentIds.length > 0 ? selectedStudentIds : [];
                 openGradingProrrogaModal(targetIds);
               }}
-              className="px-4 py-2.5 rounded-xl border border-orange-200 dark:border-orange-900/50 bg-orange-50/80 dark:bg-orange-950/30 hover:bg-orange-100 dark:hover:bg-orange-900/50 text-[#ea580c] dark:text-orange-300 font-bold text-xs flex items-center gap-2 shadow-xs transition-all hover:scale-[1.02]"
+              className="px-4 py-2.5 rounded-xl border border-orange-200 dark:border-orange-900/50 bg-orange-50/80 dark:bg-orange-950/30 hover:bg-orange-100 dark:hover:bg-orange-900/50 text-[#ea580c] dark:text-orange-300 font-bold text-xs flex items-center gap-2 shadow-xs transition-all hover:scale-[1.02] cursor-pointer"
               title="Configurar prórroga de entrega para estudiantes"
             >
               <Calendar size={16} className="text-[#f98012]" />
-              <span>{selectedStudentIds.length > 0 ? `Prórroga (${selectedStudentIds.length})` : "Asignar Prórroga"}</span>
+              <span>Asignar Prórroga</span>
             </button>
 
             {hasUnsavedGradingChanges && (
@@ -2659,7 +2659,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               </div>
             )}
             <button
-              onClick={saveManualGrades}
+              onClick={requestSaveManualGrades}
               disabled={savingGrades || loadingStudents}
               className={`btn ${gradingSaved ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "btn-primary"} px-5 py-2.5 font-bold shadow-md flex items-center gap-2`}
             >
@@ -2740,22 +2740,13 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               ))}
             </div>
 
-            {/* Selection Quick Actions & Prorroga Toolbar */}
-            {selectedStudentIds.length > 0 ? (
+            {/* Selection Quick Actions Toolbar */}
+            {selectedStudentIds.length > 0 && (
               <div className="flex items-center gap-2 bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800/60 px-3 py-1.5 rounded-xl shadow-xs flex-wrap">
                 <span className="text-xs font-bold text-orange-800 dark:text-orange-300">
                   Editando a: <strong>{gradingStudents.find(s => s.id === selectedStudentIds[0])?.name}</strong>
                 </span>
                 <span className="text-orange-300 dark:text-orange-700">|</span>
-                <button
-                  type="button"
-                  onClick={() => openGradingProrrogaModal(selectedStudentIds)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-white bg-[#f98012] hover:bg-[#e06d09] rounded-lg shadow-xs transition-all hover:scale-[1.02] cursor-pointer"
-                  title="Configurar prórroga para este estudiante o seleccionar a otros en el modal"
-                >
-                  <Calendar size={13} />
-                  <span>Asignar Prórroga</span>
-                </button>
                 <button
                   type="button"
                   onClick={() => handleRemoveProrrogaSelected(selectedStudentIds)}
@@ -2771,18 +2762,6 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                   className="text-xs font-bold text-orange-600 hover:text-orange-800 dark:hover:text-orange-200 underline ml-1 cursor-pointer"
                 >
                   Deseleccionar
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => openGradingProrrogaModal([])}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-orange-800 dark:text-orange-200 bg-orange-100 dark:bg-orange-950/50 hover:bg-orange-200 dark:hover:bg-orange-900/60 rounded-xl border border-orange-200 dark:border-orange-800 transition-all shadow-2xs cursor-pointer"
-                  title="Asignar prórroga: podrás seleccionar a cualquier estudiante o a varios dentro del modal"
-                >
-                  <Calendar size={14} className="text-[#f98012]" />
-                  <span>Asignar Prórroga a Estudiantes</span>
                 </button>
               </div>
             )}
@@ -3103,52 +3082,6 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             </div>
           )}
         </div>
-        </div>
-
-        {/* Bottom Bar */}
-        <div className="flex-shrink-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md px-5 py-3 rounded-2xl border shadow-lg flex items-center justify-between gap-4 mt-1" style={{ borderColor: "var(--border-color)" }}>
-          <div className="flex items-center gap-3 text-xs font-bold text-muted flex-wrap">
-            <span>Calificados: <strong className="text-emerald-600 text-sm">{gradedCount}</strong>/{totalCount}</span>
-            <span>•</span>
-            <span>Pendientes: <strong className="text-amber-600 text-sm">{pendingCount}</strong></span>
-            {withProrrogaCount > 0 && (
-              <>
-                <span>•</span>
-                <span>Con Prórroga: <strong className="text-[#f98012] text-sm">{withProrrogaCount}</strong></span>
-              </>
-            )}
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={closeGrading}
-              className="btn btn-secondary py-2 px-4 text-xs font-bold"
-            >
-              Volver a Planilla
-            </button>
-            <button
-              onClick={requestSaveManualGrades}
-              disabled={savingGrades || loadingStudents}
-              className={`btn ${gradingSaved ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "btn-primary"} py-2 px-5 text-xs font-bold flex items-center gap-1.5 shadow-md`}
-            >
-              {savingGrades ? (
-                <>
-                  <Loader2 className="animate-spin" size={15} />
-                  Guardando...
-                </>
-              ) : gradingSaved ? (
-                <>
-                  <CheckCircle size={15} />
-                  ¡Guardado con éxito!
-                </>
-              ) : (
-                <>
-                  <Save size={15} />
-                  Guardar Calificaciones
-                </>
-              )}
-            </button>
-          </div>
         </div>
 
         {/* ─── Prórroga Modal inside Calificar Estudiantes ─── */}
