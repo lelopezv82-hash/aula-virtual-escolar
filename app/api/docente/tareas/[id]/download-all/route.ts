@@ -3,9 +3,13 @@ import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import prisma from '@/lib/prisma';
 import JSZip from 'jszip';
-import { getGoogleAccessToken, downloadDriveFile } from '@/lib/gdrive';
+import { getGoogleAccessToken } from '@/lib/gdrive';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
+
+function isGoogleDriveUrl(url: string): boolean {
+  return url.includes('drive.google.com') || url.includes('docs.google.com');
+}
 
 function extractDriveFileId(url: string): string | null {
   const match1 = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
@@ -15,24 +19,103 @@ function extractDriveFileId(url: string): string | null {
   return null;
 }
 
-function getFileExtension(url: string, contentType?: string | null): string {
-  try {
-    const cleanUrl = url.split('?')[0];
-    const match = cleanUrl.match(/\.([a-zA-Z0-9]+)$/);
-    if (match) return `.${match[1]}`;
-  } catch {}
-
-  if (contentType) {
-    if (contentType.includes('spreadsheet') || contentType.includes('excel')) return '.xlsx';
-    if (contentType.includes('pdf')) return '.pdf';
-    if (contentType.includes('word') || contentType.includes('document')) return '.docx';
-    if (contentType.includes('presentation') || contentType.includes('powerpoint')) return '.pptx';
-    if (contentType.includes('zip')) return '.zip';
-    if (contentType.includes('png')) return '.png';
-    if (contentType.includes('jpeg') || contentType.includes('jpg')) return '.jpg';
-    if (contentType.includes('text/plain')) return '.txt';
+function detectExtension(buffer: Buffer, originalName?: string, mimeType?: string): string {
+  // 1. If originalName already has an extension
+  if (originalName) {
+    const extMatch = originalName.match(/\.([a-zA-Z0-9]+)$/);
+    if (extMatch) {
+      const ext = extMatch[1].toLowerCase();
+      if (ext !== 'bin') return `.${ext}`;
+    }
   }
-  return '.bin';
+
+  // 2. Sniff magic bytes from the downloaded buffer
+  if (buffer.length >= 4) {
+    // PDF: %PDF
+    if (buffer.subarray(0, 4).toString('ascii') === '%PDF') {
+      return '.pdf';
+    }
+    // PNG: \x89PNG
+    if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) {
+      return '.png';
+    }
+    // JPG: \xff\xd8\xff
+    if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
+      return '.jpg';
+    }
+    // PK\x03\x04 (ZIP / Office OpenXML: xlsx, docx, pptx)
+    if (buffer[0] === 0x50 && buffer[1] === 0x4b && buffer[2] === 0x03 && buffer[3] === 0x04) {
+      if (mimeType?.includes('sheet') || mimeType?.includes('spreadsheet')) return '.xlsx';
+      if (mimeType?.includes('word') || mimeType?.includes('document')) return '.docx';
+      if (mimeType?.includes('presentation') || mimeType?.includes('powerpoint')) return '.pptx';
+
+      const headerSnippet = buffer.subarray(0, Math.min(buffer.length, 3072)).toString('ascii');
+      if (headerSnippet.includes('xl/')) return '.xlsx';
+      if (headerSnippet.includes('word/')) return '.docx';
+      if (headerSnippet.includes('ppt/')) return '.pptx';
+      return '.zip';
+    }
+    // Legacy Office OLE2: \xd0\xcf\x11\xe0
+    if (buffer[0] === 0xd0 && buffer[1] === 0xcf && buffer[2] === 0x11 && buffer[3] === 0xe0) {
+      if (mimeType?.includes('sheet') || mimeType?.includes('excel')) return '.xls';
+      return '.doc';
+    }
+  }
+
+  // 3. Fallback to MIME type
+  if (mimeType) {
+    if (mimeType.includes('spreadsheet') || mimeType.includes('excel')) return '.xlsx';
+    if (mimeType.includes('pdf')) return '.pdf';
+    if (mimeType.includes('word') || mimeType.includes('document')) return '.docx';
+    if (mimeType.includes('presentation') || mimeType.includes('powerpoint')) return '.pptx';
+    if (mimeType.includes('zip')) return '.zip';
+    if (mimeType.includes('png')) return '.png';
+    if (mimeType.includes('jpeg') || mimeType.includes('jpg')) return '.jpg';
+    if (mimeType.includes('text/plain')) return '.txt';
+  }
+
+  // 4. Default to .xlsx rather than .bin
+  return '.xlsx';
+}
+
+async function fetchGoogleDriveFile(token: string, fileId: string): Promise<{ buffer: Buffer; originalName?: string; mimeType?: string }> {
+  const metaRes = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,mimeType,name`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+
+  if (!metaRes.ok) {
+    throw new Error(`Drive metadata error: ${await metaRes.text()}`);
+  }
+
+  const meta = await metaRes.json();
+  const isNativeSheet = meta.mimeType === 'application/vnd.google-apps.spreadsheet';
+  const isNativeDoc = meta.mimeType === 'application/vnd.google-apps.document';
+  const isNativePres = meta.mimeType === 'application/vnd.google-apps.presentation';
+
+  let downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+  if (isNativeSheet) {
+    downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=application%2Fvnd.openxmlformats-officedocument.spreadsheetml.sheet`;
+  } else if (isNativeDoc) {
+    downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=application%2Fvnd.openxmlformats-officedocument.wordprocessingml.document`;
+  } else if (isNativePres) {
+    downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=application%2Fvnd.openxmlformats-officedocument.presentationml.presentation`;
+  }
+
+  const res = await fetch(downloadUrl, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  if (!res.ok) {
+    throw new Error(`Drive download error: ${await res.text()}`);
+  }
+
+  const arrayBuffer = await res.arrayBuffer();
+  return {
+    buffer: Buffer.from(arrayBuffer),
+    originalName: meta.name,
+    mimeType: meta.mimeType,
+  };
 }
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -170,9 +253,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       );
     }
 
-    // Prepare Google Drive access token if any file is in drive
+    // Prepare Google Drive access token if any file is in Google Drive/Docs
     let gdriveToken: string | null = null;
-    const hasDriveFile = studentsWithFiles.some(s => s.submission?.fileUrl?.includes('drive.google.com'));
+    const hasDriveFile = studentsWithFiles.some(s => s.submission?.fileUrl && isGoogleDriveUrl(s.submission.fileUrl));
     if (hasDriveFile) {
       try {
         gdriveToken = await getGoogleAccessToken(task.course.teacherId);
@@ -184,7 +267,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const zip = new JSZip();
     const isSingleGroup = filterGroupId && filterGroupId !== "all";
 
-    // Download each file in parallel with concurrency or Promise.all
+    // Download each file in parallel
     await Promise.all(
       studentsWithFiles.map(async (student, idx) => {
         const fileUrl = student.submission!.fileUrl!;
@@ -194,31 +277,69 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
         try {
           let buffer: Buffer | null = null;
-          let ext = '.bin';
+          let originalFileName: string | undefined;
+          let mimeType: string | undefined;
 
-          if (fileUrl.includes('drive.google.com')) {
+          // 1. Google Drive / Google Docs handler
+          if (isGoogleDriveUrl(fileUrl)) {
             const driveFileId = extractDriveFileId(fileUrl);
             if (driveFileId && gdriveToken) {
-              buffer = await downloadDriveFile(gdriveToken, driveFileId);
-              ext = '.xlsx'; // Native sheets or files default
-            } else if (driveFileId) {
-              const res = await fetch(`https://drive.google.com/uc?export=download&id=${driveFileId}`);
-              if (res.ok) {
-                buffer = Buffer.from(await res.arrayBuffer());
-                ext = getFileExtension(fileUrl, res.headers.get('content-type'));
+              try {
+                const driveData = await fetchGoogleDriveFile(gdriveToken, driveFileId);
+                buffer = driveData.buffer;
+                originalFileName = driveData.originalName;
+                mimeType = driveData.mimeType;
+              } catch (driveErr) {
+                console.warn(`Error using Google token for ${student.name}, trying export fallback:`, driveErr);
+              }
+            }
+
+            // Fallback for Drive file if token failed or wasn't available
+            if (!buffer && driveFileId) {
+              const exportUrls = [
+                `https://docs.google.com/spreadsheets/d/${driveFileId}/export?format=xlsx`,
+                `https://docs.google.com/document/d/${driveFileId}/export?format=docx`,
+                `https://drive.google.com/uc?export=download&id=${driveFileId}`
+              ];
+              for (const expUrl of exportUrls) {
+                try {
+                  const res = await fetch(expUrl, { redirect: 'follow' });
+                  if (res.ok) {
+                    const fetchedBuf = Buffer.from(await res.arrayBuffer());
+                    const snippet = fetchedBuf.subarray(0, 100).toString('ascii').toLowerCase();
+                    if (!snippet.includes('<!doctype html') && !snippet.includes('<html')) {
+                      buffer = fetchedBuf;
+                      mimeType = res.headers.get('content-type') || undefined;
+                      break;
+                    }
+                  }
+                } catch {}
               }
             }
           }
 
+          // 2. Direct HTTP / Supabase storage handler
           if (!buffer) {
             const res = await fetch(fileUrl);
             if (!res.ok) {
               throw new Error(`HTTP ${res.status}: ${res.statusText}`);
             }
-            ext = getFileExtension(fileUrl, res.headers.get('content-type'));
+            mimeType = res.headers.get('content-type') || undefined;
+            const contentDisposition = res.headers.get('content-disposition');
+            if (contentDisposition && contentDisposition.includes('filename=')) {
+              const match = contentDisposition.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/);
+              if (match) {
+                originalFileName = decodeURIComponent(match[1] || match[2] || '');
+              }
+            }
+            if (!originalFileName) {
+              const urlParts = fileUrl.split('?')[0].split('/');
+              originalFileName = decodeURIComponent(urlParts[urlParts.length - 1] || '');
+            }
             buffer = Buffer.from(await res.arrayBuffer());
           }
 
+          const ext = detectExtension(buffer, originalFileName, mimeType);
           const fileName = `${indexStr} - ${safeStudentName}${ext}`;
           const filePathInZip = isSingleGroup
             ? fileName
