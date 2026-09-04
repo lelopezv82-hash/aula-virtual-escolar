@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { ClipboardList, Plus, Pencil, X, Save, Loader2, CheckCircle, Clock, AlertCircle, AlertTriangle, Users, Search, UserCheck, ArrowLeft, Sparkles, Lock } from "lucide-react";
+import { ClipboardList, Plus, Pencil, X, Save, Loader2, CheckCircle, Clock, AlertCircle, AlertTriangle, Users, Search, UserCheck, ArrowLeft, Sparkles, Lock, Download } from "lucide-react";
 import TaskActions from "./TaskActions";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -90,6 +90,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
   const [bulkGradeValue, setBulkGradeValue] = useState("");
   const [gradingActiveGroupId, setGradingActiveGroupId] = useState<string>("all");
   const [gradingAvailableGroups, setGradingAvailableGroups] = useState<{ id: string; name: string; gradeName?: string; label?: string }[]>([]);
+  const [downloadingZip, setDownloadingZip] = useState(false);
 
   const hasUnsavedGradingChanges = useMemo(() => {
     if (!gradingTask) return false;
@@ -352,6 +353,53 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
     router.refresh();
   };
 
+  const handleDownloadAllSubmissionsZip = async () => {
+    if (!gradingTask) return;
+    const withFiles = gradingStudents.filter(s => !!(s.submission as any)?.fileUrl);
+    if (withFiles.length === 0) {
+      toast.info("Sin archivos", "Ningún estudiante de este grupo ha adjuntado archivos para esta actividad.");
+      return;
+    }
+
+    setDownloadingZip(true);
+    try {
+      const qp = gradingActiveGroupId && gradingActiveGroupId !== "all"
+        ? `?groupId=${encodeURIComponent(gradingActiveGroupId)}`
+        : "";
+
+      const res = await fetch(`/api/docente/tareas/${gradingTask.id}/download-all${qp}`);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "No se pudo generar el archivo comprimido.");
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+
+      const disposition = res.headers.get("Content-Disposition");
+      let filename = `Entregas - ${gradingTask.title}.zip`;
+      if (disposition && disposition.includes("filename=")) {
+        const match = disposition.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/);
+        if (match) {
+          filename = decodeURIComponent(match[1] || match[2] || filename);
+        }
+      }
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success("¡Descarga completada!", `Se descargaron ${withFiles.length} archivo(s) de entrega en la carpeta ZIP.`);
+    } catch (err: any) {
+      toast.error("Error al descargar", err.message || "Ocurrió un error al descargar los archivos.");
+    } finally {
+      setDownloadingZip(false);
+    }
+  };
+
   const toggleStudentSelection = (studentId: string) => {
     // Only one student can be activated at a time for safety
     setSelectedStudentIds(prev => (prev.includes(studentId) ? [] : [studentId]));
@@ -521,6 +569,28 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Bulk Download Submissions in ZIP */}
+            <button
+              type="button"
+              onClick={handleDownloadAllSubmissionsZip}
+              disabled={downloadingZip || loadingStudents}
+              className="px-4 py-2.5 rounded-xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/80 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-bold text-xs flex items-center gap-2 shadow-xs transition-all hover:scale-[1.02] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              title="Descargar todos los archivos de entrega de esta actividad para este grupo en un solo archivo ZIP"
+            >
+              {downloadingZip ? (
+                <>
+                  <Loader2 size={16} className="animate-spin text-blue-600 dark:text-blue-400" />
+                  <span>Descargando...</span>
+                </>
+              ) : (
+                <>
+                  <Download size={16} className="text-blue-600 dark:text-blue-400" />
+                  <span>
+                    Descargar Entregas {gradingStudents.filter(s => !!(s.submission as any)?.fileUrl).length > 0 ? `(${gradingStudents.filter(s => !!(s.submission as any)?.fileUrl).length})` : ""}
+                  </span>
+                </>
+              )}
+            </button>
             {hasUnsavedGradingChanges && (
               <div className="flex items-center gap-2 text-xs font-bold text-amber-700 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/60 px-3 py-2 rounded-xl animate-pulse shadow-xs">
                 <AlertTriangle size={15} className="text-amber-600 shrink-0" />

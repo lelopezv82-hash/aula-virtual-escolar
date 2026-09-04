@@ -273,6 +273,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [savingGradingProrroga, setSavingGradingProrroga] = useState(false);
   const [gradingProrrogaSearch, setGradingProrrogaSearch] = useState("");
   const [gradingAvailableGroups, setGradingAvailableGroups] = useState<{ id: string; name: string; gradeName?: string; label?: string }[]>([]);
+  const [downloadingZip, setDownloadingZip] = useState(false);
 
   // ─── Confirm Save Modal ───
   const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
@@ -1357,6 +1358,53 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       }
     } catch {
       toast.error("Error de conexión", "No se pudo comunicar con el servidor.");
+    }
+  };
+
+  const handleDownloadAllSubmissionsZip = async () => {
+    if (!gradingTask) return;
+    const withFiles = gradingStudents.filter(s => !!s.submission?.fileUrl);
+    if (withFiles.length === 0) {
+      toast.info("Sin archivos", "Ningún estudiante de este grupo ha adjuntado archivos para esta actividad.");
+      return;
+    }
+
+    setDownloadingZip(true);
+    try {
+      const qp = gradingActiveGroupId && gradingActiveGroupId !== "all"
+        ? `?groupId=${encodeURIComponent(gradingActiveGroupId)}`
+        : (selectedGroupId && selectedGroupId !== "all" ? `?groupId=${encodeURIComponent(selectedGroupId)}` : "");
+
+      const res = await fetch(`/api/docente/tareas/${gradingTask.id}/download-all${qp}`);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "No se pudo generar el archivo comprimido.");
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+
+      const disposition = res.headers.get("Content-Disposition");
+      let filename = `Entregas - ${gradingTask.title}.zip`;
+      if (disposition && disposition.includes("filename=")) {
+        const match = disposition.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/);
+        if (match) {
+          filename = decodeURIComponent(match[1] || match[2] || filename);
+        }
+      }
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success("¡Descarga completada!", `Se descargaron ${withFiles.length} archivo(s) de entrega en la carpeta ZIP.`);
+    } catch (err: any) {
+      toast.error("Error al descargar", err.message || "Ocurrió un error al descargar los archivos.");
+    } finally {
+      setDownloadingZip(false);
     }
   };
   const toggleSelectAllFiltered = (filteredIds: string[]) => {
@@ -2650,6 +2698,29 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             >
               <Calendar size={16} className="text-[#f98012]" />
               <span>Asignar Prórroga</span>
+            </button>
+
+            {/* Bulk Download Submissions in ZIP */}
+            <button
+              type="button"
+              onClick={handleDownloadAllSubmissionsZip}
+              disabled={downloadingZip || loadingStudents}
+              className="px-4 py-2.5 rounded-xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/80 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-bold text-xs flex items-center gap-2 shadow-xs transition-all hover:scale-[1.02] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              title="Descargar todos los archivos de entrega de esta actividad para este grupo en un solo archivo ZIP"
+            >
+              {downloadingZip ? (
+                <>
+                  <Loader2 size={16} className="animate-spin text-blue-600 dark:text-blue-400" />
+                  <span>Descargando entregas...</span>
+                </>
+              ) : (
+                <>
+                  <Download size={16} className="text-blue-600 dark:text-blue-400" />
+                  <span>
+                    Descargar Entregas {gradingStudents.filter(s => !!s.submission?.fileUrl).length > 0 ? `(${gradingStudents.filter(s => !!s.submission?.fileUrl).length})` : ""}
+                  </span>
+                </>
+              )}
             </button>
 
             {hasUnsavedGradingChanges && (
