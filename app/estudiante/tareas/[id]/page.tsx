@@ -833,7 +833,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                     {isGraded ? (
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="px-3 py-1 bg-[#d4edda] text-[#155724] rounded-sm text-xs font-semibold uppercase">
-                          {submission?.allowLateSubmission ? "Calificado con prórroga" : "Calificado"}
+                          Calificado
                         </span>
                         {submission?.allowLateSubmission && (
                           <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
