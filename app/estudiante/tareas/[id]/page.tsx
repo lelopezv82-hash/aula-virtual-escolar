@@ -30,24 +30,8 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const [isEditing, setIsEditing] = useState(false);
   const [isNotActivated, setIsNotActivated] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setIsMenuOpen(false);
-      }
-    };
-    if (isMenuOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isMenuOpen]);
 
   useEffect(() => {
     // Fetch task and existing submission info
@@ -649,53 +633,14 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                     Detecta automáticamente si es un archivo (PDF, Word, imagen) o una carpeta completa
                   </p>
 
-                  <div className="relative inline-block text-left" ref={menuRef}>
-                    <button
-                      type="button"
-                      onClick={() => setIsMenuOpen(!isMenuOpen)}
-                      className="px-5 py-2.5 bg-white border border-gray-300 hover:border-orange-300 hover:bg-orange-50/40 text-gray-800 rounded-lg shadow-sm font-medium text-sm inline-flex items-center gap-2.5 transition-all cursor-pointer"
-                    >
-                      <Folder size={17} className="text-[#f98012]" />
-                      <span>Seleccionar archivo o carpeta</span>
-                      <ChevronDown size={15} className={`text-gray-500 transition-transform duration-200 ${isMenuOpen ? "rotate-180" : ""}`} />
-                    </button>
-
-                    {isMenuOpen && (
-                      <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 py-1.5 z-30 text-left animate-scale-in">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsMenuOpen(false);
-                            fileInputRef.current?.click();
-                          }}
-                          className="w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-950 flex items-center gap-3 transition-colors cursor-pointer"
-                        >
-                          <FileText size={18} className="text-gray-500 flex-shrink-0" />
-                          <div>
-                            <div className="font-semibold text-gray-800">Subir Archivo(s)</div>
-                            <div className="text-[11px] text-gray-500">Documentos, PDF, imágenes...</div>
-                          </div>
-                        </button>
-                        
-                        <div className="h-px bg-gray-100 my-1"></div>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsMenuOpen(false);
-                            folderInputRef.current?.click();
-                          }}
-                          className="w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-950 flex items-center gap-3 transition-colors cursor-pointer"
-                        >
-                          <Folder size={18} className="text-[#f98012] flex-shrink-0" />
-                          <div>
-                            <div className="font-semibold text-gray-800">Subir Carpeta</div>
-                            <div className="text-[11px] text-gray-500">Carpeta completa sin comprimir</div>
-                          </div>
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-5 py-2.5 bg-white border border-gray-300 hover:border-orange-400 hover:bg-orange-50/50 text-gray-800 rounded-lg shadow-sm font-medium text-sm inline-flex items-center gap-2.5 transition-all cursor-pointer"
+                  >
+                    <Folder size={17} className="text-[#f98012]" />
+                    <span>Seleccionar archivo o carpeta</span>
+                  </button>
                 </>
               ) : (
                 <div className="bg-orange-50/70 border border-orange-200 rounded-lg p-4 max-w-md mx-auto text-left shadow-sm">
