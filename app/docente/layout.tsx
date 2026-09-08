@@ -5,7 +5,6 @@ import {
   LayoutDashboard,
   Settings,
   BookOpen,
-  ClipboardList,
   Layers,
   FileText,
   CalendarClock,
@@ -47,11 +46,6 @@ export default async function DocenteLayout({ children }: { children: React.Reac
       href: "/docente/cursos",
       label: "Mis Asignaturas",
       icon: <BookOpen size={20} />,
-    },
-    {
-      href: "/docente/planillas",
-      label: "Planillas y Actividades",
-      icon: <ClipboardList size={20} />,
     },
     {
       href: "/docente/contenido",
