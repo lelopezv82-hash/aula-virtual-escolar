@@ -734,18 +734,18 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
               />
             </div>
 
-            <div className="flex items-center justify-center gap-4 mt-4">
+            <div className="flex items-center justify-center gap-4 pt-2 pb-2">
               <button 
                 type="button" 
                 onClick={() => { setIsEditing(false); setFile(null); setSelectedFiles([]); setIsFolderSelected(false); setError(""); }} 
-                className="px-6 py-2.5 border border-gray-300 hover:bg-gray-100 text-gray-700 font-semibold text-sm rounded-lg transition-all cursor-pointer shadow-sm"
+                className="px-6 py-2.5 border border-gray-300 hover:bg-gray-100 text-gray-700 font-semibold text-sm rounded-lg transition-all cursor-pointer shadow-sm whitespace-nowrap flex-shrink-0"
                 disabled={loading}
               >
                 Cancelar
               </button>
               <button 
                 type="submit" 
-                className="px-6 py-2.5 bg-[#f98012] hover:bg-[#e06d09] text-white rounded-lg shadow-sm hover:shadow font-semibold text-sm inline-flex items-center gap-2 transition-all cursor-pointer"
+                className="px-6 py-2.5 bg-[#f98012] hover:bg-[#e06d09] text-white rounded-lg shadow-sm hover:shadow font-semibold text-sm inline-flex items-center justify-center gap-2 transition-all cursor-pointer whitespace-nowrap flex-shrink-0"
                 disabled={loading}
               >
                 {loading ? <Loader2 className="animate-spin" size={16} /> : null}
