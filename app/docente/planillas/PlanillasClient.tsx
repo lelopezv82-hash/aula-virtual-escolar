@@ -6,7 +6,8 @@ import {
   ArrowLeft, FileSpreadsheet, FileText, Loader2,
   Save, Undo2, AlertTriangle, Check, Info,
   Plus, Trash2, X, Pencil, CheckCircle, AlertCircle, Clock,
-  Eye, EyeOff, Users, Search, Sparkles, Copy, Calendar, Download, RotateCcw, Lock
+  Eye, EyeOff, Users, Search, Sparkles, Copy, Calendar, Download, RotateCcw, Lock,
+  ArrowLeftRight
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -249,6 +250,37 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
  // ─── Delete confirm   ───
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+ // ─── Cambiar dimensión (Saber <-> Hacer)   ───
+  const [switchingTaskId, setSwitchingTaskId] = useState<string | null>(null);
+  const handleSwitchDimension = async (t: TaskItem) => {
+    const isCurrentlySaber = t.type === "TASK_SABER" || t.type === "SABER" || t.type === "EXAM";
+    const targetDimension = isCurrentlySaber ? "El Hacer (Procedimental)" : "El Saber (Cognitivo)";
+    const newType = isCurrentlySaber ? "TASK" : (t.type === "EXAM" ? "EXAM" : "TASK_SABER");
+
+    if (!confirm(`¿Deseas mover la actividad "${t.title}" hacia la dimensión "${targetDimension}"?\n\nLas notas, entregas y respuestas de los estudiantes se mantendrán intactas y se recalculará el promedio de inmediato.`)) {
+      return;
+    }
+
+    setSwitchingTaskId(t.id);
+    try {
+      const res = await fetch(`/api/docente/tareas/${t.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: newType })
+      });
+      if (res.ok) {
+        await fetchData();
+      } else {
+        const err = await res.json();
+        alert(err.error || "Error al cambiar la dimensión de la actividad.");
+      }
+    } catch {
+      alert("Error de conexión al cambiar la dimensión.");
+    } finally {
+      setSwitchingTaskId(null);
+    }
+  };
 
  // ─── Manual Grading Full-Screen State   ───
   const [gradingTask, setGradingTask] = useState<TaskItem | null>(null);
@@ -2539,6 +2571,16 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               <th key={t.id} title={t.title} className="border border-gray-200 dark:border-gray-700 p-1 cursor-help text-center group relative" style={{ width: "56px", minWidth: "56px" }}>
                 <div className="flex flex-col items-center">
                   <span>{taskNumbers[t.id]}</span>
+                  {(cat.type === "EXAM" || cat.type === "TASK") && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleSwitchDimension(t); }}
+                      disabled={switchingTaskId === t.id}
+                      className="opacity-0 group-hover:opacity-100 absolute -top-0.5 -left-0.5 text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-200 transition-all p-0.5 rounded hover:bg-blue-50 dark:hover:bg-blue-900/40"
+                      title={cat.type === "EXAM" ? "Mover al Hacer (Procedimental)" : "Mover al Saber (Cognitivo)"}
+                    >
+                      {switchingTaskId === t.id ? <Loader2 size={10} className="animate-spin" /> : <ArrowLeftRight size={10} />}
+                    </button>
+                  )}
                   <button
                     onClick={() => handleDeleteTask(t.id, t.title)}
                     disabled={deletingId === t.id}
@@ -4388,6 +4430,16 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                       </button>
                       {/* Action buttons */}
                       <div className="flex items-center gap-0.5">
+                        {(t.type === "TASK" || t.type === "TASK_SABER" || t.type === "SABER" || t.type === "EXAM") && (
+                          <button
+                            onClick={() => handleSwitchDimension(t)}
+                            disabled={switchingTaskId === t.id}
+                            className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-400 hover:text-blue-600 transition-colors"
+                            title={t.type === "TASK" ? "Mover al Saber (Cognitivo)" : "Mover al Hacer (Procedimental)"}
+                          >
+                            {switchingTaskId === t.id ? <Loader2 size={13} className="animate-spin text-blue-500" /> : <ArrowLeftRight size={13} />}
+                          </button>
+                        )}
                         <button onClick={() => openGradingModal(t)} className="p-1 rounded hover:bg-orange-50 dark:hover:bg-orange-900/20 text-gray-400 hover:text-[#f98012] transition-colors" title="Calificar estudiantes">
                           <Pencil size={13} />
                         </button>
@@ -4396,7 +4448,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                         </button>
                         <button onClick={() => openEditModal(t)} disabled={loadingEdit} className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-400 hover:text-blue-600 transition-colors" title={t.type === "EXAM" ? "Editar examen" : t.type === "TASK" ? "Editar tarea" : "Editar evaluación"}>
                           {loadingEdit ? <Loader2 size={13} className="animate-spin" /> : <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>}
-</button>
+                        </button>
                         <button onClick={() => handleDeleteTask(t.id, t.title)} disabled={deletingId === t.id} className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100" title={t.type === "EXAM" ? "Eliminar examen" : t.type === "TASK" ? "Eliminar tarea" : "Eliminar evaluación"}>
                           {deletingId === t.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
                         </button>
@@ -4619,7 +4671,50 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                   </div>
                 </div>
 
-                {/* Subtipo de Dimensión Saber (Tarea vs Examen) */}
+                {/* Dimensión evaluativa (Saber vs Hacer) */}
+                {(addModal.type === "EXAM" || addModal.type === "TASK") && (
+                  <div className="input-group">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 flex items-center justify-between">
+                      <span>Dimensión Evaluativa en Planilla *</span>
+                      <span className="text-[11px] font-normal text-muted">
+                        Puedes cambiar la actividad entre Saber y Hacer cuando lo desees
+                      </span>
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setAddModal({ type: "EXAM" })}
+                        className={`p-3 rounded-xl border text-left flex items-center gap-3 transition-all cursor-pointer ${
+                          addModal.type === "EXAM"
+                            ? "border-purple-500 bg-purple-50/90 dark:bg-purple-950/40 text-purple-900 dark:text-purple-200 ring-2 ring-purple-400/50 shadow-sm"
+                            : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/40 text-gray-700 dark:text-gray-300"
+                        }`}
+                      >
+                        <span className="text-xl">🧠</span>
+                        <div>
+                          <p className="font-extrabold text-xs text-purple-700 dark:text-purple-300">El Saber (Cognitivo)</p>
+                          <p className="text-[10px] text-muted leading-tight">Exámenes, pruebas, talleres cognitivos</p>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setAddModal({ type: "TASK" })}
+                        className={`p-3 rounded-xl border text-left flex items-center gap-3 transition-all cursor-pointer ${
+                          addModal.type === "TASK"
+                            ? "border-orange-500 bg-orange-50/90 dark:bg-orange-950/40 text-orange-900 dark:text-orange-200 ring-2 ring-orange-400/50 shadow-sm"
+                            : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/40 text-gray-700 dark:text-gray-300"
+                        }`}
+                      >
+                        <span className="text-xl">📝</span>
+                        <div>
+                          <p className="font-extrabold text-xs text-orange-700 dark:text-orange-300">El Hacer (Procedimental)</p>
+                          <p className="text-[10px] text-muted leading-tight">Tareas, guías, talleres de aplicación</p>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                )}
                 {addModal.type === "EXAM" && (
                   <div className="input-group">
                     <label className="block text-xs font-bold text-purple-900 dark:text-purple-300 mb-1.5">
