@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
-import { ArrowLeft, UploadCloud, Loader2, CheckCircle, FileText, Clock, AlertTriangle, Folder, Download, ChevronDown, ChevronUp } from "lucide-react";
+import { useState, useEffect, use, useRef } from "react";
+import { ArrowLeft, UploadCloud, Loader2, CheckCircle, FileText, Clock, AlertTriangle, Folder, Download, ChevronDown, ChevronUp, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatToColombiaString, getTaskDeadlineStatus } from "@/lib/dateUtils";
@@ -29,6 +29,25 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const [initialLoad, setInitialLoad] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [isNotActivated, setIsNotActivated] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    if (isMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isMenuOpen]);
 
   useEffect(() => {
     // Fetch task and existing submission info
@@ -160,6 +179,94 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
     }
   };
 
+  const traverseFileTree = async (item: any, path = ""): Promise<{ file: File; relativePath: string }[]> => {
+    return new Promise((resolve) => {
+      if (item.isFile) {
+        item.file(
+          (f: File) => resolve([{ file: f, relativePath: path ? `${path}/${f.name}` : f.name }]),
+          () => resolve([])
+        );
+      } else if (item.isDirectory) {
+        const dirReader = item.createReader();
+        const allEntries: any[] = [];
+        const readEntries = () => {
+          dirReader.readEntries(
+            async (entries: any[]) => {
+              if (entries.length === 0) {
+                const results: { file: File; relativePath: string }[] = [];
+                for (const entry of allEntries) {
+                  const nested = await traverseFileTree(entry, path ? `${path}/${item.name}` : item.name);
+                  results.push(...nested);
+                }
+                resolve(results);
+              } else {
+                allEntries.push(...entries);
+                readEntries();
+              }
+            },
+            () => resolve([])
+          );
+        };
+        readEntries();
+      } else {
+        resolve([]);
+      }
+    });
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const items = e.dataTransfer.items;
+    if (items && items.length > 0) {
+      const promises: Promise<{ file: File; relativePath: string }[]>[] = [];
+      let detectedFolder = false;
+
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
+        if (entry) {
+          if (entry.isDirectory) detectedFolder = true;
+          promises.push(traverseFileTree(entry));
+        } else {
+          const f = item.getAsFile();
+          if (f) {
+            promises.push(Promise.resolve([{ file: f, relativePath: f.name }]));
+          }
+        }
+      }
+
+      const nestedResults = await Promise.all(promises);
+      const results = nestedResults.flat();
+      if (results.length > 0) {
+        setFile(results[0].file);
+        setSelectedFiles(results);
+        setIsFolderSelected(detectedFolder || results.length > 1);
+        setError("");
+      }
+    } else if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const filesArray = Array.from(e.dataTransfer.files);
+      setFile(filesArray[0]);
+      setSelectedFiles(filesArray.map((f) => ({ file: f, relativePath: f.name })));
+      setIsFolderSelected(filesArray.length > 1);
+      setError("");
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const filesArray = Array.from(e.target.files);
@@ -173,6 +280,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
         setIsFolderSelected(false);
       }
       setError("");
+      e.target.value = "";
     }
   };
 
@@ -183,6 +291,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
       setSelectedFiles(filesArray.map(f => ({ file: f, relativePath: f.webkitRelativePath || f.name })));
       setIsFolderSelected(true);
       setError("");
+      e.target.value = "";
     }
   };
 
@@ -519,56 +628,106 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
           )}
 
           <form onSubmit={handleUpload} className="flex flex-col gap-4">
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:bg-gray-50 transition-colors">
-              <UploadCloud size={48} className="mx-auto mb-4 text-[#f98012]" />
+            <div 
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`border-2 border-dashed rounded-xl p-8 text-center transition-all ${
+                isDragging 
+                  ? "border-[#f98012] bg-orange-50/70 scale-[1.01]" 
+                  : "border-gray-300 hover:bg-gray-50/60"
+              }`}
+            >
+              <UploadCloud size={44} className={`mx-auto mb-3 transition-colors ${isDragging ? "text-[#f98012] animate-bounce" : "text-[#f98012]"}`} />
               
-              <div className="flex items-center justify-center gap-3 flex-wrap mb-3">
-                <label htmlFor="file-upload" className="cursor-pointer">
-                  <span className="btn btn-secondary inline-flex items-center gap-2">
-                    <FileText size={16} /> Seleccionar Archivo(s)
-                  </span>
-                  <input 
-                    id="file-upload" 
-                    type="file" 
-                    multiple
-                    className="hidden" 
-                    onChange={handleFileChange} 
-                  />
-                </label>
+              {selectedFiles.length === 0 ? (
+                <>
+                  <p className="text-base font-semibold text-gray-800 mb-1">
+                    {isDragging ? "¡Suelta tu archivo o carpeta aquí!" : "Arrastra y suelta aquí tu archivo o carpeta"}
+                  </p>
+                  <p className="text-xs text-gray-500 mb-4">
+                    Detecta automáticamente si es un archivo (PDF, Word, imagen) o una carpeta completa
+                  </p>
 
-                <label htmlFor="folder-upload" className="cursor-pointer">
-                  <span className="btn btn-secondary inline-flex items-center gap-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300">
-                    <Folder size={16} className="text-[#f98012]" /> Seleccionar Carpeta
-                  </span>
-                  <input 
-                    id="folder-upload" 
-                    type="file" 
-                    // @ts-ignore
-                    webkitdirectory="" 
-                    directory="" 
-                    className="hidden" 
-                    onChange={handleFolderChange} 
-                  />
-                </label>
-              </div>
+                  <div className="relative inline-block text-left" ref={menuRef}>
+                    <button
+                      type="button"
+                      onClick={() => setIsMenuOpen(!isMenuOpen)}
+                      className="px-5 py-2.5 bg-white border border-gray-300 hover:border-orange-300 hover:bg-orange-50/40 text-gray-800 rounded-lg shadow-sm font-medium text-sm inline-flex items-center gap-2.5 transition-all cursor-pointer"
+                    >
+                      <Folder size={17} className="text-[#f98012]" />
+                      <span>Seleccionar archivo o carpeta</span>
+                      <ChevronDown size={15} className={`text-gray-500 transition-transform duration-200 ${isMenuOpen ? "rotate-180" : ""}`} />
+                    </button>
 
-              {selectedFiles.length > 0 ? (
-                <div className="bg-orange-50/70 border border-orange-200 rounded-lg p-3 max-w-md mx-auto text-left">
-                  <div className="flex items-center gap-2 font-bold text-gray-800 text-sm mb-1">
-                    {isFolderSelected ? (
-                      <>
-                        <Folder size={18} className="text-[#f98012]" />
-                        <span>Carpeta: {selectedFiles[0]?.relativePath.split('/')[0] || "Seleccionada"}</span>
-                      </>
-                    ) : (
-                      <>
-                        <FileText size={18} className="text-[#f98012]" />
-                        <span>{selectedFiles.length === 1 ? selectedFiles[0].file.name : `${selectedFiles.length} archivos seleccionados`}</span>
-                      </>
+                    {isMenuOpen && (
+                      <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 py-1.5 z-30 text-left animate-scale-in">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            fileInputRef.current?.click();
+                          }}
+                          className="w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-950 flex items-center gap-3 transition-colors cursor-pointer"
+                        >
+                          <FileText size={18} className="text-gray-500 flex-shrink-0" />
+                          <div>
+                            <div className="font-semibold text-gray-800">Subir Archivo(s)</div>
+                            <div className="text-[11px] text-gray-500">Documentos, PDF, imágenes...</div>
+                          </div>
+                        </button>
+                        
+                        <div className="h-px bg-gray-100 my-1"></div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            folderInputRef.current?.click();
+                          }}
+                          className="w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-950 flex items-center gap-3 transition-colors cursor-pointer"
+                        >
+                          <Folder size={18} className="text-[#f98012] flex-shrink-0" />
+                          <div>
+                            <div className="font-semibold text-gray-800">Subir Carpeta</div>
+                            <div className="text-[11px] text-gray-500">Carpeta completa sin comprimir</div>
+                          </div>
+                        </button>
+                      </div>
                     )}
                   </div>
-                  <div className="text-xs text-gray-600 flex items-center justify-between">
-                    <span>{selectedFiles.length} archivo(s) en total</span>
+                </>
+              ) : (
+                <div className="bg-orange-50/70 border border-orange-200 rounded-lg p-4 max-w-md mx-auto text-left shadow-sm">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2 font-bold text-gray-800 text-sm">
+                      {isFolderSelected ? (
+                        <>
+                          <Folder size={20} className="text-[#f98012] flex-shrink-0" />
+                          <span className="truncate">Carpeta: {selectedFiles[0]?.relativePath.split('/')[0] || "Seleccionada"}</span>
+                        </>
+                      ) : (
+                        <>
+                          <FileText size={20} className="text-[#f98012] flex-shrink-0" />
+                          <span className="truncate">{selectedFiles.length === 1 ? selectedFiles[0].file.name : `${selectedFiles.length} archivos seleccionados`}</span>
+                        </>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFile(null);
+                        setSelectedFiles([]);
+                        setIsFolderSelected(false);
+                      }}
+                      className="text-gray-400 hover:text-red-600 p-1 rounded transition-colors cursor-pointer"
+                      title="Quitar selección"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                  <div className="text-xs text-gray-600 flex items-center justify-between font-medium">
+                    <span>{selectedFiles.length} archivo(s) listo(s) para enviar</span>
                     <span>{(selectedFiles.reduce((acc, curr) => acc + curr.file.size, 0) / 1024).toFixed(1)} KB</span>
                   </div>
                   {selectedFiles.length > 1 && (
@@ -580,12 +739,39 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                       ))}
                     </div>
                   )}
+                  <div className="mt-3 pt-2 border-t border-orange-200 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFile(null);
+                        setSelectedFiles([]);
+                        setIsFolderSelected(false);
+                      }}
+                      className="text-xs text-[#f98012] hover:underline font-medium cursor-pointer"
+                    >
+                      Elegir otro archivo o carpeta
+                    </button>
+                  </div>
                 </div>
-              ) : (
-                <p className="text-sm text-gray-500 mt-2">
-                  Puedes seleccionar un archivo individual o una <strong>carpeta completa</strong> sin comprimir.
-                </p>
               )}
+
+              {/* Hidden Inputs */}
+              <input 
+                ref={fileInputRef}
+                type="file" 
+                multiple
+                className="hidden" 
+                onChange={handleFileChange} 
+              />
+              <input 
+                ref={folderInputRef}
+                type="file" 
+                // @ts-ignore
+                webkitdirectory="" 
+                directory="" 
+                className="hidden" 
+                onChange={handleFolderChange} 
+              />
             </div>
 
             <div className="flex gap-3 justify-end mt-2">
