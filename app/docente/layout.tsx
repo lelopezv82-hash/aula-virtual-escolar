@@ -65,7 +65,7 @@ export default async function DocenteLayout({ children }: { children: React.Reac
     },
     {
       href: "/docente/planillas",
-      label: "Gestión Académica",
+      label: "Académico",
       icon: <GraduationCap size={20} />,
     },
     {
