@@ -282,7 +282,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedFiles.length === 0 && !file) {
-      setError("¡Ups! Falta el archivo o la carpeta. Por favor selecciona el contenido antes de enviarlo.");
+      setError("¡Ups! Falta el archivo. Por favor selecciona el archivo antes de enviarlo.");
       setErrorType("warning");
       return;
     }
@@ -627,19 +627,19 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
               {selectedFiles.length === 0 ? (
                 <>
                   <p className="text-base font-semibold text-gray-800 mb-1">
-                    {isDragging ? "¡Suelta tu archivo o carpeta aquí!" : "Arrastra y suelta aquí tu archivo o carpeta"}
+                    {isDragging ? "¡Suelta tu archivo aquí!" : "Arrastra y suelta aquí tu archivo"}
                   </p>
                   <p className="text-xs text-gray-500 mb-4">
-                    Detecta automáticamente si es un archivo (PDF, Word, imagen) o una carpeta completa
+                    Haz clic en el botón o arrastra tu archivo directamente
                   </p>
 
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-5 py-2.5 bg-white border border-gray-300 hover:border-orange-400 hover:bg-orange-50/50 text-gray-800 rounded-lg shadow-sm font-medium text-sm inline-flex items-center gap-2.5 transition-all cursor-pointer"
+                    className="px-6 py-3 bg-[#f98012] hover:bg-[#e06d09] text-white rounded-xl shadow-md hover:shadow-lg font-semibold text-sm inline-flex items-center gap-2.5 transition-all cursor-pointer transform hover:-translate-y-0.5"
                   >
-                    <Folder size={17} className="text-[#f98012]" />
-                    <span>Seleccionar archivo o carpeta</span>
+                    <FileText size={18} className="text-white" />
+                    <span>Seleccionar archivo</span>
                   </button>
                 </>
               ) : (
@@ -649,7 +649,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                       {isFolderSelected ? (
                         <>
                           <Folder size={20} className="text-[#f98012] flex-shrink-0" />
-                          <span className="truncate">Carpeta: {selectedFiles[0]?.relativePath.split('/')[0] || "Seleccionada"}</span>
+                          <span className="truncate">Entrega: {selectedFiles[0]?.relativePath.split('/')[0] || "Seleccionada"}</span>
                         </>
                       ) : (
                         <>
@@ -694,7 +694,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                       }}
                       className="text-xs text-[#f98012] hover:underline font-medium cursor-pointer"
                     >
-                      Elegir otro archivo o carpeta
+                      Elegir otro archivo
                     </button>
                   </div>
                 </div>
