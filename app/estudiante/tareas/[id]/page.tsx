@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, use, useRef } from "react";
-import { ArrowLeft, UploadCloud, Loader2, CheckCircle, FileText, Clock, AlertTriangle, Folder, Download, ChevronDown, ChevronUp, X } from "lucide-react";
+import { ArrowLeft, UploadCloud, Loader2, CheckCircle, FileText, Clock, AlertTriangle, Folder, Download, ChevronDown, ChevronUp, X, Send } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatToColombiaString, getTaskDeadlineStatus } from "@/lib/dateUtils";
@@ -745,10 +745,10 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
               </button>
               <button 
                 type="submit" 
-                className="px-6 py-3 bg-[#f98012] hover:bg-[#e06d09] text-white rounded-xl shadow-md hover:shadow-lg font-semibold text-sm inline-flex items-center gap-2.5 transition-all cursor-pointer transform hover:-translate-y-0.5"
+                className="px-7 py-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl shadow-md hover:shadow-lg font-bold text-sm inline-flex items-center gap-2.5 transition-all cursor-pointer transform hover:-translate-y-0.5"
                 disabled={loading}
               >
-                {loading ? <Loader2 className="animate-spin" size={18} /> : null}
+                {loading ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} className="text-white" />}
                 <span>Entregar actividad</span>
               </button>
             </div>
