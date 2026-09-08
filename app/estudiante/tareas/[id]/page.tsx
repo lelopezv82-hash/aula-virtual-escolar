@@ -641,18 +641,18 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                     <button
                       type="button"
                       onClick={() => folderInputRef.current?.click()}
-                      className="px-5 py-2.5 bg-[#e3f2fd] hover:bg-[#bbdefb] border border-[#90caf9] text-[#1565c0] rounded-lg shadow-sm font-bold text-sm inline-flex items-center gap-2 transition-all cursor-pointer"
+                      className="px-5 py-2.5 bg-[#f0f7ff] hover:bg-[#e0f2fe] border border-[#bae6fd] text-[#0369a1] rounded-lg shadow-sm font-bold text-sm inline-flex items-center gap-2 transition-all cursor-pointer"
                     >
-                      <Folder size={18} strokeWidth={2.5} className="text-[#1565c0]" />
+                      <Folder size={18} strokeWidth={2.5} className="text-[#0284c7]" />
                       <span>Seleccionar carpeta</span>
                     </button>
                   ) : (
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="px-5 py-2.5 bg-[#e3f2fd] hover:bg-[#bbdefb] border border-[#90caf9] text-[#1565c0] rounded-lg shadow-sm font-bold text-sm inline-flex items-center gap-2 transition-all cursor-pointer"
+                      className="px-5 py-2.5 bg-[#f0f7ff] hover:bg-[#e0f2fe] border border-[#bae6fd] text-[#0369a1] rounded-lg shadow-sm font-bold text-sm inline-flex items-center gap-2 transition-all cursor-pointer"
                     >
-                      <FileText size={18} strokeWidth={2.5} className="text-[#1565c0]" />
+                      <FileText size={18} strokeWidth={2.5} className="text-[#0284c7]" />
                       <span>Seleccionar archivo</span>
                     </button>
                   )}
