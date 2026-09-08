@@ -745,7 +745,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
               </button>
               <button 
                 type="submit" 
-                className="px-7 py-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl shadow-md hover:shadow-lg font-bold text-sm inline-flex items-center gap-2.5 transition-all cursor-pointer transform hover:-translate-y-0.5"
+                className="px-7 py-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl shadow-md hover:shadow-lg font-bold text-sm inline-flex items-center gap-2.5 transition-all cursor-pointer transform hover:-translate-y-0.5"
                 disabled={loading}
               >
                 {loading ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} className="text-white" />}
