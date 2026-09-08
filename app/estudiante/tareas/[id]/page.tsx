@@ -831,13 +831,27 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                   <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Estado de la calificación</td>
                   <td className="p-4 align-middle">
                     {isGraded ? (
-                      <span className="px-3 py-1 bg-[#d4edda] text-[#155724] rounded-sm text-xs font-semibold uppercase">
-                        Calificado
-                      </span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-3 py-1 bg-[#d4edda] text-[#155724] rounded-sm text-xs font-semibold uppercase">
+                          {submission?.allowLateSubmission ? "Calificado con prórroga" : "Calificado"}
+                        </span>
+                        {submission?.allowLateSubmission && (
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                            ⏰ Con prórroga
+                          </span>
+                        )}
+                      </div>
                     ) : (
-                      <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-sm text-xs font-semibold uppercase">
-                        Sin calificar
-                      </span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-sm text-xs font-semibold uppercase">
+                          Sin calificar
+                        </span>
+                        {submission?.allowLateSubmission && (
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                            ⏰ Con prórroga
+                          </span>
+                        )}
+                      </div>
                     )}
                   </td>
                 </tr>
@@ -971,9 +985,18 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                     <tr className="border-b border-gray-100">
                       <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Calificación</td>
                       <td className="p-4 align-middle font-bold text-gray-950 text-base">
-                        {effectiveGrade !== null && effectiveGrade !== undefined 
-                          ? `${Number(effectiveGrade).toFixed(1).replace('.', ',')}` 
-                          : "Pendiente"}
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <span>
+                            {effectiveGrade !== null && effectiveGrade !== undefined 
+                              ? `${Number(effectiveGrade).toFixed(1).replace('.', ',')}` 
+                              : "Pendiente"}
+                          </span>
+                          {submission?.allowLateSubmission && (
+                            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                              ⏰ Con prórroga
+                            </span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                     
