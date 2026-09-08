@@ -932,9 +932,16 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
           )}
 
           {info.isSubmitted && (
-            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 flex items-center gap-1">
-              <CheckCircle2 size={12} />
-              {info.isGraded ? (info.grade !== null && info.grade !== undefined ? `Calificado · Nota: ${Number(info.grade).toFixed(1)}` : "Calificado") : "Entregada"}
+            <span className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 flex items-center gap-1">
+                <CheckCircle2 size={12} />
+                {info.isGraded ? (info.grade !== null && info.grade !== undefined ? `Calificado · Nota: ${Number(info.grade).toFixed(1)}` : "Calificado") : "Entregada"}
+              </span>
+              {task.submission?.allowLateSubmission && (
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50 flex items-center gap-1">
+                  ⏰ Con prórroga
+                </span>
+              )}
             </span>
           )}
         </div>
