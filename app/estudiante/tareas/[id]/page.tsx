@@ -749,7 +749,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                 disabled={loading}
               >
                 {loading ? <Loader2 className="animate-spin" size={18} /> : null}
-                <span>Enviar tarea</span>
+                <span>Entregar actividad</span>
               </button>
             </div>
           </form>
