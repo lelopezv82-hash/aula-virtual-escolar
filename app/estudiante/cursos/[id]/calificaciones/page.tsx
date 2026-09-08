@@ -229,6 +229,11 @@ export default async function CursoCalificacionesPage({
                 ? <span className="badge badge-danger flex items-center gap-1"><AlertCircle size={12} /> Plazo vencido</span>
                 : <span className="badge badge-success flex items-center gap-1"><CheckCircle size={12} /> Calificada</span>
             )}
+            {sub.allowLateSubmission && (
+              <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#fff7ed", color: "#c2410c", border: "1px solid #ffedd5" }}>
+                ⏰ Con prórroga
+              </span>
+            )}
             {isPending && <span className="badge badge-info flex items-center gap-1"><Clock size={12} /> En revisión</span>}
             {sub.task.type === "TASK_SABER" && (
               <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f3e8ff", color: "#6b21a8", border: "1px solid #d8b4fe" }}>

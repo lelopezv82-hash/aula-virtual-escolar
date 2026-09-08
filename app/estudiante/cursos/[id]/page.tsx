@@ -226,22 +226,46 @@ export default async function CursoDescripcionPage({
                         </span>
                       )}
                       {!isNotActivatedForStudent && isGraded && (
-                        <span style={{
-                          fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
-                          borderRadius: 3,
-                          background: "#d4edda", color: "#155724",
-                          border: "1px solid #b8ddbf",
-                        }}>
-                          ✓ Calificado {submission?.grade !== null && submission?.grade !== undefined ? `· Nota: ${Number(submission.grade).toFixed(1)}` : ""}
+                        <span className="inline-flex items-center gap-1.5 flex-wrap">
+                          <span style={{
+                            fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
+                            borderRadius: 3,
+                            background: "#d4edda", color: "#155724",
+                            border: "1px solid #b8ddbf",
+                          }}>
+                            ✓ Calificado {submission?.grade !== null && submission?.grade !== undefined ? `· Nota: ${Number(submission.grade).toFixed(1)}` : ""}
+                          </span>
+                          {submission?.allowLateSubmission && (
+                            <span style={{
+                              fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
+                              borderRadius: 3,
+                              background: "#fff7ed", color: "#c2410c",
+                              border: "1px solid #ffedd5",
+                            }}>
+                              ⏰ Con prórroga
+                            </span>
+                          )}
                         </span>
                       )}
                       {!isNotActivatedForStudent && isSubmitted && !isGraded && (
-                        <span style={{
-                          fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
-                          borderRadius: 3, background: "#fff3cd", color: "#856404",
-                          border: "1px solid #ffc107",
-                        }}>
-                          Pendiente por calificar
+                        <span className="inline-flex items-center gap-1.5 flex-wrap">
+                          <span style={{
+                            fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
+                            borderRadius: 3, background: "#fff3cd", color: "#856404",
+                            border: "1px solid #ffc107",
+                          }}>
+                            Pendiente por calificar
+                          </span>
+                          {submission?.allowLateSubmission && (
+                            <span style={{
+                              fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
+                              borderRadius: 3,
+                              background: "#fff7ed", color: "#c2410c",
+                              border: "1px solid #ffedd5",
+                            }}>
+                              ⏰ Con prórroga
+                            </span>
+                          )}
                         </span>
                       )}
                       {!isNotActivatedForStudent && hasExtension && !isSubmitted && (
