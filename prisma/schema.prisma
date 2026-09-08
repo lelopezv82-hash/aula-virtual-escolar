@@ -136,6 +136,7 @@ model Task {
   type                String       @default("TASK")
   duration            Int?
   isExternal          Boolean      @default(false)
+  requiresFolder      Boolean      @default(false)
   questions           Question[]
   submissions         Submission[]
   course              Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)

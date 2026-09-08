@@ -20,6 +20,7 @@ export default function NuevaTareaPage() {
   const [groupIds, setGroupIds] = useState<string[]>([]);
   const [type, setType] = useState("TASK");
   const [isExternal, setIsExternal] = useState(false);
+  const [requiresFolder, setRequiresFolder] = useState(false);
   const [courses, setCourses] = useState<{id: string, name: string, groups: {id: string, name: string, grade?: {name: string}}[]}[]>([]);
   const [gradeGroups, setGradeGroups] = useState<{id: string, name: string}[]>([]);
   const [loading, setLoading] = useState(false);
@@ -147,6 +148,7 @@ export default function NuevaTareaPage() {
     formData.append("resourceIds", JSON.stringify(selectedResourceIds));
     formData.append("type", type);
     formData.append("isExternal", String(isExternal));
+    formData.append("requiresFolder", String(requiresFolder));
     if (file) {
       formData.append("file", file);
     }
@@ -412,6 +414,27 @@ export default function NuevaTareaPage() {
             </label>
           </div>
         </div>
+
+        {!isExternal && type === "TASK" && (
+          <div className="p-4 bg-orange-50/60 border border-orange-200 rounded-xl flex items-start gap-3">
+            <input
+              id="requiresFolder"
+              type="checkbox"
+              className="w-4 h-4 mt-0.5 rounded text-[#f98012] focus:ring-[#f98012]"
+              style={{ cursor: "pointer" }}
+              checked={requiresFolder}
+              onChange={(e) => setRequiresFolder(e.target.checked)}
+            />
+            <div>
+              <label htmlFor="requiresFolder" className="font-bold text-sm text-gray-900 cursor-pointer select-none flex items-center gap-1.5">
+                📁 La entrega de esta tarea requiere una carpeta completa (Proyecto)
+              </label>
+              <p className="text-xs text-gray-600 mt-0.5">
+                Al activar esta opción, el botón de entrega le abrirá directamente al estudiante la ventana de selección de carpetas sin tener que comprimir nada en ZIP.
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="input-group">
           <label htmlFor="title">Título de la Tarea / Examen</label>

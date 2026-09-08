@@ -627,20 +627,35 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
               {selectedFiles.length === 0 ? (
                 <>
                   <p className="text-base font-semibold text-gray-800 mb-1">
-                    {isDragging ? "¡Suelta tu archivo aquí!" : "Arrastra y suelta aquí tu archivo"}
+                    {task?.requiresFolder 
+                      ? (isDragging ? "¡Suelta tu carpeta aquí!" : "Arrastra y suelta aquí tu carpeta")
+                      : (isDragging ? "¡Suelta tu archivo aquí!" : "Arrastra y suelta aquí tu archivo")}
                   </p>
                   <p className="text-xs text-gray-500 mb-4">
-                    Haz clic en el botón o arrastra tu archivo directamente
+                    {task?.requiresFolder
+                      ? "Haz clic en el botón o arrastra la carpeta completa de tu proyecto"
+                      : "Haz clic en el botón o arrastra tu archivo directamente"}
                   </p>
 
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-6 py-3 bg-[#f98012] hover:bg-[#e06d09] text-white rounded-xl shadow-md hover:shadow-lg font-semibold text-sm inline-flex items-center gap-2.5 transition-all cursor-pointer transform hover:-translate-y-0.5"
-                  >
-                    <FileText size={18} className="text-white" />
-                    <span>Seleccionar archivo</span>
-                  </button>
+                  {task?.requiresFolder ? (
+                    <button
+                      type="button"
+                      onClick={() => folderInputRef.current?.click()}
+                      className="px-6 py-3 bg-[#f98012] hover:bg-[#e06d09] text-white rounded-xl shadow-md hover:shadow-lg font-semibold text-sm inline-flex items-center gap-2.5 transition-all cursor-pointer transform hover:-translate-y-0.5"
+                    >
+                      <Folder size={18} className="text-white" />
+                      <span>Seleccionar carpeta</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-6 py-3 bg-[#f98012] hover:bg-[#e06d09] text-white rounded-xl shadow-md hover:shadow-lg font-semibold text-sm inline-flex items-center gap-2.5 transition-all cursor-pointer transform hover:-translate-y-0.5"
+                    >
+                      <FileText size={18} className="text-white" />
+                      <span>Seleccionar archivo</span>
+                    </button>
+                  )}
                 </>
               ) : (
                 <div className="bg-orange-50/70 border border-orange-200 rounded-lg p-4 max-w-md mx-auto text-left shadow-sm">

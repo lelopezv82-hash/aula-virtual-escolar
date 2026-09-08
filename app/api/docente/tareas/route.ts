@@ -97,6 +97,8 @@ export async function POST(request: Request) {
     const externalUrl = formData.get('externalUrl') as string | null;
     const isExternalRaw = formData.get('isExternal') as string | null;
     const isExternal = isExternalRaw === 'true';
+    const requiresFolderRaw = formData.get('requiresFolder') as string | null;
+    const requiresFolder = requiresFolderRaw === 'true';
 
     const allowLateSubmissionRaw = formData.get('allowLateSubmission') as string | null;
     const allowLateSubmission = allowLateSubmissionRaw === 'true';
@@ -232,6 +234,7 @@ export async function POST(request: Request) {
         duration: duration && !isNaN(duration) ? duration : null,
         type: type || "TASK",
         isExternal: isExternal,
+        requiresFolder: requiresFolder,
         allowLateSubmission,
         lateSubmissionUntil
       }

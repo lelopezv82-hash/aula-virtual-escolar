@@ -21,6 +21,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
   const [groupIds, setGroupIds] = useState<string[]>([]);
   const [type, setType] = useState("TASK");
   const [isExternal, setIsExternal] = useState(false);
+  const [requiresFolder, setRequiresFolder] = useState(false);
   const [gradeGroups, setGradeGroups] = useState<{id: string, name: string}[]>([]);
   const [allCourses, setAllCourses] = useState<{id: string, name: string, groups: {id: string, name: string, grade?: {name: string}}[]}[]>([]);
   const [file, setFile] = useState<File | null>(null);
@@ -100,6 +101,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
           setGroupIds(data.task.groups ? data.task.groups.map((g: any) => g.id) : []);
           setType(data.task.type || "TASK");
           setIsExternal(data.task.isExternal || false);
+          setRequiresFolder(data.task.requiresFolder || false);
           setDueDate(toColombiaISOString(data.task.dueDate));
           setExistingAttachment(data.task.attachmentUrl || null);
           setCourseId(data.task.courseId || "");
@@ -144,6 +146,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
     formData.append("resourceIds", JSON.stringify(selectedResourceIds));
     formData.append("type", type);
     formData.append("isExternal", String(isExternal));
+    formData.append("requiresFolder", String(requiresFolder));
     if (removeExistingAttachment && !file) {
       formData.append("removeAttachment", "true");
     }
@@ -423,6 +426,27 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
             </label>
           </div>
         </div>
+
+        {!isExternal && type === "TASK" && (
+          <div className="p-4 bg-orange-50/60 border border-orange-200 rounded-xl flex items-start gap-3">
+            <input
+              id="requiresFolder"
+              type="checkbox"
+              className="w-4 h-4 mt-0.5 rounded text-[#f98012] focus:ring-[#f98012]"
+              style={{ cursor: "pointer" }}
+              checked={requiresFolder}
+              onChange={(e) => setRequiresFolder(e.target.checked)}
+            />
+            <div>
+              <label htmlFor="requiresFolder" className="font-bold text-sm text-gray-900 cursor-pointer select-none flex items-center gap-1.5">
+                📁 La entrega de esta tarea requiere una carpeta completa (Proyecto)
+              </label>
+              <p className="text-xs text-gray-600 mt-0.5">
+                Al activar esta opción, el botón de entrega le abrirá directamente al estudiante la ventana de selección de carpetas sin tener que comprimir nada en ZIP.
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="input-group">
           <label htmlFor="title">Título de la Tarea / Examen</label>

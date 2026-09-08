@@ -149,6 +149,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const externalUrl = formData.get('externalUrl') as string | null;
     const isExternalRaw = formData.get('isExternal') as string | null;
     const isExternal = isExternalRaw === 'true';
+    const requiresFolderRaw = formData.get('requiresFolder') as string | null;
+    const requiresFolder = requiresFolderRaw === 'true';
 
     const allowLateSubmissionRaw = formData.get('allowLateSubmission') as string | null;
     const allowLateSubmission = allowLateSubmissionRaw === 'true';
@@ -291,6 +293,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         duration: duration && !isNaN(duration) ? duration : null,
         type: type || undefined,
         isExternal: isExternal,
+        requiresFolder: requiresFolder,
         allowLateSubmission,
         lateSubmissionUntil
       }
