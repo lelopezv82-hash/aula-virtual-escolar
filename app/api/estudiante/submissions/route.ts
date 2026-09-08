@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { supabase } from '@/lib/supabase';
 import { getGoogleAccessToken, uploadToGoogleDrive } from '@/lib/gdrive';
 import { enqueueFailedDriveUpload } from '@/lib/driveQueue';
@@ -24,14 +25,45 @@ export async function POST(request: Request) {
     const studentId = payload.id as string;
     const formData = await request.formData();
     const taskId = formData.get('taskId') as string;
-    const file = formData.get('file') as File | null;
 
     if (!taskId) {
       return NextResponse.json({ error: 'Falta taskId' }, { status: 400 });
     }
 
+    // Collect all files sent (supports single file or multiple/folder files)
+    let filesToProcess: Array<{ file: File; relativePath: string }> = [];
+    const multiFiles = formData.getAll('files') as File[];
+    const multiPaths = formData.getAll('paths') as string[];
+
+    if (multiFiles && multiFiles.length > 0 && multiFiles.some(f => f && f.size > 0)) {
+      multiFiles.forEach((f, idx) => {
+        if (f && f.size > 0) {
+          filesToProcess.push({
+            file: f,
+            relativePath: multiPaths[idx] || f.name
+          });
+        }
+      });
+    } else {
+      const singleFile = formData.get('file') as File | null;
+      if (singleFile && singleFile.size > 0) {
+        filesToProcess.push({
+          file: singleFile,
+          relativePath: singleFile.name
+        });
+      }
+    }
+
     let fileUrl = "";
     let gdriveEmail: string | null = null;
+    const uploadedFileItems: Array<{
+      name: string;
+      url: string;
+      size: number;
+      mimeType: string;
+      relativePath: string;
+      gdriveEmail?: string | null;
+    }> = [];
 
     // Find the task, include groups, assignedStudents and course details
     const task = await prisma.task.findUnique({
@@ -115,7 +147,6 @@ export async function POST(request: Request) {
       const timeElapsed = now.getTime() - new Date(existingSubmission.startedAt).getTime();
 
       if (timeElapsed > timeLimitInMs) {
-        // If it's a Google Form exam, allow the auto-submit to proceed (to grade it as 0/close it)
         if (!isGoogleFormExam) {
           return NextResponse.json({ error: 'El tiempo límite para este examen ha vencido.' }, { status: 400 });
         }
@@ -129,57 +160,92 @@ export async function POST(request: Request) {
 
     const teacherId = task.course.teacherId;
 
-    if (file && file.size > 0) {
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      let driveFileName = file.name;
-      let folderPath = "";
+    if (filesToProcess.length > 0) {
+      const gradeName = student?.group?.grade?.name || "Sin Grado";
+      const groupName = student?.group?.name || "Sin Grupo";
+      const studentName = student?.name || "Estudiante";
+      const taskPeriod = task.period || "Sin Periodo";
+      const baseFolderPath = `${taskPeriod}/${task.course.name}/${gradeName}/${groupName}/Tareas/${task.title}/Entregas/${studentName}`;
 
+      let gAccessToken: string | null = null;
       if (teacherId) {
-        const gradeName = student?.group?.grade?.name || "Sin Grado";
-        const groupName = student?.group?.name || "Sin Grupo";
-        const studentName = student?.name || "Estudiante";
-        driveFileName = `${studentName} - ${file.name}`;
-        const taskPeriod = task.period || "Sin Periodo";
-        folderPath = `${taskPeriod}/${task.course.name}/${gradeName}/${groupName}/Tareas/${task.title}/Entregas/${studentName}`;
+        try {
+          gAccessToken = await getGoogleAccessToken(teacherId);
+        } catch (err) {
+          console.warn("Could not get Google Access Token for teacher:", err);
+        }
+      }
 
-        // Try uploading to Google Drive first if teacher has it connected
-        const gAccessToken = await getGoogleAccessToken(teacherId);
-        if (gAccessToken) {
+      for (let i = 0; i < filesToProcess.length; i++) {
+        const item = filesToProcess[i];
+        const fileObj = item.file;
+        const bytes = await fileObj.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        let uploadedUrl = "";
+        let uploadedEmail: string | null = null;
+
+        const cleanRelPath = item.relativePath.replace(/^\/+/, '');
+        const driveFileName = filesToProcess.length > 1
+          ? cleanRelPath.split('/').pop() || fileObj.name
+          : `${studentName} - ${fileObj.name}`;
+
+        if (teacherId && gAccessToken) {
           try {
-            const uploadResult = await uploadToGoogleDrive(buffer, driveFileName, file.type, teacherId, folderPath);
-            fileUrl = uploadResult.url;
-            gdriveEmail = uploadResult.email;
+            const subfolder = cleanRelPath.includes('/')
+              ? `${baseFolderPath}/${cleanRelPath.substring(0, cleanRelPath.lastIndexOf('/'))}`
+              : baseFolderPath;
+
+            const uploadResult = await uploadToGoogleDrive(
+              buffer,
+              driveFileName,
+              fileObj.type || 'application/octet-stream',
+              teacherId,
+              subfolder
+            );
+            uploadedUrl = uploadResult.url;
+            uploadedEmail = uploadResult.email;
           } catch (driveError) {
-            console.error("Google Drive upload error for student submission, falling back to Supabase:", driveError);
+            console.error(`Google Drive upload error for ${fileObj.name}, falling back to Supabase:`, driveError);
           }
         }
-      }
 
-      // Fallback to Supabase if not uploaded to Drive
-      if (!fileUrl) {
-        const safeFilename = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-        const uniqueFilename = `submissions/${studentId}_${taskId}_${Date.now()}_${safeFilename}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('aula-virtual')
-          .upload(uniqueFilename, file, {
-            contentType: file.type
-          });
+        if (!uploadedUrl) {
+          const safeFilename = fileObj.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+          const uniqueFilename = `submissions/${studentId}_${taskId}_${Date.now()}_${i}_${safeFilename}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('aula-virtual')
+            .upload(uniqueFilename, fileObj, {
+              contentType: fileObj.type || 'application/octet-stream'
+            });
 
-        if (uploadError) {
-          console.error("Supabase submission upload error:", uploadError);
-          return NextResponse.json({ error: 'Error al subir el archivo a almacenamiento en la nube' }, { status: 500 });
+          if (uploadError) {
+            console.error(`Supabase upload error for ${fileObj.name}:`, uploadError);
+          } else {
+            const { data: { publicUrl } } = supabase.storage
+              .from('aula-virtual')
+              .getPublicUrl(uniqueFilename);
+            uploadedUrl = publicUrl;
+          }
         }
 
-        const { data: { publicUrl } } = supabase.storage
-          .from('aula-virtual')
-          .getPublicUrl(uniqueFilename);
+        if (uploadedUrl) {
+          uploadedFileItems.push({
+            name: fileObj.name,
+            url: uploadedUrl,
+            size: fileObj.size,
+            mimeType: fileObj.type || 'application/octet-stream',
+            relativePath: cleanRelPath,
+            gdriveEmail: uploadedEmail
+          });
+        }
+      }
 
-        fileUrl = publicUrl;
+      if (uploadedFileItems.length > 0) {
+        fileUrl = uploadedFileItems[0].url;
+        gdriveEmail = uploadedFileItems[0].gdriveEmail || null;
       }
     } else {
-      // Preserve existing fileUrl if no new file is uploaded
       fileUrl = existingSubmission?.fileUrl || "";
       gdriveEmail = existingSubmission?.gdriveEmail || null;
     }
@@ -195,7 +261,7 @@ export async function POST(request: Request) {
           ? Math.max(existingSubmission.grade, 1.0) 
           : 1.0;
       } else {
-        gradeToSave = 1.0; // Default grade is 1.0 when timer expires or manual finishing occurs without webhook
+        gradeToSave = 1.0;
       }
     }
 
@@ -209,6 +275,7 @@ export async function POST(request: Request) {
       },
       update: {
         fileUrl: fileUrl || null,
+        fileUrls: uploadedFileItems.length > 0 ? (uploadedFileItems as any) : ((existingSubmission as any)?.fileUrls ? (existingSubmission as any).fileUrls : Prisma.DbNull),
         gdriveEmail,
         status: statusToSave,
         grade: gradeToSave,
@@ -218,6 +285,7 @@ export async function POST(request: Request) {
         taskId,
         studentId,
         fileUrl: fileUrl || null,
+        fileUrls: uploadedFileItems.length > 0 ? (uploadedFileItems as any) : Prisma.DbNull,
         gdriveEmail,
         status: statusToSave,
         grade: gradeToSave !== undefined ? gradeToSave : null,
@@ -225,26 +293,31 @@ export async function POST(request: Request) {
       }
     });
 
-    // Si la entrega quedó en Supabase y se envió un archivo, la encolamos para reintento en Drive cuando se configure/solucione
-    if (file && !gdriveEmail && fileUrl && fileUrl.includes('supabase') && teacherId) {
-      const supabasePath = fileUrl.split('/aula-virtual/')[1]?.split('?')[0] ?? '';
+    // If any file was uploaded to Supabase instead of Drive, enqueue for sync retry
+    if (uploadedFileItems.length > 0 && teacherId) {
       const gradeName = student?.group?.grade?.name || "Sin Grado";
       const groupName = student?.group?.name || "Sin Grupo";
       const studentName = student?.name || "Estudiante";
-      const driveFileName = `${studentName} - ${file.name}`;
       const taskPeriod = task.period || "Sin Periodo";
-      const folderPath = `${taskPeriod}/${task.course.name}/${gradeName}/${groupName}/Tareas/${task.title}/Entregas/${studentName}`;
+      const baseFolderPath = `${taskPeriod}/${task.course.name}/${gradeName}/${groupName}/Tareas/${task.title}/Entregas/${studentName}`;
 
-      await enqueueFailedDriveUpload({
-        recordType: 'SUBMISSION',
-        recordId: submission.id,
-        supabaseUrl: fileUrl,
-        supabasePath,
-        teacherId: teacherId,
-        filename: driveFileName,
-        mimeType: file.type,
-        folderPath,
-      });
+      for (const item of uploadedFileItems) {
+        if (!item.gdriveEmail && item.url && item.url.includes('supabase')) {
+          const supabasePath = item.url.split('/aula-virtual/')[1]?.split('?')[0] ?? '';
+          const driveFileName = filesToProcess.length > 1 ? item.name : `${studentName} - ${item.name}`;
+
+          await enqueueFailedDriveUpload({
+            recordType: 'SUBMISSION',
+            recordId: submission.id,
+            supabaseUrl: item.url,
+            supabasePath,
+            teacherId: teacherId,
+            filename: driveFileName,
+            mimeType: item.mimeType,
+            folderPath: baseFolderPath,
+          });
+        }
+      }
     }
 
     return NextResponse.json({ success: true, submission });
@@ -302,13 +375,12 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'El plazo de entrega ha vencido, no puedes eliminar la entrega' }, { status: 400 });
     }
 
-    // If it's a timed exam that has been started, don't allow deleting the submission entirely (it would reset their attempt/timer).
-    // Instead, just clear the file if there is one, or return an error if it's not allowed.
     if (task.duration && submission.startedAt) {
       await prisma.submission.update({
         where: { id: submission.id },
         data: {
           fileUrl: null,
+          fileUrls: Prisma.DbNull,
           submittedAt: null,
           status: "PENDING"
         }

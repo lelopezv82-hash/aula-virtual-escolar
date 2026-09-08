@@ -156,13 +156,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
           }
         },
         submissions: {
-          where: {
-            fileUrl: { not: null }
-          },
           select: {
             id: true,
             studentId: true,
             fileUrl: true,
+            fileUrls: true,
             submittedAt: true,
             gdriveEmail: true,
           }
@@ -243,8 +241,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       }
     }
 
-    // Filter only those that actually have a fileUrl
-    const studentsWithFiles = studentsList.filter(s => !!s.submission?.fileUrl);
+    // Filter only those that actually have a fileUrl or fileUrls
+    const studentsWithFiles = studentsList.filter(s => !!(s.submission?.fileUrl || (s.submission as any)?.fileUrls?.length));
 
     if (studentsWithFiles.length === 0) {
       return NextResponse.json(
@@ -255,7 +253,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
     // Prepare Google Drive access token if any file is in Google Drive/Docs
     let gdriveToken: string | null = null;
-    const hasDriveFile = studentsWithFiles.some(s => s.submission?.fileUrl && isGoogleDriveUrl(s.submission.fileUrl));
+    const hasDriveFile = studentsWithFiles.some(s => 
+      (s.submission?.fileUrl && isGoogleDriveUrl(s.submission.fileUrl)) ||
+      ((s.submission as any)?.fileUrls && Array.isArray((s.submission as any).fileUrls) && (s.submission as any).fileUrls.some((f: any) => isGoogleDriveUrl(f.url)))
+    );
+
     if (hasDriveFile) {
       try {
         gdriveToken = await getGoogleAccessToken(task.course.teacherId);
@@ -267,98 +269,117 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const zip = new JSZip();
     const isSingleGroup = filterGroupId && filterGroupId !== "all";
 
-    // Download each file in parallel
+    // Download helper for a single URL
+    async function fetchFileBuffer(url: string, fallbackName: string): Promise<{ buffer: Buffer; originalFileName?: string; mimeType?: string }> {
+      let buffer: Buffer | null = null;
+      let originalFileName: string | undefined;
+      let mimeType: string | undefined;
+
+      if (isGoogleDriveUrl(url)) {
+        const driveFileId = extractDriveFileId(url);
+        if (driveFileId && gdriveToken) {
+          try {
+            const driveData = await fetchGoogleDriveFile(gdriveToken, driveFileId);
+            buffer = driveData.buffer;
+            originalFileName = driveData.originalName;
+            mimeType = driveData.mimeType;
+          } catch (driveErr) {
+            console.warn(`Error using Google token for file ${fallbackName}:`, driveErr);
+          }
+        }
+
+        if (!buffer && driveFileId) {
+          const exportUrls = [
+            `https://docs.google.com/spreadsheets/d/${driveFileId}/export?format=xlsx`,
+            `https://docs.google.com/document/d/${driveFileId}/export?format=docx`,
+            `https://drive.google.com/uc?export=download&id=${driveFileId}`
+          ];
+          for (const expUrl of exportUrls) {
+            try {
+              const res = await fetch(expUrl, { redirect: 'follow' });
+              if (res.ok) {
+                const fetchedBuf = Buffer.from(await res.arrayBuffer());
+                const snippet = fetchedBuf.subarray(0, 100).toString('ascii').toLowerCase();
+                if (!snippet.includes('<!doctype html') && !snippet.includes('<html')) {
+                  buffer = fetchedBuf;
+                  mimeType = res.headers.get('content-type') || undefined;
+                  break;
+                }
+              }
+            } catch {}
+          }
+        }
+      }
+
+      if (!buffer) {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        mimeType = res.headers.get('content-type') || undefined;
+        const cd = res.headers.get('content-disposition');
+        if (cd && cd.includes('filename=')) {
+          const match = cd.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/);
+          if (match) originalFileName = decodeURIComponent(match[1] || match[2] || '');
+        }
+        if (!originalFileName) {
+          const urlParts = url.split('?')[0].split('/');
+          originalFileName = decodeURIComponent(urlParts[urlParts.length - 1] || '');
+        }
+        buffer = Buffer.from(await res.arrayBuffer());
+      }
+
+      return { buffer, originalFileName, mimeType };
+    }
+
+    // Download each student submission in parallel
     await Promise.all(
       studentsWithFiles.map(async (student, idx) => {
-        const fileUrl = student.submission!.fileUrl!;
         const indexStr = String(idx + 1).padStart(2, '0');
         const safeStudentName = student.name.trim().replace(/[\\/:*?"<>|]/g, '_');
         const safeGroupLabel = student.groupLabel.replace(/[\\/:*?"<>|]/g, '_');
+        const subFiles: Array<{ name: string; url: string; relativePath?: string }> = 
+          (student.submission as any)?.fileUrls && Array.isArray((student.submission as any).fileUrls) && (student.submission as any).fileUrls.length > 0
+            ? (student.submission as any).fileUrls
+            : (student.submission?.fileUrl ? [{ name: 'archivo', url: student.submission.fileUrl, relativePath: 'archivo' }] : []);
 
-        try {
-          let buffer: Buffer | null = null;
-          let originalFileName: string | undefined;
-          let mimeType: string | undefined;
+        const isFolderSubmission = subFiles.length > 1;
 
-          // 1. Google Drive / Google Docs handler
-          if (isGoogleDriveUrl(fileUrl)) {
-            const driveFileId = extractDriveFileId(fileUrl);
-            if (driveFileId && gdriveToken) {
-              try {
-                const driveData = await fetchGoogleDriveFile(gdriveToken, driveFileId);
-                buffer = driveData.buffer;
-                originalFileName = driveData.originalName;
-                mimeType = driveData.mimeType;
-              } catch (driveErr) {
-                console.warn(`Error using Google token for ${student.name}, trying export fallback:`, driveErr);
-              }
+        for (const item of subFiles) {
+          if (!item.url) continue;
+          try {
+            const { buffer, originalFileName, mimeType } = await fetchFileBuffer(item.url, item.name);
+            const ext = detectExtension(buffer, originalFileName || item.name, mimeType);
+            let finalName = originalFileName || item.name;
+            if (ext && !finalName.endsWith(ext)) finalName = `${finalName}${ext}`;
+
+            let filePathInZip = "";
+            if (isFolderSubmission) {
+              const relPath = item.relativePath ? item.relativePath.replace(/[\\:*?"<>|]/g, '_') : finalName;
+              const studentFolder = `${indexStr} - ${safeStudentName}`;
+              filePathInZip = isSingleGroup
+                ? `${studentFolder}/${relPath}`
+                : `${safeGroupLabel}/${studentFolder}/${relPath}`;
+            } else {
+              const singleFileName = `${indexStr} - ${safeStudentName}${ext}`;
+              filePathInZip = isSingleGroup
+                ? singleFileName
+                : `${safeGroupLabel}/${singleFileName}`;
             }
 
-            // Fallback for Drive file if token failed or wasn't available
-            if (!buffer && driveFileId) {
-              const exportUrls = [
-                `https://docs.google.com/spreadsheets/d/${driveFileId}/export?format=xlsx`,
-                `https://docs.google.com/document/d/${driveFileId}/export?format=docx`,
-                `https://drive.google.com/uc?export=download&id=${driveFileId}`
-              ];
-              for (const expUrl of exportUrls) {
-                try {
-                  const res = await fetch(expUrl, { redirect: 'follow' });
-                  if (res.ok) {
-                    const fetchedBuf = Buffer.from(await res.arrayBuffer());
-                    const snippet = fetchedBuf.subarray(0, 100).toString('ascii').toLowerCase();
-                    if (!snippet.includes('<!doctype html') && !snippet.includes('<html')) {
-                      buffer = fetchedBuf;
-                      mimeType = res.headers.get('content-type') || undefined;
-                      break;
-                    }
-                  }
-                } catch {}
-              }
-            }
+            zip.file(filePathInZip, buffer);
+          } catch (downloadErr: any) {
+            console.error(`Error downloading submission for student ${student.name}:`, downloadErr);
+            const errorFileName = `${indexStr} - ${safeStudentName} - ERROR_DESCARGA.txt`;
+            const errorPathInZip = isSingleGroup
+              ? errorFileName
+              : `${safeGroupLabel}/${errorFileName}`;
+            zip.file(
+              errorPathInZip,
+              `No se pudo descargar automáticamente el archivo de entrega de este estudiante.\n` +
+              `Estudiante: ${student.name}\n` +
+              `URL del archivo: ${item.url}\n` +
+              `Detalle del error: ${downloadErr.message || 'Error desconocido'}\n`
+            );
           }
-
-          // 2. Direct HTTP / Supabase storage handler
-          if (!buffer) {
-            const res = await fetch(fileUrl);
-            if (!res.ok) {
-              throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-            }
-            mimeType = res.headers.get('content-type') || undefined;
-            const contentDisposition = res.headers.get('content-disposition');
-            if (contentDisposition && contentDisposition.includes('filename=')) {
-              const match = contentDisposition.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/);
-              if (match) {
-                originalFileName = decodeURIComponent(match[1] || match[2] || '');
-              }
-            }
-            if (!originalFileName) {
-              const urlParts = fileUrl.split('?')[0].split('/');
-              originalFileName = decodeURIComponent(urlParts[urlParts.length - 1] || '');
-            }
-            buffer = Buffer.from(await res.arrayBuffer());
-          }
-
-          const ext = detectExtension(buffer, originalFileName, mimeType);
-          const fileName = `${indexStr} - ${safeStudentName}${ext}`;
-          const filePathInZip = isSingleGroup
-            ? fileName
-            : `${safeGroupLabel}/${fileName}`;
-
-          zip.file(filePathInZip, buffer);
-        } catch (downloadErr: any) {
-          console.error(`Error downloading submission for student ${student.name}:`, downloadErr);
-          const errorFileName = `${indexStr} - ${safeStudentName} - ERROR_DESCARGA.txt`;
-          const errorPathInZip = isSingleGroup
-            ? errorFileName
-            : `${safeGroupLabel}/${errorFileName}`;
-          zip.file(
-            errorPathInZip,
-            `No se pudo descargar automáticamente el archivo de entrega de este estudiante.\n` +
-            `Estudiante: ${student.name}\n` +
-            `URL del archivo: ${fileUrl}\n` +
-            `Detalle del error: ${downloadErr.message || 'Error desconocido'}\n`
-          );
         }
       })
     );

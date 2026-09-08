@@ -252,7 +252,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
  // ─── Manual Grading Full-Screen State   ───
   const [gradingTask, setGradingTask] = useState<TaskItem | null>(null);
-  const [gradingStudents, setGradingStudents] = useState<Array<{ id: string; name: string; groupName: string; submission: { id: string; status: string; grade: number | null; feedback: string | null; submittedAt: string | null; fileUrl: string | null; allowLateSubmission?: boolean; lateSubmissionUntil?: string | null } | null }>>([]); 
+  const [gradingStudents, setGradingStudents] = useState<Array<{ id: string; name: string; groupName: string; submission: { id: string; status: string; grade: number | null; feedback: string | null; submittedAt: string | null; fileUrl: string | null; fileUrls?: any; allowLateSubmission?: boolean; lateSubmissionUntil?: string | null } | null }>>([]); 
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [gradeInputs, setGradeInputs] = useState<Record<string, string>>({});
   const [feedbackInputs, setFeedbackInputs] = useState<Record<string, string>>({});
@@ -1363,7 +1363,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
   const handleDownloadAllSubmissionsZip = async () => {
     if (!gradingTask) return;
-    const withFiles = gradingStudents.filter(s => !!s.submission?.fileUrl);
+    const withFiles = gradingStudents.filter(s => !!(s.submission?.fileUrl || (s.submission as any)?.fileUrls?.length));
     if (withFiles.length === 0) {
       toast.info("Sin archivos", "Ningún estudiante de este grupo ha adjuntado archivos para esta actividad.");
       return;
@@ -2717,7 +2717,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                 <>
                   <Download size={16} className="text-blue-600 dark:text-blue-400" />
                   <span>
-                    Descargar Entregas {gradingStudents.filter(s => !!s.submission?.fileUrl).length > 0 ? `(${gradingStudents.filter(s => !!s.submission?.fileUrl).length})` : ""}
+                    Descargar Entregas {gradingStudents.filter(s => !!(s.submission?.fileUrl || (s.submission as any)?.fileUrls?.length)).length > 0 ? `(${gradingStudents.filter(s => !!(s.submission?.fileUrl || (s.submission as any)?.fileUrls?.length)).length})` : ""}
                   </span>
                 </>
               )}
@@ -3033,7 +3033,31 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                                 <span>{new Date(student.submission.submittedAt).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })}</span>
                               </div>
                             )}
-                            {student.submission?.fileUrl && (
+                            {(student.submission?.fileUrls && Array.isArray(student.submission.fileUrls) && student.submission.fileUrls.length > 1) ? (
+                              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                {isSelected ? (
+                                  <a
+                                    href={`/api/estudiante/submissions/download?taskId=${gradingTask?.id}&studentId=${student.id}`}
+                                    download
+                                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100 transition-colors shadow-xs cursor-pointer"
+                                    title="Descargar la carpeta completa enviada por el estudiante"
+                                  >
+                                    <span className="text-xs">📁</span>
+                                    Descargar Carpeta ({student.submission.fileUrls.length})
+                                  </a>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    disabled
+                                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700 cursor-not-allowed select-none opacity-60"
+                                    title="Activa la casilla del estudiante para descargar la carpeta"
+                                  >
+                                    <span className="text-xs">📁</span>
+                                    Carpeta ({student.submission.fileUrls.length})
+                                  </button>
+                                )}
+                              </div>
+                            ) : student.submission?.fileUrl ? (
                               <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                                 {isSelected ? (
                                   <>
@@ -3080,7 +3104,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                                   </>
                                 )}
                               </div>
-                            )}
+                            ) : null}
                           </div>
                         </td>
 

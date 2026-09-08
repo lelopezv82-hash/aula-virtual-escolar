@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, use } from "react";
-import { ArrowLeft, UploadCloud, Loader2, CheckCircle, FileText, Clock, AlertTriangle } from "lucide-react";
+import { ArrowLeft, UploadCloud, Loader2, CheckCircle, FileText, Clock, AlertTriangle, Folder, Download, ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatToColombiaString, getTaskDeadlineStatus } from "@/lib/dateUtils";
@@ -17,6 +17,9 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const [studentName, setStudentName] = useState("");
   const [submission, setSubmission] = useState<any>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<Array<{ file: File; relativePath: string }>>([]);
+  const [isFolderSelected, setIsFolderSelected] = useState(false);
+  const [showFileList, setShowFileList] = useState(false);
   const [loading, setLoading] = useState(false);
   const [startingExam, setStartingExam] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
@@ -50,7 +53,10 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   }, [taskId, router]);
 
   const hasActiveExtension = !isNotActivated && !!(submission?.allowLateSubmission || task?.allowLateSubmission);
-  const hasUploadedFile = !!(submission?.fileUrl && submission.fileUrl.trim() !== "");
+  const hasUploadedFile = !!(
+    (submission?.fileUrls && Array.isArray(submission.fileUrls) && submission.fileUrls.length > 0) ||
+    (submission?.fileUrl && submission.fileUrl.trim() !== "")
+  );
   const isAutomaticGrade1 = (submission?.grade === 1 || submission?.grade === 1.0) && hasActiveExtension && !hasUploadedFile;
 
   const isSubmitted = hasUploadedFile || (task?.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")) && submission?.status === "SUBMITTED");
@@ -155,16 +161,35 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+    if (e.target.files && e.target.files.length > 0) {
+      const filesArray = Array.from(e.target.files);
+      if (filesArray.length === 1) {
+        setFile(filesArray[0]);
+        setSelectedFiles([{ file: filesArray[0], relativePath: filesArray[0].name }]);
+        setIsFolderSelected(false);
+      } else {
+        setFile(filesArray[0]);
+        setSelectedFiles(filesArray.map(f => ({ file: f, relativePath: f.webkitRelativePath || f.name })));
+        setIsFolderSelected(false);
+      }
+      setError("");
+    }
+  };
+
+  const handleFolderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const filesArray = Array.from(e.target.files);
+      setFile(filesArray[0]);
+      setSelectedFiles(filesArray.map(f => ({ file: f, relativePath: f.webkitRelativePath || f.name })));
+      setIsFolderSelected(true);
       setError("");
     }
   };
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file) {
-      setError("¡Ups! Falta el archivo. Por favor, selecciona el archivo de tu tarea antes de enviarla.");
+    if (selectedFiles.length === 0 && !file) {
+      setError("¡Ups! Falta el archivo o la carpeta. Por favor selecciona el contenido antes de enviarlo.");
       setErrorType("warning");
       return;
     }
@@ -174,7 +199,15 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
 
     const formData = new FormData();
     formData.append("taskId", taskId);
-    formData.append("file", file);
+
+    if (selectedFiles.length > 0) {
+      selectedFiles.forEach(({ file: f, relativePath }) => {
+        formData.append("files", f);
+        formData.append("paths", relativePath);
+      });
+    } else if (file) {
+      formData.append("file", file);
+    }
 
     try {
       const res = await fetch("/api/estudiante/submissions", {
@@ -186,6 +219,8 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
       if (res.ok) {
         setSubmission(data.submission);
         setFile(null);
+        setSelectedFiles([]);
+        setIsFolderSelected(false);
         setIsEditing(false);
       } else {
         setError(data.error || "Error al enviar la tarea.");
@@ -486,24 +521,77 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
           <form onSubmit={handleUpload} className="flex flex-col gap-4">
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:bg-gray-50 transition-colors">
               <UploadCloud size={48} className="mx-auto mb-4 text-[#f98012]" />
-              <label htmlFor="file-upload" className="cursor-pointer">
-                <span className="btn btn-secondary mx-auto mb-2 inline-flex">Seleccionar Archivo</span>
-                <input 
-                  id="file-upload" 
-                  type="file" 
-                  className="hidden" 
-                  onChange={handleFileChange} 
-                />
-              </label>
-              <p className="text-sm text-gray-555 mt-2">
-                {file ? file.name : "Soporta PDF, DOCX, Imágenes y archivos comprimidos."}
-              </p>
+              
+              <div className="flex items-center justify-center gap-3 flex-wrap mb-3">
+                <label htmlFor="file-upload" className="cursor-pointer">
+                  <span className="btn btn-secondary inline-flex items-center gap-2">
+                    <FileText size={16} /> Seleccionar Archivo(s)
+                  </span>
+                  <input 
+                    id="file-upload" 
+                    type="file" 
+                    multiple
+                    className="hidden" 
+                    onChange={handleFileChange} 
+                  />
+                </label>
+
+                <label htmlFor="folder-upload" className="cursor-pointer">
+                  <span className="btn btn-secondary inline-flex items-center gap-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300">
+                    <Folder size={16} className="text-[#f98012]" /> Seleccionar Carpeta
+                  </span>
+                  <input 
+                    id="folder-upload" 
+                    type="file" 
+                    // @ts-ignore
+                    webkitdirectory="" 
+                    directory="" 
+                    className="hidden" 
+                    onChange={handleFolderChange} 
+                  />
+                </label>
+              </div>
+
+              {selectedFiles.length > 0 ? (
+                <div className="bg-orange-50/70 border border-orange-200 rounded-lg p-3 max-w-md mx-auto text-left">
+                  <div className="flex items-center gap-2 font-bold text-gray-800 text-sm mb-1">
+                    {isFolderSelected ? (
+                      <>
+                        <Folder size={18} className="text-[#f98012]" />
+                        <span>Carpeta: {selectedFiles[0]?.relativePath.split('/')[0] || "Seleccionada"}</span>
+                      </>
+                    ) : (
+                      <>
+                        <FileText size={18} className="text-[#f98012]" />
+                        <span>{selectedFiles.length === 1 ? selectedFiles[0].file.name : `${selectedFiles.length} archivos seleccionados`}</span>
+                      </>
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-600 flex items-center justify-between">
+                    <span>{selectedFiles.length} archivo(s) en total</span>
+                    <span>{(selectedFiles.reduce((acc, curr) => acc + curr.file.size, 0) / 1024).toFixed(1)} KB</span>
+                  </div>
+                  {selectedFiles.length > 1 && (
+                    <div className="mt-2 pt-2 border-t border-orange-200 max-h-32 overflow-y-auto text-[11px] text-gray-600 space-y-0.5">
+                      {selectedFiles.map((sf, idx) => (
+                        <div key={idx} className="truncate">
+                          • {sf.relativePath}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 mt-2">
+                  Puedes seleccionar un archivo individual o una <strong>carpeta completa</strong> sin comprimir.
+                </p>
+              )}
             </div>
 
             <div className="flex gap-3 justify-end mt-2">
               <button 
                 type="button" 
-                onClick={() => { setIsEditing(false); setFile(null); setError(""); }} 
+                onClick={() => { setIsEditing(false); setFile(null); setSelectedFiles([]); setIsFolderSelected(false); setError(""); }} 
                 className="px-4 py-2 border border-gray-300 rounded text-gray-700 text-sm hover:bg-gray-50 font-medium transition-colors"
                 disabled={loading}
               >
@@ -620,7 +708,61 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                   <tr className="border-b border-gray-100">
                     <td className="w-1/3 bg-gray-50/50 p-4 font-semibold text-gray-600 align-middle">Archivos enviados</td>
                     <td className="p-4 align-middle">
-                      {submission?.fileUrl ? (
+                      {submission?.fileUrls && Array.isArray(submission.fileUrls) && submission.fileUrls.length > 1 ? (
+                        <div className="flex flex-col gap-2.5">
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <span className="text-2xl shrink-0">📁</span>
+                            <div>
+                              <span className="font-bold text-gray-900 text-sm block">
+                                Carpeta de entrega ({submission.fileUrls.length} archivos)
+                              </span>
+                              <span className="text-gray-400 text-xs">
+                                {formatMoodleDate(submission.submittedAt)}
+                              </span>
+                            </div>
+                            <a 
+                              href={`/api/estudiante/submissions/download?taskId=${taskId}`} 
+                              download
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#f98012] hover:bg-[#e06d09] text-white font-bold text-xs rounded-md shadow-sm transition-colors ml-auto cursor-pointer"
+                              title="Descargar la carpeta completa empaquetada"
+                            >
+                              <Download size={14} />
+                              Descargar Carpeta Completa
+                            </a>
+                          </div>
+
+                          <div className="mt-1 border border-gray-200 rounded-lg p-2.5 bg-gray-50/60">
+                            <button
+                              type="button"
+                              onClick={() => setShowFileList(!showFileList)}
+                              className="text-xs font-semibold text-gray-700 hover:text-gray-900 flex items-center gap-1 cursor-pointer"
+                            >
+                              {showFileList ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                              <span>{showFileList ? "Ocultar lista de archivos" : `Ver los ${submission.fileUrls.length} archivos de la carpeta`}</span>
+                            </button>
+                            {showFileList && (
+                              <div className="mt-2 pt-2 border-t border-gray-200 space-y-1.5 max-h-48 overflow-y-auto">
+                                {submission.fileUrls.map((fu: any, fIdx: number) => (
+                                  <div key={fIdx} className="flex items-center justify-between text-xs text-gray-700 gap-2">
+                                    <div className="flex items-center gap-2 truncate">
+                                      <span>{getFileIcon(fu.url || fu.name)}</span>
+                                      <span className="truncate">{fu.relativePath || fu.name}</span>
+                                    </div>
+                                    <a
+                                      href={fu.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:underline shrink-0 text-[11px]"
+                                    >
+                                      Abrir
+                                    </a>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : submission?.fileUrl ? (
                         <div className="flex items-center gap-3 flex-wrap">
                           <span className="text-xl shrink-0">{getFileIcon(submission.fileUrl)}</span>
                           <a 
