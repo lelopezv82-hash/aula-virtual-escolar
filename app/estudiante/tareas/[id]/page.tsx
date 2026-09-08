@@ -565,33 +565,34 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
               Material adjunto de la tarea:
             </div>
             {task.attachmentUrl && !isGoogleForm && (
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <a 
+                href={task.attachmentUrl} 
+                target="_blank" 
+                rel="noreferrer" 
+                download
+                className="inline-flex items-center gap-2 hover:underline group w-fit"
+                style={{ textDecoration: "none" }}
+              >
                 <ResourceIcon type={task.attachmentUrl.split('.').pop() || "FILE"} />
-                <a 
-                  href={task.attachmentUrl} 
-                  target="_blank" 
-                  rel="noreferrer" 
-                  download
-                  style={{ fontSize: "0.85rem", color: "#0284c7", textDecoration: "none", fontWeight: 500 }}
-                  className="hover:underline"
-                >
+                <span style={{ fontSize: "0.85rem", color: "#0284c7", fontWeight: 500 }} className="group-hover:underline">
                   Descargar Guía de la Tarea
-                </a>
-              </div>
+                </span>
+              </a>
             )}
             {task.resources?.map((res: any) => (
-              <div key={res.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <a 
+                key={res.id} 
+                href={res.url} 
+                target="_blank" 
+                rel="noreferrer" 
+                className="inline-flex items-center gap-2 hover:underline group w-fit"
+                style={{ textDecoration: "none" }}
+              >
                 <ResourceIcon type={res.type} />
-                <a 
-                  href={res.url} 
-                  target="_blank" 
-                  rel="noreferrer" 
-                  style={{ fontSize: "0.85rem", color: "#0284c7", textDecoration: "none", fontWeight: 500 }}
-                  className="hover:underline"
-                >
+                <span style={{ fontSize: "0.85rem", color: "#0284c7", fontWeight: 500 }} className="group-hover:underline">
                   {res.title}
-                </a>
-              </div>
+                </span>
+              </a>
             ))}
           </div>
         )}
@@ -910,14 +911,14 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                         </div>
                       ) : submission?.fileUrl ? (
                         <div className="flex items-center gap-3 flex-wrap">
-                          <span className="text-xl shrink-0">{getFileIcon(submission.fileUrl)}</span>
                           <a 
                             href={submission.fileUrl} 
                             target="_blank" 
                             rel="noopener noreferrer" 
-                            className="text-blue-600 hover:text-blue-800 hover:underline font-semibold"
+                            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 hover:underline font-semibold"
                           >
-                            {getFileNameFromUrl(submission.fileUrl, "Archivo de entrega")}
+                            <span className="text-xl shrink-0">{getFileIcon(submission.fileUrl)}</span>
+                            <span>{getFileNameFromUrl(submission.fileUrl, "Archivo de entrega")}</span>
                           </a>
                           <span className="text-gray-400 text-xs shrink-0">
                             {formatMoodleDate(submission.submittedAt)}

@@ -206,7 +206,9 @@ export default async function CursoDescripcionPage({
                 }}
               >
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "0.85rem" }}>
-                  <TaskIcon isGraded={isGraded || isNotActivatedForStudent} isSubmitted={isSubmitted} />
+                  <Link href={href} style={{ textDecoration: "none" }}>
+                    <TaskIcon isGraded={isGraded || isNotActivatedForStudent} isSubmitted={isSubmitted} />
+                  </Link>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
                       <Link
@@ -323,20 +325,16 @@ export default async function CursoDescripcionPage({
                       Material adjunto de la tarea:
                     </div>
                     {task.attachmentUrl && (
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <a href={task.attachmentUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.85rem", color: "#0284c7", textDecoration: "none", fontWeight: 500 }} className="inline-flex items-center gap-2 hover:underline group w-fit">
                         <ResourceIcon type={task.attachmentUrl.split('.').pop() || "FILE"} />
-                        <a href={task.attachmentUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.85rem", color: "#0284c7", textDecoration: "none", fontWeight: 500 }}>
-                          Descargar Guía de la Tarea
-                        </a>
-                      </div>
+                        <span className="group-hover:underline">Descargar Guía de la Tarea</span>
+                      </a>
                     )}
                     {task.resources?.map(res => (
-                      <div key={res.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <a key={res.id} href={res.url} target="_blank" rel="noreferrer" style={{ fontSize: "0.85rem", color: "#0284c7", textDecoration: "none", fontWeight: 500 }} className="inline-flex items-center gap-2 hover:underline group w-fit">
                         <ResourceIcon type={res.type} />
-                        <a href={res.url} target="_blank" rel="noreferrer" style={{ fontSize: "0.85rem", color: "#0284c7", textDecoration: "none", fontWeight: 500 }}>
-                          {res.title}
-                        </a>
-                      </div>
+                        <span className="group-hover:underline">{res.title}</span>
+                      </a>
                     ))}
                   </div>
                 )}
