@@ -641,18 +641,18 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                     <button
                       type="button"
                       onClick={() => folderInputRef.current?.click()}
-                      className="px-6 py-3 bg-[#f98012] hover:bg-[#e06d09] text-white rounded-xl shadow-md hover:shadow-lg font-semibold text-sm inline-flex items-center gap-2.5 transition-all cursor-pointer transform hover:-translate-y-0.5"
+                      className="px-5 py-2.5 bg-white border border-gray-300 hover:border-orange-400 hover:bg-orange-50/40 text-gray-700 hover:text-gray-900 rounded-lg shadow-sm font-medium text-sm inline-flex items-center gap-2 transition-all cursor-pointer"
                     >
-                      <Folder size={18} className="text-white" />
+                      <Folder size={18} className="text-[#f98012]" />
                       <span>Seleccionar carpeta</span>
                     </button>
                   ) : (
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="px-6 py-3 bg-[#f98012] hover:bg-[#e06d09] text-white rounded-xl shadow-md hover:shadow-lg font-semibold text-sm inline-flex items-center gap-2.5 transition-all cursor-pointer transform hover:-translate-y-0.5"
+                      className="px-5 py-2.5 bg-white border border-gray-300 hover:border-orange-400 hover:bg-orange-50/40 text-gray-700 hover:text-gray-900 rounded-lg shadow-sm font-medium text-sm inline-flex items-center gap-2 transition-all cursor-pointer"
                     >
-                      <FileText size={18} className="text-white" />
+                      <FileText size={18} className="text-[#f98012]" />
                       <span>Seleccionar archivo</span>
                     </button>
                   )}
@@ -738,18 +738,18 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
               <button 
                 type="button" 
                 onClick={() => { setIsEditing(false); setFile(null); setSelectedFiles([]); setIsFolderSelected(false); setError(""); }} 
-                className="px-6 py-3 border border-gray-300 hover:bg-gray-100 text-gray-700 font-semibold text-sm rounded-xl transition-all cursor-pointer shadow-sm"
+                className="px-6 py-2.5 border border-gray-300 hover:bg-gray-100 text-gray-700 font-semibold text-sm rounded-lg transition-all cursor-pointer shadow-sm"
                 disabled={loading}
               >
                 Cancelar
               </button>
               <button 
                 type="submit" 
-                className="px-7 py-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl shadow-md hover:shadow-lg font-bold text-sm inline-flex items-center gap-2.5 transition-all cursor-pointer transform hover:-translate-y-0.5"
+                className="px-6 py-2.5 bg-[#f98012] hover:bg-[#e06d09] text-white rounded-lg shadow-sm hover:shadow font-semibold text-sm inline-flex items-center gap-2 transition-all cursor-pointer"
                 disabled={loading}
               >
-                {loading ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} className="text-white" />}
-                <span>Entregar actividad</span>
+                {loading ? <Loader2 className="animate-spin" size={16} /> : null}
+                <span>Guardar cambios</span>
               </button>
             </div>
           </form>
