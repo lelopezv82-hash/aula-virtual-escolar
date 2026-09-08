@@ -734,22 +734,22 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
               />
             </div>
 
-            <div className="flex gap-3 justify-end mt-2">
+            <div className="flex items-center justify-center gap-4 mt-4">
               <button 
                 type="button" 
                 onClick={() => { setIsEditing(false); setFile(null); setSelectedFiles([]); setIsFolderSelected(false); setError(""); }} 
-                className="px-4 py-2 border border-gray-300 rounded text-gray-700 text-sm hover:bg-gray-50 font-medium transition-colors"
+                className="px-6 py-3 border border-gray-300 hover:bg-gray-100 text-gray-700 font-semibold text-sm rounded-xl transition-all cursor-pointer shadow-sm"
                 disabled={loading}
               >
                 Cancelar
               </button>
               <button 
                 type="submit" 
-                className="px-4 py-2 bg-[#f98012] hover:bg-[#e06d09] text-white font-medium text-sm rounded flex items-center gap-2 transition-colors"
+                className="px-6 py-3 bg-[#f98012] hover:bg-[#e06d09] text-white rounded-xl shadow-md hover:shadow-lg font-semibold text-sm inline-flex items-center gap-2.5 transition-all cursor-pointer transform hover:-translate-y-0.5"
                 disabled={loading}
               >
-                {loading ? <Loader2 className="animate-spin" size={16} /> : null}
-                Guardar cambios
+                {loading ? <Loader2 className="animate-spin" size={18} /> : null}
+                <span>Enviar tarea</span>
               </button>
             </div>
           </form>
