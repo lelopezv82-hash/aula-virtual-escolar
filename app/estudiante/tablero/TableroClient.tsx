@@ -898,13 +898,6 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
               {isExam ? <ClipboardList size={12} /> : <FileText size={12} />}
               {isExam ? "Examen (Saber)" : isTaskSaber ? "Tarea (Saber)" : "Tarea (Hacer)"}
             </span>
-
-            {/* Individual Assignment Badge */}
-            {task.isIndividuallyAssigned && (
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 flex items-center gap-1" title="Asignada especialmente para ti">
-                <UserCheck size={12} /> Personal
-              </span>
-            )}
           </div>
 
           {/* Time text Badge */}
