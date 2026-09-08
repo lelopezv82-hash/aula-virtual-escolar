@@ -44,7 +44,7 @@ export default async function DocenteLayout({ children }: { children: React.Reac
     },
     {
       href: "/docente/cursos",
-      label: "Mis Asignaturas",
+      label: "Asignaturas",
       icon: <BookOpen size={20} />,
     },
     {
