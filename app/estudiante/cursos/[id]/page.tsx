@@ -108,7 +108,6 @@ export default async function CursoDescripcionPage({
     where: {
       courseId: id,
       active: true,
-      isExternal: false,
       type: { in: ["TASK", "TASK_SABER", "SABER", "EXAM", "FINAL"] },
       OR: [{ period: null }, { period: { in: activePeriodNames } }],
       AND: [
@@ -217,6 +216,15 @@ export default async function CursoDescripcionPage({
                       >
                         {task.title}
                       </Link>
+                      {task.isExternal && (
+                        <span style={{
+                          fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
+                          borderRadius: 3, background: "#f1f5f9", color: "#475569",
+                          border: "1px solid #cbd5e1"
+                        }}>
+                          📁 Entrega en clase
+                        </span>
+                      )}
                       {isNotActivatedForStudent && (
                         <span
                           className="text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border border-red-200 dark:border-red-900/50"
