@@ -430,7 +430,7 @@ export default async function CalificacionesEstudiantePage() {
                                     />
                                   ) : (
                                     <Link href={`/estudiante/tareas/${sub.task.id}`} className="btn btn-secondary text-xs px-2 py-1 w-full flex justify-center">
-                                      Ver Entrega
+                                      {sub.task.isExternal ? "Ver Detalle" : "Ver Entrega"}
                                     </Link>
                                   )}
                                 </div>

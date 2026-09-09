@@ -898,6 +898,13 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
               {isExam ? <ClipboardList size={12} /> : <FileText size={12} />}
               {isExam ? "Examen (Saber)" : isTaskSaber ? "Tarea (Saber)" : "Tarea (Hacer)"}
             </span>
+
+            {/* In-class delivery badge */}
+            {task.isExternal && (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 flex items-center gap-1">
+                📁 Entrega en clase
+              </span>
+            )}
           </div>
 
           {/* Time text Badge */}
@@ -1033,7 +1040,7 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
         >
           {info.isSubmitted ? (
             <>
-              Ver Entrega <ArrowRight size={14} />
+              {task.isExternal ? "Ver Detalle" : "Ver Entrega"} <ArrowRight size={14} />
             </>
           ) : info.isExpired ? (
             <>
@@ -1042,6 +1049,10 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
           ) : isExam ? (
             <>
               Comenzar Examen <ArrowRight size={14} />
+            </>
+          ) : task.isExternal ? (
+            <>
+              Ver Detalle <ArrowRight size={14} />
             </>
           ) : (
             <>
