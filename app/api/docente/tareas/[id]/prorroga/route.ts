@@ -50,8 +50,8 @@ export async function POST(
     const isAllowLate = Boolean(allowLateSubmission);
 
     // Apply updates to all selected students inside a single atomic transaction
-    await prisma.$transaction(
-      studentIds.map((studentId: string) => {
+    await prisma.$transaction([
+      ...studentIds.map((studentId: string) => {
         return prisma.submission.upsert({
           where: {
             taskId_studentId: {
@@ -62,6 +62,11 @@ export async function POST(
           update: {
             allowLateSubmission: isAllowLate,
             lateSubmissionUntil: isAllowLate ? parsedDate : null,
+            ...(isAllowLate ? {
+              grade: null,
+              status: "PENDING",
+              feedback: "Prórroga concedida por el docente.",
+            } : {}),
           },
           create: {
             taskId,
@@ -69,10 +74,23 @@ export async function POST(
             status: "PENDING",
             allowLateSubmission: isAllowLate,
             lateSubmissionUntil: isAllowLate ? parsedDate : null,
+            ...(isAllowLate ? {
+              feedback: "Prórroga concedida por el docente.",
+            } : {}),
           }
         });
-      })
-    );
+      }),
+      ...(isAllowLate ? [
+        prisma.task.update({
+          where: { id: taskId },
+          data: {
+            assignedStudents: {
+              connect: studentIds.map(id => ({ id }))
+            }
+          }
+        })
+      ] : [])
+    ]);
 
     return NextResponse.json({ 
       success: true, 

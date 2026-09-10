@@ -122,8 +122,8 @@ export default function TableroClient({
     const isExamSubmitted = isExam && !!(task.submission && task.submission.status !== "PENDING" && task.submission.startedAt);
     const isSubmitted = isExam ? isExamSubmitted : hasUploadedFile;
 
-    // Non-activated (absent) student: treat as expired/closed with grade 1.0
-    if (task.isNotActivated) {
+    // Non-activated (absent) student without prórroga: treat as expired/closed with grade 1.0
+    if (task.isNotActivated && !hasExtension && !task.submission?.allowLateSubmission) {
       return {
         due,
         activeDeadline,

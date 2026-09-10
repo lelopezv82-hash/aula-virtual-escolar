@@ -79,8 +79,10 @@ export default async function CalificacionesEstudiantePage() {
   // Map tasks to their submissions, adding virtual 1.0 graded submissions for non-activated (absent) students
   // and for expired/closed tasks without submission
   const activeSubmissions = (await Promise.all(tasks.map(async task => {
-    // Non-activated student (absent): virtual closed submission with grade 1.0
-    const isNotActivatedForStudent = !task.assignedStudents.some((s: {id: string}) => s.id === studentId);
+    const sub = task.submissions[0];
+    const hasProrroga = !!sub?.allowLateSubmission || !!task.allowLateSubmission;
+    // Non-activated student (absent): virtual closed submission with grade 1.0 (unless granted prórroga)
+    const isNotActivatedForStudent = !task.assignedStudents.some((s: {id: string}) => s.id === studentId) && !hasProrroga;
     if (isNotActivatedForStudent) {
       return {
         id: `unassigned-${task.id}`,
@@ -104,7 +106,6 @@ export default async function CalificacionesEstudiantePage() {
       };
     }
 
-    const sub = task.submissions[0];
     const { isClosed } = getTaskDeadlineStatus(task, sub);
     const isGoogleForm = !!(task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));
 

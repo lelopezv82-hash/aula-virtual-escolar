@@ -284,7 +284,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
  // ─── Manual Grading Full-Screen State   ───
   const [gradingTask, setGradingTask] = useState<TaskItem | null>(null);
-  const [gradingStudents, setGradingStudents] = useState<Array<{ id: string; name: string; groupName: string; submission: { id: string; status: string; grade: number | null; feedback: string | null; submittedAt: string | null; fileUrl: string | null; fileUrls?: any; allowLateSubmission?: boolean; lateSubmissionUntil?: string | null } | null }>>([]); 
+  const [gradingStudents, setGradingStudents] = useState<Array<{ id: string; name: string; groupName: string; isAssigned?: boolean; isNotActivated?: boolean; submission: { id: string; status: string; grade: number | null; feedback: string | null; submittedAt: string | null; fileUrl: string | null; fileUrls?: any; allowLateSubmission?: boolean; lateSubmissionUntil?: string | null } | null }>>([]); 
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [gradeInputs, setGradeInputs] = useState<Record<string, string>>({});
   const [feedbackInputs, setFeedbackInputs] = useState<Record<string, string>>({});
@@ -588,14 +588,17 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         grid[s.id] = {};
         for (const t of fTasks) {
           const sub = t.submissions.find(x => x.studentId === s.id);
-          const hasRealGrade = sub?.grade !== null && sub?.grade !== undefined;
+          const hasProrroga = !!sub?.allowLateSubmission || !!t.allowLateSubmission;
+          const hasRealGrade = sub?.grade !== null && sub?.grade !== undefined && !(hasProrroga && sub?.grade === 1.0 && !(sub as any)?.fileUrl);
           
           let defaultVal = "";
-          // Check if student is assigned/activated for this task
-          const isStudentAssigned = t.assignedStudents ? t.assignedStudents.some(as => as.id === s.id) : false;
+          // Check if student is assigned/activated for this task (prórroga grants active access)
+          const isStudentAssigned = (t.assignedStudents ? t.assignedStudents.some(as => as.id === s.id) : false) || hasProrroga;
 
           if (!isStudentAssigned) {
             defaultVal = "1.0";
+          } else if (hasProrroga && (sub?.grade == null || sub?.grade === 1.0) && !(sub as any)?.fileUrl) {
+            defaultVal = "";
           } else if (!t.isExternal) {
             const { isClosed } = getTaskDeadlineStatus(t as any, sub as any);
             const isTimerExpired = sub?.startedAt && t.duration &&
@@ -1081,24 +1084,25 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           const { isClosed } = getTaskDeadlineStatus(taskInfo, sub);
           const isOverdueWithoutSubmission = !(data.isExternal ?? (task as any).isExternal) && isClosed && !hasActualSubmission;
 
-          if (sub?.grade != null) {
-            inputs[s.id] = String(sub.grade);
-          } else if (s.isNotActivated) {
-            inputs[s.id] = "1.0";
-          } else if (isOverdueWithoutSubmission) {
-            inputs[s.id] = "1.0";
-          } else {
-            inputs[s.id] = "";
-          }
+          const hasProrroga = !!sub?.allowLateSubmission || !!data.allowLateSubmission;
 
-          if (sub?.feedback) {
-            fInputs[s.id] = sub.feedback;
+          if (hasProrroga) {
+            inputs[s.id] = (sub?.grade != null && sub?.grade !== 1.0) ? String(sub.grade) : "";
+            fInputs[s.id] = (sub?.feedback && !sub.feedback.includes("No asistió") && !sub.feedback.includes("plazo establecido")) 
+              ? sub.feedback 
+              : "Prórroga concedida por el docente.";
+          } else if (sub?.grade != null) {
+            inputs[s.id] = String(sub.grade);
+            fInputs[s.id] = sub?.feedback || "";
           } else if (s.isNotActivated) {
+            inputs[s.id] = "1.0";
             fInputs[s.id] = "No asistió a la clase (Actividad no habilitada)";
           } else if (isOverdueWithoutSubmission) {
+            inputs[s.id] = "1.0";
             fInputs[s.id] = "Actividad no entregada dentro del plazo establecido.";
           } else {
-            fInputs[s.id] = "";
+            inputs[s.id] = "";
+            fInputs[s.id] = sub?.feedback || "";
           }
         });
         setGradeInputs(inputs);
@@ -1310,8 +1314,13 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             };
             return {
               ...s,
+              isAssigned: gradingProrrogaAllow ? true : s.isAssigned,
+              isNotActivated: gradingProrrogaAllow ? false : s.isNotActivated,
               submission: {
                 ...currentSub,
+                grade: gradingProrrogaAllow ? ((currentSub.grade === 1 || currentSub.grade === 1.0) ? null : currentSub.grade) : currentSub.grade,
+                status: gradingProrrogaAllow ? "PENDING" : currentSub.status,
+                feedback: gradingProrrogaAllow ? "Prórroga concedida por el docente." : currentSub.feedback,
                 allowLateSubmission: gradingProrrogaAllow,
                 lateSubmissionUntil: untilISO
               }
@@ -1320,27 +1329,24 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           return s;
         }));
 
+        let newGrades = { ...gradeInputs };
+        let newFeedbacks = { ...feedbackInputs };
+
         if (gradingProrrogaAllow) {
-          setGradeInputs(prev => {
-            const updated = { ...prev };
-            gradingProrrogaStudentIds.forEach(sid => {
-              const s = gradingStudents.find(x => x.id === sid);
-              if (s && !s.submission?.grade && updated[sid] === "1.0") {
-                updated[sid] = "";
-              }
-            });
-            return updated;
+          gradingProrrogaStudentIds.forEach(sid => {
+            const s = gradingStudents.find(x => x.id === sid);
+            if (!s?.submission?.grade || s.submission.grade === 1 || s.submission.grade === 1.0) {
+              newGrades[sid] = "";
+            }
+            newFeedbacks[sid] = "Prórroga concedida por el docente.";
           });
-          setFeedbackInputs(prev => {
-            const updated = { ...prev };
-            gradingProrrogaStudentIds.forEach(sid => {
-              if (updated[sid]?.includes("plazo establecido")) {
-                updated[sid] = "Prórroga concedida por el docente.";
-              }
-            });
-            return updated;
-          });
+          setGradeInputs(newGrades);
+          setFeedbackInputs(newFeedbacks);
+          setInitialGradeInputs({ ...newGrades });
+          setInitialFeedbackInputs({ ...newFeedbacks });
         }
+
+        fetchData();
 
         setGradingProrrogaOpen(false);
         toast.success(

@@ -96,7 +96,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       }
 
       // Check selective activation (student must be in assignedStudents to be activated)
-      if (!hasDirectAccess) {
+      const hasProrroga = !!task.submissions[0]?.allowLateSubmission;
+      if (!hasDirectAccess && !hasProrroga) {
         isNotActivatedForStudent = true;
       }
     }
@@ -106,7 +107,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     let submission = task.submissions[0] || null;
 
     // If student was not activated due to inattendance, ensure submission appears closed with grade 1.0
-    if (isNotActivatedForStudent) {
+    if (isNotActivatedForStudent && !submission?.allowLateSubmission) {
       if (!submission) {
         submission = {
           id: `unassigned-${task.id}`,

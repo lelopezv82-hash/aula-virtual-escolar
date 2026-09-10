@@ -55,7 +55,8 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
       .finally(() => setInitialLoad(false));
   }, [taskId, router]);
 
-  const hasActiveExtension = !isNotActivated && !!(submission?.allowLateSubmission || task?.allowLateSubmission);
+  const hasActiveExtension = !!(submission?.allowLateSubmission || task?.allowLateSubmission);
+  const effectiveIsNotActivated = isNotActivated && !hasActiveExtension;
   const hasUploadedFile = !!(
     (submission?.fileUrls && Array.isArray(submission.fileUrls) && submission.fileUrls.length > 0) ||
     (submission?.fileUrl && submission.fileUrl.trim() !== "")
@@ -66,18 +67,18 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
 
   // Check deadline status for grade reason
   const { activeDeadline, isClosed: isDeadlineBlocked, isLate: isOverdue } = task ? getTaskDeadlineStatus(task, submission) : { activeDeadline: null, isClosed: false, isLate: false };
-  const isSubmissionBlocked = isNotActivated || isDeadlineBlocked;
+  const isSubmissionBlocked = effectiveIsNotActivated || isDeadlineBlocked;
   const isDeadlinePassed = isSubmissionBlocked;
 
   const neverSubmitted = !hasUploadedFile && !isSubmitted;
-  const isVirtualGraded = isNotActivated || (neverSubmitted && isDeadlinePassed && !task?.isExternal && !hasActiveExtension);
+  const isVirtualGraded = effectiveIsNotActivated || (neverSubmitted && isDeadlinePassed && !task?.isExternal && !hasActiveExtension);
 
   const effectiveGrade = (submission?.grade !== null && submission?.grade !== undefined && !isAutomaticGrade1)
     ? submission.grade
     : (isVirtualGraded ? 1.0 : null);
 
-  const isGraded = isNotActivated || (submission?.status === "GRADED" && !isAutomaticGrade1) || (submission?.grade != null && !isAutomaticGrade1) || isVirtualGraded;
-  const gradeReason = isNotActivated ? "No asististe a la clase (Actividad no habilitada)" : (isVirtualGraded ? "No entregaste la tarea a tiempo" : null);
+  const isGraded = effectiveIsNotActivated || (submission?.status === "GRADED" && !isAutomaticGrade1) || (submission?.grade != null && !isAutomaticGrade1) || isVirtualGraded;
+  const gradeReason = effectiveIsNotActivated ? "No asististe a la clase (Actividad no habilitada)" : (isVirtualGraded ? "No entregaste la tarea a tiempo" : null);
 
   const triggerAutoSubmit = async () => {
     setIsTimerExpired(true);
