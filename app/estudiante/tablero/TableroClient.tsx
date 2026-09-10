@@ -1031,7 +1031,7 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
           className={`btn text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all shadow-sm !text-white hover:!text-white ${
             info.isSubmitted
               ? "bg-emerald-600 hover:bg-emerald-700"
-              : info.isExpired
+              : info.isGraded || info.isExpired
               ? "bg-slate-600 hover:bg-slate-700"
               : isExam
               ? "bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700"
@@ -1041,6 +1041,10 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
           {info.isSubmitted ? (
             <>
               {task.isExternal ? "Ver Detalle" : "Ver Entrega"} <ArrowRight size={14} />
+            </>
+          ) : info.isGraded ? (
+            <>
+              Ver Detalle <ArrowRight size={14} />
             </>
           ) : info.isExpired ? (
             <>

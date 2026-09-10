@@ -76,8 +76,10 @@ export default async function TableroVirtualPage() {
         },
         {
           OR: [
+            { groups: { none: {} } },
             ...(studentGroupId ? [{ groups: { some: { id: studentGroupId } } }] : []),
-            { assignedStudents: { some: { id: studentId } } }
+            { assignedStudents: { some: { id: studentId } } },
+            { submissions: { some: { studentId } } }
           ]
         }
       ]
