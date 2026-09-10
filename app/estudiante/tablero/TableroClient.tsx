@@ -122,8 +122,8 @@ export default function TableroClient({
     const isExamSubmitted = isExam && !!(task.submission && task.submission.status !== "PENDING" && task.submission.startedAt);
     const isSubmitted = isExam ? isExamSubmitted : hasUploadedFile;
 
-    // Non-activated (absent) student without prórroga: treat as expired/closed with grade 1.0
-    if (task.isNotActivated && !hasExtension && !task.submission?.allowLateSubmission) {
+    // Non-activated (absent) student without prórroga or real grade: treat as expired/closed with grade 1.0
+    if (task.isNotActivated && !hasExtension && !task.submission?.allowLateSubmission && task.submission?.grade == null) {
       return {
         due,
         activeDeadline,
@@ -143,11 +143,11 @@ export default function TableroClient({
       };
     }
 
-    const isClosedWithoutSubmission = !isSubmitted && !hasExtension && (isClosed || (task.submission?.grade === 1 || task.submission?.grade === 1.0));
+    const isClosedWithoutSubmission = !isSubmitted && !hasExtension && (isClosed || (task.submission?.grade === 1 || task.submission?.grade === 1.0)) && task.submission?.grade == null;
     const isExpired = isClosedWithoutSubmission;
     const isDueToday = diffHours > 0 && diffHours <= 24 && !hasExtension;
     const isUrgent = diffHours > 0 && diffHours <= 48 && !hasExtension;
-    const isGraded = isSubmitted && !!(task.submission && (task.submission.status === "GRADED" || task.submission.grade != null));
+    const isGraded = (isSubmitted && !!(task.submission && (task.submission.status === "GRADED" || task.submission.grade != null))) || (task.submission?.grade != null);
     const grade = isGraded ? task.submission?.grade : (isExpired ? 1.0 : null);
 
     let timeText = "";

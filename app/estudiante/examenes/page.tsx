@@ -69,8 +69,12 @@ export default async function ExamenesEstudiantePage() {
   });
 
   // Helper: check if an exam is not activated for this student (absent)
-  const isNotActivated = (exam: typeof exams[0]) =>
-    !exam.assignedStudents.some(s => s.id === studentId);
+  const isNotActivated = (exam: typeof exams[0]) => {
+    const sub = exam.submissions[0];
+    const hasProrroga = !!sub?.allowLateSubmission || !!exam.allowLateSubmission;
+    const hasRealGrade = sub?.grade !== null && sub?.grade !== undefined;
+    return !exam.assignedStudents.some(s => s.id === studentId) && !hasProrroga && !hasRealGrade;
+  };
 
   const pendingExams = exams.filter(exam => {
     // Non-activated exams (absent student) always show as graded 1.0, never pending

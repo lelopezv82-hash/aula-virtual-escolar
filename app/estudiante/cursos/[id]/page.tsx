@@ -158,7 +158,8 @@ export default async function CursoDescripcionPage({
         }}>
           {tasks.map((task, idx) => {
             const submission = task.submissions[0];
-            const isNotActivatedForStudent = !task.assignedStudents.some(s => s.id === studentId) && !submission?.allowLateSubmission;
+            const hasRealGrade = submission?.grade !== null && submission?.grade !== undefined;
+            const isNotActivatedForStudent = !task.assignedStudents.some(s => s.id === studentId) && !submission?.allowLateSubmission && !hasRealGrade;
             const isExam = task.type === "EXAM" || task.type === "FINAL";
             const hasUploadedFile = isExam ? false : (task.isExternal || !!(submission?.fileUrl && submission.fileUrl.trim() !== ""));
             const isExamSubmitted = isExam && !!(submission && submission.status !== "PENDING" && submission.startedAt);
@@ -190,8 +191,8 @@ export default async function CursoDescripcionPage({
             );
 
             const hasExtension = deadlineStatus && deadlineStatus.isLate && !deadlineStatus.isClosed;
-            const isClosedWithoutSubmission = !isSubmitted && !hasExtension && (deadlineStatus?.isClosed || (submission?.grade === 1 || submission?.grade === 1.0));
-            const isGraded = isSubmitted && !!(submission && (submission.status === "GRADED" || submission.grade != null));
+            const isClosedWithoutSubmission = !isSubmitted && !hasExtension && (deadlineStatus?.isClosed || (submission?.grade === 1 || submission?.grade === 1.0)) && !hasRealGrade;
+            const isGraded = (isSubmitted && !!(submission && (submission.status === "GRADED" || submission.grade != null))) || hasRealGrade;
 
             return (
               <div

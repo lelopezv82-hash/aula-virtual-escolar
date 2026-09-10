@@ -76,6 +76,19 @@ export async function PATCH(request: Request) {
       });
     }
 
+    const effectiveTaskId = taskId || submission?.taskId;
+    const effectiveStudentId = studentId || submission?.studentId;
+    if (effectiveTaskId && effectiveStudentId && updateData.grade !== undefined && updateData.grade !== null) {
+      await prisma.task.update({
+        where: { id: effectiveTaskId },
+        data: {
+          assignedStudents: {
+            connect: { id: effectiveStudentId }
+          }
+        }
+      }).catch(() => {});
+    }
+
     return NextResponse.json({ success: true, submission });
   } catch (error) {
     console.error('Error grading submission:', error);

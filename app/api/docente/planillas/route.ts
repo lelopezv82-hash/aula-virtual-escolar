@@ -167,6 +167,15 @@ export async function POST(req: Request) {
               updatedAt: new Date(),
             }
           });
+
+          await tx.task.update({
+            where: { id: taskId },
+            data: {
+              assignedStudents: {
+                connect: { id: studentId }
+              }
+            }
+          }).catch(() => {});
         }
       }
     });

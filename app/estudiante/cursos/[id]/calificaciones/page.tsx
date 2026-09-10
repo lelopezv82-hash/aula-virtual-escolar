@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import Link from 'next/link';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { CheckCircle, Clock, AlertCircle, ClipboardList, FileText, Star } from "lucide-react";
@@ -92,8 +93,11 @@ export default async function CursoCalificacionesPage({
   });
 
   const activeSubmissions = (await Promise.all(tasks.map(async task => {
-    // Non-activated student (absent): virtual closed submission with grade 1.0
-    const isNotActivatedForStudent = !task.assignedStudents.some(s => s.id === studentId);
+    const sub = task.submissions[0];
+    const hasProrroga = !!sub?.allowLateSubmission || !!task.allowLateSubmission;
+    const hasRealGrade = sub?.grade !== null && sub?.grade !== undefined;
+    // Non-activated student (absent): virtual closed submission with grade 1.0 (unless graded or granted prórroga)
+    const isNotActivatedForStudent = !task.assignedStudents.some(s => s.id === studentId) && !hasRealGrade && !hasProrroga;
     if (isNotActivatedForStudent) {
       return {
         id: `unassigned-${task.id}`,
@@ -117,7 +121,6 @@ export default async function CursoCalificacionesPage({
       };
     }
 
-    const sub = task.submissions[0];
     const { isClosed } = getTaskDeadlineStatus(task, sub);
     const isGoogleForm = !!(task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));
     const isNative = task.questions && task.questions.length > 0;
@@ -225,7 +228,7 @@ export default async function CursoCalificacionesPage({
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="flex items-center gap-2 flex-wrap mb-1">
             {isGraded && (
-              sub.submittedAt === null && !sub.task.isExternal
+              sub.submittedAt === null && !sub.task.isExternal && (sub.grade === 1 || sub.grade === 1.0) && (!sub.feedback || sub.feedback.includes("No asistió") || sub.feedback.includes("No entregó"))
                 ? <span className="badge badge-danger flex items-center gap-1"><AlertCircle size={12} /> Plazo vencido</span>
                 : <span className="badge badge-success flex items-center gap-1"><CheckCircle size={12} /> Calificada</span>
             )}
@@ -277,7 +280,7 @@ export default async function CursoCalificacionesPage({
               💬 &quot;{sub.feedback}&quot;
             </div>
           )}
-          {isGraded && sub.submittedAt === null && !sub.task.isExternal && (
+          {isGraded && sub.submittedAt === null && !sub.task.isExternal && (sub.grade === 1 || sub.grade === 1.0) && (!sub.feedback || sub.feedback.includes("No asistió") || sub.feedback.includes("No entregó")) && (
             <p style={{ fontSize: "0.875rem", color: "var(--danger)", marginTop: "0.25rem", fontWeight: 500 }}>Calificación automática por falta de entrega.</p>
           )}
           {!isGraded && (
@@ -297,6 +300,11 @@ export default async function CursoCalificacionesPage({
               {sub.task.type === "EXAM" ? "En proceso de calificación..." : "Pendiente de revisión"}
             </div>
           )}
+          <div className="mt-1 w-full flex justify-center">
+            <Link href={sub.task.type === "EXAM" || sub.task.type === "FINAL" ? `/estudiante/examenes/${sub.task.id}` : `/estudiante/tareas/${sub.task.id}`} className="btn btn-secondary text-xs px-2 py-1 w-full flex justify-center">
+              {sub.task.isExternal ? "Ver Detalle" : "Ver Entrega"}
+            </Link>
+          </div>
         </div>
       </div>
     );

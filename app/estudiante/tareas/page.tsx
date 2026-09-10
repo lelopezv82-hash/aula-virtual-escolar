@@ -68,8 +68,12 @@ export default async function TareasEstudiantePage() {
   });
 
   // Helper: check if a task is not activated for this student
-  const isNotActivated = (task: typeof tasks[0]) =>
-    !task.assignedStudents.some(s => s.id === studentId);
+  const isNotActivated = (task: typeof tasks[0]) => {
+    const sub = task.submissions[0];
+    const hasProrroga = !!sub?.allowLateSubmission || !!task.allowLateSubmission;
+    const hasRealGrade = sub?.grade !== null && sub?.grade !== undefined;
+    return !task.assignedStudents.some(s => s.id === studentId) && !hasProrroga && !hasRealGrade;
+  };
 
   const pendingTasks = tasks.filter(task => {
     // Non-activated tasks (absent student) always show as graded 1.0, never pending

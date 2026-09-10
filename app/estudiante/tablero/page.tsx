@@ -109,9 +109,10 @@ export default async function TableroVirtualPage() {
   // Serialize tasks safely for client component
   const serializedTasks: TableroTask[] = tasksFromDb.map(t => {
     const sub = t.submissions[0] || null;
-    // Check selective activation: student must be in assignedStudents to be activated, unless granted prórroga
+    // Check selective activation: student must be in assignedStudents to be activated, unless granted prórroga or graded
     const hasProrroga = !!sub?.allowLateSubmission || !!t.allowLateSubmission;
-    const studentIsAssigned = (t.assignedStudents && t.assignedStudents.length > 0) || hasProrroga;
+    const hasRealGrade = sub?.grade !== null && sub?.grade !== undefined;
+    const studentIsAssigned = (t.assignedStudents && t.assignedStudents.length > 0) || hasProrroga || hasRealGrade;
     const notActivatedForStudent = !studentIsAssigned;
     return {
       id: t.id,
