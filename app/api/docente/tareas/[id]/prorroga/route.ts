@@ -63,8 +63,7 @@ export async function POST(
             allowLateSubmission: isAllowLate,
             lateSubmissionUntil: isAllowLate ? parsedDate : null,
             ...(isAllowLate ? {
-              grade: null,
-              status: "PENDING",
+              // No sobreescribir la nota si el docente ya había calificado manualmente
               feedback: "Prórroga concedida por el docente.",
             } : {}),
           },

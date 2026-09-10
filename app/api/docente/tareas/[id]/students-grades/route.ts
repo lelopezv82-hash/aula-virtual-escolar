@@ -110,13 +110,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       const hasProrroga = !!sub?.allowLateSubmission;
       const isAssigned = assignedIds.includes(s.id) || hasProrroga;
 
-      // If student has prórroga and residual 1.0 from before without real submission, reset it to pending
-      if (hasProrroga && sub && !sub.fileUrl && (sub.grade === 1 || sub.grade === 1.0 || sub.feedback?.includes("No asistió"))) {
+      // If student has prórroga and residual automated 1.0 from inattendance without real submission, reset it
+      if (hasProrroga && sub && !sub.fileUrl && sub.feedback?.includes("No asistió")) {
         sub = {
           ...sub,
           grade: null,
           status: "PENDING",
-          feedback: sub.feedback?.includes("No asistió") ? "Prórroga concedida por el docente." : sub.feedback,
+          feedback: "Prórroga concedida por el docente.",
         };
       }
 

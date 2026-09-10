@@ -1087,7 +1087,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           const hasProrroga = !!sub?.allowLateSubmission || !!data.allowLateSubmission;
 
           if (hasProrroga) {
-            inputs[s.id] = (sub?.grade != null && sub?.grade !== 1.0) ? String(sub.grade) : "";
+            const isAutoInattendanceOne = sub?.grade === 1.0 && sub?.feedback?.includes("No asistió");
+            inputs[s.id] = (sub?.grade != null && !isAutoInattendanceOne) ? String(sub.grade) : "";
             fInputs[s.id] = (sub?.feedback && !sub.feedback.includes("No asistió") && !sub.feedback.includes("plazo establecido")) 
               ? sub.feedback 
               : "Prórroga concedida por el docente.";
@@ -1335,7 +1336,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         if (gradingProrrogaAllow) {
           gradingProrrogaStudentIds.forEach(sid => {
             const s = gradingStudents.find(x => x.id === sid);
-            if (!s?.submission?.grade || s.submission.grade === 1 || s.submission.grade === 1.0) {
+            const isAutoInattendanceOne = s?.submission?.grade === 1.0 && s?.submission?.feedback?.includes("No asistió");
+            if (!s?.submission?.grade || isAutoInattendanceOne) {
               newGrades[sid] = "";
             }
             newFeedbacks[sid] = "Prórroga concedida por el docente.";
