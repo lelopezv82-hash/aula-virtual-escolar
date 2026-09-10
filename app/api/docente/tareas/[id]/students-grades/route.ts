@@ -111,7 +111,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       const isAssigned = assignedIds.includes(s.id) || hasProrroga;
 
       // If student has prórroga and residual automated 1.0 from inattendance without real submission, reset it
-      if (hasProrroga && sub && !sub.fileUrl && sub.feedback?.includes("No asistió")) {
+      if (hasProrroga && sub && !sub.fileUrl && (sub.grade === 1 || sub.grade === 1.0) && sub.feedback?.includes("No asistió")) {
         sub = {
           ...sub,
           grade: null,

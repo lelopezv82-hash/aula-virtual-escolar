@@ -305,6 +305,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         where: {
           taskId: resolvedParams.id,
           grade: 1.0,
+          feedback: { contains: "No asistió" }
         },
         data: {
           grade: null,
