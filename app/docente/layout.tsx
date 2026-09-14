@@ -9,6 +9,7 @@ import {
   FileText,
   CalendarClock,
   GraduationCap,
+  DatabaseBackup,
 } from "lucide-react";
 import DashboardShell from "@/components/DashboardShell";
 import "./docente.css";
@@ -67,6 +68,11 @@ export default async function DocenteLayout({ children }: { children: React.Reac
       href: "/docente/planillas",
       label: "Académico",
       icon: <GraduationCap size={20} />,
+    },
+    {
+      href: "/docente/backup",
+      label: "Copia de Seguridad",
+      icon: <DatabaseBackup size={20} />,
     },
     {
       href: "/docente/configuracion",
