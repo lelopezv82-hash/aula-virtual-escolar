@@ -2917,7 +2917,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                   Todos ({gradingStudents.length})
                 </button>
                 {gradingAvailableGroups.map(g => {
-                  const countInGroup = gradingStudents.filter(s => s.groupName === g.name).length;
+                  const countInGroup = gradingStudents.filter(s => s.groupName === g.label || s.groupName?.includes(g.name) || (s as any).groupId === g.id).length;
                   return (
                     <button
                       key={g.id}
