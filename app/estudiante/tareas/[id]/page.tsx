@@ -7,6 +7,68 @@ import { useRouter } from "next/navigation";
 import { formatToColombiaString, getTaskDeadlineStatus } from "@/lib/dateUtils";
 import { useConfirm } from "@/components/ConfirmProvider";
 
+// Get clean filename from absolute URL
+function getFileNameFromUrl(url: string, defaultFallback: string = "Documento adjunto"): string {
+  if (!url || typeof url !== "string") return defaultFallback;
+  try {
+    const decoded = decodeURIComponent(url);
+    const cleanUrl = decoded.split("?")[0].replace(/\/(view|preview|edit|copy|download)\/?$/i, "");
+    const parts = cleanUrl.split("/").filter(Boolean);
+    let fileName = parts[parts.length - 1] || "";
+
+    if (fileName.includes("_")) {
+      const subParts = fileName.split("_");
+      if (subParts.length > 1) {
+        const lastSub = subParts[subParts.length - 1];
+        if (lastSub && lastSub.includes(".")) {
+          fileName = lastSub;
+        } else {
+          const tsIdx = subParts.findIndex(p => /^\d{10,}$/.test(p));
+          if (tsIdx !== -1 && tsIdx < subParts.length - 1) {
+            fileName = subParts.slice(tsIdx + 1).join("_");
+          }
+        }
+      }
+    }
+
+    if (!fileName || ["view", "edit", "preview", "file", "d", "uc"].includes(fileName.toLowerCase()) || !fileName.includes(".")) {
+      return defaultFallback;
+    }
+
+    return fileName;
+  } catch {
+    return defaultFallback;
+  }
+}
+
+// Get standard Moodle icon based on file type
+function getFileIcon(url: string) {
+  if (!url) return "📎";
+  const cleanUrl = url.toLowerCase().split('?')[0];
+  if (cleanUrl.endsWith('.pdf')) return "📄";
+  if (cleanUrl.endsWith('.doc') || cleanUrl.endsWith('.docx')) return "📝";
+  if (cleanUrl.endsWith('.xls') || cleanUrl.endsWith('.xlsx')) return "📊";
+  if (cleanUrl.endsWith('.ppt') || cleanUrl.endsWith('.pptx')) return "📉";
+  if (cleanUrl.endsWith('.png') || cleanUrl.endsWith('.jpg') || cleanUrl.endsWith('.jpeg') || cleanUrl.endsWith('.gif')) return "🖼️";
+  if (cleanUrl.endsWith('.zip') || cleanUrl.endsWith('.rar') || cleanUrl.endsWith('.tar') || cleanUrl.endsWith('.gz')) return "📦";
+  return "📎";
+}
+
+function ResourceIcon({ type }: { type?: string }) {
+  return (
+    <div style={{
+      width: 28, height: 28, borderRadius: 4,
+      background: "#e3f2fd", border: "1px solid #90caf9",
+      display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+    }} title={type}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+      </svg>
+    </div>
+  );
+}
+
 export default function TareaDetallePage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const taskId = resolvedParams.id;
@@ -64,7 +126,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const hasRealGrade = submission?.grade !== null && submission?.grade !== undefined && !isAutomaticGrade1;
   const effectiveIsNotActivated = isNotActivated && !hasActiveExtension && !hasRealGrade;
 
-  const isSubmitted = hasUploadedFile || (task?.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")) && submission?.status === "SUBMITTED");
+  const isSubmitted = submission?.status === "SUBMITTED" || hasUploadedFile || (task?.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")) && submission?.status === "SUBMITTED");
 
   // Check deadline status for grade reason
   const { activeDeadline, isClosed: isDeadlineBlocked, isLate: isOverdue } = task ? getTaskDeadlineStatus(task, submission) : { activeDeadline: null, isClosed: false, isLate: false };
@@ -406,67 +468,6 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
     return `${dateStr}, ${timeStr}`;
   }
 
-  // Get clean filename from absolute URL
-  function getFileNameFromUrl(url: string, defaultFallback: string = "Documento adjunto"): string {
-    if (!url || typeof url !== "string") return defaultFallback;
-    try {
-      const decoded = decodeURIComponent(url);
-      const cleanUrl = decoded.split("?")[0].replace(/\/(view|preview|edit|copy|download)\/?$/i, "");
-      const parts = cleanUrl.split("/").filter(Boolean);
-      let fileName = parts[parts.length - 1] || "";
-
-      if (fileName.includes("_")) {
-        const subParts = fileName.split("_");
-        if (subParts.length > 1) {
-          const lastSub = subParts[subParts.length - 1];
-          if (lastSub && lastSub.includes(".")) {
-            fileName = lastSub;
-          } else {
-            const tsIdx = subParts.findIndex(p => /^\d{10,}$/.test(p));
-            if (tsIdx !== -1 && tsIdx < subParts.length - 1) {
-              fileName = subParts.slice(tsIdx + 1).join("_");
-            }
-          }
-        }
-      }
-
-      if (!fileName || ["view", "edit", "preview", "file", "d", "uc"].includes(fileName.toLowerCase()) || !fileName.includes(".")) {
-        return defaultFallback;
-      }
-
-      return fileName;
-    } catch {
-      return defaultFallback;
-    }
-  }
-
-  // Get standard Moodle icon based on file type
-  function getFileIcon(url: string) {
-    if (!url) return "📎";
-    const cleanUrl = url.toLowerCase().split('?')[0];
-    if (cleanUrl.endsWith('.pdf')) return "📄";
-    if (cleanUrl.endsWith('.doc') || cleanUrl.endsWith('.docx')) return "📝";
-    if (cleanUrl.endsWith('.xls') || cleanUrl.endsWith('.xlsx')) return "📊";
-    if (cleanUrl.endsWith('.ppt') || cleanUrl.endsWith('.pptx')) return "📉";
-    if (cleanUrl.endsWith('.png') || cleanUrl.endsWith('.jpg') || cleanUrl.endsWith('.jpeg') || cleanUrl.endsWith('.gif')) return "🖼️";
-    if (cleanUrl.endsWith('.zip') || cleanUrl.endsWith('.rar') || cleanUrl.endsWith('.tar') || cleanUrl.endsWith('.gz')) return "📦";
-    return "📎";
-  }
-
-  function ResourceIcon({ type }: { type?: string }) {
-    return (
-      <div style={{
-        width: 28, height: 28, borderRadius: 4,
-        background: "#e3f2fd", border: "1px solid #90caf9",
-        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-      }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/>
-        </svg>
-      </div>
-    );
-  }
 
   if (initialLoad) {
     return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#f98012]" size={40} /></div>;
@@ -729,9 +730,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
               <input 
                 ref={folderInputRef}
                 type="file" 
-                // @ts-ignore
-                webkitdirectory="" 
-                directory="" 
+                {...{ webkitdirectory: "", directory: "" }}
                 className="hidden" 
                 onChange={handleFolderChange} 
               />

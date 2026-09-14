@@ -15,7 +15,6 @@ import QuestionEditor from "../tareas/[id]/QuestionEditor";
 import { toColombiaISOString, fromColombiaLocalStringToDate, getTaskDeadlineStatus } from "@/lib/dateUtils";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
-// @ts-ignore
 import autoTable from "jspdf-autotable";
 import { useToast } from "@/components/Toast";
 

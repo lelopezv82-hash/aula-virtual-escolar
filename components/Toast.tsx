@@ -84,6 +84,11 @@ function ToastItem({ toast, onRemove }: { toast: ToastMessage; onRemove: (id: st
     return () => clearTimeout(t);
   }, []);
 
+  const handleClose = () => {
+    setVisible(false);
+    setTimeout(() => onRemove(toast.id), 350);
+  };
+
   useEffect(() => {
     const animate = (ts: number) => {
       if (startRef.current === null) startRef.current = ts;
@@ -102,11 +107,6 @@ function ToastItem({ toast, onRemove }: { toast: ToastMessage; onRemove: (id: st
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [duration]);
-
-  const handleClose = () => {
-    setVisible(false);
-    setTimeout(() => onRemove(toast.id), 350);
-  };
 
   return (
     <div
