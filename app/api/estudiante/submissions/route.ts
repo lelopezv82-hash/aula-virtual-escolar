@@ -116,12 +116,17 @@ export async function POST(request: Request) {
       }
     });
 
-    if (task.groups.length > 0 && !task.groups.some(g => g.id === student?.groupId) && !task.assignedStudents.some(s => s.id === studentId)) {
+    // Access control: student must belong to one of the task's groups OR be individually assigned
+    const studentInGroup = task.groups.length === 0 || task.groups.some((g: any) => g.id === student?.groupId);
+    const studentAssigned = task.assignedStudents.some((s: any) => s.id === studentId);
+
+    if (!studentInGroup && !studentAssigned) {
       return NextResponse.json({ error: 'No tienes acceso a esta tarea.' }, { status: 403 });
     }
 
-    // Check if task is restricted to specific activated students
-    if (!task.assignedStudents.some((s: any) => s.id === studentId)) {
+    // If the task has a restricted list of assigned students (attendance control),
+    // only those students may submit. If the list is empty, all group members can submit.
+    if (task.assignedStudents.length > 0 && !studentAssigned) {
       return NextResponse.json({ error: 'Esta actividad no fue activada para ti por inasistencia a clase.' }, { status: 403 });
     }
 

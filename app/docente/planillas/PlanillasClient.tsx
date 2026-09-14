@@ -2983,7 +2983,11 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     const hasValidGrade = !isNaN(numGrade) && numGrade >= 1.0 && numGrade <= 5.0;
 
                     const sub = student.submission;
-                    const hasActualSubmission = !!sub && (sub.status === "SUBMITTED" || !!sub.fileUrl);
+                    const hasActualSubmission = !!sub && (
+                      sub.status === "SUBMITTED" || 
+                      !!sub.fileUrl || 
+                      (Array.isArray(sub.fileUrls) && sub.fileUrls.length > 0)
+                    );
                     const hasProrroga = !!sub?.allowLateSubmission;
 
                     // Estudiante con nota 1.0 por falta de entrega
@@ -3085,76 +3089,43 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                             )}
                             {(student.submission?.fileUrls && Array.isArray(student.submission.fileUrls) && student.submission.fileUrls.length > 1) ? (
                               <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                                {isSelected ? (
+                                <a
+                                  href={`/api/estudiante/submissions/download?taskId=${gradingTask?.id}&studentId=${student.id}`}
+                                  download
+                                  className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100 transition-colors shadow-xs cursor-pointer"
+                                  title="Descargar la carpeta completa enviada por el estudiante"
+                                >
+                                  <span className="text-xs">📁</span>
+                                  Descargar Carpeta ({student.submission.fileUrls.length})
+                                </a>
+                              </div>
+                            ) : (() => {
+                              const fUrl = student.submission?.fileUrl || (Array.isArray(student.submission?.fileUrls) && student.submission.fileUrls.length > 0 ? student.submission.fileUrls[0]?.url : null);
+                              if (!fUrl) return null;
+                              return (
+                                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                                   <a
-                                    href={`/api/estudiante/submissions/download?taskId=${gradingTask?.id}&studentId=${student.id}`}
-                                    download
-                                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100 transition-colors shadow-xs cursor-pointer"
-                                    title="Descargar la carpeta completa enviada por el estudiante"
+                                    href={fUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 transition-colors shadow-xs cursor-pointer"
+                                    title="Ver archivo"
                                   >
-                                    <span className="text-xs">📁</span>
-                                    Descargar Carpeta ({student.submission.fileUrls.length})
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    Ver Archivo
                                   </a>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    disabled
-                                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700 cursor-not-allowed select-none opacity-60"
-                                    title="Activa la casilla del estudiante para descargar la carpeta"
+                                  <a
+                                    href={fUrl}
+                                    download
+                                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 transition-colors shadow-xs cursor-pointer"
+                                    title="Descargar archivo"
                                   >
-                                    <span className="text-xs">📁</span>
-                                    Carpeta ({student.submission.fileUrls.length})
-                                  </button>
-                                )}
-                              </div>
-                            ) : student.submission?.fileUrl ? (
-                              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                                {isSelected ? (
-                                  <>
-                                    <a
-                                      href={student.submission.fileUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 transition-colors shadow-xs cursor-pointer"
-                                      title="Ver archivo"
-                                    >
-                                      <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                                      Ver Archivo
-                                    </a>
-                                    <a
-                                      href={student.submission.fileUrl}
-                                      download
-                                      className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 transition-colors shadow-xs cursor-pointer"
-                                      title="Descargar archivo"
-                                    >
-                                      <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                                      Descargar
-                                    </a>
-                                  </>
-                                ) : (
-                                  <>
-                                    <button
-                                      type="button"
-                                      disabled
-                                      className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700 cursor-not-allowed select-none opacity-60"
-                                      title="Activa la casilla del estudiante para ver el archivo"
-                                    >
-                                      <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                                      Ver Archivo
-                                    </button>
-                                    <button
-                                      type="button"
-                                      disabled
-                                      className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700 cursor-not-allowed select-none opacity-60"
-                                      title="Activa la casilla del estudiante para descargar el archivo"
-                                    >
-                                      <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                                      Descargar
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            ) : null}
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                    Descargar
+                                  </a>
+                                </div>
+                              );
+                            })()}
                           </div>
                         </td>
 

@@ -27,6 +27,7 @@ interface SubmissionData {
   grade: number | null;
   feedback: string | null;
   fileUrl: string | null;
+  fileUrls?: any;
   submittedAt: string | null;
   allowLateSubmission: boolean;
   lateSubmissionUntil: string | null;
@@ -416,11 +417,30 @@ export default function TaskSubmissionsClient({
                               {submission ? (
                                 <div className="flex flex-col items-end gap-1">
                                   <div className="flex justify-end gap-2">
-                                    {task.type !== "EXAM" && submission.fileUrl && (
-                                      <a href={submission.fileUrl} target="_blank" download className="btn btn-secondary text-sm px-2 py-1 flex items-center gap-1">
-                                        <Download size={14} /> Archivo
-                                      </a>
-                                    )}
+                                    {task.type !== "EXAM" && (() => {
+                                      const fileUrl = submission.fileUrl || (Array.isArray(submission.fileUrls) && submission.fileUrls.length > 0 ? submission.fileUrls[0]?.url : null);
+                                      const isMulti = submission.fileUrls && Array.isArray(submission.fileUrls) && submission.fileUrls.length > 1;
+                                      if (isMulti) {
+                                        return (
+                                          <a
+                                            href={`/api/estudiante/submissions/download?taskId=${task.id}&studentId=${student.id}`}
+                                            download
+                                            className="btn btn-secondary text-sm px-2 py-1 flex items-center gap-1"
+                                            title="Descargar carpeta con todos los archivos"
+                                          >
+                                            <Download size={14} /> Carpeta ({submission.fileUrls.length})
+                                          </a>
+                                        );
+                                      }
+                                      if (fileUrl) {
+                                        return (
+                                          <a href={fileUrl} target="_blank" download className="btn btn-secondary text-sm px-2 py-1 flex items-center gap-1">
+                                            <Download size={14} /> Archivo
+                                          </a>
+                                        );
+                                      }
+                                      return null;
+                                    })()}
                                     {task.type === "EXAM" && (
                                       <ResetSubmissionButton 
                                         taskId={task.id}

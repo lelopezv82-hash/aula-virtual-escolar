@@ -97,44 +97,64 @@ export default function CalificarPage({
       </div>
 
       {/* Archivo entregado */}
-      {submission?.fileUrl && (
-        <div
-          className="card flex items-center gap-4 mb-6"
-          style={{ borderLeft: "4px solid var(--primary-color)" }}
-        >
-          <FileText size={40} className="text-[#f98012] shrink-0" />
-          <div className="flex-1">
-            <p className="font-semibold text-sm">Archivo entregado por el estudiante</p>
-            <p className="text-xs text-muted flex items-center gap-1 mt-0.5">
-              <Clock size={12} className="text-[#f97316]" />
-              <strong>Fecha y hora de envío:</strong>{" "}
-              {submission.submittedAt
-                ? new Date(submission.submittedAt).toLocaleString('es-CO', { dateStyle: 'full', timeStyle: 'short' })
-                : "—"}
-            </p>
-            {submission.gdriveEmail && (
-              <GDriveEmailDisplay email={submission.gdriveEmail} label="Almacenado en: " className="mt-1" context="task_details" />
-            )}
+      {(() => {
+        const fileUrl = submission?.fileUrl || (Array.isArray(submission?.fileUrls) && submission.fileUrls.length > 0 ? submission.fileUrls[0]?.url : null);
+        const isMulti = submission?.fileUrls && Array.isArray(submission.fileUrls) && submission.fileUrls.length > 1;
+        if (!fileUrl && !isMulti) return null;
+
+        return (
+          <div
+            className="card flex items-center gap-4 mb-6"
+            style={{ borderLeft: "4px solid var(--primary-color)" }}
+          >
+            <FileText size={40} className="text-[#f98012] shrink-0" />
+            <div className="flex-1">
+              <p className="font-semibold text-sm">
+                {isMulti ? `Carpeta con ${submission.fileUrls.length} archivos entregados` : "Archivo entregado por el estudiante"}
+              </p>
+              <p className="text-xs text-muted flex items-center gap-1 mt-0.5">
+                <Clock size={12} className="text-[#f97316]" />
+                <strong>Fecha y hora de envío:</strong>{" "}
+                {submission.submittedAt
+                  ? new Date(submission.submittedAt).toLocaleString('es-CO', { dateStyle: 'full', timeStyle: 'short' })
+                  : "—"}
+              </p>
+              {submission.gdriveEmail && (
+                <GDriveEmailDisplay email={submission.gdriveEmail} label="Almacenado en: " className="mt-1" context="task_details" />
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {isMulti ? (
+                <a
+                  href={`/api/estudiante/submissions/download?taskId=${taskId}&studentId=${studentId}`}
+                  download
+                  className="btn btn-primary flex items-center gap-1 text-sm"
+                >
+                  <Download size={14} /> Descargar Carpeta ({submission.fileUrls.length})
+                </a>
+              ) : (
+                <>
+                  <a
+                    href={fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-secondary flex items-center gap-1 text-sm"
+                  >
+                    Ver Archivo
+                  </a>
+                  <a
+                    href={fileUrl}
+                    download
+                    className="btn btn-primary flex items-center gap-1 text-sm"
+                  >
+                    <Download size={14} /> Descargar
+                  </a>
+                </>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <a
-              href={submission.fileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-secondary flex items-center gap-1 text-sm"
-            >
-              Ver Archivo
-            </a>
-            <a
-              href={submission.fileUrl}
-              download
-              className="btn btn-primary flex items-center gap-1 text-sm"
-            >
-              <Download size={14} /> Descargar
-            </a>
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Formulario de calificación */}
       <form onSubmit={handleSubmit} className="card flex flex-col gap-5">

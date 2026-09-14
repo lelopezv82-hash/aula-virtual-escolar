@@ -57,6 +57,7 @@ export interface TableroTask {
     allowLateSubmission?: boolean;
     lateSubmissionUntil?: string | null;
     fileUrl?: string | null;
+    fileUrls?: any;
   } | null;
 }
 
@@ -118,7 +119,7 @@ export default function TableroClient({
     const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
     const isExam = task.type === "EXAM" || task.type === "FINAL";
-    const hasUploadedFile = isExam ? false : (task.isExternal || !!(task.submission?.fileUrl && task.submission.fileUrl.trim() !== ""));
+    const hasUploadedFile = isExam ? false : (task.isExternal || task.submission?.status === "SUBMITTED" || !!(task.submission?.fileUrl && task.submission.fileUrl.trim() !== "") || (Array.isArray(task.submission?.fileUrls) && task.submission.fileUrls.length > 0));
     const isExamSubmitted = isExam && !!(task.submission && task.submission.status !== "PENDING" && task.submission.startedAt);
     const isSubmitted = isExam ? isExamSubmitted : hasUploadedFile;
 

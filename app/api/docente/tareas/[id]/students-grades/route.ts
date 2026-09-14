@@ -51,6 +51,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
             feedback: true, 
             submittedAt: true,
             fileUrl: true,
+            fileUrls: true,
             allowLateSubmission: true,
             lateSubmissionUntil: true,
             gdriveEmail: true

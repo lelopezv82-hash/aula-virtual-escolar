@@ -60,8 +60,8 @@ export default function NuevaTareaPage() {
         name: g.grade?.name ? `${g.grade.name} - ${g.name}` : g.name
       }));
       setGradeGroups(flat);
-      // Auto-select all groups of the course
-      setGroupIds(flat.map(g => g.id));
+      // Do NOT auto-select groups — teacher must choose explicitly (one group per task)
+      setGroupIds([]);
     } else {
       setGradeGroups([]);
       setGroupIds([]);
@@ -223,48 +223,28 @@ export default function NuevaTareaPage() {
         </div>
 
         <div className="input-group">
-          <label className="font-semibold text-xs mb-1.5 block">Asignar a Grupos (Múltiple) *</label>
-          
-          <div className="flex justify-between items-center mb-2">
-            <button
-              type="button"
-              onClick={() => {
-                const allIds = gradeGroups.map(g => g.id);
-                const allSelected = allIds.every(id => groupIds.includes(id));
-                setGroupIds(allSelected ? [] : allIds);
-              }}
-              className="text-xs font-bold text-[#f98012] hover:underline"
-            >
-              {gradeGroups.map(g => g.id).every(id => groupIds.includes(id)) 
-                ? "Desmarcar todos" 
-                : "Seleccionar todos"}
-            </button>
-            <span className="text-[10px] text-muted font-medium">
-              {groupIds.length} seleccionado(s)
-            </span>
-          </div>
-
-          <div className="border rounded-lg p-3 max-h-[160px] overflow-y-auto flex flex-col gap-2 bg-slate-50 dark:bg-slate-900" style={{ borderColor: 'var(--border-color)' }}>
-            {gradeGroups.map(g => {
-              const isChecked = groupIds.includes(g.id);
-              return (
-                <label key={g.id} className="flex items-center gap-2 text-sm font-medium cursor-pointer hover:text-primary">
-                  <input
-                    type="checkbox"
-                    checked={isChecked}
-                    onChange={() => {
-                      const newIds = isChecked
-                        ? groupIds.filter(id => id !== g.id)
-                        : [...groupIds, g.id];
-                      setGroupIds(newIds);
-                    }}
-                    className="rounded text-[#f98012] focus:ring-[#f98012]"
-                  />
-                  <span>{g.name}</span>
-                </label>
-              );
-            })}
-          </div>
+          <label htmlFor="targetGroupId" className="font-semibold text-xs mb-1.5 block">
+            Asignar al Grupo *
+          </label>
+          <select
+            id="targetGroupId"
+            className="input-field"
+            value={groupIds[0] || ""}
+            onChange={(e) => {
+              const val = e.target.value;
+              setGroupIds(val ? [val] : []);
+              setSelectedStudentIds([]);
+            }}
+            required
+          >
+            <option value="" disabled>Selecciona el grupo específico...</option>
+            {gradeGroups.map(g => (
+              <option key={g.id} value={g.id}>{g.name}</option>
+            ))}
+          </select>
+          <p className="text-[11px] text-muted mt-1">
+            Cada tarea o examen se asigna a un único grupo específico.
+          </p>
         </div>
 
         {/* Asignación a Estudiantes Específicos */}
