@@ -29,66 +29,53 @@ export async function GET(req: NextRequest) {
 
     const format = req.nextUrl.searchParams.get("format") ?? "json";
 
-    // Fetch all relevant data
-    const [
-      courses,
-      grades,
-      gradeGroups,
-      periods,
-      themes,
-      resources,
-      students,
-      tasks,
-      submissions,
-      additionalGrades,
-    ] = await Promise.all([
-      prisma.course.findMany({ include: { groups: true } }),
-      prisma.grade.findMany({ include: { groups: true } }),
-      prisma.gradeGroup.findMany({
-        include: {
-          grade: true,
-          students: { select: { id: true, name: true, username: true } },
-        },
-      }),
-      prisma.period.findMany(),
-      prisma.theme.findMany(),
-      prisma.resource.findMany(),
-      prisma.user.findMany({
-        where: { role: "STUDENT" },
-        select: {
-          id: true,
-          name: true,
-          username: true,
-          groupId: true,
-          createdAt: true,
-          group: { select: { name: true, grade: { select: { name: true } } } },
-        },
-      }),
-      prisma.task.findMany({
-        include: {
-          groups: { select: { id: true, name: true, grade: { select: { name: true } } } },
-        },
-      }),
-      prisma.submission.findMany({
-        include: {
-          student: {
-            select: {
-              id: true,
-              name: true,
-              username: true,
-              group: { select: { name: true, grade: { select: { name: true } } } },
-            },
+    // Fetch data sequentially to prevent Supabase connection pool exhaustion
+    const courses = await prisma.course.findMany({ include: { groups: true } });
+    const grades = await prisma.grade.findMany({ include: { groups: true } });
+    const gradeGroups = await prisma.gradeGroup.findMany({
+      include: {
+        grade: true,
+        students: { select: { id: true, name: true, username: true } },
+      },
+    });
+    const periods = await prisma.period.findMany();
+    const themes = await prisma.theme.findMany();
+    const resources = await prisma.resource.findMany();
+    const students = await prisma.user.findMany({
+      where: { role: "STUDENT" },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        groupId: true,
+        createdAt: true,
+        group: { select: { name: true, grade: { select: { name: true } } } },
+      },
+    });
+    const tasks = await prisma.task.findMany({
+      include: {
+        groups: { select: { id: true, name: true, grade: { select: { name: true } } } },
+      },
+    });
+    const submissions = await prisma.submission.findMany({
+      include: {
+        student: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            group: { select: { name: true, grade: { select: { name: true } } } },
           },
-          task: { select: { id: true, title: true, type: true } },
         },
-        orderBy: { createdAt: "asc" },
-      }),
-      prisma.additionalGrade.findMany({
-        include: {
-          student: { select: { id: true, name: true } },
-        },
-      }),
-    ]);
+        task: { select: { id: true, title: true, type: true } },
+      },
+      orderBy: { createdAt: "asc" },
+    });
+    const additionalGrades = await prisma.additionalGrade.findMany({
+      include: {
+        student: { select: { id: true, name: true } },
+      },
+    });
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 
@@ -214,7 +201,7 @@ export async function GET(req: NextRequest) {
 
       const buffer = XLSX.write(wb, { bookType: "xlsx", type: "buffer" });
 
-      return new NextResponse(buffer, {
+      return new NextResponse(new Uint8Array(buffer), {
         status: 200,
         headers: {
           "Content-Type":
@@ -252,10 +239,10 @@ export async function GET(req: NextRequest) {
         "Content-Disposition": `attachment; filename="backup_aula_${timestamp}.json"`,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating backup:", error);
     return NextResponse.json(
-      { error: "Error al generar el respaldo" },
+      { error: error?.message || "Error al generar el respaldo" },
       { status: 500 }
     );
   }
