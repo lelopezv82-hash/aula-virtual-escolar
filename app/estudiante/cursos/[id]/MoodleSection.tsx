@@ -255,7 +255,7 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                   );
                 }
                 const hasExtension = !item.isResource && deadlineStatus && deadlineStatus.isLate && !deadlineStatus.isClosed;
-                const isClosedWithoutSubmission = !item.isResource && !item.isSubmitted && !hasExtension && (deadlineStatus?.isClosed || item.grade === 1 || item.grade === 1.0);
+                const isClosedWithoutSubmission = !item.isResource && !item.isSubmitted && !hasExtension && (deadlineStatus?.isClosed || item.grade === 1 || item.grade === 1.0 || (item.dueDate && new Date() > new Date(item.dueDate)));
 
                 return (
                   <div key={item.id} style={{
@@ -275,7 +275,7 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                           >
                             {item.title}
                           </Link>
-                          {item.isGraded && (
+                          {item.isGraded && !isClosedWithoutSubmission && (
                             <span className="inline-flex items-center gap-1.5 flex-wrap">
                               <span style={{
                                 fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
@@ -332,7 +332,7 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                               className="text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border border-red-200 dark:border-red-900/50"
                             >
                               <Clock size={12} className="shrink-0 text-red-600" />
-                              <span>Cerrada · No entregado (plazo vencido) · Nota: 1.0</span>
+                              <span>No entregado (plazo vencido) · Nota: 1.0</span>
                             </span>
                           )}
                           {item.isExternal && (

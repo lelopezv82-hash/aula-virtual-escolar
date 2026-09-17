@@ -80,7 +80,8 @@ export default async function TareasEstudiantePage() {
     if (isNotActivated(task)) return false;
     const submission = task.submissions[0];
     const { isClosed } = getTaskDeadlineStatus(task, submission);
-    const virtualGraded = !task.isExternal && ((!submission && isClosed) || (submission && submission.status === "PENDING" && isClosed));
+    const isDeadlinePassed = isClosed || (task.dueDate && now > task.dueDate);
+    const virtualGraded = !task.isExternal && ((!submission && isDeadlinePassed) || (submission && submission.status === "PENDING" && isDeadlinePassed));
     const isSubmitted = submission && submission.status !== "PENDING";
     return !isSubmitted && !virtualGraded;
   });
@@ -104,7 +105,8 @@ export default async function TareasEstudiantePage() {
             const submission = task.submissions[0];
             const { activeDeadline, hasExtension, isClosed, isLate } = getTaskDeadlineStatus(task, submission);
             const hasGradeSet = submission?.grade != null;
-            const virtualGraded = (!submission && isClosed) || (submission && submission.status === "PENDING" && isClosed && !hasGradeSet);
+            const isOverdue = isClosed || (task.dueDate && now > task.dueDate);
+            const virtualGraded = (!submission && isOverdue) || (submission && submission.status === "PENDING" && isOverdue && !hasGradeSet);
 
             const activeStatus = (submission && submission.status !== "PENDING")
               ? submission.status
@@ -117,7 +119,7 @@ export default async function TareasEstudiantePage() {
 
             // Determine reason for minimum grade
             const neverSubmitted = !submission || (submission.status === "PENDING" && !hasGradeSet);
-            const gradeReason = virtualGraded && neverSubmitted ? "No entregó" : null;
+            const gradeReason = virtualGraded && neverSubmitted ? "No entregado (plazo vencido)" : null;
 
             const isSubmitted = activeStatus && activeStatus !== "PENDING";
             const isGraded = activeStatus === "GRADED";

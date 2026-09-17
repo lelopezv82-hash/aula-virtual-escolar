@@ -144,15 +144,21 @@ export default function TableroClient({
       };
     }
 
-    const isClosedWithoutSubmission = !isSubmitted && !hasExtension && (isClosed || (task.submission?.grade === 1 || task.submission?.grade === 1.0)) && task.submission?.grade == null;
-    const isExpired = isClosedWithoutSubmission;
-    const isDueToday = diffHours > 0 && diffHours <= 24 && !hasExtension;
-    const isUrgent = diffHours > 0 && diffHours <= 48 && !hasExtension;
-    const isGraded = (isSubmitted && !!(task.submission && (task.submission.status === "GRADED" || task.submission.grade != null))) || (task.submission?.grade != null);
-    const grade = isGraded ? task.submission?.grade : (isExpired ? 1.0 : null);
+    const isOverdue = diffMs < 0 || isClosed;
+    const isAutomaticGrade1 = (task.submission?.grade === 1 || task.submission?.grade === 1.0) && !isSubmitted;
+    const hasRealTeacherGrade = isSubmitted && task.submission?.grade != null;
+
+    // Expired without submission:
+    const isExpired = !isSubmitted && !hasExtension && (isOverdue || isAutomaticGrade1 || task.submission?.grade != null);
+    const isDueToday = !isExpired && diffHours > 0 && diffHours <= 24 && !hasExtension;
+    const isUrgent = !isExpired && diffHours > 0 && diffHours <= 48 && !hasExtension;
+    const isGraded = hasRealTeacherGrade || isExpired || (task.submission?.grade != null);
+    const grade = (task.submission?.grade !== null && task.submission?.grade !== undefined) ? task.submission.grade : (isExpired ? 1.0 : null);
 
     let timeText = "";
-    if (diffMs < 0) {
+    if (isExpired) {
+      timeText = "No entregado (plazo vencido)";
+    } else if (diffMs < 0) {
       const absDays = Math.abs(diffDays);
       timeText = absDays === 0 ? "Venció hoy" : `Venció hace ${absDays} día${absDays > 1 ? "s" : ""}`;
     } else if (diffHours <= 1) {
@@ -908,27 +914,37 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
             )}
           </div>
 
-          {/* Time text Badge */}
+          {/* Time text / Expired Badge */}
           {!info.isSubmitted && (
             <span
-              className={`text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1 ${
+              className={`text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 ${
                 info.hasExtension
                   ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50"
+                  : info.isExpired
+                  ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border border-red-200 dark:border-red-900/50"
                   : info.isDueToday
                   ? "bg-red-600 text-white animate-pulse"
                   : info.isUrgent
                   ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
-                  : info.isExpired
-                  ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border border-red-200 dark:border-red-900/50"
                   : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/40"
               }`}
             >
-              <Clock size={12} className={info.hasExtension ? "text-amber-600 shrink-0" : "shrink-0"} />
-              {info.hasExtension
-                ? "⏰ Prórroga Activa"
-                : info.isExpired
-                ? "Cerrada · No entregado (plazo vencido) · Nota: 1.0"
-                : info.timeText}
+              {info.hasExtension ? (
+                <>
+                  <Clock size={12} className="text-amber-600 shrink-0" />
+                  <span>⏰ Prórroga Activa</span>
+                </>
+              ) : info.isExpired ? (
+                <>
+                  <AlertTriangle size={12} className="text-red-600 shrink-0" />
+                  <span>No entregado (plazo vencido) · Nota: {Number(info.grade ?? 1.0).toFixed(1)}</span>
+                </>
+              ) : (
+                <>
+                  <Clock size={12} className="shrink-0" />
+                  <span>{info.timeText}</span>
+                </>
+              )}
             </span>
           )}
 

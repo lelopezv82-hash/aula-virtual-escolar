@@ -158,12 +158,14 @@ export default async function CursoDescripcionPage({
         }}>
           {tasks.map((task, idx) => {
             const submission = task.submissions[0];
-            const hasRealGrade = submission?.grade !== null && submission?.grade !== undefined;
-            const isNotActivatedForStudent = !task.assignedStudents.some(s => s.id === studentId) && !submission?.allowLateSubmission && !hasRealGrade;
             const isExam = task.type === "EXAM" || task.type === "FINAL";
             const hasUploadedFile = isExam ? false : (task.isExternal || !!(submission?.fileUrl && submission.fileUrl.trim() !== ""));
             const isExamSubmitted = isExam && !!(submission && submission.status !== "PENDING" && submission.startedAt);
             const isSubmitted = isExam ? isExamSubmitted : hasUploadedFile;
+
+            const isAutomaticGrade1 = (submission?.grade === 1 || submission?.grade === 1.0) && !isSubmitted;
+            const hasRealTeacherGrade = isSubmitted && submission?.grade !== null && submission?.grade !== undefined;
+            const isNotActivatedForStudent = !task.assignedStudents.some(s => s.id === studentId) && !submission?.allowLateSubmission && !hasRealTeacherGrade;
 
             const href = task.id.startsWith("ex-")
               ? "#"
@@ -191,8 +193,8 @@ export default async function CursoDescripcionPage({
             );
 
             const hasExtension = deadlineStatus && deadlineStatus.isLate && !deadlineStatus.isClosed;
-            const isClosedWithoutSubmission = !isSubmitted && !hasExtension && (deadlineStatus?.isClosed || (submission?.grade === 1 || submission?.grade === 1.0)) && !hasRealGrade;
-            const isGraded = (isSubmitted && !!(submission && (submission.status === "GRADED" || submission.grade != null))) || hasRealGrade;
+            const isClosedWithoutSubmission = !isSubmitted && !hasExtension && (deadlineStatus?.isClosed || isAutomaticGrade1 || (task.dueDate && now > new Date(task.dueDate)));
+            const isGraded = hasRealTeacherGrade || (isSubmitted && submission && submission.status === "GRADED");
 
             return (
               <div
@@ -291,7 +293,7 @@ export default async function CursoDescripcionPage({
                           className="text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border border-red-200 dark:border-red-900/50"
                         >
                           <Clock size={12} className="shrink-0 text-red-600" />
-                          <span>Cerrada · No entregado (plazo vencido) · Nota: 1.0</span>
+                          <span>No entregado (plazo vencido) · Nota: 1.0</span>
                         </span>
                       )}
                     </div>

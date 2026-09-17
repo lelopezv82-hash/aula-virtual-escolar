@@ -131,7 +131,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   // Check deadline status for grade reason
   const { activeDeadline, isClosed: isDeadlineBlocked, isLate: isOverdue } = task ? getTaskDeadlineStatus(task, submission) : { activeDeadline: null, isClosed: false, isLate: false };
   const isSubmissionBlocked = effectiveIsNotActivated || isDeadlineBlocked;
-  const isDeadlinePassed = isSubmissionBlocked;
+  const isDeadlinePassed = isSubmissionBlocked || (task?.dueDate ? (new Date() > new Date(task.dueDate) && !hasActiveExtension) : false);
 
   const neverSubmitted = !hasUploadedFile && !isSubmitted;
   const isVirtualGraded = effectiveIsNotActivated || (neverSubmitted && isDeadlinePassed && !task?.isExternal && !hasActiveExtension && !hasRealGrade);
