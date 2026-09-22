@@ -587,3 +587,65 @@ export async function updateDriveFile(
     throw new Error(`Failed to update file in Google Drive (ID: ${fileId}): ${errText}`);
   }
 }
+
+/**
+ * Renames any folders matching oldTitle under a teacher's Drive to newTitle.
+ * Used when a task title is edited so Google Drive folder names remain in sync.
+ */
+export async function renameDriveTaskFolders(
+  teacherId: string,
+  oldTitle: string,
+  newTitle: string
+): Promise<number> {
+  if (!oldTitle || !newTitle || oldTitle.trim() === newTitle.trim()) return 0;
+
+  try {
+    const token = await getGoogleAccessToken(teacherId);
+    if (!token) return 0;
+
+    const escapedOld = oldTitle.trim().replace(/'/g, "\\'");
+    const query = `name='${escapedOld}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+    const res = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name)`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (!res.ok) {
+      console.warn(`[DriveRename] Failed searching for folders named "${oldTitle}": ${await res.text()}`);
+      return 0;
+    }
+
+    const data = await res.json();
+    const files = data.files || [];
+    let renamed = 0;
+
+    for (const folder of files) {
+      try {
+        const patchRes = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${folder.id}`,
+          {
+            method: 'PATCH',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name: newTitle.trim() }),
+          }
+        );
+        if (patchRes.ok) {
+          renamed++;
+          console.log(`[DriveRename] Successfully renamed folder ${folder.id} from "${oldTitle}" to "${newTitle.trim()}"`);
+        } else {
+          console.warn(`[DriveRename] Failed renaming folder ${folder.id}: ${await patchRes.text()}`);
+        }
+      } catch (patchErr) {
+        console.error(`[DriveRename] Error renaming folder ${folder.id}:`, patchErr);
+      }
+    }
+
+    return renamed;
+  } catch (err) {
+    console.error('[DriveRename] Error in renameDriveTaskFolders:', err);
+    return 0;
+  }
+}

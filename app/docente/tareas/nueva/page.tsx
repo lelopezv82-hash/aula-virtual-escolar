@@ -132,6 +132,12 @@ export default function NuevaTareaPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (groupIds.length === 0) {
+      setError("Debes seleccionar al menos un grupo.");
+      return;
+    }
+
     setLoading(true);
 
     const formData = new FormData();
@@ -223,27 +229,59 @@ export default function NuevaTareaPage() {
         </div>
 
         <div className="input-group">
-          <label htmlFor="targetGroupId" className="font-semibold text-xs mb-1.5 block">
-            Asignar al Grupo *
-          </label>
-          <select
-            id="targetGroupId"
-            className="input-field"
-            value={groupIds[0] || ""}
-            onChange={(e) => {
-              const val = e.target.value;
-              setGroupIds(val ? [val] : []);
-              setSelectedStudentIds([]);
-            }}
-            required
-          >
-            <option value="" disabled>Selecciona el grupo específico...</option>
-            {gradeGroups.map(g => (
-              <option key={g.id} value={g.id}>{g.name}</option>
-            ))}
-          </select>
+          <div className="flex justify-between items-center mb-1.5">
+            <label className="font-semibold text-xs block">
+              Asignar a Grupos *
+            </label>
+            <div className="flex gap-2 text-xs">
+              <button
+                type="button"
+                onClick={() => setGroupIds(gradeGroups.map(g => g.id))}
+                className="text-[#f98012] hover:underline font-medium cursor-pointer"
+              >
+                Seleccionar todos
+              </button>
+              <span className="text-gray-300 dark:text-gray-600">|</span>
+              <button
+                type="button"
+                onClick={() => setGroupIds([])}
+                className="text-gray-500 hover:underline cursor-pointer"
+              >
+                Deseleccionar
+              </button>
+            </div>
+          </div>
+          <div className="border rounded-lg p-3 max-h-[160px] overflow-y-auto flex flex-col gap-2 bg-slate-50 dark:bg-slate-900" style={{ borderColor: 'var(--border-color)' }}>
+            {gradeGroups.length === 0 ? (
+              <p className="text-xs text-muted text-center py-2">
+                {courseId ? "No hay grupos disponibles para este curso." : "Selecciona un curso primero."}
+              </p>
+            ) : (
+              gradeGroups.map(g => {
+                const isChecked = groupIds.includes(g.id);
+                return (
+                  <label key={g.id} className="flex items-center gap-2 text-xs font-semibold cursor-pointer hover:text-primary">
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setGroupIds(prev => [...prev, g.id]);
+                        } else {
+                          setGroupIds(prev => prev.filter(id => id !== g.id));
+                        }
+                      }}
+                      className="rounded"
+                      style={{ accentColor: "#f98012" }}
+                    />
+                    <span>{g.name}</span>
+                  </label>
+                );
+              })
+            )}
+          </div>
           <p className="text-[11px] text-muted mt-1">
-            Cada tarea o examen se asigna a un único grupo específico.
+            Puedes asignar esta actividad a uno o varios grupos del curso simultáneamente.
           </p>
         </div>
 

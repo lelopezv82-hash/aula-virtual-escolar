@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import prisma from '@/lib/prisma';
 import { supabase } from '@/lib/supabase';
-import { getGoogleAccessToken, uploadToGoogleDrive } from '@/lib/gdrive';
+import { getGoogleAccessToken, uploadToGoogleDrive, renameDriveTaskFolders } from '@/lib/gdrive';
 import { enqueueFailedDriveUpload } from '@/lib/driveQueue';
 
 import { fromColombiaLocalStringToDate } from '@/lib/dateUtils';
@@ -51,7 +51,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
-    return NextResponse.json({ task });
+    // Identify groups that already have submissions for this task
+    const existingSubmissions = await prisma.submission.findMany({
+      where: { taskId: resolvedParams.id },
+      select: { student: { select: { groupId: true } } }
+    });
+    const submittingGroupIds = Array.from(new Set(
+      existingSubmissions.map(s => s.student?.groupId).filter((id): id is string => !!id)
+    ));
+
+    return NextResponse.json({ task, submittingGroupIds });
   } catch {
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
@@ -274,6 +283,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (studentIds !== undefined) {
       const submittingStudentIds = existingSubmissions.map(s => s.studentId);
       finalStudentIds = Array.from(new Set([...studentIds, ...submittingStudentIds]));
+    }
+
+    const oldTitle = task.title;
+    if (title && title.trim() !== oldTitle.trim()) {
+      try {
+        await renameDriveTaskFolders(payload.id as string, oldTitle, title);
+      } catch (renameErr) {
+        console.error("[TaskUpdate] Error synchronizing Google Drive folder names on title change:", renameErr);
+      }
     }
 
     const updatedTask = await prisma.task.update({

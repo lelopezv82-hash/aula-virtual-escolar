@@ -39,6 +39,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [studentSearch, setStudentSearch] = useState("");
   const [activeStudentGroupFilter, setActiveStudentGroupFilter] = useState<string>("all");
+  const [submittingGroupIds, setSubmittingGroupIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!courseId) {
@@ -107,6 +108,11 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
           setCourseId(data.task.courseId || "");
           setSelectedResourceIds(data.task.resources ? data.task.resources.map((r: any) => r.id) : []);
           setSelectedStudentIds(data.task.assignedStudents ? data.task.assignedStudents.map((s: any) => s.id) : []);
+          if (data.submittingGroupIds && Array.isArray(data.submittingGroupIds)) {
+            setSubmittingGroupIds(data.submittingGroupIds);
+            // Ensure all submitting groups are also in groupIds
+            setGroupIds(prev => Array.from(new Set([...prev, ...data.submittingGroupIds])));
+          }
         } else {
           setError("No se pudo cargar la tarea");
         }
@@ -131,6 +137,12 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (groupIds.length === 0) {
+      setError("Debes seleccionar al menos un grupo.");
+      return;
+    }
+
     setLoading(true);
 
     const formData = new FormData();
@@ -200,32 +212,72 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
         )}
 
         <div className="input-group">
-          <label htmlFor="targetGroupId" className="font-semibold text-xs mb-1.5 block">
-            Asignar al Grupo *
-          </label>
-          <select
-            id="targetGroupId"
-            className="input-field"
-            value={groupIds[0] || ""}
-            onChange={(e) => {
-              const val = e.target.value;
-              setGroupIds(val ? [val] : []);
-            }}
-            required
-          >
-            <option value="" disabled>Selecciona el grupo específico...</option>
-            {gradeGroups.map(g => (
-              <option key={g.id} value={g.id}>{g.name}</option>
-            ))}
-          </select>
-          {groupIds.length > 1 && (
-            <p className="text-[11px] text-amber-600 font-medium mt-1">
-              Esta actividad estaba asignada a múltiples grupos. Al guardar, quedará asignada únicamente al grupo seleccionado.
+          <div className="flex justify-between items-center mb-1.5">
+            <label className="font-semibold text-xs block">
+              Asignar a Grupos *
+            </label>
+            <div className="flex gap-2 text-xs">
+              <button
+                type="button"
+                onClick={() => setGroupIds(gradeGroups.map(g => g.id))}
+                className="text-[#f98012] hover:underline font-medium cursor-pointer"
+              >
+                Seleccionar todos
+              </button>
+              <span className="text-gray-300 dark:text-gray-600">|</span>
+              <button
+                type="button"
+                onClick={() => {
+                  // Keep groups that already have submissions
+                  setGroupIds(submittingGroupIds);
+                }}
+                className="text-gray-500 hover:underline cursor-pointer"
+              >
+                Deseleccionar
+              </button>
+            </div>
+          </div>
+          <div className="border rounded-lg p-3 max-h-[160px] overflow-y-auto flex flex-col gap-2 bg-slate-50 dark:bg-slate-900" style={{ borderColor: 'var(--border-color)' }}>
+            {gradeGroups.length === 0 ? (
+              <p className="text-xs text-muted text-center py-2">No hay grupos disponibles para este curso.</p>
+            ) : (
+              gradeGroups.map(g => {
+                const isChecked = groupIds.includes(g.id);
+                const hasSubmissions = submittingGroupIds.includes(g.id);
+
+                return (
+                  <label key={g.id} className="flex items-center gap-2 text-xs font-semibold cursor-pointer hover:text-primary">
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      disabled={hasSubmissions}
+                      onChange={(e) => {
+                        if (hasSubmissions) return;
+                        if (e.target.checked) {
+                          setGroupIds(prev => [...prev, g.id]);
+                        } else {
+                          setGroupIds(prev => prev.filter(id => id !== g.id));
+                        }
+                      }}
+                      className="rounded"
+                      style={{ accentColor: "#f98012" }}
+                    />
+                    <span>{g.name}</span>
+                    {hasSubmissions && (
+                      <span className="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 px-1.5 py-0.5 rounded font-bold ml-auto">
+                        Tiene entregas recibidas (protegido)
+                      </span>
+                    )}
+                  </label>
+                );
+              })
+            )}
+          </div>
+          {submittingGroupIds.length > 0 && (
+            <p className="text-[11px] text-muted mt-1">
+              Los grupos con entregas recibidas se mantienen protegidos para que ninguna entrega se oculte ni se pierda.
             </p>
           )}
-          <p className="text-[11px] text-muted mt-1">
-            Cada tarea o examen se asigna a un único grupo específico.
-          </p>
         </div>
 
         {/* Asignación a Estudiantes Específicos */}
