@@ -410,22 +410,25 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                         {item.attachmentUrl && (
                           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                             <ResourceIcon type={item.attachmentUrl.split('.').pop() || "FILE"} />
-                            <a href={item.attachmentUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.85rem", color: "#0066cc", textDecoration: "none" }}>
+                            <a href={`/api/tareas/${item.id}/attachment`} target="_blank" rel="noreferrer" style={{ fontSize: "0.85rem", color: "#0066cc", textDecoration: "none" }}>
                               Descargar Guía de la Tarea
                             </a>
                           </div>
                         )}
-                        {item.resources?.map(res => (
-                          <div key={res.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                            <ResourceIcon type={res.type} />
-                            <a href={res.url} target="_blank" rel="noreferrer" style={{ fontSize: "0.85rem", color: "#0066cc", textDecoration: "none" }}>
-                              {res.title}
-                            </a>
-                            <span style={{ fontSize: "0.7rem", color: "#6c757d", background: "#e9ecef", padding: "1px 4px", borderRadius: "3px" }}>
-                              {res.type.toUpperCase()}
-                            </span>
-                          </div>
-                        ))}
+                        {item.resources?.map(res => {
+                          const isLink = res.type?.toUpperCase() === "LINK" || res.type?.toUpperCase() === "ENLACE";
+                          return (
+                            <div key={res.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                              <ResourceIcon type={res.type} />
+                              <a href={isLink ? res.url : `/api/recursos/${res.id}/view`} target="_blank" rel="noreferrer" style={{ fontSize: "0.85rem", color: "#0066cc", textDecoration: "none" }}>
+                                {res.title}
+                              </a>
+                              <span style={{ fontSize: "0.7rem", color: "#6c757d", background: "#e9ecef", padding: "1px 4px", borderRadius: "3px" }}>
+                                {res.type.toUpperCase()}
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

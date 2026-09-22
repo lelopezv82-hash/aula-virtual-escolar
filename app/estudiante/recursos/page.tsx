@@ -128,12 +128,16 @@ export default async function RecursosEstudiantePage() {
 
                       <div>
                         <a
-                          href={resource.url}
+                          href={
+                            resource.type === "LINK"
+                              ? resource.url
+                              : `/api/recursos/${resource.id}/view`
+                          }
                           target="_blank"
                           rel="noreferrer"
                           className="btn btn-secondary p-2 rounded-full hover:bg-gray-100 transition-colors inline-flex items-center justify-center"
                           style={{ color: "var(--primary-color)" }}
-                          title={resource.type === "LINK" ? "Abrir enlace" : "Descargar"}
+                          title={resource.type === "LINK" ? "Abrir enlace" : "Abrir / Descargar"}
                         >
                           {resource.type === "LINK" ? <LinkIcon size={16} /> : <Download size={16} />}
                         </a>

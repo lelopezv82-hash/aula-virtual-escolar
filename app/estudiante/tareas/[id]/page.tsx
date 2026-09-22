@@ -569,10 +569,9 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
             </div>
             {task.attachmentUrl && !isGoogleForm && (
               <a 
-                href={task.attachmentUrl} 
+                href={`/api/tareas/${task.id}/attachment`}
                 target="_blank" 
                 rel="noreferrer" 
-                download
                 className="inline-flex items-center gap-2 hover:underline group w-fit"
                 style={{ textDecoration: "none" }}
               >
@@ -582,21 +581,24 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                 </span>
               </a>
             )}
-            {task.resources?.map((res: any) => (
-              <a 
-                key={res.id} 
-                href={res.url} 
-                target="_blank" 
-                rel="noreferrer" 
-                className="inline-flex items-center gap-2 hover:underline group w-fit"
-                style={{ textDecoration: "none" }}
-              >
-                <ResourceIcon type={res.type} />
-                <span style={{ fontSize: "0.85rem", color: "#0284c7", fontWeight: 500 }} className="group-hover:underline">
-                  {res.title}
-                </span>
-              </a>
-            ))}
+            {task.resources?.map((res: any) => {
+              const isLink = res.type?.toUpperCase() === "LINK" || res.type?.toUpperCase() === "ENLACE";
+              return (
+                <a 
+                  key={res.id} 
+                  href={isLink ? res.url : `/api/recursos/${res.id}/view`} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="inline-flex items-center gap-2 hover:underline group w-fit"
+                  style={{ textDecoration: "none" }}
+                >
+                  <ResourceIcon type={res.type} />
+                  <span style={{ fontSize: "0.85rem", color: "#0284c7", fontWeight: 500 }} className="group-hover:underline">
+                    {res.title}
+                  </span>
+                </a>
+              );
+            })}
           </div>
         )}
 

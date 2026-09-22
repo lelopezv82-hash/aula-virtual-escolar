@@ -998,7 +998,7 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
             {task.attachmentUrl && (
               <div className="flex items-center gap-2">
                 <a
-                  href={task.attachmentUrl}
+                  href={`/api/tareas/${task.id}/attachment`}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-600 dark:text-sky-400 hover:underline bg-sky-50 dark:bg-sky-950/50 px-2.5 py-1 rounded-lg border border-sky-200 dark:border-sky-800 transition-colors"
@@ -1010,19 +1010,22 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
             )}
             {task.resources && task.resources.length > 0 && (
               <div className="flex flex-col gap-1.5">
-                {task.resources.map(res => (
-                  <div key={res.id} className="flex items-center gap-2">
-                    <a
-                      href={res.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-600 dark:text-sky-400 hover:underline bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors truncate max-w-full"
-                    >
-                      <ExternalLink size={12} />
-                      <span className="truncate">{res.title}</span>
-                    </a>
-                  </div>
-                ))}
+                {task.resources.map(res => {
+                  const isLink = res.type?.toUpperCase() === "LINK" || res.type?.toUpperCase() === "ENLACE";
+                  return (
+                    <div key={res.id} className="flex items-center gap-2">
+                      <a
+                        href={isLink ? res.url : `/api/recursos/${res.id}/view`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-600 dark:text-sky-400 hover:underline bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors truncate max-w-full"
+                      >
+                        <ExternalLink size={12} />
+                        <span className="truncate">{res.title}</span>
+                      </a>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

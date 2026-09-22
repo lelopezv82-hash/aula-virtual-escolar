@@ -360,17 +360,20 @@ export default async function CursoDescripcionPage({
                       Material adjunto de la tarea:
                     </div>
                     {task.attachmentUrl && (
-                      <a href={task.attachmentUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.85rem", color: "#0284c7", textDecoration: "none", fontWeight: 500 }} className="inline-flex items-center gap-2 hover:underline group w-fit">
+                      <a href={`/api/tareas/${task.id}/attachment`} target="_blank" rel="noreferrer" style={{ fontSize: "0.85rem", color: "#0284c7", textDecoration: "none", fontWeight: 500 }} className="inline-flex items-center gap-2 hover:underline group w-fit">
                         <ResourceIcon type={task.attachmentUrl.split('.').pop() || "FILE"} />
                         <span className="group-hover:underline">Descargar Guía de la Tarea</span>
                       </a>
                     )}
-                    {task.resources?.map(res => (
-                      <a key={res.id} href={res.url} target="_blank" rel="noreferrer" style={{ fontSize: "0.85rem", color: "#0284c7", textDecoration: "none", fontWeight: 500 }} className="inline-flex items-center gap-2 hover:underline group w-fit">
-                        <ResourceIcon type={res.type} />
-                        <span className="group-hover:underline">{res.title}</span>
-                      </a>
-                    ))}
+                    {task.resources?.map(res => {
+                      const isLink = res.type?.toUpperCase() === "LINK" || res.type?.toUpperCase() === "ENLACE";
+                      return (
+                        <a key={res.id} href={isLink ? res.url : `/api/recursos/${res.id}/view`} target="_blank" rel="noreferrer" style={{ fontSize: "0.85rem", color: "#0284c7", textDecoration: "none", fontWeight: 500 }} className="inline-flex items-center gap-2 hover:underline group w-fit">
+                          <ResourceIcon type={res.type} />
+                          <span className="group-hover:underline">{res.title}</span>
+                        </a>
+                      );
+                    })}
                   </div>
                 )}
               </div>

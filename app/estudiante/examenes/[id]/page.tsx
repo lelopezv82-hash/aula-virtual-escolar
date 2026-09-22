@@ -539,10 +539,9 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 <ResourceIcon type={task.attachmentUrl.split('.').pop() || "FILE"} />
                 <a 
-                  href={task.attachmentUrl} 
+                  href={`/api/tareas/${task.id}/attachment`} 
                   target="_blank" 
                   rel="noreferrer" 
-                  download
                   style={{ fontSize: "0.85rem", color: "#0284c7", textDecoration: "none", fontWeight: 500 }}
                   className="hover:underline"
                 >
@@ -550,20 +549,23 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                 </a>
               </div>
             )}
-            {task.resources?.map((res: any) => (
-              <div key={res.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <ResourceIcon type={res.type} />
-                <a 
-                  href={res.url} 
-                  target="_blank" 
-                  rel="noreferrer" 
-                  style={{ fontSize: "0.85rem", color: "#0284c7", textDecoration: "none", fontWeight: 500 }}
-                  className="hover:underline"
-                >
-                  {res.title}
-                </a>
-              </div>
-            ))}
+            {task.resources?.map((res: any) => {
+              const isLink = res.type?.toUpperCase() === "LINK" || res.type?.toUpperCase() === "ENLACE";
+              return (
+                <div key={res.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <ResourceIcon type={res.type} />
+                  <a 
+                    href={isLink ? res.url : `/api/recursos/${res.id}/view`} 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    style={{ fontSize: "0.85rem", color: "#0284c7", textDecoration: "none", fontWeight: 500 }}
+                    className="hover:underline"
+                  >
+                    {res.title}
+                  </a>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

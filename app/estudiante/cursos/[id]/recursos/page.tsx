@@ -285,7 +285,11 @@ export default async function CursoRecursosPage({
 
                 <div style={{ flexShrink: 0 }}>
                   <a
-                    href={resource.url}
+                    href={
+                      resource.isLink
+                        ? resource.url
+                        : `/api/recursos/${resource.id}/view`
+                    }
                     target="_blank"
                     rel="noreferrer"
                     style={{
@@ -305,10 +309,10 @@ export default async function CursoRecursosPage({
                       cursor: "pointer",
                       whiteSpace: "nowrap"
                     }}
-                    title={resource.isLink ? "Abrir enlace" : "Descargar archivo"}
+                    title={resource.isLink ? "Abrir enlace" : "Abrir / Descargar"}
                   >
                     {resource.isLink ? <LinkIcon size={14} color="#ffffff" /> : <Download size={14} color="#ffffff" />}
-                    <span style={{ color: "#ffffff" }}>{resource.isLink ? "Abrir enlace" : "Descargar"}</span>
+                    <span style={{ color: "#ffffff" }}>{resource.isLink ? "Abrir enlace" : "Abrir"}</span>
                   </a>
                 </div>
               </div>
