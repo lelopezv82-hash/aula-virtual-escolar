@@ -590,12 +590,13 @@ export async function updateDriveFile(
 
 /**
  * Renames any folders matching oldTitle under a teacher's Drive to newTitle.
- * Used when a task title is edited so Google Drive folder names remain in sync.
+ * Optionally scoped to specific group names (e.g. ["03", "04"]) so different groups with different tasks never conflict.
  */
 export async function renameDriveTaskFolders(
   teacherId: string,
   oldTitle: string,
-  newTitle: string
+  newTitle: string,
+  groupNames?: string[]
 ): Promise<number> {
   if (!oldTitle || !newTitle || oldTitle.trim() === newTitle.trim()) return 0;
 
@@ -606,7 +607,7 @@ export async function renameDriveTaskFolders(
     const escapedOld = oldTitle.trim().replace(/'/g, "\\'");
     const query = `name='${escapedOld}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
     const res = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name)`,
+      `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,parents)`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
@@ -621,6 +622,36 @@ export async function renameDriveTaskFolders(
 
     for (const folder of files) {
       try {
+        // If groupNames filter is provided, verify folder belongs to one of those groups
+        if (groupNames && groupNames.length > 0 && folder.parents && folder.parents[0]) {
+          // Check parent ("Tareas")
+          const pRes = await fetch(
+            `https://www.googleapis.com/drive/v3/files/${folder.parents[0]}?fields=id,name,parents`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          if (pRes.ok) {
+            const pData = await pRes.json();
+            if (pData.parents && pData.parents[0]) {
+              // Check grandparent (group name, e.g. "03" or "11-03")
+              const gpRes = await fetch(
+                `https://www.googleapis.com/drive/v3/files/${pData.parents[0]}?fields=id,name`,
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+              if (gpRes.ok) {
+                const gpData = await gpRes.json();
+                const gpName = (gpData.name || '').trim();
+                const matchesGroup = groupNames.some(g =>
+                  gpName === g.trim() || gpName.endsWith(g.trim()) || g.trim().endsWith(gpName)
+                );
+                if (!matchesGroup) {
+                  // Skip folder that doesn't belong to the target groups
+                  continue;
+                }
+              }
+            }
+          }
+        }
+
         const patchRes = await fetch(
           `https://www.googleapis.com/drive/v3/files/${folder.id}`,
           {

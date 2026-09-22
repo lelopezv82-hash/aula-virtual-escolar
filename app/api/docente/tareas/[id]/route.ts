@@ -288,7 +288,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const oldTitle = task.title;
     if (title && title.trim() !== oldTitle.trim()) {
       try {
-        await renameDriveTaskFolders(payload.id as string, oldTitle, title);
+        const groupsToSync = await prisma.gradeGroup.findMany({
+          where: { id: { in: finalGroupIds } },
+          select: { name: true }
+        });
+        const groupNames = groupsToSync.map(g => g.name);
+        await renameDriveTaskFolders(payload.id as string, oldTitle, title, groupNames);
       } catch (renameErr) {
         console.error("[TaskUpdate] Error synchronizing Google Drive folder names on title change:", renameErr);
       }
