@@ -74,64 +74,68 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         })
       : [];
 
-    // 3.1 Fetch all students belonging to the target groups for auto-attendance activation
-    const targetStudents = await prisma.user.findMany({
-      where: {
-        role: "STUDENT",
-        groupId: { in: targetGroupIds }
-      },
-      select: { id: true }
-    });
+    // 3.1 Fetch students per group for auto-attendance activation
+    // (queried per group inside the loop below)
 
-    // 4. Create cloned task
-    const newTask = await prisma.task.create({
-      data: {
-        title: newTitle,
-        description: sourceTask.description,
-        dueDate: newDueDate,
-        courseId: targetCourseId,
-        theme: sourceTask.theme,
-        period: newPeriod,
-        attachmentUrl: sourceTask.attachmentUrl,
-        gdriveEmail: sourceTask.gdriveEmail,
-        weight: sourceTask.weight,
-        duration: sourceTask.duration,
-        type: sourceTask.type,
-        isExternal: sourceTask.isExternal,
-        allowLateSubmission: sourceTask.allowLateSubmission,
-        lateSubmissionUntil: sourceTask.lateSubmissionUntil,
-        active: true,
-        groups: {
-          connect: targetGroupIds.map(id => ({ id }))
-        },
-        assignedStudents: {
-          connect: targetStudents.map(s => ({ id: s.id }))
-        },
-        resources: {
-          connect: sourceTask.resources.map(r => ({ id: r.id }))
-        },
-        themes: {
-          connect: targetThemes.map(t => ({ id: t.id }))
-        },
-        // Deep copy questions and options
-        questions: {
-          create: sourceTask.questions.map(q => ({
-            text: q.text,
-            type: q.type,
-            points: q.points,
-            order: q.order,
-            options: {
-              create: q.options.map(opt => ({
-                text: opt.text,
-                isCorrect: opt.isCorrect
-              }))
-            }
-          }))
+    // 4. Create one independent cloned task per target group
+    const newTasks = [];
+    for (const gId of targetGroupIds) {
+      const groupStudents = await prisma.user.findMany({
+        where: { role: "STUDENT", groupId: gId },
+        select: { id: true }
+      });
+
+      const newTask = await prisma.task.create({
+        data: {
+          title: newTitle,
+          description: sourceTask.description,
+          dueDate: newDueDate,
+          courseId: targetCourseId,
+          theme: sourceTask.theme,
+          period: newPeriod,
+          attachmentUrl: sourceTask.attachmentUrl,
+          gdriveEmail: sourceTask.gdriveEmail,
+          weight: sourceTask.weight,
+          duration: sourceTask.duration,
+          type: sourceTask.type,
+          isExternal: sourceTask.isExternal,
+          allowLateSubmission: sourceTask.allowLateSubmission,
+          lateSubmissionUntil: sourceTask.lateSubmissionUntil,
+          active: true,
+          groups: {
+            connect: [{ id: gId }]
+          },
+          assignedStudents: {
+            connect: groupStudents.map(s => ({ id: s.id }))
+          },
+          resources: {
+            connect: sourceTask.resources.map(r => ({ id: r.id }))
+          },
+          themes: {
+            connect: targetThemes.map(t => ({ id: t.id }))
+          },
+          // Deep copy questions and options
+          questions: {
+            create: sourceTask.questions.map(q => ({
+              text: q.text,
+              type: q.type,
+              points: q.points,
+              order: q.order,
+              options: {
+                create: q.options.map(opt => ({
+                  text: opt.text,
+                  isCorrect: opt.isCorrect
+                }))
+              }
+            }))
+          }
         }
-      }
-    });
+      });
 
-    return NextResponse.json({ success: true, task: newTask });
+      newTasks.push(newTask);
+    }
+
+    return NextResponse.json({ success: true, task: newTasks[0], tasks: newTasks });
   } catch (error) {
     console.error("Error duplicating task:", error);
     return NextResponse.json({ error: 'Error interno al duplicar la actividad' }, { status: 500 });

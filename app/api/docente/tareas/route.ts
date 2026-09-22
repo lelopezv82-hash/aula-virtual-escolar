@@ -202,43 +202,58 @@ export async function POST(request: Request) {
       ? (fromColombiaLocalStringToDate(dueDate) || new Date())
       : new Date("9999-12-31T23:59:59Z");
 
-    const task = await prisma.task.create({
-      data: {
-        title,
-        description,
-        dueDate: parsedDueDate,
-        attachmentUrl,
-        gdriveEmail,
+    const matchingThemes = await prisma.theme.findMany({
+      where: {
         courseId,
-        theme: legacyThemeString,
-        period,
-        publishAt,
-        groups: {
-          connect: groupIds.map(id => ({ id }))
-        },
-        resources: {
-          connect: resourceIds.map(id => ({ id }))
-        },
-        themes: {
-          connect: (await prisma.theme.findMany({
-            where: {
-              courseId,
-              title: { in: themeTitles }
-            }
-          })).map(t => ({ id: t.id }))
-        },
-        assignedStudents: studentIds.length > 0
-          ? { connect: studentIds.map(id => ({ id })) }
-          : undefined,
-        weight: isNaN(weight) ? 0 : weight,
-        duration: duration && !isNaN(duration) ? duration : null,
-        type: type || "TASK",
-        isExternal: isExternal,
-        requiresFolder: requiresFolder,
-        allowLateSubmission,
-        lateSubmissionUntil
+        title: { in: themeTitles }
       }
     });
+
+    const createdTasks = [];
+    for (const gId of groupIds) {
+      const groupStudents = studentIds.length > 0
+        ? (await prisma.user.findMany({
+            where: { id: { in: studentIds }, groupId: gId },
+            select: { id: true }
+          })).map(s => ({ id: s.id }))
+        : [];
+
+      const t = await prisma.task.create({
+        data: {
+          title,
+          description,
+          dueDate: parsedDueDate,
+          attachmentUrl,
+          gdriveEmail,
+          courseId,
+          theme: legacyThemeString,
+          period,
+          publishAt,
+          groups: {
+            connect: [{ id: gId }]
+          },
+          resources: {
+            connect: resourceIds.map(id => ({ id }))
+          },
+          themes: {
+            connect: matchingThemes.map(th => ({ id: th.id }))
+          },
+          assignedStudents: groupStudents.length > 0
+            ? { connect: groupStudents }
+            : undefined,
+          weight: isNaN(weight) ? 0 : weight,
+          duration: duration && !isNaN(duration) ? duration : null,
+          type: type || "TASK",
+          isExternal: isExternal,
+          requiresFolder: requiresFolder,
+          allowLateSubmission,
+          lateSubmissionUntil
+        }
+      });
+      createdTasks.push(t);
+    }
+
+    const task = createdTasks[0];
 
 
     // Si el archivo adjunto quedó en Supabase (gdrive falló), encolar para reintento
