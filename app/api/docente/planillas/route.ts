@@ -77,7 +77,8 @@ export async function GET(req: Request) {
         period: period,
         OR: [
           { groups: { some: { id: groupId } } },
-          { assignedStudents: { some: { id: { in: studentIds } } } }
+          { assignedStudents: { some: { id: { in: studentIds } } } },
+          { submissions: { some: { studentId: { in: studentIds } } } }
         ]
       },
       select: {

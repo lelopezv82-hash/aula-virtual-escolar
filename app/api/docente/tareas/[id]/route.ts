@@ -260,6 +260,22 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       ? (fromColombiaLocalStringToDate(dueDate) || new Date())
       : new Date("9999-12-31T23:59:59Z");
 
+    // Preserve groups and assigned students who already submitted to this task
+    const existingSubmissions = await prisma.submission.findMany({
+      where: { taskId: resolvedParams.id },
+      select: { studentId: true, student: { select: { groupId: true } } }
+    });
+    const submittingGroupIds = existingSubmissions
+      .map(s => s.student?.groupId)
+      .filter((id): id is string => !!id);
+    const finalGroupIds = Array.from(new Set([...groupIds, ...submittingGroupIds]));
+
+    let finalStudentIds = studentIds;
+    if (studentIds !== undefined) {
+      const submittingStudentIds = existingSubmissions.map(s => s.studentId);
+      finalStudentIds = Array.from(new Set([...studentIds, ...submittingStudentIds]));
+    }
+
     const updatedTask = await prisma.task.update({
       where: { id: resolvedParams.id },
       data: {
@@ -272,14 +288,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         period,
         publishAt,
         groups: {
-          set: groupIds.map(id => ({ id }))
+          set: finalGroupIds.map(id => ({ id }))
         },
         resources: {
           set: resourceIds.map(id => ({ id }))
         },
-        ...(studentIds !== undefined ? {
+        ...(finalStudentIds !== undefined ? {
           assignedStudents: {
-            set: studentIds.map(id => ({ id }))
+            set: finalStudentIds.map(id => ({ id }))
           }
         } : {}),
         themes: {

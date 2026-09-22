@@ -54,7 +54,21 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
             fileUrls: true,
             allowLateSubmission: true,
             lateSubmissionUntil: true,
-            gdriveEmail: true
+            gdriveEmail: true,
+            student: {
+              select: {
+                id: true,
+                name: true,
+                groupId: true,
+                group: {
+                  select: {
+                    id: true,
+                    name: true,
+                    grade: { select: { name: true } }
+                  }
+                }
+              }
+            }
           },
         },
       },
@@ -67,15 +81,30 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const { searchParams } = new URL(_req.url);
     const filterGroupId = searchParams.get("groupId");
 
-    // Collect groups metadata
-    const taskGroups = task.groups.map(g => ({
-      id: g.id,
-      name: g.name,
-      gradeName: g.grade?.name || "",
-      label: g.grade?.name ? `${g.grade.name} — ${g.name}` : g.name,
-    }));
+    // Collect groups metadata (from task.groups and any group that has submissions)
+    const groupMap = new Map<string, { id: string; name: string; gradeName: string; label: string }>();
+    task.groups.forEach(g => {
+      groupMap.set(g.id, {
+        id: g.id,
+        name: g.name,
+        gradeName: g.grade?.name || "",
+        label: g.grade?.name ? `${g.grade.name} — ${g.name}` : g.name,
+      });
+    });
+    task.submissions.forEach(sub => {
+      if (sub.student?.group && !groupMap.has(sub.student.group.id)) {
+        const g = sub.student.group;
+        groupMap.set(g.id, {
+          id: g.id,
+          name: g.name,
+          gradeName: g.grade?.name || "",
+          label: g.grade?.name ? `${g.grade.name} — ${g.name}` : g.name,
+        });
+      }
+    });
+    const taskGroups = Array.from(groupMap.values());
 
-    // Collect all students across groups and assignedStudents (deduplicated)
+    // Collect all students across groups, assignedStudents, and actual submissions (deduplicated)
     const studentMap = new Map<string, { id: string; name: string; groupName: string; groupId?: string }>();
     for (const group of task.groups) {
       if (filterGroupId && filterGroupId !== "all" && group.id !== filterGroupId) {
@@ -103,13 +132,28 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       }
     }
 
+    for (const sub of task.submissions) {
+      if (!sub.student) continue;
+      const student = sub.student;
+      const studentGroupId = student.groupId || student.group?.id;
+      if (filterGroupId && filterGroupId !== "all" && studentGroupId !== filterGroupId) {
+        continue;
+      }
+      if (!studentMap.has(student.id)) {
+        const group = student.group;
+        const gradeLabel = group?.grade?.name ? `${group.grade.name} — ${group.name}` : "Grupo de Entrega";
+        studentMap.set(student.id, { id: student.id, name: student.name, groupName: gradeLabel, groupId: studentGroupId });
+      }
+    }
+
     const submissionMap = new Map(task.submissions.map(s => [s.studentId, s]));
     const assignedIds = (task.assignedStudents || []).map(s => s.id);
 
     const students = Array.from(studentMap.values()).map(s => {
       let sub = submissionMap.get(s.id) ?? null;
       const hasProrroga = !!sub?.allowLateSubmission;
-      const isAssigned = assignedIds.includes(s.id) || hasProrroga;
+      const hasActualSubmission = !!sub && (sub.status === "SUBMITTED" || sub.status === "GRADED" || !!sub.fileUrl || (sub.fileUrls && (sub.fileUrls as any).length > 0));
+      const isAssigned = assignedIds.includes(s.id) || hasProrroga || hasActualSubmission;
 
       // If student has prórroga and residual automated 1.0 from inattendance without real submission, reset it
       if (hasProrroga && sub && !sub.fileUrl && (sub.grade === 1 || sub.grade === 1.0) && sub.feedback?.includes("No asistió")) {
