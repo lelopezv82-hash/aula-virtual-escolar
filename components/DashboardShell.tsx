@@ -324,17 +324,23 @@ export default function DashboardShell({
                                   display: "inline-flex",
                                   alignItems: "center",
                                   justifyContent: "center",
-                                  width: "22px",
-                                  height: "22px",
-                                  color: isCourseActive ? "var(--primary-color)" : "var(--text-muted)",
-                                  opacity: 0.8,
+                                  width: "28px",
+                                  height: "28px",
+                                  borderRadius: "6px",
+                                  backgroundColor: isExpanded ? "var(--primary-light)" : "var(--bg-tertiary)",
+                                  border: isExpanded ? "1px solid rgba(249, 128, 18, 0.35)" : "1px solid var(--border-color)",
+                                  color: isExpanded ? "var(--primary-color)" : "var(--text-secondary)",
+                                  transition: "all 0.2s ease",
+                                  flexShrink: 0,
                                 }}
+                                title={isExpanded ? "Contraer menú" : "Desplegar menú"}
                               >
                                 <ChevronDown
-                                  size={16}
+                                  size={17}
+                                  strokeWidth={2.5}
                                   style={{
                                     transform: isExpanded ? "rotate(-180deg)" : "rotate(0deg)",
-                                    transition: "transform 0.2s ease",
+                                    transition: "transform 0.25s ease",
                                   }}
                                 />
                               </span>
@@ -342,9 +348,15 @@ export default function DashboardShell({
                           </li>
 
                           {isExpanded && (
-                            <ul style={{ paddingLeft: "1rem", margin: "0.15rem 0", listStyle: "none" }}>
+                            <ul style={{
+                              marginLeft: "1.75rem",
+                              paddingLeft: "0.5rem",
+                              margin: "0.25rem 0 0.5rem 1.75rem",
+                              borderLeft: "2px solid rgba(249, 128, 18, 0.35)",
+                              listStyle: "none"
+                            }}>
                               {showRecursos && (
-                                <li className="nav-item-container" style={{ marginBottom: "0.1rem" }}>
+                                <li className="nav-item-container" style={{ padding: "0.1rem 0", marginBottom: "0.15rem" }}>
                                   <Link
                                     href={`${courseLink.href}/recursos`}
                                     onClick={() => { if (isMobile) setDrawerOpen(false); }}
@@ -357,7 +369,7 @@ export default function DashboardShell({
                               )}
 
                               {showActividades && (
-                                <li className="nav-item-container" style={{ marginBottom: "0.1rem" }}>
+                                <li className="nav-item-container" style={{ padding: "0.1rem 0", marginBottom: "0.15rem" }}>
                                   <Link
                                     href={courseLink.href}
                                     onClick={() => { if (isMobile) setDrawerOpen(false); }}
@@ -370,7 +382,7 @@ export default function DashboardShell({
                               )}
 
                               {showCalificaciones && (
-                                <li className="nav-item-container" style={{ marginBottom: "0.1rem" }}>
+                                <li className="nav-item-container" style={{ padding: "0.1rem 0", marginBottom: "0.15rem" }}>
                                   <Link
                                     href={`${courseLink.href}/calificaciones`}
                                     onClick={() => { if (isMobile) setDrawerOpen(false); }}
