@@ -97,6 +97,16 @@ export default function DashboardShell({
   const [timeStr, setTimeStr] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
+  const [courseExpandedState, setCourseExpandedState] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (pathname.startsWith("/estudiante/cursos/")) {
+      const matched = links.find(l => l.href.startsWith("/estudiante/cursos/") && pathname.startsWith(l.href));
+      if (matched) {
+        setCourseExpandedState(prev => ({ ...prev, [matched.href]: true }));
+      }
+    }
+  }, [pathname, links]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -273,6 +283,10 @@ export default function DashboardShell({
                       const isCalifActive = pathname === `${courseLink.href}/calificaciones` || pathname.startsWith(`${courseLink.href}/calificaciones/`);
                       const isActividadesActive = isCourseActive && !isRecursosActive && !isCalifActive;
 
+                      const isExpanded = courseExpandedState[courseLink.href] !== undefined
+                        ? courseExpandedState[courseLink.href]
+                        : isCourseActive;
+
                       const hiddenSections = courseLink.hiddenSections || [];
                       const showRecursos = !hiddenSections.includes("recursos");
                       const showActividades = !hiddenSections.includes("descripcion");
@@ -283,7 +297,10 @@ export default function DashboardShell({
                           <li className="nav-item-container">
                             <Link
                               href={courseLink.href}
-                              onClick={() => { if (isMobile) setDrawerOpen(false); }}
+                              onClick={() => {
+                                setCourseExpandedState(prev => ({ ...prev, [courseLink.href]: true }));
+                                if (isMobile) setDrawerOpen(false);
+                              }}
                               className="nav-item"
                               style={isCourseActive ? {
                                 color: "var(--primary-color)",
@@ -291,11 +308,40 @@ export default function DashboardShell({
                               } : undefined}
                             >
                               {courseLink.icon}
-                              <span className="nav-label">{courseLink.label}</span>
+                              <span className="nav-label" style={{ flex: 1 }}>{courseLink.label}</span>
+                              <span
+                                role="button"
+                                aria-label={isExpanded ? "Contraer opciones" : "Desplegar opciones"}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setCourseExpandedState(prev => ({
+                                    ...prev,
+                                    [courseLink.href]: !isExpanded
+                                  }));
+                                }}
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  width: "22px",
+                                  height: "22px",
+                                  color: isCourseActive ? "var(--primary-color)" : "var(--text-muted)",
+                                  opacity: 0.8,
+                                }}
+                              >
+                                <ChevronDown
+                                  size={16}
+                                  style={{
+                                    transform: isExpanded ? "rotate(-180deg)" : "rotate(0deg)",
+                                    transition: "transform 0.2s ease",
+                                  }}
+                                />
+                              </span>
                             </Link>
                           </li>
 
-                          {isCourseActive && (
+                          {isExpanded && (
                             <ul style={{ paddingLeft: "1rem", margin: "0.15rem 0", listStyle: "none" }}>
                               {showRecursos && (
                                 <li className="nav-item-container" style={{ marginBottom: "0.1rem" }}>
