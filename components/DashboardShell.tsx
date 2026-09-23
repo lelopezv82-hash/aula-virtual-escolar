@@ -264,63 +264,82 @@ export default function DashboardShell({
                     <div style={{ height: "1px", background: "var(--border-color)", margin: "0.25rem 0" }} />
                   </li>
 
-                  {/* Recursos, Actividades, Calificaciones (directos, no desplegables) */}
+                  {/* Asignaturas del estudiante con subsecciones integradas */}
                   {(() => {
                     const courseLinks = links.filter(l => l.href.startsWith("/estudiante/cursos/"));
-                    const currentCourseLink = courseLinks.find(l => pathname.startsWith(l.href)) || courseLinks[0];
-                    const targetCourseHref = currentCourseLink?.href || (courseLinks[0]?.href ?? "");
+                    return courseLinks.map((courseLink) => {
+                      const isCourseActive = pathname.startsWith(courseLink.href);
+                      const isRecursosActive = pathname === `${courseLink.href}/recursos` || pathname.startsWith(`${courseLink.href}/recursos/`);
+                      const isCalifActive = pathname === `${courseLink.href}/calificaciones` || pathname.startsWith(`${courseLink.href}/calificaciones/`);
+                      const isActividadesActive = isCourseActive && !isRecursosActive && !isCalifActive;
 
-                    const isRecursosActive = pathname === `${targetCourseHref}/recursos` || pathname.startsWith(`${targetCourseHref}/recursos/`);
-                    const isCalifActive = pathname === `${targetCourseHref}/calificaciones` || pathname.startsWith(`${targetCourseHref}/calificaciones/`);
-                    const isActividadesActive = pathname.startsWith(targetCourseHref) && !isRecursosActive && !isCalifActive;
+                      const hiddenSections = courseLink.hiddenSections || [];
+                      const showRecursos = !hiddenSections.includes("recursos");
+                      const showActividades = !hiddenSections.includes("descripcion");
+                      const showCalificaciones = !hiddenSections.includes("calificaciones");
 
-                    const hiddenSections = currentCourseLink?.hiddenSections || [];
-                    const showRecursos = !hiddenSections.includes("recursos");
-                    const showActividades = !hiddenSections.includes("descripcion");
-                    const showCalificaciones = !hiddenSections.includes("calificaciones");
-
-                    return (
-                      <>
-                        {showRecursos && (
+                      return (
+                        <React.Fragment key={courseLink.href}>
                           <li className="nav-item-container">
                             <Link
-                              href={`${targetCourseHref}/recursos`}
+                              href={courseLink.href}
                               onClick={() => { if (isMobile) setDrawerOpen(false); }}
-                              className={`nav-item ${isRecursosActive ? "active" : ""}`}
+                              className="nav-item"
+                              style={isCourseActive ? {
+                                color: "var(--primary-color)",
+                                fontWeight: 600,
+                              } : undefined}
                             >
-                              <span style={{ fontSize: "1.15rem", lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px" }}>📚</span>
-                              <span className="nav-label">Recursos</span>
+                              {courseLink.icon}
+                              <span className="nav-label">{courseLink.label}</span>
                             </Link>
                           </li>
-                        )}
 
-                        {showActividades && (
-                          <li className="nav-item-container">
-                            <Link
-                              href={targetCourseHref}
-                              onClick={() => { if (isMobile) setDrawerOpen(false); }}
-                              className={`nav-item ${isActividadesActive ? "active" : ""}`}
-                            >
-                              <span style={{ fontSize: "1.15rem", lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px" }}>📝</span>
-                              <span className="nav-label">Actividades</span>
-                            </Link>
-                          </li>
-                        )}
+                          {isCourseActive && (
+                            <ul style={{ paddingLeft: "1rem", margin: "0.15rem 0", listStyle: "none" }}>
+                              {showRecursos && (
+                                <li className="nav-item-container" style={{ marginBottom: "0.1rem" }}>
+                                  <Link
+                                    href={`${courseLink.href}/recursos`}
+                                    onClick={() => { if (isMobile) setDrawerOpen(false); }}
+                                    className={`nav-item ${isRecursosActive ? "active" : ""}`}
+                                  >
+                                    <span style={{ fontSize: "1.15rem", lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px" }}>📚</span>
+                                    <span className="nav-label">Recursos</span>
+                                  </Link>
+                                </li>
+                              )}
 
-                        {showCalificaciones && (
-                          <li className="nav-item-container">
-                            <Link
-                              href={`${targetCourseHref}/calificaciones`}
-                              onClick={() => { if (isMobile) setDrawerOpen(false); }}
-                              className={`nav-item ${isCalifActive ? "active" : ""}`}
-                            >
-                              <span style={{ fontSize: "1.15rem", lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px" }}>🏅</span>
-                              <span className="nav-label">Calificaciones</span>
-                            </Link>
-                          </li>
-                        )}
-                      </>
-                    );
+                              {showActividades && (
+                                <li className="nav-item-container" style={{ marginBottom: "0.1rem" }}>
+                                  <Link
+                                    href={courseLink.href}
+                                    onClick={() => { if (isMobile) setDrawerOpen(false); }}
+                                    className={`nav-item ${isActividadesActive ? "active" : ""}`}
+                                  >
+                                    <span style={{ fontSize: "1.15rem", lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px" }}>📝</span>
+                                    <span className="nav-label">Actividades</span>
+                                  </Link>
+                                </li>
+                              )}
+
+                              {showCalificaciones && (
+                                <li className="nav-item-container" style={{ marginBottom: "0.1rem" }}>
+                                  <Link
+                                    href={`${courseLink.href}/calificaciones`}
+                                    onClick={() => { if (isMobile) setDrawerOpen(false); }}
+                                    className={`nav-item ${isCalifActive ? "active" : ""}`}
+                                  >
+                                    <span style={{ fontSize: "1.15rem", lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px" }}>🏅</span>
+                                    <span className="nav-label">Calificaciones</span>
+                                  </Link>
+                                </li>
+                              )}
+                            </ul>
+                          )}
+                        </React.Fragment>
+                      );
+                    });
                   })()}
 
                   {/* Separator + Configuración */}
