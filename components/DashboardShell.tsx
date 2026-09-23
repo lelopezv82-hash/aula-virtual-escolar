@@ -286,22 +286,16 @@ export default function DashboardShell({
                             <Link
                               href={`${targetCourseHref}/recursos`}
                               onClick={() => { if (isMobile) setDrawerOpen(false); }}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "0.75rem",
-                                padding: "0.75rem 1rem",
-                                borderRadius: "10px",
-                                fontSize: "0.9rem",
-                                textDecoration: "none",
-                                transition: "all 0.15s ease-in-out",
-                                border: isRecursosActive ? "2px solid #f98012" : "1.5px solid transparent",
-                                backgroundColor: isRecursosActive ? "#fff7ed" : "transparent",
-                                color: isRecursosActive ? "#ea580c" : "var(--text-primary)",
-                                fontWeight: isRecursosActive ? 700 : 500,
-                                boxShadow: isRecursosActive ? "0 2px 8px rgba(249, 128, 18, 0.15)" : "none",
+                              className="nav-item"
+                              style={isRecursosActive ? {
+                                border: "2px solid #f98012",
+                                backgroundColor: "#fff7ed",
+                                color: "#ea580c",
+                                fontWeight: 700,
+                                boxShadow: "0 2px 8px rgba(249, 128, 18, 0.15)",
+                              } : {
+                                border: "2px solid transparent",
                               }}
-                              className={!isRecursosActive ? "hover:bg-slate-100 dark:hover:bg-slate-800" : ""}
                             >
                               <span style={{ fontSize: "1.15rem", lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px" }}>📚</span>
                               <span className="nav-label">Recursos</span>
@@ -314,22 +308,16 @@ export default function DashboardShell({
                             <Link
                               href={targetCourseHref}
                               onClick={() => { if (isMobile) setDrawerOpen(false); }}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "0.75rem",
-                                padding: "0.75rem 1rem",
-                                borderRadius: "10px",
-                                fontSize: "0.9rem",
-                                textDecoration: "none",
-                                transition: "all 0.15s ease-in-out",
-                                border: isActividadesActive ? "2px solid #f98012" : "1.5px solid transparent",
-                                backgroundColor: isActividadesActive ? "#fff7ed" : "transparent",
-                                color: isActividadesActive ? "#ea580c" : "var(--text-primary)",
-                                fontWeight: isActividadesActive ? 700 : 500,
-                                boxShadow: isActividadesActive ? "0 2px 8px rgba(249, 128, 18, 0.15)" : "none",
+                              className="nav-item"
+                              style={isActividadesActive ? {
+                                border: "2px solid #f98012",
+                                backgroundColor: "#fff7ed",
+                                color: "#ea580c",
+                                fontWeight: 700,
+                                boxShadow: "0 2px 8px rgba(249, 128, 18, 0.15)",
+                              } : {
+                                border: "2px solid transparent",
                               }}
-                              className={!isActividadesActive ? "hover:bg-slate-100 dark:hover:bg-slate-800" : ""}
                             >
                               <span style={{ fontSize: "1.15rem", lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px" }}>📝</span>
                               <span className="nav-label">Actividades</span>
@@ -342,22 +330,16 @@ export default function DashboardShell({
                             <Link
                               href={`${targetCourseHref}/calificaciones`}
                               onClick={() => { if (isMobile) setDrawerOpen(false); }}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "0.75rem",
-                                padding: "0.75rem 1rem",
-                                borderRadius: "10px",
-                                fontSize: "0.9rem",
-                                textDecoration: "none",
-                                transition: "all 0.15s ease-in-out",
-                                border: isCalifActive ? "2px solid #f98012" : "1.5px solid transparent",
-                                backgroundColor: isCalifActive ? "#fff7ed" : "transparent",
-                                color: isCalifActive ? "#ea580c" : "var(--text-primary)",
-                                fontWeight: isCalifActive ? 700 : 500,
-                                boxShadow: isCalifActive ? "0 2px 8px rgba(249, 128, 18, 0.15)" : "none",
+                              className="nav-item"
+                              style={isCalifActive ? {
+                                border: "2px solid #f98012",
+                                backgroundColor: "#fff7ed",
+                                color: "#ea580c",
+                                fontWeight: 700,
+                                boxShadow: "0 2px 8px rgba(249, 128, 18, 0.15)",
+                              } : {
+                                border: "2px solid transparent",
                               }}
-                              className={!isCalifActive ? "hover:bg-slate-100 dark:hover:bg-slate-800" : ""}
                             >
                               <span style={{ fontSize: "1.15rem", lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px" }}>🏅</span>
                               <span className="nav-label">Calificaciones</span>
