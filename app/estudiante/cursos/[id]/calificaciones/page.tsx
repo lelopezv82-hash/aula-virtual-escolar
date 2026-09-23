@@ -420,7 +420,7 @@ export default async function CursoCalificacionesPage({
                           }
                         </span>
                         <span className="text-xs text-muted font-medium">
-                          {finalGrade >= 3.0 ? "Aprobado" : "Reprobado"} · Escala 1.0 – 5.0
+                          {finalGrade >= 3.0 ? "Aprobado" : "Reprobado"}
                         </span>
                       </div>
                     </div>
