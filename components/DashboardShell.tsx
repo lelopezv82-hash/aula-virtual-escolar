@@ -286,16 +286,7 @@ export default function DashboardShell({
                             <Link
                               href={`${targetCourseHref}/recursos`}
                               onClick={() => { if (isMobile) setDrawerOpen(false); }}
-                              className="nav-item"
-                              style={isRecursosActive ? {
-                                border: "2px solid #f98012",
-                                backgroundColor: "#fff7ed",
-                                color: "#ea580c",
-                                fontWeight: 700,
-                                boxShadow: "0 2px 8px rgba(249, 128, 18, 0.15)",
-                              } : {
-                                border: "2px solid transparent",
-                              }}
+                              className={`nav-item ${isRecursosActive ? "active" : ""}`}
                             >
                               <span style={{ fontSize: "1.15rem", lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px" }}>📚</span>
                               <span className="nav-label">Recursos</span>
@@ -308,16 +299,7 @@ export default function DashboardShell({
                             <Link
                               href={targetCourseHref}
                               onClick={() => { if (isMobile) setDrawerOpen(false); }}
-                              className="nav-item"
-                              style={isActividadesActive ? {
-                                border: "2px solid #f98012",
-                                backgroundColor: "#fff7ed",
-                                color: "#ea580c",
-                                fontWeight: 700,
-                                boxShadow: "0 2px 8px rgba(249, 128, 18, 0.15)",
-                              } : {
-                                border: "2px solid transparent",
-                              }}
+                              className={`nav-item ${isActividadesActive ? "active" : ""}`}
                             >
                               <span style={{ fontSize: "1.15rem", lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px" }}>📝</span>
                               <span className="nav-label">Actividades</span>
@@ -330,16 +312,7 @@ export default function DashboardShell({
                             <Link
                               href={`${targetCourseHref}/calificaciones`}
                               onClick={() => { if (isMobile) setDrawerOpen(false); }}
-                              className="nav-item"
-                              style={isCalifActive ? {
-                                border: "2px solid #f98012",
-                                backgroundColor: "#fff7ed",
-                                color: "#ea580c",
-                                fontWeight: 700,
-                                boxShadow: "0 2px 8px rgba(249, 128, 18, 0.15)",
-                              } : {
-                                border: "2px solid transparent",
-                              }}
+                              className={`nav-item ${isCalifActive ? "active" : ""}`}
                             >
                               <span style={{ fontSize: "1.15rem", lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px" }}>🏅</span>
                               <span className="nav-label">Calificaciones</span>
