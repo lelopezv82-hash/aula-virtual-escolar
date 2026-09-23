@@ -45,7 +45,7 @@ export default async function EstudianteLayout({ children }: { children: React.R
         }
       }
     } : { id: "none" },
-    select: { id: true, name: true },
+    select: { id: true, name: true, hiddenSections: true },
     orderBy: { name: "asc" }
   });
 
@@ -59,6 +59,7 @@ export default async function EstudianteLayout({ children }: { children: React.R
       href: `/estudiante/cursos/${c.id}`,
       label: c.name,
       icon: <Book size={20} />,
+      hiddenSections: Array.isArray(c.hiddenSections) ? (c.hiddenSections as string[]) : [],
     })),
     {
       href: "/estudiante/configuracion",
