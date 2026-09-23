@@ -247,10 +247,10 @@ export default function DashboardShell({
 
           <nav className="drawer-nav">
             <ul className="nav-list">
-              {roleTitle === "Estudiante" && links.some(l => l.href.startsWith("/estudiante/cursos/")) ? (
+              {roleTitle === "Estudiante" ? (
                 <>
-                  {/* Non-course links first (Tablero Virtual, etc.) */}
-                  {links.filter(l => !l.href.startsWith("/estudiante/cursos/") && l.href !== "/estudiante/configuracion").map((link) => (
+                  {/* Tablero Virtual */}
+                  {links.filter(l => l.href === "/estudiante/tablero").map((link) => (
                     <li key={link.href} className="nav-item-container">
                       <ActiveLink href={link.href}>
                         {link.icon}
@@ -258,145 +258,116 @@ export default function DashboardShell({
                       </ActiveLink>
                     </li>
                   ))}
-                  {/* Separator + ASIGNATURAS */}
+
+                  {/* Separator */}
                   <li style={{ padding: "0.25rem 2rem" }}>
                     <div style={{ height: "1px", background: "var(--border-color)", margin: "0.25rem 0" }} />
                   </li>
-                  <li style={{ 
-                    padding: "0.5rem 2rem 0.25rem", 
-                    fontSize: "0.75rem", 
-                    color: "var(--text-muted)", 
-                    fontWeight: 600, 
-                    textTransform: "uppercase", 
-                    letterSpacing: "0.05em" 
-                  }}>
-                    Asignaturas
-                  </li>
-                  {links.filter(l => l.href.startsWith("/estudiante/cursos/")).map((link) => {
-                    const isCurrentCourse = pathname.startsWith(link.href);
-                    const isRecursosActive = isCurrentCourse && (pathname === `${link.href}/recursos` || pathname.startsWith(`${link.href}/recursos/`));
-                    const isCalifActive = isCurrentCourse && (pathname === `${link.href}/calificaciones` || pathname.startsWith(`${link.href}/calificaciones/`));
-                    const isActividadesActive = isCurrentCourse && !isRecursosActive && !isCalifActive;
 
-                    const hiddenSections = link.hiddenSections || [];
+                  {/* Recursos, Actividades, Calificaciones (directos, no desplegables) */}
+                  {(() => {
+                    const courseLinks = links.filter(l => l.href.startsWith("/estudiante/cursos/"));
+                    const currentCourseLink = courseLinks.find(l => pathname.startsWith(l.href)) || courseLinks[0];
+                    const targetCourseHref = currentCourseLink?.href || (courseLinks[0]?.href ?? "");
+
+                    const isRecursosActive = pathname === `${targetCourseHref}/recursos` || pathname.startsWith(`${targetCourseHref}/recursos/`);
+                    const isCalifActive = pathname === `${targetCourseHref}/calificaciones` || pathname.startsWith(`${targetCourseHref}/calificaciones/`);
+                    const isActividadesActive = pathname.startsWith(targetCourseHref) && !isRecursosActive && !isCalifActive;
+
+                    const hiddenSections = currentCourseLink?.hiddenSections || [];
                     const showRecursos = !hiddenSections.includes("recursos");
                     const showActividades = !hiddenSections.includes("descripcion");
                     const showCalificaciones = !hiddenSections.includes("calificaciones");
 
                     return (
-                      <React.Fragment key={link.href}>
-                        <li className="nav-item-container">
-                          {isCurrentCourse ? (
+                      <>
+                        {showRecursos && (
+                          <li className="nav-item-container">
                             <Link
-                              href={link.href}
+                              href={`${targetCourseHref}/recursos`}
                               onClick={() => { if (isMobile) setDrawerOpen(false); }}
-                              className="nav-item"
                               style={{
-                                color: "var(--primary-color)",
-                                fontWeight: 700,
-                                backgroundColor: "transparent",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.75rem",
+                                padding: "0.75rem 1rem",
+                                borderRadius: "10px",
+                                fontSize: "0.9rem",
+                                textDecoration: "none",
+                                transition: "all 0.15s ease-in-out",
+                                border: isRecursosActive ? "2px solid #f98012" : "1.5px solid transparent",
+                                backgroundColor: isRecursosActive ? "#fff7ed" : "transparent",
+                                color: isRecursosActive ? "#ea580c" : "var(--text-primary)",
+                                fontWeight: isRecursosActive ? 700 : 500,
+                                boxShadow: isRecursosActive ? "0 2px 8px rgba(249, 128, 18, 0.15)" : "none",
                               }}
+                              className={!isRecursosActive ? "hover:bg-slate-100 dark:hover:bg-slate-800" : ""}
                             >
-                              <span style={{ color: "var(--primary-color)" }}>
-                                {link.icon}
-                              </span>
-                              <span className="nav-label">{link.label}</span>
+                              <span style={{ fontSize: "1.15rem", lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px" }}>📚</span>
+                              <span className="nav-label">Recursos</span>
                             </Link>
-                          ) : (
-                            <ActiveLink href={link.href}>
-                              {link.icon}
-                              <span className="nav-label">{link.label}</span>
-                            </ActiveLink>
-                          )}
-                        </li>
-
-                        {/* Sub-items under active course */}
-                        {isCurrentCourse && (
-                          <li style={{ padding: "0.2rem 1rem 0.5rem 1.75rem" }}>
-                            <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
-                              {showRecursos && (
-                                <Link
-                                  href={`${link.href}/recursos`}
-                                  onClick={() => { if (isMobile) setDrawerOpen(false); }}
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "0.65rem",
-                                    padding: "0.55rem 0.85rem",
-                                    borderRadius: "10px",
-                                    fontSize: "0.88rem",
-                                    textDecoration: "none",
-                                    transition: "all 0.15s ease-in-out",
-                                    border: isRecursosActive ? "2px solid #f98012" : "1.5px solid transparent",
-                                    backgroundColor: isRecursosActive ? "#fff7ed" : "transparent",
-                                    color: isRecursosActive ? "#ea580c" : "var(--text-secondary)",
-                                    fontWeight: isRecursosActive ? 700 : 500,
-                                    boxShadow: isRecursosActive ? "0 2px 8px rgba(249, 128, 18, 0.15)" : "none",
-                                  }}
-                                  className={!isRecursosActive ? "hover:bg-slate-100 dark:hover:bg-slate-800" : ""}
-                                >
-                                  <span style={{ fontSize: "1.05rem", lineHeight: 1 }}>📚</span>
-                                  <span>Recursos</span>
-                                </Link>
-                              )}
-
-                              {showActividades && (
-                                <Link
-                                  href={link.href}
-                                  onClick={() => { if (isMobile) setDrawerOpen(false); }}
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "0.65rem",
-                                    padding: "0.55rem 0.85rem",
-                                    borderRadius: "10px",
-                                    fontSize: "0.88rem",
-                                    textDecoration: "none",
-                                    transition: "all 0.15s ease-in-out",
-                                    border: isActividadesActive ? "2px solid #f98012" : "1.5px solid transparent",
-                                    backgroundColor: isActividadesActive ? "#fff7ed" : "transparent",
-                                    color: isActividadesActive ? "#ea580c" : "var(--text-secondary)",
-                                    fontWeight: isActividadesActive ? 700 : 500,
-                                    boxShadow: isActividadesActive ? "0 2px 8px rgba(249, 128, 18, 0.15)" : "none",
-                                  }}
-                                  className={!isActividadesActive ? "hover:bg-slate-100 dark:hover:bg-slate-800" : ""}
-                                >
-                                  <span style={{ fontSize: "1.05rem", lineHeight: 1 }}>📝</span>
-                                  <span>Actividades</span>
-                                </Link>
-                              )}
-
-                              {showCalificaciones && (
-                                <Link
-                                  href={`${link.href}/calificaciones`}
-                                  onClick={() => { if (isMobile) setDrawerOpen(false); }}
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "0.65rem",
-                                    padding: "0.55rem 0.85rem",
-                                    borderRadius: "10px",
-                                    fontSize: "0.88rem",
-                                    textDecoration: "none",
-                                    transition: "all 0.15s ease-in-out",
-                                    border: isCalifActive ? "2px solid #f98012" : "1.5px solid transparent",
-                                    backgroundColor: isCalifActive ? "#fff7ed" : "transparent",
-                                    color: isCalifActive ? "#ea580c" : "var(--text-secondary)",
-                                    fontWeight: isCalifActive ? 700 : 500,
-                                    boxShadow: isCalifActive ? "0 2px 8px rgba(249, 128, 18, 0.15)" : "none",
-                                  }}
-                                  className={!isCalifActive ? "hover:bg-slate-100 dark:hover:bg-slate-800" : ""}
-                                >
-                                  <span style={{ fontSize: "1.05rem", lineHeight: 1 }}>🏅</span>
-                                  <span>Calificaciones</span>
-                                </Link>
-                              )}
-                            </div>
                           </li>
                         )}
-                      </React.Fragment>
+
+                        {showActividades && (
+                          <li className="nav-item-container">
+                            <Link
+                              href={targetCourseHref}
+                              onClick={() => { if (isMobile) setDrawerOpen(false); }}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.75rem",
+                                padding: "0.75rem 1rem",
+                                borderRadius: "10px",
+                                fontSize: "0.9rem",
+                                textDecoration: "none",
+                                transition: "all 0.15s ease-in-out",
+                                border: isActividadesActive ? "2px solid #f98012" : "1.5px solid transparent",
+                                backgroundColor: isActividadesActive ? "#fff7ed" : "transparent",
+                                color: isActividadesActive ? "#ea580c" : "var(--text-primary)",
+                                fontWeight: isActividadesActive ? 700 : 500,
+                                boxShadow: isActividadesActive ? "0 2px 8px rgba(249, 128, 18, 0.15)" : "none",
+                              }}
+                              className={!isActividadesActive ? "hover:bg-slate-100 dark:hover:bg-slate-800" : ""}
+                            >
+                              <span style={{ fontSize: "1.15rem", lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px" }}>📝</span>
+                              <span className="nav-label">Actividades</span>
+                            </Link>
+                          </li>
+                        )}
+
+                        {showCalificaciones && (
+                          <li className="nav-item-container">
+                            <Link
+                              href={`${targetCourseHref}/calificaciones`}
+                              onClick={() => { if (isMobile) setDrawerOpen(false); }}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.75rem",
+                                padding: "0.75rem 1rem",
+                                borderRadius: "10px",
+                                fontSize: "0.9rem",
+                                textDecoration: "none",
+                                transition: "all 0.15s ease-in-out",
+                                border: isCalifActive ? "2px solid #f98012" : "1.5px solid transparent",
+                                backgroundColor: isCalifActive ? "#fff7ed" : "transparent",
+                                color: isCalifActive ? "#ea580c" : "var(--text-primary)",
+                                fontWeight: isCalifActive ? 700 : 500,
+                                boxShadow: isCalifActive ? "0 2px 8px rgba(249, 128, 18, 0.15)" : "none",
+                              }}
+                              className={!isCalifActive ? "hover:bg-slate-100 dark:hover:bg-slate-800" : ""}
+                            >
+                              <span style={{ fontSize: "1.15rem", lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px" }}>🏅</span>
+                              <span className="nav-label">Calificaciones</span>
+                            </Link>
+                          </li>
+                        )}
+                      </>
                     );
-                  })}
+                  })()}
+
                   {/* Separator + Configuración */}
                   <li style={{ padding: "0.25rem 2rem" }}>
                     <div style={{ height: "1px", background: "var(--border-color)", margin: "0.25rem 0" }} />
