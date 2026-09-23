@@ -375,110 +375,86 @@ export default async function CursoCalificacionesPage({
             return (
               <div key={periodName}>
 
-                {/* Period Summary Card */}
-                {(avgTareas !== null || avgExamenes !== null || effectiveSerGrade !== null) && (
+                {/* Period Summary Card: Solo Nota Definitiva */}
+                {finalGrade !== null && (
                   <div
-                    className="card mb-5"
+                    className="card mb-6"
                     style={{
-                      borderLeft: "4px solid var(--primary-color)",
-                      padding: "1.1rem 1.4rem",
+                      borderLeft: `5px solid ${finalGrade >= 3.0 ? "var(--success)" : "var(--danger)"}`,
+                      padding: "1.25rem 1.5rem",
+                      display: "flex",
+                      flexWrap: "wrap",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "1.25rem",
+                      background: "var(--bg-primary)",
+                      borderRadius: "var(--radius-lg)",
+                      border: "1px solid var(--border-color)",
+                      borderLeftWidth: "5px",
+                      boxShadow: "var(--shadow-sm)",
                     }}
                   >
-                    <p className="text-xs font-bold uppercase tracking-wider text-muted mb-3">Resumen del {periodName}</p>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "1.5rem", alignItems: "flex-end" }}>
-                      {/* Saber — Exámenes */}
-                      {saberWeighted !== null && (
-                        <div style={{ textAlign: "center", minWidth: "80px" }}>
-                          <div style={{ fontSize: "1.7rem", fontWeight: 800, color: gradeColor(avgSaberCombined!), lineHeight: 1 }}>
-                            {saberWeighted.toFixed(2)}
-                          </div>
-                          <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "2px" }}>
-                            {avgFinal !== null
-                              ? `${avgSaberCombined!.toFixed(1)} × ${((saberPct + finalPct) * 100).toFixed(0)}%`
-                              : `${avgExamenes!.toFixed(1)} × ${saberLabel}`}
-                          </div>
-                          <div className="flex items-center justify-center gap-1 mt-1">
-                            <FileText size={11} style={{ color: "#8b5cf6" }} />
-                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Saber (Cognitivo)</span>
-                          </div>
-                        </div>
-                      )}
-
-                      {saberWeighted !== null && (avgTareas !== null || effectiveSerGrade !== null) && (
-                        <div style={{ fontSize: "1.5rem", color: "var(--text-muted)", fontWeight: 300, lineHeight: 1 }}>+</div>
-                      )}
-
-                      {/* Hacer — Tareas */}
-                      {avgTareas !== null && (
-                        <div style={{ textAlign: "center", minWidth: "80px" }}>
-                          <div style={{ fontSize: "1.7rem", fontWeight: 800, color: gradeColor(avgTareas), lineHeight: 1 }}>
-                            {hacerWeighted!.toFixed(2)}
-                          </div>
-                          <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "2px" }}>
-                            {avgTareas.toFixed(1)} × {hacerLabel}
-                          </div>
-                          <div className="flex items-center justify-center gap-1 mt-1">
-                            <ClipboardList size={11} style={{ color: "var(--primary-color)" }} />
-                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Hacer (Procedimental)</span>
-                          </div>
-                        </div>
-                      )}
-
-                      {effectiveSerGrade !== null && (avgExamenes !== null || avgTareas !== null) && (
-                        <div style={{ fontSize: "1.5rem", color: "var(--text-muted)", fontWeight: 300, lineHeight: 1 }}>+</div>
-                      )}
-
-                      {/* Ser — Actitudinal */}
-                      {effectiveSerGrade !== null && (
-                        <div style={{ textAlign: "center", minWidth: "80px" }}>
-                          <div style={{ fontSize: "1.7rem", fontWeight: 800, color: gradeColor(effectiveSerGrade), lineHeight: 1 }}>
-                            {serWeighted!.toFixed(2)}
-                          </div>
-                          <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "2px" }}>
-                            {effectiveSerGrade.toFixed(1)} × {serLabel}
-                          </div>
-                          <div className="flex items-center justify-center gap-1 mt-1">
-                            <Star size={11} style={{ color: "#0d9488" }} />
-                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Ser (Actitudinal)</span>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Equals and Final Grade */}
-                      {finalGrade !== null && componentCount > 1 && (
-                        <>
-                          <div style={{ fontSize: "1.5rem", color: "var(--text-muted)", fontWeight: 300, lineHeight: 1 }}>=</div>
-                          <div
-                            style={{
-                              textAlign: "center",
-                              minWidth: "90px",
-                              padding: "0.5rem 1rem",
-                              borderRadius: "0.75rem",
-                              background: finalGrade >= 3 ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.08)",
-                              border: `2px solid ${gradeColor(finalGrade)}`,
-                            }}
-                          >
-                            <div style={{ fontSize: "2rem", fontWeight: 900, color: gradeColor(finalGrade), lineHeight: 1 }}>
-                              {finalGrade.toFixed(1)}
-                            </div>
-                            <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600, marginTop: "0.2rem" }}>Nota Final</div>
-                          </div>
-                        </>
-                      )}
-
-                      {/* If only one component, show it as final */}
-                      {finalGrade !== null && componentCount === 1 && (
-                        <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontStyle: "italic", alignSelf: "center" }}>
-                          Nota del período
-                        </div>
-                      )}
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted mb-1">
+                        Resumen del {periodName}
+                      </p>
+                      <h3 className="text-xl font-extrabold mb-2" style={{ color: "var(--text-primary)" }}>
+                        {periodName}
+                      </h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span
+                          className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                            finalGrade >= 4.6
+                              ? "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
+                              : finalGrade >= 4.0
+                              ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
+                              : finalGrade >= 3.0
+                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                              : "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 border border-red-200 dark:border-red-800"
+                          }`}
+                        >
+                          Desempeño {
+                            finalGrade >= 4.6 ? "Superior" :
+                            finalGrade >= 4.0 ? "Alto" :
+                            finalGrade >= 3.0 ? "Básico" : "Bajo"
+                          }
+                        </span>
+                        <span className="text-xs text-muted font-medium">
+                          {finalGrade >= 3.0 ? "Aprobado" : "Reprobado"} · Escala 1.0 – 5.0
+                        </span>
+                      </div>
                     </div>
 
-                    {componentCount > 1 && (
-                      <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.75rem" }}>
-                        * Nota final = {[saberWeighted !== null && `${saberWeighted.toFixed(2)} (Cognitivo×${saberLabel})`, hacerWeighted !== null && `${hacerWeighted.toFixed(2)} (Procedimental×${hacerLabel})`, serWeighted !== null && `${serWeighted.toFixed(2)} (Actitudinal×${serLabel})`].filter(Boolean).join(" + ")}.
-                      </p>
-                    )}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "1.1rem",
+                        background: finalGrade >= 3.0 ? "rgba(34, 197, 94, 0.08)" : "rgba(239, 68, 68, 0.08)",
+                        padding: "0.85rem 1.6rem",
+                        borderRadius: "1rem",
+                        border: `1.5px solid ${finalGrade >= 3.0 ? "rgba(34, 197, 94, 0.25)" : "rgba(239, 68, 68, 0.25)"}`,
+                      }}
+                    >
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: "0.75rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)" }}>
+                          Nota Definitiva
+                        </div>
+                        <div style={{ fontSize: "0.75rem", color: gradeColor(finalGrade), fontWeight: 700 }}>
+                          {periodName}
+                        </div>
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "2.6rem",
+                          fontWeight: 900,
+                          lineHeight: 1,
+                          color: gradeColor(finalGrade),
+                        }}
+                      >
+                        {finalGrade.toFixed(1)}
+                      </div>
+                    </div>
                   </div>
                 )}
 
