@@ -35,7 +35,7 @@ export default async function TareasEstudiantePage() {
   const tasks = await prisma.task.findMany({
     where: {
       active: true,
-      type: { in: ["TASK", "TASK_SABER", "SABER"] },
+      type: { in: ["TASK", "TASK_SABER", "SABER", "INTERACTIVE"] },
       OR: [
         { period: null },
         { period: { in: activePeriodNames } }
@@ -81,8 +81,10 @@ export default async function TareasEstudiantePage() {
     const submission = task.submissions[0];
     const { isClosed } = getTaskDeadlineStatus(task, submission);
     const isDeadlinePassed = isClosed || (task.dueDate && now > task.dueDate);
+    const isInteractive = task.type === "INTERACTIVE";
+    const isInteractiveSubmitted = isInteractive && !!(submission && (submission.grade !== null || submission.status === "GRADED"));
+    const isSubmitted = isInteractive ? isInteractiveSubmitted : (submission && submission.status !== "PENDING");
     const virtualGraded = !task.isExternal && ((!submission && isDeadlinePassed) || (submission && submission.status === "PENDING" && isDeadlinePassed));
-    const isSubmitted = submission && submission.status !== "PENDING";
     return !isSubmitted && !virtualGraded;
   });
 
@@ -108,17 +110,23 @@ export default async function TareasEstudiantePage() {
             const isOverdue = isClosed || (task.dueDate && now > task.dueDate);
             const virtualGraded = (!submission && isOverdue) || (submission && submission.status === "PENDING" && isOverdue && !hasGradeSet);
 
-            const activeStatus = (submission && submission.status !== "PENDING")
-              ? submission.status
-              : hasGradeSet ? "GRADED"
-              : virtualGraded ? "GRADED" : (submission?.status || null);
-            const activeGrade = (submission && submission.status !== "PENDING")
-              ? (submission.grade !== null && submission.grade !== undefined ? submission.grade : null)
-              : hasGradeSet ? submission!.grade!
-              : virtualGraded ? 1.0 : null;
+            const isInteractive = task.type === "INTERACTIVE";
+            const isInteractiveSubmitted = isInteractive && !!(submission && (submission.grade !== null || submission.status === "GRADED"));
+            const activeStatus = isInteractive
+              ? (isInteractiveSubmitted ? "GRADED" : (virtualGraded ? "GRADED" : null))
+              : ((submission && submission.status !== "PENDING")
+                ? submission.status
+                : hasGradeSet ? "GRADED"
+                : virtualGraded ? "GRADED" : (submission?.status || null));
+            const activeGrade = isInteractive
+              ? (isInteractiveSubmitted ? (submission?.grade !== null && submission?.grade !== undefined ? submission.grade : null) : (virtualGraded ? 1.0 : null))
+              : ((submission && submission.status !== "PENDING")
+                ? (submission.grade !== null && submission.grade !== undefined ? submission.grade : null)
+                : hasGradeSet ? submission!.grade!
+                : virtualGraded ? 1.0 : null);
 
             // Determine reason for minimum grade
-            const neverSubmitted = !submission || (submission.status === "PENDING" && !hasGradeSet);
+            const neverSubmitted = !submission || (submission.status === "PENDING" && !hasGradeSet && !isInteractiveSubmitted);
             const gradeReason = virtualGraded && neverSubmitted ? "No entregado (plazo vencido)" : null;
 
             const isSubmitted = activeStatus && activeStatus !== "PENDING";
@@ -154,7 +162,11 @@ export default async function TareasEstudiantePage() {
                     <span style={{ fontSize: "0.75rem", fontWeight: 700, padding: "2px 8px", background: "#f3f4f6", borderRadius: "4px", color: "#4b5563" }}>
                       {task.course.name}
                     </span>
-                    {isTaskSaber ? (
+                    {task.type === "INTERACTIVE" ? (
+                      <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f3e8ff", color: "#6b21a8", border: "1px solid #d8b4fe" }}>
+                        🎮 Actividad Interactiva (Hacer)
+                      </span>
+                    ) : isTaskSaber ? (
                       <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f3e8ff", color: "#6b21a8", border: "1px solid #d8b4fe" }}>
                         📖 Saber (Cognitivo)
                       </span>
@@ -231,7 +243,7 @@ export default async function TareasEstudiantePage() {
 
                   {!(isClosed && neverSubmitted && !task.isExternal) && (
                     <Link href={`/estudiante/tareas/${task.id}`} className={`btn w-full md:w-auto ${isSubmitted ? 'btn-secondary' : 'btn-primary'}`}>
-                      {task.isExternal ? (isSubmitted ? 'Ver Calificación' : 'Ver Detalles') : (isSubmitted ? 'Ver Entrega' : 'Subir Tarea')}
+                      {task.type === "INTERACTIVE" ? (isSubmitted ? "Reintentar Actividad" : "Realizar Actividad") : task.isExternal ? (isSubmitted ? 'Ver Calificación' : 'Ver Detalles') : (isSubmitted ? 'Ver Entrega' : 'Subir Tarea')}
                     </Link>
                   )}
                 </div>

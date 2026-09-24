@@ -170,7 +170,15 @@ export default async function CalificacionesEstudiantePage() {
       };
     }
 
-    return null;
+    // Open tasks not yet submitted by student: show as "pending submission / completion"
+    return {
+      id: `open-${task.id}`,
+      taskId: task.id, studentId: studentId, status: "PENDING", grade: null,
+      feedback: null, feedbackTemplate: null, fileUrl: null, submittedAt: null,
+      createdAt: task.createdAt, updatedAt: task.updatedAt,
+      allowLateSubmission: false, lateSubmissionUntil: null, gdriveEmail: null,
+      startedAt: null, attempt: 1, unlockedAnswers: false, task
+    };
   }))).filter((sub): sub is any => sub !== null);
 
   // Sort by updatedAt desc (using task updatedAt fallback for virtual ones)
@@ -306,8 +314,8 @@ export default async function CalificacionesEstudiantePage() {
                       
                       <div className="flex flex-col gap-3">
                         {courseData.subs.map((sub: any) => {
-                          const isGraded = sub.status === "GRADED" || sub.grade != null;
-                          const isPending = sub.status === "SUBMITTED";
+                          const isGraded = sub.status === "GRADED" && sub.grade != null;
+                          const isPending = !isGraded;
                           const currentGrade = sub.grade !== null && sub.grade !== undefined ? sub.grade : 0;
                           const gradeColor = isGraded
                             ? currentGrade >= 3 ? "var(--success)" : "var(--danger)"
@@ -348,6 +356,11 @@ export default async function CalificacionesEstudiantePage() {
                                       📋 Tarea (Hacer)
                                     </span>
                                   )}
+                                  {sub.task.type === "INTERACTIVE" && (
+                                    <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f3e8ff", color: "#6b21a8", border: "1px solid #d8b4fe" }}>
+                                      🎮 Actividad Interactiva (Hacer)
+                                    </span>
+                                  )}
                                   {sub.task.isExternal ? (
                                     <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1" }}>
                                       📁 Entrega en clase
@@ -364,7 +377,7 @@ export default async function CalificacionesEstudiantePage() {
                                       <span className="badge badge-success flex items-center gap-1"><CheckCircle size={12} /> Calificada</span>
                                     )
                                   )}
-                                  {isPending && <span className="badge badge-info flex items-center gap-1"><Clock size={12} /> En revisión</span>}
+                                  {isPending && <span className="badge badge-info flex items-center gap-1"><Clock size={12} /> {sub.submittedAt ? "En revisión" : "Pendiente"}</span>}
                                 </div>
                                 <h3 style={{ fontWeight: 700, fontSize: "1.1rem", margin: "0 0 0.25rem" }}>{sub.task.title}</h3>
                                 {sub.submittedAt && (
@@ -387,7 +400,9 @@ export default async function CalificacionesEstudiantePage() {
                                   <p style={{ fontSize: "0.875rem", color: "var(--danger)", marginTop: "0.25rem", fontWeight: 500 }}>Calificación automática por falta de entrega.</p>
                                 )}
                                 {!isGraded && (
-                                  <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>Tu docente aún no ha calificado esta entrega.</p>
+                                  <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
+                                    {sub.submittedAt ? "Tu docente aún no ha calificado esta entrega." : "Actividad pendiente de realización / entrega."}
+                                  </p>
                                 )}
                               </div>
 
@@ -402,7 +417,7 @@ export default async function CalificacionesEstudiantePage() {
                                   </>
                                 ) : (
                                   <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontStyle: "italic", marginBottom: "0.5rem" }}>
-                                    {sub.task.type === "EXAM" ? "En proceso de calificación..." : "Pendiente de revisión"}
+                                    {sub.submittedAt ? "Pendiente de revisión" : (sub.task.type === "INTERACTIVE" ? "Por realizar" : "Por entregar")}
                                   </div>
                                 )}
 
@@ -431,8 +446,8 @@ export default async function CalificacionesEstudiantePage() {
                                       label="Ver Calificación"
                                     />
                                   ) : (
-                                    <Link href={`/estudiante/tareas/${sub.task.id}`} className="btn btn-secondary text-xs px-2 py-1 w-full flex justify-center">
-                                      {sub.task.isExternal ? "Ver Detalle" : "Ver Entrega"}
+                                    <Link href={`/estudiante/tareas/${sub.task.id}`} className={`btn ${!isGraded && !sub.submittedAt ? 'btn-primary' : 'btn-secondary'} text-xs px-2 py-1 w-full flex justify-center`}>
+                                      {sub.task.type === "INTERACTIVE" ? (isGraded ? "Reintentar Actividad" : "Realizar Actividad") : sub.task.isExternal ? "Ver Detalle" : (sub.submittedAt ? "Ver Entrega" : "Realizar Entrega")}
                                     </Link>
                                   )}
                                 </div>

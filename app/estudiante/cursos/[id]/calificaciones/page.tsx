@@ -178,7 +178,15 @@ export default async function CursoCalificacionesPage({
         startedAt: null, attempt: 1, unlockedAnswers: false, task,
       };
     }
-    return null;
+    // Open tasks not yet submitted by student: show as "pending submission / completion"
+    return {
+      id: `open-${task.id}`,
+      taskId: task.id, studentId, status: "PENDING", grade: null,
+      feedback: null, feedbackTemplate: null, fileUrl: null, submittedAt: null,
+      createdAt: task.createdAt, updatedAt: task.updatedAt,
+      allowLateSubmission: false, lateSubmissionUntil: null, gdriveEmail: null,
+      startedAt: null, attempt: 1, unlockedAnswers: false, task,
+    };
   }))).filter((sub): sub is any => sub !== null);
 
   activeSubmissions.sort((a, b) => new Date(b.updatedAt || b.task.updatedAt).getTime() - new Date(a.updatedAt || a.task.updatedAt).getTime());
@@ -237,7 +245,7 @@ export default async function CursoCalificacionesPage({
                 ⏰ Con prórroga
               </span>
             )}
-            {isPending && <span className="badge badge-info flex items-center gap-1"><Clock size={12} /> En revisión</span>}
+            {isPending && <span className="badge badge-info flex items-center gap-1"><Clock size={12} /> {sub.submittedAt ? "En revisión" : "Pendiente"}</span>}
             {sub.task.type === "TASK_SABER" && (
               <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f3e8ff", color: "#6b21a8", border: "1px solid #d8b4fe" }}>
                 📖 Tarea (Saber)
@@ -251,6 +259,11 @@ export default async function CursoCalificacionesPage({
             {sub.task.type === "TASK" && (
               <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#ffedd5", color: "#9a3412", border: "1px solid #fed7aa" }}>
                 📋 Tarea (Hacer)
+              </span>
+            )}
+            {sub.task.type === "INTERACTIVE" && (
+              <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f3e8ff", color: "#6b21a8", border: "1px solid #d8b4fe" }}>
+                🎮 Actividad Interactiva (Hacer)
               </span>
             )}
             {sub.task.isExternal ? (
@@ -284,7 +297,9 @@ export default async function CursoCalificacionesPage({
             <p style={{ fontSize: "0.875rem", color: "var(--danger)", marginTop: "0.25rem", fontWeight: 500 }}>Calificación automática por falta de entrega.</p>
           )}
           {!isGraded && (
-            <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>Tu docente aún no ha calificado esta entrega.</p>
+            <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
+              {sub.submittedAt ? "Tu docente aún no ha calificado esta entrega." : "Actividad pendiente de realización / entrega."}
+            </p>
           )}
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "0.25rem", minWidth: "110px", textAlign: "center" }}>
@@ -297,12 +312,12 @@ export default async function CursoCalificacionesPage({
             </>
           ) : (
             <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontStyle: "italic" }}>
-              {sub.task.type === "EXAM" ? "En proceso de calificación..." : "Pendiente de revisión"}
+              {sub.submittedAt ? "Pendiente de revisión" : (sub.task.type === "INTERACTIVE" ? "Por realizar" : "Por entregar")}
             </div>
           )}
           <div className="mt-1 w-full flex justify-center">
-            <Link href={sub.task.type === "EXAM" || sub.task.type === "FINAL" ? `/estudiante/examenes/${sub.task.id}` : `/estudiante/tareas/${sub.task.id}`} className="btn btn-secondary text-xs px-2 py-1 w-full flex justify-center">
-              {sub.task.isExternal ? "Ver Detalle" : "Ver Entrega"}
+            <Link href={sub.task.type === "EXAM" || sub.task.type === "FINAL" ? `/estudiante/examenes/${sub.task.id}` : `/estudiante/tareas/${sub.task.id}`} className={`btn ${!isGraded && !sub.submittedAt ? 'btn-primary' : 'btn-secondary'} text-xs px-2 py-1 w-full flex justify-center`}>
+              {sub.task.type === "INTERACTIVE" ? (isGraded ? "Reintentar Actividad" : "Realizar Actividad") : sub.task.isExternal ? "Ver Detalle" : (sub.submittedAt ? "Ver Entrega" : "Realizar Entrega")}
             </Link>
           </div>
         </div>

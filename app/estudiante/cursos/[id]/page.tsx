@@ -24,7 +24,18 @@ function formatDate(dateStr: string | null) {
   }
 }
 
-function TaskIcon({ isGraded, isSubmitted }: { isGraded: boolean; isSubmitted: boolean }) {
+function TaskIcon({ isGraded, isSubmitted, isInteractive }: { isGraded: boolean; isSubmitted: boolean; isInteractive?: boolean }) {
+  if (isInteractive) {
+    return (
+      <div style={{
+        width: 34, height: 34, borderRadius: 6,
+        background: "#f3e8ff", border: "1px solid #d8b4fe",
+        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+      }}>
+        <span style={{ fontSize: "16px" }}>🎮</span>
+      </div>
+    );
+  }
   return (
     <div style={{
       width: 34, height: 34, borderRadius: 6,
@@ -108,7 +119,7 @@ export default async function CursoDescripcionPage({
     where: {
       courseId: id,
       active: true,
-      type: { in: ["TASK", "TASK_SABER", "SABER", "EXAM", "FINAL"] },
+      type: { in: ["TASK", "TASK_SABER", "SABER", "EXAM", "FINAL", "INTERACTIVE"] },
       OR: [{ period: null }, { period: { in: activePeriodNames } }],
       AND: [
         { OR: [{ publishAt: null }, { publishAt: { lte: now } }] },
@@ -159,9 +170,11 @@ export default async function CursoDescripcionPage({
           {tasks.map((task, idx) => {
             const submission = task.submissions[0];
             const isExam = task.type === "EXAM" || task.type === "FINAL";
-            const hasUploadedFile = isExam ? false : (task.isExternal || !!(submission?.fileUrl && submission.fileUrl.trim() !== ""));
+            const isInteractive = task.type === "INTERACTIVE";
+            const hasUploadedFile = isExam || isInteractive ? false : (task.isExternal || !!(submission?.fileUrl && submission.fileUrl.trim() !== ""));
             const isExamSubmitted = isExam && !!(submission && submission.status !== "PENDING" && submission.startedAt);
-            const isSubmitted = isExam ? isExamSubmitted : hasUploadedFile;
+            const isInteractiveSubmitted = isInteractive && !!(submission && (submission.grade !== null || submission.status === "GRADED"));
+            const isSubmitted = isExam ? isExamSubmitted : isInteractive ? isInteractiveSubmitted : hasUploadedFile;
 
             const isAutomaticGrade1 = (submission?.grade === 1 || submission?.grade === 1.0) && !isSubmitted;
             const hasRealTeacherGrade = isSubmitted && submission?.grade !== null && submission?.grade !== undefined;
@@ -209,7 +222,7 @@ export default async function CursoDescripcionPage({
               >
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "0.85rem" }}>
                   <Link href={href} style={{ textDecoration: "none" }}>
-                    <TaskIcon isGraded={isGraded || isNotActivatedForStudent} isSubmitted={isSubmitted} />
+                    <TaskIcon isGraded={isGraded || isNotActivatedForStudent} isSubmitted={isSubmitted} isInteractive={task.type === "INTERACTIVE"} />
                   </Link>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
@@ -219,6 +232,15 @@ export default async function CursoDescripcionPage({
                       >
                         {task.title}
                       </Link>
+                      {task.type === "INTERACTIVE" && (
+                        <span style={{
+                          fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
+                          borderRadius: 3, background: "#f3e8ff", color: "#6b21a8",
+                          border: "1px solid #d8b4fe"
+                        }}>
+                          🎮 Actividad Interactiva
+                        </span>
+                      )}
                       {task.isExternal && (
                         <span style={{
                           fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
