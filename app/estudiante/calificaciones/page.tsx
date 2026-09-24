@@ -107,7 +107,7 @@ export default async function CalificacionesEstudiantePage() {
       };
     }
 
-    const { isClosed } = getTaskDeadlineStatus(task, sub);
+    const { isClosed, hasExtension } = getTaskDeadlineStatus(task, sub);
     const isGoogleForm = !!(task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle")));
 
     const isNative = task.questions && task.questions.length > 0;
@@ -148,30 +148,60 @@ export default async function CalificacionesEstudiantePage() {
       const isSubmitted = isExam ? isExamSubmitted : isInteractive ? isInteractiveSubmitted : hasUploadedFile;
 
       const hasActiveExtension = !!(sub.allowLateSubmission || task.allowLateSubmission);
-      const hasRealGrade = sub.grade !== null && sub.grade !== undefined && !(hasActiveExtension && (sub.grade === 1 || sub.grade === 1.0) && !hasUploadedFile);
+      const isProrrogaExpiredWithoutSubmission = (hasActiveExtension || hasExtension) && (isClosed || isTimerExpired) && !isSubmitted;
 
       const shouldHideFeedback = (task.type === "EXAM" || task.type === "FINAL") && !canSeeAnswers;
+      const prorrogaFeedback = "Plazo de prórroga vencido sin entrega de la actividad.";
+      const effectiveFeedback = shouldHideFeedback 
+        ? null 
+        : isProrrogaExpiredWithoutSubmission
+        ? ((sub.feedback && !sub.feedback.includes("Prórroga concedida") && !sub.feedback.includes("No asistió") && !sub.feedback.includes("plazo establecido")) ? sub.feedback : prorrogaFeedback)
+        : sub.feedback;
+
       const processedSub = {
         ...sub,
-        feedback: shouldHideFeedback ? null : sub.feedback
+        feedback: effectiveFeedback
       };
 
-      if (hasActiveExtension && (sub.grade === 1 || sub.grade === 1.0) && !hasUploadedFile) {
-        if (isClosed || isTimerExpired) {
-          return { ...processedSub, status: "GRADED", grade: 1.0, feedbackTemplate, task };
-        }
+      if (isProrrogaExpiredWithoutSubmission) {
+        return {
+          ...processedSub,
+          status: "GRADED",
+          grade: (sub.grade != null && sub.grade !== 1.0) ? sub.grade : 1.0,
+          feedbackTemplate,
+          task
+        };
+      }
+
+      if (hasActiveExtension && !isClosed && (sub.grade === 1 || sub.grade === 1.0) && !hasUploadedFile) {
         return null;
       }
 
+      const hasRealGrade = sub.grade !== null && sub.grade !== undefined && !(hasActiveExtension && (sub.grade === 1 || sub.grade === 1.0) && !hasUploadedFile);
+
       if (!isSubmitted && !hasRealGrade) {
         if (isClosed || isTimerExpired) {
-          return { ...processedSub, status: "GRADED", grade: 1.0, feedbackTemplate, task };
+          return {
+            ...processedSub,
+            status: "GRADED",
+            grade: 1.0,
+            feedback: shouldHideFeedback ? null : (sub.feedback || "Actividad no entregada dentro del plazo establecido."),
+            feedbackTemplate,
+            task
+          };
         }
         return null;
       }
 
       if (sub.status === "PENDING" && (isClosed || isTimerExpired)) {
-        return { ...processedSub, status: "GRADED", grade: 1.0, feedbackTemplate, task };
+        return {
+          ...processedSub,
+          status: "GRADED",
+          grade: 1.0,
+          feedback: shouldHideFeedback ? null : (sub.feedback || "Actividad no entregada dentro del plazo establecido."),
+          feedbackTemplate,
+          task
+        };
       }
 
       return {

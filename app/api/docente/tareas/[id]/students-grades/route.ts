@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import prisma from '@/lib/prisma';
+import { getTaskDeadlineStatus } from '@/lib/dateUtils';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
@@ -149,14 +150,68 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const submissionMap = new Map(task.submissions.map(s => [s.studentId, s]));
     const assignedIds = (task.assignedStudents || []).map(s => s.id);
 
-    const students = Array.from(studentMap.values()).map(s => {
-      let sub = submissionMap.get(s.id) ?? null;
+    const students = await Promise.all(Array.from(studentMap.values()).map(async s => {
+      let sub: any = submissionMap.get(s.id) ?? null;
       const hasProrroga = !!sub?.allowLateSubmission;
       const hasActualSubmission = !!sub && (sub.status === "SUBMITTED" || sub.status === "GRADED" || !!sub.fileUrl || (sub.fileUrls && (sub.fileUrls as any).length > 0));
       const isAssigned = assignedIds.includes(s.id) || hasProrroga || hasActualSubmission;
 
-      // If student has prórroga and residual automated 1.0 from inattendance without real submission, reset it
-      if (hasProrroga && sub && !sub.fileUrl && (sub.grade === 1 || sub.grade === 1.0) && sub.feedback?.includes("No asistió")) {
+      const taskInfo = {
+        dueDate: task.dueDate,
+        allowLateSubmission: task.allowLateSubmission,
+        lateSubmissionUntil: task.lateSubmissionUntil,
+        type: task.type,
+      };
+      const { isClosed, hasExtension } = getTaskDeadlineStatus(taskInfo, sub);
+      const isProrrogaExpiredWithoutSubmission = (hasExtension || hasProrroga) && isClosed && !hasActualSubmission;
+
+      if (isProrrogaExpiredWithoutSubmission) {
+        const feedbackText = (sub?.feedback && !sub.feedback.includes("Prórroga concedida") && !sub.feedback.includes("No asistió") && !sub.feedback.includes("plazo establecido")) 
+          ? sub.feedback 
+          : "Plazo de prórroga vencido sin entrega de la actividad.";
+        const targetGrade = (sub?.grade != null && sub.grade !== 1.0) ? sub.grade : 1.0;
+
+        if (!sub || sub.grade !== targetGrade || sub.status !== "OVERDUE" || sub.feedback !== feedbackText) {
+          try {
+            sub = await prisma.submission.upsert({
+              where: {
+                taskId_studentId: {
+                  taskId,
+                  studentId: s.id,
+                }
+              },
+              update: {
+                grade: targetGrade,
+                status: "OVERDUE",
+                feedback: feedbackText,
+              },
+              create: {
+                taskId,
+                studentId: s.id,
+                grade: targetGrade,
+                status: "OVERDUE",
+                feedback: feedbackText,
+                allowLateSubmission: sub?.allowLateSubmission ?? true,
+                lateSubmissionUntil: sub?.lateSubmissionUntil ?? null,
+              },
+              include: {
+                student: {
+                  select: { name: true }
+                }
+              }
+            });
+          } catch (e) {
+            console.error("Error upserting overdue prorroga submission:", e);
+            sub = {
+              ...(sub || {} as any),
+              grade: targetGrade,
+              status: "OVERDUE",
+              feedback: feedbackText,
+            };
+          }
+        }
+      } else if (hasProrroga && !isClosed && sub && !sub.fileUrl && (sub.grade === 1 || sub.grade === 1.0) && (sub.feedback?.includes("No asistió") || sub.feedback?.includes("plazo establecido") || sub.feedback?.includes("Plazo de prórroga vencido"))) {
+        // If student has active prórroga and residual automated 1.0, reset it so they can submit
         sub = {
           ...sub,
           grade: null,
@@ -171,7 +226,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
         isNotActivated: !isAssigned,
         submission: sub,
       };
-    });
+    }));
 
     return NextResponse.json({ 
       students, 

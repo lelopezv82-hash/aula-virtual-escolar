@@ -589,7 +589,11 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         for (const t of fTasks) {
           const sub = t.submissions.find(x => x.studentId === s.id);
           const hasProrroga = !!sub?.allowLateSubmission || !!t.allowLateSubmission;
-          const hasRealGrade = sub?.grade !== null && sub?.grade !== undefined && !(hasProrroga && sub?.grade === 1.0 && !(sub as any)?.fileUrl);
+          const { isClosed, hasExtension } = getTaskDeadlineStatus(t as any, sub as any);
+          const hasActualSubmission = !!sub && (!!(sub as any).fileUrl || sub.status === "SUBMITTED" || sub.status === "GRADED");
+          const isProrrogaExpiredWithoutSubmission = (hasExtension || hasProrroga) && isClosed && !hasActualSubmission;
+          const hasActiveProrroga = hasProrroga && !isClosed;
+          const hasRealGrade = sub?.grade !== null && sub?.grade !== undefined && !(hasActiveProrroga && sub?.grade === 1.0 && !hasActualSubmission);
           
           let defaultVal = "";
           // Check if student is assigned/activated for this task (prórroga grants active access)
@@ -597,15 +601,16 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
           if (!isStudentAssigned) {
             defaultVal = "1.0";
-          } else if (hasProrroga && (sub?.grade == null || sub?.grade === 1.0) && !(sub as any)?.fileUrl) {
+          } else if (isProrrogaExpiredWithoutSubmission) {
+            defaultVal = "1.0";
+          } else if (hasActiveProrroga && (sub?.grade == null || sub?.grade === 1.0) && !hasActualSubmission) {
             defaultVal = "";
           } else if (!t.isExternal) {
-            const { isClosed } = getTaskDeadlineStatus(t as any, sub as any);
             const isTimerExpired = sub?.startedAt && t.duration &&
               (new Date(sub.startedAt).getTime() + t.duration * 60 * 1000 + 30000 < now.getTime());
 
             if (t.type === "TASK" || t.type === "TASK_HACER" || t.type === "HACER" || t.type === "INTERACTIVE") {
-              const studentSubmitted = !!sub && ((sub as any).fileUrl || sub.status === "SUBMITTED" || sub.status === "GRADED" || sub.grade != null);
+              const studentSubmitted = hasActualSubmission || (sub?.grade != null && !isProrrogaExpiredWithoutSubmission);
               if (isClosed && !studentSubmitted) {
                 defaultVal = "1.0";
               }
@@ -1081,16 +1086,25 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           const sub = s.submission;
           // A student is truly submitted only if they uploaded a file or their status is SUBMITTED.
           // "GRADED" alone (no fileUrl) means the docente assigned a grade without an actual delivery.
-          const hasActualSubmission = !!sub && (sub.status === "SUBMITTED" || !!sub.fileUrl);
-          const { isClosed } = getTaskDeadlineStatus(taskInfo, sub);
+          const hasActualSubmission = !!sub && (
+            sub.status === "SUBMITTED" || 
+            !!sub.fileUrl ||
+            (Array.isArray(sub.fileUrls) && sub.fileUrls.length > 0)
+          );
+          const { isClosed, hasExtension } = getTaskDeadlineStatus(taskInfo, sub);
+          const hasProrroga = !!sub?.allowLateSubmission || !!data.allowLateSubmission;
+          const isProrrogaExpiredWithoutSubmission = (hasExtension || hasProrroga) && isClosed && !hasActualSubmission;
           const isOverdueWithoutSubmission = !(data.isExternal ?? (task as any).isExternal) && isClosed && !hasActualSubmission;
 
-          const hasProrroga = !!sub?.allowLateSubmission || !!data.allowLateSubmission;
-
-          if (hasProrroga) {
+          if (isProrrogaExpiredWithoutSubmission) {
+            inputs[s.id] = (sub?.grade != null && sub.grade !== 1.0) ? String(sub.grade) : "1.0";
+            fInputs[s.id] = (sub?.feedback && !sub.feedback.includes("Prórroga concedida") && !sub.feedback.includes("No asistió") && !sub.feedback.includes("plazo establecido")) 
+              ? sub.feedback 
+              : "Plazo de prórroga vencido sin entrega de la actividad.";
+          } else if (hasProrroga && !isClosed) {
             const isAutoInattendanceOne = sub?.grade === 1.0 && sub?.feedback?.includes("No asistió");
             inputs[s.id] = (sub?.grade != null && !isAutoInattendanceOne) ? String(sub.grade) : "";
-            fInputs[s.id] = (sub?.feedback && !sub.feedback.includes("No asistió") && !sub.feedback.includes("plazo establecido")) 
+            fInputs[s.id] = (sub?.feedback && !sub.feedback.includes("No asistió") && !sub.feedback.includes("plazo establecido") && !sub.feedback.includes("Plazo de prórroga vencido")) 
               ? sub.feedback 
               : "Prórroga concedida por el docente.";
           } else if (sub?.grade != null) {
@@ -2699,6 +2713,13 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       ? `Grupo ${activeGroupName}`
       : "";
 
+    const taskInfo = {
+      dueDate: gradingTask.dueDate || new Date().toISOString(),
+      allowLateSubmission: Boolean(gradingTask.allowLateSubmission),
+      lateSubmissionUntil: gradingTask.lateSubmissionUntil ?? null,
+      type: gradingTask.type || "TASK",
+    };
+
     const allFilteredSelected = filteredStudents.length > 0 && filteredStudents.every(s => selectedStudentIds.includes(s.id));
 
     return (
@@ -2989,7 +3010,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                       !!sub.fileUrl || 
                       (Array.isArray(sub.fileUrls) && sub.fileUrls.length > 0)
                     );
+                    const { isClosed, hasExtension } = getTaskDeadlineStatus(taskInfo, sub as any);
                     const hasProrroga = !!sub?.allowLateSubmission;
+                    const isProrrogaExpired = (hasExtension || hasProrroga) && isClosed && !hasActualSubmission;
+                    const hasActiveProrroga = hasProrroga && !isClosed;
 
                     // Estudiante con nota 1.0 por falta de entrega
                     const isMissingSubmission1 = (
@@ -2997,14 +3021,15 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                       !hasActualSubmission &&
                       (
                         sub?.status === "OVERDUE" ||
-                        (feedbackInputs[student.id] && feedbackInputs[student.id].toLowerCase().includes("plazo establecido")) ||
-                        (sub?.feedback && sub.feedback.toLowerCase().includes("plazo establecido")) ||
+                        isProrrogaExpired ||
+                        (feedbackInputs[student.id] && (feedbackInputs[student.id].toLowerCase().includes("plazo establecido") || feedbackInputs[student.id].toLowerCase().includes("prórroga vencido"))) ||
+                        (sub?.feedback && (sub.feedback.toLowerCase().includes("plazo establecido") || sub.feedback.toLowerCase().includes("prórroga vencido"))) ||
                         (!sub?.submittedAt && !sub?.fileUrl && numGrade === 1.0)
                       )
                     );
 
-                    // La nota está bloqueada si tiene 1.0 por falta de entrega Y no tiene prórroga concedida
-                    const isGradeLocked = isMissingSubmission1 && !hasProrroga;
+                    // La nota está bloqueada si tiene 1.0 por falta de entrega Y no tiene prórroga activa
+                    const isGradeLocked = isMissingSubmission1 && !hasActiveProrroga;
 
                     return (
                       <tr
@@ -3053,17 +3078,35 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                         <td className="py-3.5 px-4">
                           <div className="flex flex-col gap-1 items-start">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              {statusBadge(student.submission)}
-                              {student.submission?.allowLateSubmission && (
-                                <span
-                                  className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shadow-2xs"
-                                  title={student.submission.lateSubmissionUntil ? `Prórroga activa hasta: ${new Date(student.submission.lateSubmissionUntil).toLocaleString('es-CO')}` : "Prórroga activa sin fecha límite"}
-                                >
-                                  <Clock size={10} className="text-amber-600" />
-                                  {student.submission.lateSubmissionUntil 
-                                    ? `Prórroga: ${new Date(student.submission.lateSubmissionUntil).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}`
-                                    : "Prórroga sin límite"}
+                              {isProrrogaExpired ? (
+                                <span className="badge badge-danger flex items-center gap-1">
+                                  <AlertCircle size={10} /> Plazo vencido
                                 </span>
+                              ) : (
+                                statusBadge(student.submission)
+                              )}
+                              {student.submission?.allowLateSubmission && (
+                                isProrrogaExpired ? (
+                                  <span
+                                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 shadow-2xs"
+                                    title={student.submission.lateSubmissionUntil ? `Prórroga vencida el: ${new Date(student.submission.lateSubmissionUntil).toLocaleString('es-CO')}` : "Prórroga vencida"}
+                                  >
+                                    <Clock size={10} className="text-rose-600 dark:text-rose-400" />
+                                    {student.submission.lateSubmissionUntil 
+                                      ? `Prórroga Vencida: ${new Date(student.submission.lateSubmissionUntil).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}`
+                                      : "Prórroga Vencida"}
+                                  </span>
+                                ) : (
+                                  <span
+                                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shadow-2xs"
+                                    title={student.submission.lateSubmissionUntil ? `Prórroga activa hasta: ${new Date(student.submission.lateSubmissionUntil).toLocaleString('es-CO')}` : "Prórroga activa sin fecha límite"}
+                                  >
+                                    <Clock size={10} className="text-amber-600" />
+                                    {student.submission.lateSubmissionUntil 
+                                      ? `Prórroga: ${new Date(student.submission.lateSubmissionUntil).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}`
+                                      : "Prórroga sin límite"}
+                                  </span>
+                                )
                               )}
                             </div>
 
@@ -3077,7 +3120,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                                   title="Abrir configuración de prórroga para este estudiante"
                                 >
                                   <Calendar size={11} className="text-[#f98012]" />
-                                  <span>{student.submission?.allowLateSubmission ? "Modificar Prórroga" : "Dar Prórroga"}</span>
+                                  <span>{isProrrogaExpired ? "Renovar Prórroga" : (student.submission?.allowLateSubmission ? "Modificar Prórroga" : "Dar Prórroga")}</span>
                                 </button>
                               </div>
                             )}

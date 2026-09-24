@@ -287,24 +287,36 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
           const sub = s.submission;
           // Only treat as submitted if there's an actual file or explicit SUBMITTED status.
           // GRADED alone (no fileUrl) = docente graded without student delivering anything.
-          const hasActualSubmission = !!sub && (sub.status === "SUBMITTED" || !!(sub as any).fileUrl);
-          const { isClosed } = getTaskDeadlineStatus(taskInfo, sub as any);
+          const hasActualSubmission = !!sub && (
+            sub.status === "SUBMITTED" || 
+            !!(sub as any).fileUrl ||
+            (Array.isArray((sub as any).fileUrls) && (sub as any).fileUrls.length > 0)
+          );
+          const { isClosed, hasExtension } = getTaskDeadlineStatus(taskInfo, sub as any);
+          const hasProrroga = !!(sub as any)?.allowLateSubmission || !!data.allowLateSubmission;
+          const isProrrogaExpiredWithoutSubmission = (hasExtension || hasProrroga) && isClosed && !hasActualSubmission;
           const isOverdueWithoutSubmission = !data.isExternal && isClosed && !hasActualSubmission;
 
-          if (sub?.grade != null) {
+          if (isProrrogaExpiredWithoutSubmission) {
+            inputs[s.id] = (sub?.grade != null && sub.grade !== 1.0) ? String(sub.grade) : "1.0";
+            fInputs[s.id] = (sub?.feedback && !sub.feedback.includes("Prórroga concedida") && !sub.feedback.includes("No asistió") && !sub.feedback.includes("plazo establecido"))
+              ? sub.feedback
+              : "Plazo de prórroga vencido sin entrega de la actividad.";
+          } else if (hasProrroga && !isClosed) {
+            const isAutoInattendanceOne = sub?.grade === 1.0 && sub?.feedback?.includes("No asistió");
+            inputs[s.id] = (sub?.grade != null && !isAutoInattendanceOne) ? String(sub.grade) : "";
+            fInputs[s.id] = (sub?.feedback && !sub.feedback.includes("No asistió") && !sub.feedback.includes("plazo establecido") && !sub.feedback.includes("Plazo de prórroga vencido")) 
+              ? sub.feedback 
+              : "Prórroga concedida por el docente.";
+          } else if (sub?.grade != null) {
             inputs[s.id] = String(sub.grade);
+            fInputs[s.id] = sub?.feedback || "";
           } else if (isOverdueWithoutSubmission) {
             inputs[s.id] = "1.0";
-          } else {
-            inputs[s.id] = "";
-          }
-
-          if (sub?.feedback) {
-            fInputs[s.id] = sub.feedback;
-          } else if (isOverdueWithoutSubmission) {
             fInputs[s.id] = "Actividad no entregada dentro del plazo establecido.";
           } else {
-            fInputs[s.id] = "";
+            inputs[s.id] = "";
+            fInputs[s.id] = sub?.feedback || "";
           }
         });
         setGradeInputs(inputs);
@@ -528,6 +540,13 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
       : activeGroupObj?.name
       ? `Grupo ${activeGroupObj.name}`
       : "";
+
+    const taskInfo = {
+      dueDate: gradingTask.dueDate,
+      allowLateSubmission: Boolean((gradingTask as any).allowLateSubmission),
+      lateSubmissionUntil: (gradingTask as any).lateSubmissionUntil ?? null,
+      type: gradingTask.type || "TASK",
+    };
 
     return (
       <div className="flex flex-col gap-4 animate-fade-in" style={{ height: 'calc(100vh - 60px - 4rem)', minHeight: '580px' }}>
@@ -771,8 +790,15 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                     const hasValidGrade = !isNaN(numGrade) && numGrade >= 1.0 && numGrade <= 5.0;
 
                     const sub = student.submission;
-                    const hasActualSubmission = !!sub && (sub.status === "SUBMITTED" || !!(sub as any).fileUrl);
+                    const hasActualSubmission = !!sub && (
+                      sub.status === "SUBMITTED" || 
+                      !!(sub as any).fileUrl ||
+                      (Array.isArray((sub as any).fileUrls) && (sub as any).fileUrls.length > 0)
+                    );
+                    const { isClosed, hasExtension } = getTaskDeadlineStatus(taskInfo, sub as any);
                     const hasProrroga = !!(sub as any)?.allowLateSubmission;
+                    const isProrrogaExpired = (hasExtension || hasProrroga) && isClosed && !hasActualSubmission;
+                    const hasActiveProrroga = hasProrroga && !isClosed;
 
                     // Estudiante con nota 1.0 por falta de entrega
                     const isMissingSubmission1 = (
@@ -780,14 +806,15 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                       !hasActualSubmission &&
                       (
                         sub?.status === "OVERDUE" ||
-                        (feedbackInputs[student.id] && feedbackInputs[student.id].toLowerCase().includes("plazo establecido")) ||
-                        (sub?.feedback && sub.feedback.toLowerCase().includes("plazo establecido")) ||
+                        isProrrogaExpired ||
+                        (feedbackInputs[student.id] && (feedbackInputs[student.id].toLowerCase().includes("plazo establecido") || feedbackInputs[student.id].toLowerCase().includes("prórroga vencido"))) ||
+                        (sub?.feedback && (sub.feedback.toLowerCase().includes("plazo establecido") || sub.feedback.toLowerCase().includes("prórroga vencido"))) ||
                         (!(sub as any)?.submittedAt && !(sub as any)?.fileUrl && numGrade === 1.0)
                       )
                     );
 
-                    // La nota está bloqueada si tiene 1.0 por falta de entrega Y no tiene prórroga concedida
-                    const isGradeLocked = isMissingSubmission1 && !hasProrroga;
+                    // La nota está bloqueada si tiene 1.0 por falta de entrega Y no tiene prórroga activa
+                    const isGradeLocked = isMissingSubmission1 && !hasActiveProrroga;
 
                     return (
                       <tr
@@ -831,7 +858,38 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                         {/* Submission status & attachments */}
                         <td className="py-3.5 px-4">
                           <div className="flex flex-col gap-1 items-start">
-                            <div>{statusBadge(student.submission)}</div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {isProrrogaExpired ? (
+                                <span className="badge badge-danger flex items-center gap-1">
+                                  <AlertCircle size={10} /> Plazo vencido
+                                </span>
+                              ) : (
+                                statusBadge(student.submission)
+                              )}
+                              {(student.submission as any)?.allowLateSubmission && (
+                                isProrrogaExpired ? (
+                                  <span
+                                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 shadow-2xs"
+                                    title={(student.submission as any).lateSubmissionUntil ? `Prórroga vencida el: ${new Date((student.submission as any).lateSubmissionUntil).toLocaleString('es-CO')}` : "Prórroga vencida"}
+                                  >
+                                    <Clock size={10} className="text-rose-600 dark:text-rose-400" />
+                                    {(student.submission as any).lateSubmissionUntil 
+                                      ? `Prórroga Vencida: ${new Date((student.submission as any).lateSubmissionUntil).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}`
+                                      : "Prórroga Vencida"}
+                                  </span>
+                                ) : (
+                                  <span
+                                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shadow-2xs"
+                                    title={(student.submission as any).lateSubmissionUntil ? `Prórroga activa hasta: ${new Date((student.submission as any).lateSubmissionUntil).toLocaleString('es-CO')}` : "Prórroga activa sin fecha límite"}
+                                  >
+                                    <Clock size={10} className="text-amber-600" />
+                                    {(student.submission as any).lateSubmissionUntil 
+                                      ? `Prórroga: ${new Date((student.submission as any).lateSubmissionUntil).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}`
+                                      : "Prórroga sin límite"}
+                                  </span>
+                                )
+                              )}
+                            </div>
                             {student.submission?.submittedAt && (
                               <div className="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">
                                 <Clock size={11} className="text-[#f97316]" />
