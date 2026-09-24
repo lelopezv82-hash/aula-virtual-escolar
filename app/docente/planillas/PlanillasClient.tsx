@@ -597,7 +597,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
           
           let defaultVal = "";
           // Check if student is assigned/activated for this task (prórroga grants active access)
-          const isStudentAssigned = (t.assignedStudents ? t.assignedStudents.some(as => as.id === s.id) : false) || hasProrroga;
+          const isRestricted = Boolean(t.assignedStudents && t.assignedStudents.length > 0);
+          const isStudentAssigned = !isRestricted || t.assignedStudents!.some(as => as.id === s.id) || hasProrroga;
 
           if (!isStudentAssigned) {
             defaultVal = "1.0";
@@ -609,13 +610,14 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             const isTimerExpired = sub?.startedAt && t.duration &&
               (new Date(sub.startedAt).getTime() + t.duration * 60 * 1000 + 30000 < now.getTime());
 
-            if (t.type === "TASK" || t.type === "TASK_HACER" || t.type === "HACER" || t.type === "INTERACTIVE") {
-              const studentSubmitted = hasActualSubmission || (sub?.grade != null && !isProrrogaExpiredWithoutSubmission);
-              if (isClosed && !studentSubmitted) {
+            if (t.type === "EXAM" || t.type === "FINAL") {
+              const examSubmitted = (sub?.grade != null && !isProrrogaExpiredWithoutSubmission) || sub?.status === "SUBMITTED" || sub?.status === "GRADED";
+              if ((isClosed || isTimerExpired) && !examSubmitted) {
                 defaultVal = "1.0";
               }
-            } else if (t.type === "EXAM" || t.type === "FINAL") {
-              if (isClosed || isTimerExpired) {
+            } else {
+              const studentSubmitted = hasActualSubmission || (sub?.grade != null && !isProrrogaExpiredWithoutSubmission);
+              if (isClosed && !studentSubmitted) {
                 defaultVal = "1.0";
               }
             }

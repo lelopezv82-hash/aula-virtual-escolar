@@ -149,12 +149,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
     const submissionMap = new Map(task.submissions.map(s => [s.studentId, s]));
     const assignedIds = (task.assignedStudents || []).map(s => s.id);
+    const isTaskRestricted = assignedIds.length > 0;
 
     const students = await Promise.all(Array.from(studentMap.values()).map(async s => {
       let sub: any = submissionMap.get(s.id) ?? null;
       const hasProrroga = !!sub?.allowLateSubmission;
       const hasActualSubmission = !!sub && (sub.status === "SUBMITTED" || sub.status === "GRADED" || !!sub.fileUrl || (sub.fileUrls && (sub.fileUrls as any).length > 0));
-      const isAssigned = assignedIds.includes(s.id) || hasProrroga || hasActualSubmission;
+      const isAssigned = !isTaskRestricted || assignedIds.includes(s.id) || hasProrroga || hasActualSubmission;
 
       const taskInfo = {
         dueDate: task.dueDate,
@@ -164,11 +165,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       };
       const { isClosed, hasExtension } = getTaskDeadlineStatus(taskInfo, sub);
       const isProrrogaExpiredWithoutSubmission = (hasExtension || hasProrroga) && isClosed && !hasActualSubmission;
+      const hasActiveProrroga = hasProrroga && !isClosed;
+      const isOverdueWithoutSubmission = !task.isExternal && isClosed && !hasActualSubmission && !hasActiveProrroga;
 
-      if (isProrrogaExpiredWithoutSubmission) {
-        const feedbackText = (sub?.feedback && !sub.feedback.includes("Prórroga concedida") && !sub.feedback.includes("No asistió") && !sub.feedback.includes("plazo establecido")) 
-          ? sub.feedback 
-          : "Plazo de prórroga vencido sin entrega de la actividad.";
+      if (isProrrogaExpiredWithoutSubmission || isOverdueWithoutSubmission) {
+        const feedbackText = isProrrogaExpiredWithoutSubmission
+          ? ((sub?.feedback && !sub.feedback.includes("Prórroga concedida") && !sub.feedback.includes("No asistió") && !sub.feedback.includes("plazo establecido")) 
+              ? sub.feedback 
+              : "Plazo de prórroga vencido sin entrega de la actividad.")
+          : "Actividad no entregada dentro del plazo establecido.";
         const targetGrade = (sub?.grade != null && sub.grade !== 1.0) ? sub.grade : 1.0;
 
         if (!sub || sub.grade !== targetGrade || sub.status !== "OVERDUE" || sub.feedback !== feedbackText) {
