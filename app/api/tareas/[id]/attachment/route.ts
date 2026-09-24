@@ -47,17 +47,28 @@ export async function GET(
       where: { id: taskId },
       select: {
         attachmentUrl: true,
+        interactiveUrl: true,
+        type: true,
         gdriveEmail: true,
         title: true,
         course: { select: { teacherId: true } },
       },
     });
 
-    if (!task || !task.attachmentUrl) {
-      return NextResponse.json({ error: 'Archivo no encontrado' }, { status: 404 });
+    if (!task) {
+      return NextResponse.json({ error: 'Tarea no encontrada' }, { status: 404 });
     }
 
-    const url = task.attachmentUrl;
+    const { searchParams } = new URL(request.url);
+    const target = searchParams.get('target');
+
+    const url = (target === 'interactive' || (task.type === 'INTERACTIVE' && target !== 'guide'))
+      ? (task.interactiveUrl || task.attachmentUrl)
+      : task.attachmentUrl;
+
+    if (!url) {
+      return NextResponse.json({ error: 'Archivo no encontrado' }, { status: 404 });
+    }
 
     // --- Non-Drive URL ---
     if (!isGoogleDriveUrl(url)) {

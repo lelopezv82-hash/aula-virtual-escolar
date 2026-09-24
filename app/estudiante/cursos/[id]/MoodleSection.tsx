@@ -30,6 +30,7 @@ export type MoodleTask = {
   grade: number | null;
   createdAt: string;
   attachmentUrl: string | null;
+  interactiveUrl?: string | null;
   isExternal?: boolean;
   resources: { id: string; title: string; type: string; url: string }[];
 };
@@ -401,30 +402,39 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                     </div>
 
                     {/* Nested Assigned Resources under Task */}
-                    {((item.type !== "INTERACTIVE" && item.attachmentUrl) || (item.resources && item.resources.length > 0)) && (
-                      <div style={{
-                        marginLeft: "2.5rem",
-                        marginTop: "0.4rem",
-                        padding: "0.4rem 0.75rem",
-                        background: "#f8f9fa",
-                        borderRadius: "4px",
-                        border: "1px solid #dee2e6",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "0.4rem"
-                      }}>
-                        <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#6c757d", marginBottom: "0.1rem" }}>
-                          Material adjunto de la tarea:
-                        </div>
-                        {item.type !== "INTERACTIVE" && item.attachmentUrl && (
-                          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                            <ResourceIcon type={item.attachmentUrl.split('.').pop() || "FILE"} />
-                            <a href={`/api/tareas/${item.id}/attachment`} target="_blank" rel="noreferrer" style={{ fontSize: "0.85rem", color: "#0066cc", textDecoration: "none" }}>
-                              Descargar Guía de la Tarea
-                            </a>
+                    {(() => {
+                      const itemHasGuide = Boolean(
+                        item.attachmentUrl &&
+                        !item.attachmentUrl.toLowerCase().endsWith(".html") &&
+                        !item.attachmentUrl.toLowerCase().endsWith(".htm")
+                      );
+                      const hasResources = Boolean(item.resources && item.resources.length > 0);
+                      if (!itemHasGuide && !hasResources) return null;
+
+                      return (
+                        <div style={{
+                          marginLeft: "2.5rem",
+                          marginTop: "0.4rem",
+                          padding: "0.4rem 0.75rem",
+                          background: "#f8f9fa",
+                          borderRadius: "4px",
+                          border: "1px solid #dee2e6",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "0.4rem"
+                        }}>
+                          <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#6c757d", marginBottom: "0.1rem" }}>
+                            Material adjunto de la tarea:
                           </div>
-                        )}
-                        {item.resources?.map(res => {
+                          {itemHasGuide && item.attachmentUrl && (
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                              <ResourceIcon type={item.attachmentUrl.split('.').pop() || "FILE"} />
+                              <a href={`/api/tareas/${item.id}/attachment?target=guide`} target="_blank" rel="noreferrer" style={{ fontSize: "0.85rem", color: "#0066cc", textDecoration: "none" }}>
+                                Descargar Guía de la Tarea
+                              </a>
+                            </div>
+                          )}
+                          {item.resources?.map(res => {
                           const isLink = res.type?.toUpperCase() === "LINK" || res.type?.toUpperCase() === "ENLACE";
                           return (
                             <div key={res.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
@@ -439,7 +449,8 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                           );
                         })}
                       </div>
-                    )}
+                    );
+                  })()}
                   </div>
                 );
               }

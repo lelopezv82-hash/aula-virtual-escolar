@@ -28,6 +28,9 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
   const [file, setFile] = useState<File | null>(null);
   const [existingAttachment, setExistingAttachment] = useState<string | null>(null);
   const [removeExistingAttachment, setRemoveExistingAttachment] = useState(false);
+  const [interactiveFile, setInteractiveFile] = useState<File | null>(null);
+  const [existingInteractiveUrl, setExistingInteractiveUrl] = useState<string | null>(null);
+  const [removeExistingInteractive, setRemoveExistingInteractive] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState("");
@@ -106,6 +109,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
           setRequiresFolder(data.task.requiresFolder || false);
           setDueDate(toColombiaISOString(data.task.dueDate));
           setExistingAttachment(data.task.attachmentUrl || null);
+          setExistingInteractiveUrl(data.task.interactiveUrl || null);
           if (data.task.attachmentUrl) setExternalUrl(data.task.attachmentUrl);
           setCourseId(data.task.courseId || "");
           setSelectedResourceIds(data.task.resources ? data.task.resources.map((r: any) => r.id) : []);
@@ -169,6 +173,12 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
     }
     if (file) {
       formData.append("file", file);
+    }
+    if (removeExistingInteractive && !interactiveFile) {
+      formData.append("removeInteractive", "true");
+    }
+    if (interactiveFile) {
+      formData.append("interactiveFile", interactiveFile);
     }
 
     try {
@@ -486,11 +496,11 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
             </p>
             <div className="text-xs text-purple-900 bg-purple-100/70 p-2.5 rounded-lg border border-purple-200 flex items-center gap-2 mt-1">
               <span>📁</span>
-              <span>Adjunta tu archivo <strong>.html</strong> interactivo (ej. creado en Gemini Canvas) en la sección de archivo adjunto más abajo.</span>
+              <span>Puedes subir el archivo <strong>.html interactivo</strong> y también una <strong>guía de apoyo (PDF, DOCX)</strong> por separado más abajo.</span>
             </div>
-            {existingAttachment && (
+            {existingInteractiveUrl && (
               <p className="text-xs text-purple-800 break-all bg-purple-100/60 p-2 rounded">
-                Archivo o enlace actual: <strong>{existingAttachment}</strong>
+                Archivo HTML interactivo actual: <strong>{existingInteractiveUrl}</strong>
               </p>
             )}
           </div>
@@ -569,10 +579,70 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
 
+        {/* Archivo HTML Interactivo */}
+        {type === "INTERACTIVE" && (
+          <div className="input-group p-4 bg-purple-50/70 border border-purple-200 rounded-xl space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-bold text-purple-900">
+                🎮 Archivo HTML Interactivo (.html) *
+              </label>
+            </div>
+            <p className="text-xs text-purple-700">
+              Sube o reemplaza el juego / simulación interactiva con autocalificación.
+            </p>
+
+            {existingInteractiveUrl && !removeExistingInteractive && (
+              <div className="p-3 border border-purple-200 rounded-md flex items-center justify-between gap-3 bg-white">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-purple-600 font-medium">Archivo interactivo actual:</p>
+                  <a href={existingInteractiveUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold hover:underline block truncate text-purple-700">
+                    {existingInteractiveUrl.split('/').pop()}
+                  </a>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setRemoveExistingInteractive(true)}
+                  className="text-xs font-bold text-red-500 hover:text-red-700 hover:underline shrink-0"
+                >
+                  Eliminar HTML
+                </button>
+              </div>
+            )}
+
+            {existingInteractiveUrl && removeExistingInteractive && (
+              <div className="p-3 border border-red-200 rounded-md flex items-center justify-between bg-red-50/50 text-red-600 text-xs">
+                <span>🗑️ El archivo HTML interactivo se eliminará al guardar cambios</span>
+                <button
+                  type="button"
+                  onClick={() => setRemoveExistingInteractive(false)}
+                  className="font-bold underline ml-2 hover:opacity-80"
+                >
+                  Deshacer
+                </button>
+              </div>
+            )}
+
+            <label htmlFor="interactive-file" style={{ display: "block", border: "2px dashed #a855f7", borderRadius: "var(--radius-md)", padding: "1.25rem", textAlign: "center", cursor: "pointer", transition: "border-color 0.2s", background: "white" }}
+              onMouseEnter={e => (e.currentTarget.style.borderColor = "#7e22ce")}
+              onMouseLeave={e => (e.currentTarget.style.borderColor = "#a855f7")}>
+              <UploadCloud size={28} className="mx-auto mb-1 text-purple-600" />
+              <p className="text-sm font-semibold text-purple-900">{interactiveFile ? interactiveFile.name : (existingInteractiveUrl && !removeExistingInteractive ? "Haz clic para reemplazar el archivo .html" : "Haz clic para seleccionar el archivo .html")}</p>
+              <p className="text-xs text-purple-600 mt-0.5">Solo archivos con extensión .html o .htm</p>
+              <input id="interactive-file" type="file" accept=".html,.htm" className="hidden" onChange={e => {
+                setInteractiveFile(e.target.files?.[0] || null);
+                if (e.target.files?.[0]) setRemoveExistingInteractive(false);
+              }} />
+            </label>
+          </div>
+        )}
+
+        {/* Guía o Archivo Adjunto */}
         {existingAttachment && !removeExistingAttachment && (
           <div className="p-3 border rounded-md flex items-center justify-between gap-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
             <div className="min-w-0 flex-1">
-              <p className="text-xs text-muted">Archivo adjunto actual:</p>
+              <p className="text-xs text-muted">
+                {type === "INTERACTIVE" ? "Guía de apoyo actual:" : "Archivo adjunto actual:"}
+              </p>
               <a href={existingAttachment} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold hover:underline block truncate" style={{ color: 'var(--primary-color)' }}>
                 {existingAttachment.split('/').pop()}
               </a>
@@ -601,14 +671,19 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
         )}
 
         <div className="input-group">
-          <label className="block text-sm font-medium mb-2">Reemplazar / Añadir Archivo (Opcional)</label>
+          <label className="block text-sm font-medium mb-2">
+            {type === "INTERACTIVE" ? "Reemplazar / Añadir Guía de Apoyo (Opcional - PDF, DOCX, etc.)" : "Reemplazar / Añadir Archivo (Opcional)"}
+          </label>
           <label htmlFor="task-file" style={{ display: "block", border: "2px dashed var(--border-color)", borderRadius: "var(--radius-md)", padding: "1.5rem", textAlign: "center", cursor: "pointer", transition: "border-color 0.2s" }}
             onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--primary-color)")}
             onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border-color)")}>
             <UploadCloud size={32} className="mx-auto mb-2" style={{ color: "var(--primary-color)" }} />
-            <p className="text-sm font-medium">{file ? file.name : "Haz clic para seleccionar un nuevo archivo"}</p>
+            <p className="text-sm font-medium">{file ? file.name : (type === "INTERACTIVE" ? "Haz clic para seleccionar la guía de apoyo (Opcional)" : "Haz clic para seleccionar un nuevo archivo")}</p>
             <p className="text-xs text-muted mt-1">PDF, Word, Excel, presentaciones o imágenes</p>
-            <input id="task-file" type="file" className="hidden" onChange={e => setFile(e.target.files?.[0] || null)} />
+            <input id="task-file" type="file" className="hidden" onChange={e => {
+              setFile(e.target.files?.[0] || null);
+              if (e.target.files?.[0]) setRemoveExistingAttachment(false);
+            }} />
           </label>
         </div>
 

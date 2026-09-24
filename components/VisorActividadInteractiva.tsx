@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, Maximize2, Minimize2, CheckCircle2, Trophy, Sparkles, RefreshCw, AlertCircle } from "lucide-react";
+import { ArrowLeft, Maximize2, Minimize2, CheckCircle2, Trophy, Sparkles, RefreshCw, AlertCircle, FileText } from "lucide-react";
 
 interface VisorActividadInteractivaProps {
   task: {
@@ -10,6 +10,7 @@ interface VisorActividadInteractivaProps {
     title: string;
     description?: string | null;
     attachmentUrl?: string | null;
+    interactiveUrl?: string | null;
     courseId: string;
     dueDate?: string;
   };
@@ -40,16 +41,27 @@ export default function VisorActividadInteractiva({
 
   // Determinar URL de la actividad
   let activityUrl = "/activities/excel_escape.html";
+  const rawInteractive = task.interactiveUrl || (task.attachmentUrl && (task.attachmentUrl.includes(".html") || task.attachmentUrl.includes("/activities/")) ? task.attachmentUrl : null);
 
-  if (task.attachmentUrl && task.attachmentUrl.trim() !== "") {
-    if (task.attachmentUrl.startsWith("/")) {
-      activityUrl = task.attachmentUrl;
+  if (rawInteractive && rawInteractive.trim() !== "") {
+    if (rawInteractive.startsWith("/")) {
+      activityUrl = rawInteractive;
     } else {
       // Usar proxy interno de la plataforma para servir el archivo directamente como HTML ejecutable,
       // evitando bloqueos de permisos de Google Drive o visores externos.
-      activityUrl = `/api/tareas/${task.id}/attachment`;
+      activityUrl = `/api/tareas/${task.id}/attachment?target=interactive`;
     }
   }
+
+  // Guía de apoyo opcional (si attachmentUrl existe y no es el mismo archivo HTML interactivo)
+  const hasGuide = Boolean(
+    task.attachmentUrl &&
+    task.attachmentUrl !== rawInteractive &&
+    !task.attachmentUrl.endsWith(".html") &&
+    !task.attachmentUrl.endsWith(".htm") &&
+    !task.attachmentUrl.includes("/activities/")
+  );
+  const guideUrl = hasGuide ? `/api/tareas/${task.id}/attachment?target=guide` : null;
 
   // Manejar pantalla completa
   const toggleFullscreen = () => {
@@ -180,6 +192,21 @@ export default function VisorActividadInteractiva({
               <span className="text-[10px] text-emerald-200">/ 5.0</span>
             </div>
           </div>
+
+          {/* Botón Descargar Guía si existe */}
+          {guideUrl && (
+            <a
+              href={guideUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              download
+              className="flex items-center gap-1.5 text-xs font-bold text-orange-200 hover:text-white bg-orange-600/80 hover:bg-orange-600 px-3 py-1.5 rounded-xl transition-all shadow-sm border border-orange-400/30"
+              title="Descargar Guía de Apoyo de la Actividad"
+            >
+              <FileText size={15} />
+              <span className="hidden sm:inline">Descargar Guía</span>
+            </a>
+          )}
 
           {/* Botón Pantalla Completa */}
           <button

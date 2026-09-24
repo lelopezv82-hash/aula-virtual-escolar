@@ -204,13 +204,25 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     const removeAttachmentRaw = formData.get('removeAttachment') as string | null;
     const removeAttachment = removeAttachmentRaw === 'true';
+    const removeInteractiveRaw = formData.get('removeInteractive') as string | null;
+    const removeInteractive = removeInteractiveRaw === 'true';
+    const interactiveUrlRaw = formData.get('interactiveUrl') as string | null;
+    const interactiveFile = formData.get('interactiveFile') as File | null;
 
     let attachmentUrl = task.attachmentUrl;
+    let interactiveUrl = task.interactiveUrl;
     let gdriveEmail: string | null = task.gdriveEmail;
 
     if (removeAttachment) {
       attachmentUrl = null;
-      gdriveEmail = null;
+    }
+
+    if (removeInteractive) {
+      interactiveUrl = null;
+    }
+
+    if (interactiveUrlRaw !== null && interactiveUrlRaw !== undefined && interactiveUrlRaw.trim() !== "") {
+      interactiveUrl = interactiveUrlRaw.trim();
     }
 
     if (externalUrl !== null && externalUrl !== undefined && externalUrl.trim() !== "") {
@@ -265,6 +277,52 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       }
     }
 
+    if (interactiveFile && interactiveFile.size > 0) {
+      const bytes = await interactiveFile.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+
+      const gAccessToken = await getGoogleAccessToken(payload.id as string);
+      if (gAccessToken) {
+        try {
+          const selectedGroups = await prisma.gradeGroup.findMany({
+            where: { id: { in: groupIds } },
+            include: { grade: true }
+          });
+          const gradeName = selectedGroups[0]?.grade?.name || "Sin Grado";
+          const groupName = selectedGroups[0]?.name || "Sin Grupo";
+          const folderPath = `${period}/${task.course.name}/${gradeName}/${groupName}/Tareas/${title}`;
+          const uploadResult = await uploadToGoogleDrive(buffer, interactiveFile.name, interactiveFile.type || "text/html", payload.id as string, folderPath);
+          interactiveUrl = uploadResult.url;
+          if (!gdriveEmail) gdriveEmail = uploadResult.email;
+        } catch (driveError) {
+          console.error("Google Drive task interactive upload error, falling back to Supabase:", driveError);
+        }
+      }
+
+      if (interactiveUrl === task.interactiveUrl) {
+        const safeFilename = interactiveFile.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        const uniqueFilename = `interactivas/${task.courseId}_${Date.now()}_${safeFilename}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('aula-virtual')
+          .upload(uniqueFilename, buffer, {
+            contentType: interactiveFile.type || 'text/html',
+            duplex: 'half'
+          });
+
+        if (uploadError) {
+          console.error("Supabase interactive upload error:", uploadError);
+          return NextResponse.json({ error: 'Error al subir el archivo interactivo HTML' }, { status: 500 });
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('aula-virtual')
+          .getPublicUrl(uniqueFilename);
+
+        interactiveUrl = publicUrl;
+      }
+    }
+
     const parsedDueDate = dueDate && dueDate.trim() !== ""
       ? (fromColombiaLocalStringToDate(dueDate) || new Date())
       : new Date("9999-12-31T23:59:59Z");
@@ -306,6 +364,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         description,
         dueDate: parsedDueDate,
         attachmentUrl,
+        interactiveUrl,
         gdriveEmail,
         theme: legacyThemeString,
         period,

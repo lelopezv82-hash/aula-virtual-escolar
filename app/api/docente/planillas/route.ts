@@ -91,6 +91,8 @@ export async function GET(req: Request) {
         allowLateSubmission: true,
         lateSubmissionUntil: true,
         duration: true,
+        attachmentUrl: true,
+        interactiveUrl: true,
         assignedStudents: {
           select: { id: true }
         },

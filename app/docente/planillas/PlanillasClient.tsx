@@ -234,6 +234,9 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
   const [newTaskFile, setNewTaskFile] = useState<File | null>(null);
   const [existingAttachmentUrl, setExistingAttachmentUrl] = useState<string | null>(null);
   const [removeExistingAttachment, setRemoveExistingAttachment] = useState(false);
+  const [newTaskInteractiveFile, setNewTaskInteractiveFile] = useState<File | null>(null);
+  const [existingInteractiveUrl, setExistingInteractiveUrl] = useState<string | null>(null);
+  const [removeExistingInteractive, setRemoveExistingInteractive] = useState(false);
   const [addingTask,  setAddingTask]  = useState(false);
 
  // ─── Resource linking in modal   ───
@@ -851,6 +854,9 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       if (newTaskExternalUrl.trim()) fd.append("externalUrl", newTaskExternalUrl.trim());
       if (newTaskFile) fd.append("file", newTaskFile);
       if (newTaskResourceIds.length > 0) fd.append("resourceIds", JSON.stringify(newTaskResourceIds));
+      // Interactive HTML file (only relevant for INTERACTIVE subtype)
+      if (newTaskInteractiveFile) fd.append("interactiveFile", newTaskInteractiveFile);
+      if (removeExistingInteractive && !newTaskInteractiveFile) fd.append("removeInteractive", "true");
     }
 
     return fd;
@@ -929,6 +935,9 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       setRemoveExistingAttachment(false);
       setNewTaskExternalUrl(t.attachmentUrl || "");
       setNewTaskFile(null);
+      setExistingInteractiveUrl(t.interactiveUrl || null);
+      setRemoveExistingInteractive(false);
+      setNewTaskInteractiveFile(null);
       setNewTaskResourceIds((t.resources || []).map((r: any) => r.id));
       // Fetch available resources and themes for course
       if (selectedCourseId) {
@@ -4845,7 +4854,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                     </p>
                     <div className="text-[11px] text-purple-900 dark:text-purple-200 bg-purple-100/70 dark:bg-purple-900/40 p-2.5 rounded-xl border border-purple-200 dark:border-purple-800 flex items-center gap-2">
                       <span className="text-base">📁</span>
-                      <span>Adjunta tu archivo <strong>.html</strong> interactivo (ej. creado en Gemini Canvas) en la sección de archivo adjunto más abajo.</span>
+                      <span>Puedes subir el archivo <strong>.html interactivo</strong> y también una <strong>guía de apoyo (PDF, DOCX)</strong> por separado en la sección inferior.</span>
                     </div>
                   </div>
                 )}
@@ -5257,11 +5266,91 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                   />
                 </div>
 
-                {/* File Upload / Attachment */}
+                {/* Archivo HTML Interactivo (solo para Actividades Interactivas) */}
+                {addModal.type === "TASK" && selectedHacerSubtype === "INTERACTIVE" && (
+                  <div className="input-group p-4 bg-purple-50/60 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 rounded-2xl">
+                    <div className="flex justify-between items-center mb-1.5">
+                      <label className="block text-xs font-bold text-purple-900 dark:text-purple-200 flex items-center gap-1.5">
+                        <span>🎮 Archivo HTML Interactivo (.html) *</span>
+                      </label>
+                      {existingInteractiveUrl && !removeExistingInteractive && (
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={existingInteractiveUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[11px] font-bold text-purple-600 hover:underline flex items-center gap-1"
+                          >
+                            Ver HTML
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRemoveExistingInteractive(true);
+                              setNewTaskInteractiveFile(null);
+                            }}
+                            className="text-[11px] font-bold text-red-500 hover:underline flex items-center gap-0.5"
+                          >
+                            <Trash2 size={11} /> Eliminar
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {existingInteractiveUrl && !removeExistingInteractive && (
+                      <div className="text-[11px] text-purple-800 dark:text-purple-300 bg-purple-100/60 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-750 rounded-xl p-2.5 mb-2 flex items-center gap-1.5">
+                        <span>🎮 Archivo interactivo actual cargado</span>
+                      </div>
+                    )}
+
+                    {newTaskInteractiveFile && (
+                      <div className="text-[11px] text-purple-800 dark:text-purple-200 bg-purple-100/80 dark:bg-purple-900/40 border border-purple-300 dark:border-purple-700 rounded-xl p-2.5 mb-2 flex items-center justify-between">
+                        <span className="font-semibold">Nuevo archivo HTML: {newTaskInteractiveFile.name} ({(newTaskInteractiveFile.size / 1024).toFixed(0)} KB)</span>
+                        <button
+                          type="button"
+                          onClick={() => setNewTaskInteractiveFile(null)}
+                          className="text-red-500 hover:text-red-700 ml-2"
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                    )}
+
+                    <div
+                      className="border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-2xl p-4 text-center hover:bg-purple-100/40 dark:hover:bg-purple-900/20 transition-colors cursor-pointer relative"
+                      onClick={() => document.getElementById("modal-interactive-file-upload")?.click()}
+                    >
+                      <input
+                        id="modal-interactive-file-upload"
+                        type="file"
+                        accept=".html,.htm"
+                        className="hidden"
+                        onChange={e => {
+                          const f = e.target.files?.[0] || null;
+                          setNewTaskInteractiveFile(f);
+                          if (f) setRemoveExistingInteractive(false);
+                        }}
+                      />
+                      <svg className="mx-auto h-8 w-8 text-purple-600 mb-2" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                      </svg>
+                      <span className="text-xs font-bold text-purple-900 dark:text-purple-200 block">
+                        {newTaskInteractiveFile ? "Cambiar archivo HTML..." : (existingInteractiveUrl && !removeExistingInteractive ? "Cambiar archivo HTML..." : "Subir archivo interactivo .html")}
+                      </span>
+                      <span className="text-[10px] text-purple-600/80 dark:text-purple-400 block mt-0.5">
+                        Juego, simulador o lienzo interactivo con autocalificación
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* File Upload / Attachment (Guía de apoyo o adjunto) */}
                 <div className="input-group">
                   <div className="flex justify-between items-center mb-1">
                     <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
-                      Archivo Adjunto / Guía de Apoyo (Opcional)
+                      {addModal.type === "TASK" && selectedHacerSubtype === "INTERACTIVE"
+                        ? "Guía de Apoyo o Documento Complementario (Opcional - PDF, DOCX, etc.)"
+                        : "Archivo Adjunto / Guía de Apoyo (Opcional)"}
                     </label>
                     {existingAttachmentUrl && !removeExistingAttachment && (
                       <div className="flex items-center gap-2">
@@ -5324,7 +5413,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                     </svg>
                     <span className="text-xs font-bold text-gray-650 dark:text-gray-350 block">
-                      {newTaskFile ? "Cambiar archivo seleccionado..." : (existingAttachmentUrl && !removeExistingAttachment ? "Cambiar guía o archivo..." : "Selecciona una guía o archivo")}
+                      {newTaskFile ? "Cambiar archivo seleccionado..." : (existingAttachmentUrl && !removeExistingAttachment ? "Cambiar guía o archivo..." : (addModal.type === "TASK" && selectedHacerSubtype === "INTERACTIVE" ? "Selecciona la guía de apoyo (PDF, DOCX, etc.)" : "Selecciona una guía o archivo"))}
                     </span>
                   </div>
                 </div>

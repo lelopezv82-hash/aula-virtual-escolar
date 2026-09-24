@@ -478,7 +478,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
     return <div className="alert alert-danger">No se encontró la tarea o no tienes acceso.</div>;
   }
   
-  const isInteractive = task.type === "INTERACTIVE" || !!(task.attachmentUrl && (task.attachmentUrl.includes("/activities/") || task.attachmentUrl.endsWith(".html") || task.attachmentUrl.includes("excel_escape")));
+  const isInteractive = task.type === "INTERACTIVE" || !!(task.interactiveUrl) || !!(task.attachmentUrl && (task.attachmentUrl.includes("/activities/") || task.attachmentUrl.endsWith(".html") || task.attachmentUrl.includes("excel_escape")));
 
   if (isInteractive) {
     return (

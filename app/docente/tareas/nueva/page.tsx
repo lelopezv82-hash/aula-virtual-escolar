@@ -13,6 +13,7 @@ export default function NuevaTareaPage() {
   const [dueDate, setDueDate] = useState("");
   const [courseId, setCourseId] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [interactiveFile, setInteractiveFile] = useState<File | null>(null);
   const [selectedThemes, setSelectedThemes] = useState<string[]>([]);
   const [period, setPeriod] = useState("");
   const [weight, setWeight] = useState("0");
@@ -161,6 +162,9 @@ export default function NuevaTareaPage() {
     formData.append("requiresFolder", String(requiresFolder));
     if (file) {
       formData.append("file", file);
+    }
+    if (interactiveFile) {
+      formData.append("interactiveFile", interactiveFile);
     }
 
     try {
@@ -457,7 +461,7 @@ export default function NuevaTareaPage() {
             </p>
             <div className="text-xs text-purple-900 bg-purple-100/70 p-2.5 rounded-lg border border-purple-200 flex items-center gap-2 mt-1">
               <span>📁</span>
-              <span>Adjunta tu archivo <strong>.html</strong> interactivo (ej. creado en Gemini Canvas) en la sección de archivo adjunto más abajo.</span>
+              <span>Puedes subir el archivo <strong>.html interactivo</strong> y también una <strong>guía de apoyo (PDF, DOCX)</strong> por separado más abajo.</span>
             </div>
           </div>
         )}
@@ -535,13 +539,34 @@ export default function NuevaTareaPage() {
           </div>
         </div>
 
+        {type === "INTERACTIVE" && (
+          <div className="input-group p-4 bg-purple-50/70 border border-purple-200 rounded-xl space-y-2">
+            <label className="block text-sm font-bold text-purple-900">
+              🎮 Archivo HTML Interactivo (.html) *
+            </label>
+            <p className="text-xs text-purple-700">
+              Sube el juego o simulador autocalificable creado en HTML / Canvas.
+            </p>
+            <label htmlFor="interactive-file" style={{ display: "block", border: "2px dashed #a855f7", borderRadius: "var(--radius-md)", padding: "1.25rem", textAlign: "center", cursor: "pointer", transition: "border-color 0.2s", background: "white" }}
+              onMouseEnter={e => (e.currentTarget.style.borderColor = "#7e22ce")}
+              onMouseLeave={e => (e.currentTarget.style.borderColor = "#a855f7")}>
+              <UploadCloud size={28} className="mx-auto mb-1 text-purple-600" />
+              <p className="text-sm font-semibold text-purple-900">{interactiveFile ? interactiveFile.name : "Haz clic para seleccionar el archivo .html"}</p>
+              <p className="text-xs text-purple-600 mt-0.5">Solo archivos con extensión .html o .htm</p>
+              <input id="interactive-file" type="file" accept=".html,.htm" className="hidden" onChange={e => setInteractiveFile(e.target.files?.[0] || null)} />
+            </label>
+          </div>
+        )}
+
         <div className="input-group">
-          <label className="block text-sm font-medium mb-2">Archivo Adjunto / Guía de Apoyo (Opcional)</label>
+          <label className="block text-sm font-medium mb-2">
+            {type === "INTERACTIVE" ? "Guía de Apoyo o Documento Complementario (Opcional - PDF, DOCX, etc.)" : "Archivo Adjunto / Guía de Apoyo (Opcional)"}
+          </label>
           <label htmlFor="task-file" style={{ display: "block", border: "2px dashed var(--border-color)", borderRadius: "var(--radius-md)", padding: "1.5rem", textAlign: "center", cursor: "pointer", transition: "border-color 0.2s" }}
             onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--primary-color)")}
             onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border-color)")}>
             <UploadCloud size={32} className="mx-auto mb-2" style={{ color: "var(--primary-color)" }} />
-            <p className="text-sm font-medium">{file ? file.name : "Haz clic para seleccionar un archivo"}</p>
+            <p className="text-sm font-medium">{file ? file.name : (type === "INTERACTIVE" ? "Haz clic para seleccionar la guía de apoyo (Opcional)" : "Haz clic para seleccionar un archivo")}</p>
             <p className="text-xs text-muted mt-1">PDF, Word, Excel, presentaciones o imágenes</p>
             <input id="task-file" type="file" className="hidden" onChange={e => setFile(e.target.files?.[0] || null)} />
           </label>

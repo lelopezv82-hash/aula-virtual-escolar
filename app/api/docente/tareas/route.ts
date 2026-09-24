@@ -147,10 +147,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Curso no encontrado o no te pertenece' }, { status: 403 });
     }
 
+    const interactiveFile = formData.get('interactiveFile') as File | null;
+    const interactiveUrlRaw = formData.get('interactiveUrl') as string | null;
+    let interactiveUrl: string | null = interactiveUrlRaw?.trim() || null;
+
     let attachmentUrl = externalUrl || null;
     let gdriveEmail: string | null = null;
 
-
+    // 1. Upload guide/attachment file if present
     if (file && file.size > 0) {
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
@@ -198,6 +202,58 @@ export async function POST(request: Request) {
       }
     }
 
+    // 2. Upload interactive HTML file if present
+    if (interactiveFile && interactiveFile.size > 0) {
+      const bytes = await interactiveFile.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+
+      const gAccessToken = await getGoogleAccessToken(teacherId);
+      if (gAccessToken) {
+        try {
+          const selectedGroups = await prisma.gradeGroup.findMany({
+            where: { id: { in: groupIds } },
+            include: { grade: true }
+          });
+          const gradeName = selectedGroups[0]?.grade?.name || "Sin Grado";
+          const groupName = selectedGroups[0]?.name || "Sin Grupo";
+          const folderPath = `${period}/${course.name}/${gradeName}/${groupName}/Tareas/${title}`;
+          const uploadResult = await uploadToGoogleDrive(buffer, interactiveFile.name, interactiveFile.type || "text/html", teacherId, folderPath);
+          interactiveUrl = uploadResult.url;
+          if (!gdriveEmail) gdriveEmail = uploadResult.email;
+        } catch (driveError) {
+          console.error("Google Drive interactive upload error, falling back to Supabase:", driveError);
+        }
+      }
+
+      if (!interactiveUrl) {
+        const safeFilename = interactiveFile.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        const uniqueFilename = `interactivas/${courseId}_${Date.now()}_${safeFilename}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('aula-virtual')
+          .upload(uniqueFilename, interactiveFile, {
+            contentType: interactiveFile.type || 'text/html'
+          });
+
+        if (uploadError) {
+          console.error("Supabase interactive upload error:", uploadError);
+          return NextResponse.json({ error: 'Error al subir el archivo interactivo HTML a almacenamiento en la nube' }, { status: 500 });
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('aula-virtual')
+          .getPublicUrl(uniqueFilename);
+
+        interactiveUrl = publicUrl;
+      }
+    }
+
+    // Backward compatibility: If an interactive task had HTML uploaded as 'file'
+    if (type === "INTERACTIVE" && !interactiveUrl && attachmentUrl && (attachmentUrl.endsWith(".html") || attachmentUrl.includes("/activities/"))) {
+      interactiveUrl = attachmentUrl;
+      attachmentUrl = null;
+    }
+
     const parsedDueDate = dueDate && dueDate.trim() !== ""
       ? (fromColombiaLocalStringToDate(dueDate) || new Date())
       : new Date("9999-12-31T23:59:59Z");
@@ -224,6 +280,7 @@ export async function POST(request: Request) {
           description,
           dueDate: parsedDueDate,
           attachmentUrl,
+          interactiveUrl,
           gdriveEmail,
           courseId,
           theme: legacyThemeString,

@@ -366,38 +366,44 @@ export default async function CursoDescripcionPage({
                 </div>
 
                 {/* Nested Attached Guides / Materials under Task */}
-                {((task.type !== "INTERACTIVE" && task.attachmentUrl) || (task.resources && task.resources.length > 0)) && (
-                  <div style={{
-                    marginLeft: "2.75rem",
-                    marginTop: "0.35rem",
-                    padding: "0.5rem 0.85rem",
-                    background: "#f8fafc",
-                    borderRadius: "6px",
-                    border: "1px solid #e2e8f0",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "0.35rem"
-                  }}>
-                    <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#64748b" }}>
-                      Material adjunto de la tarea:
-                    </div>
-                    {task.type !== "INTERACTIVE" && task.attachmentUrl && (
-                      <a href={`/api/tareas/${task.id}/attachment`} target="_blank" rel="noreferrer" style={{ fontSize: "0.85rem", color: "#0284c7", textDecoration: "none", fontWeight: 500 }} className="inline-flex items-center gap-2 hover:underline group w-fit">
-                        <ResourceIcon type={task.attachmentUrl.split('.').pop() || "FILE"} />
-                        <span className="group-hover:underline">Descargar Guía de la Tarea</span>
-                      </a>
-                    )}
-                    {task.resources?.map(res => {
-                      const isLink = res.type?.toUpperCase() === "LINK" || res.type?.toUpperCase() === "ENLACE";
-                      return (
-                        <a key={res.id} href={isLink ? res.url : `/api/recursos/${res.id}/view`} target="_blank" rel="noreferrer" style={{ fontSize: "0.85rem", color: "#0284c7", textDecoration: "none", fontWeight: 500 }} className="inline-flex items-center gap-2 hover:underline group w-fit">
-                          <ResourceIcon type={res.type} />
-                          <span className="group-hover:underline">{res.title}</span>
+                {(() => {
+                  const itemHasGuide = !!task.attachmentUrl && !task.attachmentUrl.endsWith('.html') && !task.attachmentUrl.includes('/activities/');
+                  if (!itemHasGuide && task.type === "INTERACTIVE" && (!task.resources || task.resources.length === 0)) return null;
+                  if (!task.attachmentUrl && (!task.resources || task.resources.length === 0)) return null;
+
+                  return (
+                    <div style={{
+                      marginLeft: "2.75rem",
+                      marginTop: "0.35rem",
+                      padding: "0.5rem 0.85rem",
+                      background: "#f8fafc",
+                      borderRadius: "6px",
+                      border: "1px solid #e2e8f0",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "0.35rem"
+                    }}>
+                      <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#64748b" }}>
+                        Material adjunto de la tarea:
+                      </div>
+                      {(task.attachmentUrl && (task.type !== "INTERACTIVE" || itemHasGuide)) && (
+                        <a href={`/api/tareas/${task.id}/attachment?target=guide`} target="_blank" rel="noreferrer" style={{ fontSize: "0.85rem", color: "#0284c7", textDecoration: "none", fontWeight: 500 }} className="inline-flex items-center gap-2 hover:underline group w-fit">
+                          <ResourceIcon type={task.attachmentUrl.split('.').pop() || "FILE"} />
+                          <span className="group-hover:underline">Descargar Guía de la Tarea</span>
                         </a>
-                      );
-                    })}
-                  </div>
-                )}
+                      )}
+                      {task.resources?.map(res => {
+                        const isLink = res.type?.toUpperCase() === "LINK" || res.type?.toUpperCase() === "ENLACE";
+                        return (
+                          <a key={res.id} href={isLink ? res.url : `/api/recursos/${res.id}/view`} target="_blank" rel="noreferrer" style={{ fontSize: "0.85rem", color: "#0284c7", textDecoration: "none", fontWeight: 500 }} className="inline-flex items-center gap-2 hover:underline group w-fit">
+                            <ResourceIcon type={res.type} />
+                            <span className="group-hover:underline">{res.title}</span>
+                          </a>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}
