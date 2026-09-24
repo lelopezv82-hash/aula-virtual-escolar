@@ -213,6 +213,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
  // ─── Add column modal   ───
   const [addModal,    setAddModal]    = useState<{ type: CatType } | null>(null);
   const [selectedSaberSubtype, setSelectedSaberSubtype] = useState<"TASK_SABER" | "EXAM">("TASK_SABER");
+  const [selectedHacerSubtype, setSelectedHacerSubtype] = useState<"TASK" | "INTERACTIVE">("TASK");
   const [allCourseStudents, setAllCourseStudents] = useState<{ id: string; name: string; groupName?: string; grade?: string; groupId?: string; group?: any }[]>([]);
   const [newTaskStudentIds, setNewTaskStudentIds] = useState<string[]>([]);
   const [studentSearch, setStudentSearch] = useState("");
@@ -812,7 +813,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     if (!addModal) return new FormData();
     const fd = new FormData();
     fd.append("title", newTaskName.trim());
-    const effectiveType = addModal.type === "EXAM" ? selectedSaberSubtype : addModal.type;
+    const effectiveType = addModal.type === "EXAM" ? selectedSaberSubtype : (addModal.type === "TASK" ? selectedHacerSubtype : addModal.type);
     fd.append("type", effectiveType);
     fd.append("period", selectedPeriod);
     fd.append("description", newTaskDescription.trim());
@@ -875,9 +876,10 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
         return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
       };
       const taskType = t.type || "TASK";
-      const catType = (taskType === "TASK_SABER" || taskType === "SABER" ? "EXAM" : taskType) as CatType;
+      const catType = (taskType === "TASK_SABER" || taskType === "SABER" ? "EXAM" : (taskType === "INTERACTIVE" ? "TASK" : taskType)) as CatType;
       setAddModal({ type: catType });
       setSelectedSaberSubtype(taskType === "EXAM" ? "EXAM" : "TASK_SABER");
+      setSelectedHacerSubtype(taskType === "INTERACTIVE" ? "INTERACTIVE" : "TASK");
       setEditTaskId(task.id);
       setNewTaskName(t.title || "");
       setNewTaskDescription(t.description || "");
@@ -918,7 +920,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       setNewTaskLateSubmissionUntil(toLocal(t.lateSubmissionUntil));
       setExistingAttachmentUrl(t.attachmentUrl || null);
       setRemoveExistingAttachment(false);
-      setNewTaskExternalUrl("");
+      setNewTaskExternalUrl(t.attachmentUrl || "");
       setNewTaskFile(null);
       setNewTaskResourceIds((t.resources || []).map((r: any) => r.id));
       // Fetch available resources and themes for course
@@ -4736,6 +4738,86 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                   </div>
                 )}
 
+                {addModal.type === "TASK" && (
+                  <div className="input-group">
+                    <label className="block text-xs font-bold text-orange-900 dark:text-orange-300 mb-1.5">
+                      Modalidad en El Hacer (Procedimental) *
+                    </label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedHacerSubtype("TASK");
+                          if (newTaskExternalUrl === "/activities/excel_escape.html") setNewTaskExternalUrl("");
+                        }}
+                        className={`p-3.5 rounded-2xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
+                          selectedHacerSubtype === "TASK"
+                            ? "border-orange-500 bg-orange-50/90 dark:bg-orange-950/40 text-orange-900 dark:text-orange-200 ring-2 ring-orange-400/50 shadow-sm"
+                            : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/40 text-gray-700 dark:text-gray-300"
+                        }`}
+                      >
+                        <span className="font-extrabold text-xs flex items-center gap-1.5 text-orange-700 dark:text-orange-300">
+                          📝 Tarea Tradicional (Hacer)
+                        </span>
+                        <span className="text-[11px] text-muted leading-tight">
+                          Entrega de documentos, guías resueltas o proyectos en carpeta.
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedHacerSubtype("INTERACTIVE");
+                          setNewTaskExternalUrl("/activities/excel_escape.html");
+                          setNewTaskIsExternal(false);
+                          if (!newTaskName) setNewTaskName("Excel Escape - Juego de Fórmulas");
+                          if (!newTaskDescription) setNewTaskDescription("Supera los 20 niveles de fórmulas de Excel. Cada nivel completado registrará y aumentará tu nota automáticamente.");
+                        }}
+                        className={`p-3.5 rounded-2xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
+                          selectedHacerSubtype === "INTERACTIVE"
+                            ? "border-purple-500 bg-purple-50/90 dark:bg-purple-950/40 text-purple-900 dark:text-purple-200 ring-2 ring-purple-400/50 shadow-sm"
+                            : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/40 text-gray-700 dark:text-gray-300"
+                        }`}
+                      >
+                        <span className="font-extrabold text-xs flex items-center gap-1.5 text-purple-700 dark:text-purple-300">
+                          🎮 Actividad Interactiva / Gamificada
+                        </span>
+                        <span className="text-[11px] text-muted leading-tight">
+                          Juego autocalificable (ej. Excel Escape o plantilla de Gemini Canvas).
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {addModal.type === "TASK" && selectedHacerSubtype === "INTERACTIVE" && (
+                  <div className="p-4 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900 rounded-2xl space-y-2">
+                    <div className="flex items-center gap-2 text-purple-900 dark:text-purple-200 font-bold text-xs">
+                      <span className="text-base">🎮</span>
+                      <span>Plantilla o Juego Gamificado Seleccionado:</span>
+                    </div>
+                    <select
+                      className="w-full p-2.5 rounded-xl border border-purple-200 dark:border-purple-800 bg-white dark:bg-gray-850 text-xs font-semibold"
+                      value={newTaskExternalUrl.includes("/activities/excel_escape.html") ? "/activities/excel_escape.html" : (newTaskExternalUrl ? "custom" : "")}
+                      onChange={(e) => {
+                        if (e.target.value === "/activities/excel_escape.html") {
+                          setNewTaskExternalUrl("/activities/excel_escape.html");
+                        } else {
+                          setNewTaskExternalUrl("");
+                        }
+                      }}
+                    >
+                      <option value="/activities/excel_escape.html">🎯 Excel Escape (20 niveles interactivos de fórmulas)</option>
+                      <option value="custom">📁 Subir mi propio archivo HTML (creado en Gemini Canvas)</option>
+                    </select>
+                    {newTaskExternalUrl !== "/activities/excel_escape.html" && (
+                      <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                        ℹ️ Adjunta tu archivo <code>.html</code> en la sección de archivo adjunto más abajo.
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 {/* Row 2: Título */}
                 <div className="input-group">
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
@@ -4744,7 +4826,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                       : addModal.type === "EXAM"
                       ? (selectedSaberSubtype === "EXAM" ? "Título del Examen (Saber) *" : "Título de la Tarea (Saber) *")
                       : addModal.type === "TASK"
-                      ? "Título de la Tarea (Hacer) *"
+                      ? (selectedHacerSubtype === "INTERACTIVE" ? "Título de la Actividad Interactiva (Hacer) *" : "Título de la Tarea (Hacer) *")
                       : addModal.type === "FINAL"
                       ? "Título del Examen Final *"
                       : "Título de la Evaluación *"}
