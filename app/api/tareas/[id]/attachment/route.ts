@@ -59,8 +59,27 @@ export async function GET(
 
     const url = task.attachmentUrl;
 
-    // --- Non-Drive URL: redirect directly ---
+    // --- Non-Drive URL ---
     if (!isGoogleDriveUrl(url)) {
+      if (url.startsWith('/')) {
+        return NextResponse.redirect(new URL(url, request.url));
+      }
+      if (url.toLowerCase().includes('.html') || url.toLowerCase().includes('.htm')) {
+        try {
+          const fetchRes = await fetch(url);
+          if (fetchRes.ok) {
+            const body = await fetchRes.arrayBuffer();
+            return new Response(body, {
+              status: 200,
+              headers: {
+                'Content-Type': 'text/html; charset=utf-8',
+                'Content-Disposition': 'inline',
+                'Cache-Control': 'private, max-age=300',
+              },
+            });
+          }
+        } catch {}
+      }
       return NextResponse.redirect(url);
     }
 
@@ -112,9 +131,14 @@ export async function GET(
     const isNativeSheet = mimeType === 'application/vnd.google-apps.spreadsheet';
     const isNativeDoc = mimeType === 'application/vnd.google-apps.document';
     const isNativePres = mimeType === 'application/vnd.google-apps.presentation';
+    const isHtml =
+      mimeType === 'text/html' ||
+      originalName.toLowerCase().endsWith('.html') ||
+      originalName.toLowerCase().endsWith('.htm') ||
+      (meta.name && meta.name.toLowerCase().endsWith('.html'));
 
     let downloadUrl: string;
-    let serveMimeType: string = mimeType;
+    let serveMimeType: string = isHtml ? 'text/html; charset=utf-8' : mimeType;
 
     if (isNativeSheet) {
       downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=application%2Fvnd.openxmlformats-officedocument.spreadsheetml.sheet`;
@@ -139,7 +163,7 @@ export async function GET(
     }
 
     const isInline =
-      serveMimeType.startsWith('image/') || serveMimeType === 'application/pdf';
+      serveMimeType.startsWith('image/') || serveMimeType === 'application/pdf' || isHtml;
     const disposition = isInline
       ? `inline; filename="${originalName}"`
       : `attachment; filename="${originalName}"; filename*=UTF-8''${encodeURIComponent(originalName)}`;

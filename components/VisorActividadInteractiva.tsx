@@ -39,9 +39,17 @@ export default function VisorActividadInteractiva({
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   // Determinar URL de la actividad
-  const activityUrl = task.attachmentUrl && task.attachmentUrl.trim() !== ""
-    ? task.attachmentUrl
-    : "/activities/excel_escape.html";
+  let activityUrl = "/activities/excel_escape.html";
+
+  if (task.attachmentUrl && task.attachmentUrl.trim() !== "") {
+    if (task.attachmentUrl.startsWith("/")) {
+      activityUrl = task.attachmentUrl;
+    } else {
+      // Usar proxy interno de la plataforma para servir el archivo directamente como HTML ejecutable,
+      // evitando bloqueos de permisos de Google Drive o visores externos.
+      activityUrl = `/api/tareas/${task.id}/attachment`;
+    }
+  }
 
   // Manejar pantalla completa
   const toggleFullscreen = () => {
