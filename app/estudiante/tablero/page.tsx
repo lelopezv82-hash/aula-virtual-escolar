@@ -129,6 +129,7 @@ export default async function TableroVirtualPage() {
       courseName: t.course.name,
       teacherName: t.course.teacher.name,
       attachmentUrl: t.attachmentUrl || null,
+      interactiveUrl: t.interactiveUrl || null,
       resources: t.resources || [],
       isExternal: t.isExternal || false,
       allowLateSubmission: t.allowLateSubmission || false,
@@ -145,7 +146,9 @@ export default async function TableroVirtualPage() {
             attempt: 1,
             allowLateSubmission: false,
             lateSubmissionUntil: null,
-            fileUrl: null
+            fileUrl: null,
+            fileUrls: null,
+            answers: null
           }
         : sub ? {
             id: sub.id,
@@ -156,7 +159,9 @@ export default async function TableroVirtualPage() {
             attempt: sub.attempt ?? 1,
             allowLateSubmission: sub.allowLateSubmission ?? false,
             lateSubmissionUntil: sub.lateSubmissionUntil ? sub.lateSubmissionUntil.toISOString() : null,
-            fileUrl: sub.fileUrl || null
+            fileUrl: sub.fileUrl || null,
+            fileUrls: (sub.fileUrls as any) || null,
+            answers: (sub.answers as any) || null
           } : null
     };
   });

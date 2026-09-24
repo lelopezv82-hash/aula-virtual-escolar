@@ -110,7 +110,7 @@ export default async function TareasEstudiantePage() {
             const isOverdue = isClosed || (task.dueDate && now > task.dueDate);
             const virtualGraded = (!submission && isOverdue) || (submission && submission.status === "PENDING" && isOverdue && !hasGradeSet);
 
-            const isInteractive = task.type === "INTERACTIVE";
+            const isInteractive = task.type === "INTERACTIVE" || !!(task as any).interactiveUrl || (!!task.attachmentUrl && (task.attachmentUrl.includes(".html") || task.attachmentUrl.includes("/activities/")));
             const isInteractiveSubmitted = isInteractive && !!(submission && (submission.grade !== null || submission.status === "GRADED"));
             const activeStatus = isInteractive
               ? (isInteractiveSubmitted ? "GRADED" : (virtualGraded ? "GRADED" : null))

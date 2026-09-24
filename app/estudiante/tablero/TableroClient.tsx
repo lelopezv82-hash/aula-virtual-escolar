@@ -42,6 +42,7 @@ export interface TableroTask {
   courseName: string;
   teacherName: string;
   attachmentUrl?: string | null;
+  interactiveUrl?: string | null;
   resources?: { id: string; title: string; type: string; url: string; }[];
   isExternal: boolean;
   allowLateSubmission: boolean;
@@ -59,6 +60,7 @@ export interface TableroTask {
     lateSubmissionUntil?: string | null;
     fileUrl?: string | null;
     fileUrls?: any;
+    answers?: any;
   } | null;
 }
 
@@ -120,9 +122,17 @@ export default function TableroClient({
     const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
     const isExam = task.type === "EXAM" || task.type === "FINAL";
-    const hasUploadedFile = isExam ? false : (task.isExternal || task.submission?.status === "SUBMITTED" || !!(task.submission?.fileUrl && task.submission.fileUrl.trim() !== "") || (Array.isArray(task.submission?.fileUrls) && task.submission.fileUrls.length > 0));
+    const isInteractive = task.type === "INTERACTIVE" || !!task.interactiveUrl || (!!task.attachmentUrl && (task.attachmentUrl.includes(".html") || task.attachmentUrl.includes("/activities/")));
+    const hasUploadedFile = isExam || isInteractive ? false : (
+      task.isExternal || 
+      task.submission?.status === "SUBMITTED" || 
+      task.submission?.status === "GRADED" || 
+      !!(task.submission?.fileUrl && task.submission.fileUrl.trim() !== "") || 
+      (Array.isArray(task.submission?.fileUrls) && task.submission.fileUrls.length > 0)
+    );
     const isExamSubmitted = isExam && !!(task.submission && task.submission.status !== "PENDING" && task.submission.startedAt);
-    const isSubmitted = isExam ? isExamSubmitted : hasUploadedFile;
+    const isInteractiveSubmitted = isInteractive && !!(task.submission && (task.submission.grade !== null && task.submission.grade !== undefined || task.submission.status === "GRADED"));
+    const isSubmitted = isExam ? isExamSubmitted : isInteractive ? isInteractiveSubmitted : hasUploadedFile;
 
     // Non-activated (absent) student without prórroga or real grade: treat as expired/closed with grade 1.0
     if (task.isNotActivated && !hasExtension && !task.submission?.allowLateSubmission && task.submission?.grade == null) {
@@ -141,20 +151,24 @@ export default function TableroClient({
         isExpired: true,
         isDueToday: false,
         isUrgent: false,
-        timeText: "No asistió a clase"
+        timeText: "No asistió a clase",
+        isInteractive,
+        isFinal: false,
+        isOverdue: true
       };
     }
 
     const isOverdue = diffMs < 0 || isClosed;
-    const isAutomaticGrade1 = (task.submission?.grade === 1 || task.submission?.grade === 1.0) && !isSubmitted;
+    const isAutomaticGrade1 = (task.submission?.grade === 1 || task.submission?.grade === 1.0) && !isSubmitted && isOverdue;
     const hasRealTeacherGrade = isSubmitted && task.submission?.grade != null;
 
-    // Expired without submission:
-    const isExpired = !isSubmitted && !hasExtension && (isOverdue || isAutomaticGrade1 || task.submission?.grade != null);
+    // Expired without submission: ONLY when deadline has passed (isOverdue) and student has not submitted and has no active extension
+    const isExpired = !isSubmitted && !hasExtension && isOverdue;
     const isDueToday = !isExpired && diffHours > 0 && diffHours <= 24 && !hasExtension;
     const isUrgent = !isExpired && diffHours > 0 && diffHours <= 48 && !hasExtension;
-    const isGraded = hasRealTeacherGrade || isExpired || (task.submission?.grade != null);
+    const isGraded = hasRealTeacherGrade || (isSubmitted && task.submission?.status === "GRADED") || (task.submission?.grade != null && (isSubmitted || isExpired));
     const grade = (task.submission?.grade !== null && task.submission?.grade !== undefined) ? task.submission.grade : (isExpired ? 1.0 : null);
+    const isFinal = !!(task.submission?.answers?.isFinal || (grade !== null && grade >= 5.0));
 
     let timeText = "";
     if (isExpired) {
@@ -187,7 +201,10 @@ export default function TableroClient({
       isExpired,
       isDueToday,
       isUrgent,
-      timeText
+      timeText,
+      isInteractive,
+      isFinal,
+      isOverdue
     };
   };
 
@@ -218,10 +235,10 @@ export default function TableroClient({
         return !info.isSubmitted && info.isUrgent;
       }
       if (selectedStatus === "pending") {
-        return !info.isSubmitted && !info.isExpired;
+        return (!info.isSubmitted || (info.isInteractive && !info.isFinal && !info.isOverdue)) && !info.isExpired;
       }
       if (selectedStatus === "submitted") {
-        return info.isSubmitted;
+        return info.isSubmitted && (!info.isInteractive || info.isFinal || info.isOverdue);
       }
       if (selectedStatus === "expired") {
         return !info.isSubmitted && info.isExpired;
@@ -240,7 +257,10 @@ export default function TableroClient({
 
     tasks.forEach(task => {
       const info = getTaskInfo(task);
-      if (info.isSubmitted) {
+      if (info.isInteractive && !info.isFinal && !info.isOverdue) {
+        pendingTasksCount++;
+        if (info.isUrgent) urgentCount++;
+      } else if (info.isSubmitted) {
         completedCount++;
       } else {
         if (info.isUrgent && !info.isExpired) urgentCount++;
@@ -275,7 +295,16 @@ export default function TableroClient({
     filteredTasks.forEach(task => {
       const info = getTaskInfo(task);
 
-      if (info.isSubmitted) {
+      if (info.isInteractive && !info.isFinal && !info.isOverdue) {
+        // Actividad interactiva en progreso: se mantiene en la lista activa (Hoy/Esta semana/Próximas) para que el estudiante siga completando niveles
+        if (info.isDueToday) {
+          today.push(task);
+        } else if (info.due <= endOfWeek) {
+          thisWeek.push(task);
+        } else {
+          upcoming.push(task);
+        }
+      } else if (info.isSubmitted) {
         submitted.push(task);
       } else if (info.isExpired) {
         expired.push(task);
@@ -861,7 +890,7 @@ export default function TableroClient({
 function TaskCard({ task, info }: { task: TableroTask; info: any }) {
   const isExam = task.type === "EXAM" || task.type === "FINAL";
   const isTaskSaber = task.type === "TASK_SABER" || task.type === "SABER";
-  const isInteractive = task.type === "INTERACTIVE";
+  const isInteractive = task.type === "INTERACTIVE" || !!task.interactiveUrl || (!!task.attachmentUrl && (task.attachmentUrl.includes(".html") || task.attachmentUrl.includes("/activities/")));
   const showGuide = !isInteractive && !!task.attachmentUrl;
   const hasAttachedMaterials = showGuide || (task.resources && task.resources.length > 0);
 
@@ -928,7 +957,12 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
           </div>
 
           {/* Time text / Expired Badge */}
-          {!info.isSubmitted && (
+          {info.isInteractive && !info.isFinal && !info.isOverdue ? (
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-900/50">
+              <Sparkles size={12} className="text-purple-600 dark:text-purple-400 shrink-0" />
+              <span>Avance guardado · Nota: {Number(info.grade ?? 1.0).toFixed(1)}</span>
+            </span>
+          ) : !info.isSubmitted ? (
             <span
               className={`text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 ${
                 info.hasExtension
@@ -959,13 +993,11 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
                 </>
               )}
             </span>
-          )}
-
-          {info.isSubmitted && (
+          ) : (
             <span className="flex items-center gap-1.5 flex-wrap">
               <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 flex items-center gap-1">
                 <CheckCircle2 size={12} />
-                {info.isGraded ? (info.grade !== null && info.grade !== undefined ? `Calificado · Nota: ${Number(info.grade).toFixed(1)}` : "Calificado") : "Entregada"}
+                <span>{info.isGraded ? (info.grade !== null && info.grade !== undefined ? `Calificado · Nota: ${Number(info.grade).toFixed(1)}` : "Calificado") : "Entregada"}</span>
               </span>
               {task.submission?.allowLateSubmission && (
                 <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50 flex items-center gap-1">

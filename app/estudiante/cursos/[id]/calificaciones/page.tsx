@@ -141,7 +141,7 @@ export default async function CursoCalificacionesPage({
         !sub.allowLateSubmission;
 
       const isExam = task.type === "EXAM" || task.type === "FINAL";
-      const isInteractive = task.type === "INTERACTIVE";
+      const isInteractive = task.type === "INTERACTIVE" || !!(task as any).interactiveUrl || (!!task.attachmentUrl && (task.attachmentUrl.includes(".html") || task.attachmentUrl.includes("/activities/")));
       const hasUploadedFile = !isExam && !isInteractive && (
         sub.status === "SUBMITTED" ||
         !!sub.submittedAt ||

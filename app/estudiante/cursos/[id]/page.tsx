@@ -170,13 +170,27 @@ export default async function CursoDescripcionPage({
           {tasks.map((task, idx) => {
             const submission = task.submissions[0];
             const isExam = task.type === "EXAM" || task.type === "FINAL";
-            const isInteractive = task.type === "INTERACTIVE";
+            const isInteractive = task.type === "INTERACTIVE" || !!task.interactiveUrl || (!!task.attachmentUrl && (task.attachmentUrl.includes(".html") || task.attachmentUrl.includes("/activities/")));
             const hasUploadedFile = isExam || isInteractive ? false : (task.isExternal || !!(submission?.fileUrl && submission.fileUrl.trim() !== ""));
             const isExamSubmitted = isExam && !!(submission && submission.status !== "PENDING" && submission.startedAt);
             const isInteractiveSubmitted = isInteractive && !!(submission && (submission.grade !== null || submission.status === "GRADED"));
             const isSubmitted = isExam ? isExamSubmitted : isInteractive ? isInteractiveSubmitted : hasUploadedFile;
 
-            const isAutomaticGrade1 = (submission?.grade === 1 || submission?.grade === 1.0) && !isSubmitted;
+            const deadlineStatus = getTaskDeadlineStatus(
+              {
+                dueDate: task.dueDate.toISOString(),
+                allowLateSubmission: !!task.allowLateSubmission,
+                lateSubmissionUntil: task.lateSubmissionUntil ? task.lateSubmissionUntil.toISOString() : null,
+                type: task.type,
+              },
+              {
+                allowLateSubmission: !!submission?.allowLateSubmission,
+                lateSubmissionUntil: submission?.lateSubmissionUntil ? submission.lateSubmissionUntil.toISOString() : null,
+              }
+            );
+
+            const isOverdue = deadlineStatus?.isClosed || (task.dueDate && now > new Date(task.dueDate));
+            const isAutomaticGrade1 = (submission?.grade === 1 || submission?.grade === 1.0) && !isSubmitted && isOverdue;
             const hasRealTeacherGrade = isSubmitted && submission?.grade !== null && submission?.grade !== undefined;
             const isNotActivatedForStudent = !task.assignedStudents.some(s => s.id === studentId) && !submission?.allowLateSubmission && !hasRealTeacherGrade;
 
@@ -192,21 +206,8 @@ export default async function CursoDescripcionPage({
               ? task.description.replace(/Importado desde Excel\s*([—–-]\s*columna\s*[A-Z]+)?/gi, "").trim()
               : null;
 
-            const deadlineStatus = getTaskDeadlineStatus(
-              {
-                dueDate: task.dueDate.toISOString(),
-                allowLateSubmission: !!task.allowLateSubmission,
-                lateSubmissionUntil: task.lateSubmissionUntil ? task.lateSubmissionUntil.toISOString() : null,
-                type: task.type,
-              },
-              {
-                allowLateSubmission: !!submission?.allowLateSubmission,
-                lateSubmissionUntil: submission?.lateSubmissionUntil ? submission.lateSubmissionUntil.toISOString() : null,
-              }
-            );
-
             const hasExtension = deadlineStatus && deadlineStatus.isLate && !deadlineStatus.isClosed;
-            const isClosedWithoutSubmission = !isSubmitted && !hasExtension && (deadlineStatus?.isClosed || isAutomaticGrade1 || (task.dueDate && now > new Date(task.dueDate)));
+            const isClosedWithoutSubmission = !isSubmitted && !hasExtension && isOverdue;
             const isGraded = hasRealTeacherGrade || (isSubmitted && submission && submission.status === "GRADED");
 
             return (
