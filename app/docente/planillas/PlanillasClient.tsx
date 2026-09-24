@@ -4768,10 +4768,9 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                         type="button"
                         onClick={() => {
                           setSelectedHacerSubtype("INTERACTIVE");
-                          setNewTaskExternalUrl("/activities/excel_escape.html");
                           setNewTaskIsExternal(false);
-                          if (!newTaskName) setNewTaskName("Excel Escape - Juego de Fórmulas");
-                          if (!newTaskDescription) setNewTaskDescription("Supera los 20 niveles de fórmulas de Excel. Cada nivel completado registrará y aumentará tu nota automáticamente.");
+                          if (!newTaskName) setNewTaskName("Actividad Interactiva");
+                          if (!newTaskDescription) setNewTaskDescription("Completa la actividad interactiva directamente en la plataforma. Tu avance y calificación se registrarán automáticamente.");
                         }}
                         className={`p-3.5 rounded-2xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
                           selectedHacerSubtype === "INTERACTIVE"
@@ -4783,7 +4782,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                           🎮 Actividad Interactiva / Gamificada
                         </span>
                         <span className="text-[11px] text-muted leading-tight">
-                          Juego autocalificable o plantilla de Gemini Canvas.
+                          Juego o actividad autocalificable (creada en Gemini Canvas u otra herramienta).
                         </span>
                       </button>
                     </div>
@@ -4794,27 +4793,15 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                   <div className="p-4 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900 rounded-2xl space-y-2">
                     <div className="flex items-center gap-2 text-purple-900 dark:text-purple-200 font-bold text-xs">
                       <span className="text-base">🎮</span>
-                      <span>Plantilla o Juego Gamificado Seleccionado:</span>
+                      <span>Actividad Interactiva con Calificación Automática:</span>
                     </div>
-                    <select
-                      className="w-full p-2.5 rounded-xl border border-purple-200 dark:border-purple-800 bg-white dark:bg-gray-850 text-xs font-semibold"
-                      value={newTaskExternalUrl.includes("/activities/excel_escape.html") ? "/activities/excel_escape.html" : (newTaskExternalUrl ? "custom" : "")}
-                      onChange={(e) => {
-                        if (e.target.value === "/activities/excel_escape.html") {
-                          setNewTaskExternalUrl("/activities/excel_escape.html");
-                        } else {
-                          setNewTaskExternalUrl("");
-                        }
-                      }}
-                    >
-                      <option value="/activities/excel_escape.html">🎯 Excel Escape (20 niveles interactivos de fórmulas)</option>
-                      <option value="custom">📁 Subir mi propio archivo HTML (creado en Gemini Canvas)</option>
-                    </select>
-                    {newTaskExternalUrl !== "/activities/excel_escape.html" && (
-                      <p className="text-[11px] text-amber-700 dark:text-amber-400">
-                        ℹ️ Adjunta tu archivo <code>.html</code> en la sección de archivo adjunto más abajo.
-                      </p>
-                    )}
+                    <p className="text-[11px] text-purple-700 dark:text-purple-300 leading-relaxed">
+                      El estudiante realizará la actividad interactiva directamente en la plataforma y su calificación se registrará en tiempo real en la planilla.
+                    </p>
+                    <div className="text-[11px] text-purple-900 dark:text-purple-200 bg-purple-100/70 dark:bg-purple-900/40 p-2.5 rounded-xl border border-purple-200 dark:border-purple-800 flex items-center gap-2">
+                      <span className="text-base">📁</span>
+                      <span>Adjunta tu archivo <strong>.html</strong> interactivo (ej. creado en Gemini Canvas) en la sección de archivo adjunto más abajo.</span>
+                    </div>
                   </div>
                 )}
 
