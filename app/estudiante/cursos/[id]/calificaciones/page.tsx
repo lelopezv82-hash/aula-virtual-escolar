@@ -335,8 +335,15 @@ export default async function CursoCalificacionesPage({
             </div>
           )}
           <div className="mt-1 w-full flex justify-center">
-            <Link href={sub.task.type === "EXAM" || sub.task.type === "FINAL" ? `/estudiante/examenes/${sub.task.id}` : `/estudiante/tareas/${sub.task.id}`} className={`btn ${!isGraded && !sub.submittedAt ? 'btn-primary' : 'btn-secondary'} text-xs px-2 py-1 w-full flex justify-center`}>
-              {sub.task.type === "INTERACTIVE" ? (isGraded ? "Reintentar Actividad" : "Realizar Actividad") : sub.task.isExternal ? "Ver Detalle" : (sub.submittedAt ? "Ver Entrega" : "Realizar Entrega")}
+            <Link
+              href={sub.task.type === "EXAM" || sub.task.type === "FINAL" ? `/estudiante/examenes/${sub.task.id}` : `/estudiante/tareas/${sub.task.id}`}
+              className="btn btn-secondary text-xs px-2 py-1 w-full flex justify-center"
+            >
+              {sub.task.type === "INTERACTIVE"
+                ? (isGraded || sub.submittedAt ? "Ver Actividad" : "Ver Detalle")
+                : sub.task.isExternal
+                ? "Ver Detalle"
+                : (sub.submittedAt || (sub.fileUrl && sub.fileUrl.trim() !== "") ? "Ver Entrega" : "Ver Detalle")}
             </Link>
           </div>
         </div>
