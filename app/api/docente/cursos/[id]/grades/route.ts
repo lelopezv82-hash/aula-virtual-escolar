@@ -96,7 +96,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         );
 
         const saberTasksList = periodTasks.filter(t => t.type === 'EXAM' || t.type === 'TASK_SABER' || t.type === 'SABER');
-        const hacerTasksList = periodTasks.filter(t => t.type === 'TASK' || t.type === 'TASK_HACER' || t.type === 'HACER');
+        const hacerTasksList = periodTasks.filter(t => t.type === 'TASK' || t.type === 'TASK_HACER' || t.type === 'HACER' || t.type === 'INTERACTIVE');
         const serTasks = periodTasks.filter(t => t.type === 'SER');
         const finalTasks = periodTasks.filter(t => t.type === 'FINAL');
 
@@ -118,7 +118,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
             return null;
           }
 
-          if (task.type === 'TASK' || task.type === 'TASK_SABER' || task.type === 'TASK_HACER' || task.type === 'HACER') {
+          if (task.type === 'TASK' || task.type === 'TASK_SABER' || task.type === 'TASK_HACER' || task.type === 'HACER' || task.type === 'INTERACTIVE') {
             // Tareas: si el estudiante entregó → esperar al profesor (null)
             //         si NO entregó y la fecha cerró → 1.0 automático
             if (sub?.status === 'GRADED') return sub.grade ?? null;

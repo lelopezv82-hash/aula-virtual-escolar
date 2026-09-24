@@ -270,7 +270,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
 
   // Separate tasks by type
   const saberTasks = useMemo(() => tasks.filter(t => t.type === "EXAM" || t.type === "TASK_SABER" || t.type === "SABER"), [tasks]);
-  const hacerTasks = useMemo(() => tasks.filter(t => t.type === "TASK" || t.type === "TASK_HACER" || t.type === "HACER"), [tasks]);
+  const hacerTasks = useMemo(() => tasks.filter(t => t.type === "TASK" || t.type === "TASK_HACER" || t.type === "HACER" || t.type === "INTERACTIVE"), [tasks]);
   const serTasks = useMemo(() => tasks.filter(t => t.type === "SER"), [tasks]);
   const finalTasks = useMemo(() => tasks.filter(t => t.type === "FINAL"), [tasks]);
   const attendTasks = useMemo(() => tasks.filter(t => t.type === "ATTEND"), [tasks]);
@@ -640,7 +640,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
         const mappings: Record<string, number> = {};
         const allPlatformTasks = [...saberTasks, ...hacerTasks, ...serTasks, ...finalTasks, ...attendTasks];
         allPlatformTasks.forEach(t => {
-          const category = (t.type === "EXAM" || t.type === "TASK_SABER" || t.type === "SABER") ? "SABER" : t.type === "TASK" ? "HACER" : t.type === "SER" ? "SER" : t.type === "FINAL" ? "EXAMEN FINAL" : "ASISTENCIA";
+          const category = (t.type === "EXAM" || t.type === "TASK_SABER" || t.type === "SABER") ? "SABER" : (t.type === "TASK" || t.type === "INTERACTIVE") ? "HACER" : t.type === "SER" ? "SER" : t.type === "FINAL" ? "EXAMEN FINAL" : "ASISTENCIA";
           const platformLabel = `${category} ${taskNumbers[t.id]}`;
           const normLabel = platformLabel.toLowerCase();
           const normTitle = (t.title || "").toLowerCase();
@@ -659,7 +659,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
             if (nh === normLabel || nh === normTitle || nh === numStr) return true;
 
             // e.g. "saber 30% - 1" contains "saber" and "1"
-            const categoryLabelForCheck = (t.type === "EXAM" || t.type === "TASK_SABER" || t.type === "SABER") ? "saber" : t.type === "TASK" ? "hacer" : t.type === "SER" ? "ser" : t.type === "FINAL" ? "final" : "asistencia";
+            const categoryLabelForCheck = (t.type === "EXAM" || t.type === "TASK_SABER" || t.type === "SABER") ? "saber" : (t.type === "TASK" || t.type === "INTERACTIVE") ? "hacer" : t.type === "SER" ? "ser" : t.type === "FINAL" ? "final" : "asistencia";
             const hasCategory = nhClean.includes(categoryLabelForCheck);
             const hasNum = nhClean.includes(` ${numStr}`) || nhClean.endsWith(`-${numStr}`) || nhClean.endsWith(` ${numStr}`) || nhClean.includes(`-${numStr}-`) || nhClean.includes(` ${numStr} `) || nhClean.endsWith(` - ${numStr}`);
             if (hasCategory && hasNum) return true;
@@ -754,7 +754,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
     const mappings: Record<string, number> = {};
     const allPlatformTasks = [...saberTasks, ...hacerTasks, ...serTasks, ...finalTasks, ...attendTasks];
     allPlatformTasks.forEach(t => {
-      const category = (t.type === "EXAM" || t.type === "TASK_SABER" || t.type === "SABER") ? "SABER" : t.type === "TASK" ? "HACER" : t.type === "SER" ? "SER" : t.type === "FINAL" ? "EXAMEN FINAL" : "ASISTENCIA";
+      const category = (t.type === "EXAM" || t.type === "TASK_SABER" || t.type === "SABER") ? "SABER" : (t.type === "TASK" || t.type === "INTERACTIVE") ? "HACER" : t.type === "SER" ? "SER" : t.type === "FINAL" ? "EXAMEN FINAL" : "ASISTENCIA";
       const platformLabel = `${category} ${taskNumbers[t.id]}`;
       const normLabel = platformLabel.toLowerCase();
       const normTitle = (t.title || "").toLowerCase();
@@ -772,7 +772,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
         if (nh === normLabel || nh === normTitle) return true;
 
         // e.g. "saber 30% - 1" contains "saber" and "1"
-        const categoryLabelForCheck = (t.type === "EXAM" || t.type === "TASK_SABER" || t.type === "SABER") ? "saber" : t.type === "TASK" ? "hacer" : t.type === "SER" ? "ser" : t.type === "FINAL" ? "final" : "asistencia";
+        const categoryLabelForCheck = (t.type === "EXAM" || t.type === "TASK_SABER" || t.type === "SABER") ? "saber" : (t.type === "TASK" || t.type === "INTERACTIVE") ? "hacer" : t.type === "SER" ? "ser" : t.type === "FINAL" ? "final" : "asistencia";
         const hasCategory = nhClean.includes(categoryLabelForCheck);
         const hasNum = nhClean.includes(` ${taskNumbers[t.id]}`) || nhClean.endsWith(`-${taskNumbers[t.id]}`) || nhClean.endsWith(` ${taskNumbers[t.id]}`) || nhClean.endsWith(` - ${taskNumbers[t.id]}`);
         if (hasCategory && hasNum) return true;
@@ -1800,7 +1800,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
               <div className="flex gap-2 items-start">
                 <span className={`px-2 py-0.5 rounded font-black ${
                   (t.type === "EXAM" || t.type === "TASK_SABER" || t.type === "SABER") ? "bg-purple-100 text-purple-800" : 
-                  t.type === "TASK" ? "bg-orange-100 text-orange-800" :
+                  (t.type === "TASK" || t.type === "INTERACTIVE") ? "bg-orange-100 text-orange-800" :
                   t.type === "SER" ? "bg-teal-100 text-teal-800" :
                   t.type === "FINAL" ? "bg-sky-100 text-sky-800" :
                   "bg-green-100 text-green-800"
@@ -1812,6 +1812,7 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
                   <p className="text-gray-400 font-semibold">{
                     t.type === "TASK_SABER" || t.type === "SABER" ? "Saber (Tarea)" :
                     t.type === "EXAM" ? "Saber (Examen)" : 
+                    t.type === "INTERACTIVE" ? "Hacer (Interactiva)" :
                     t.type === "TASK" ? "Hacer (Procedimental)" :
                     t.type === "SER" ? "Ser (Actitudinal)" :
                     t.type === "FINAL" ? "Examen Final" :
@@ -1926,8 +1927,8 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                       {[...saberTasks, ...hacerTasks, ...serTasks, ...finalTasks, ...attendTasks].map(t => {
-                        const category = (t.type === "EXAM" || t.type === "TASK_SABER" || t.type === "SABER") ? "SABER" : t.type === "TASK" ? "HACER" : t.type === "SER" ? "SER" : t.type === "FINAL" ? "FINAL" : "ASISTENCIA";
-                        const bgClass = (t.type === "EXAM" || t.type === "TASK_SABER" || t.type === "SABER") ? "bg-purple-100 text-purple-800" : t.type === "TASK" ? "bg-orange-100 text-orange-800" : t.type === "SER" ? "bg-teal-100 text-teal-800" : t.type === "FINAL" ? "bg-sky-100 text-sky-800" : "bg-green-100 text-green-800";
+                        const category = (t.type === "EXAM" || t.type === "TASK_SABER" || t.type === "SABER") ? "SABER" : (t.type === "TASK" || t.type === "INTERACTIVE") ? "HACER" : t.type === "SER" ? "SER" : t.type === "FINAL" ? "FINAL" : "ASISTENCIA";
+                        const bgClass = (t.type === "EXAM" || t.type === "TASK_SABER" || t.type === "SABER") ? "bg-purple-100 text-purple-800" : (t.type === "TASK" || t.type === "INTERACTIVE") ? "bg-orange-100 text-orange-800" : t.type === "SER" ? "bg-teal-100 text-teal-800" : t.type === "FINAL" ? "bg-sky-100 text-sky-800" : "bg-green-100 text-green-800";
                         return (
                           <tr key={t.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/20">
                             <td className="p-3 font-semibold text-gray-700 dark:text-gray-300">

@@ -202,7 +202,7 @@ export default async function CalificacionesEstudiantePage() {
       const { course, subs } = courseData;
       
       const saberSubs = subs.filter(s => (s.task.type === "EXAM" || s.task.type === "TASK_SABER" || s.task.type === "SABER") && (s.status === "GRADED" || s.grade != null));
-      const hacerSubs = subs.filter(s => (s.task.type === "TASK" || s.task.type === "TASK_HACER" || s.task.type === "HACER") && (s.status === "GRADED" || s.grade != null));
+      const hacerSubs = subs.filter(s => (s.task.type === "TASK" || s.task.type === "TASK_HACER" || s.task.type === "HACER" || s.task.type === "INTERACTIVE") && (s.status === "GRADED" || s.grade != null));
       const serSubs   = subs.filter(s => s.task.type === "SER" && (s.status === "GRADED" || s.grade != null));
       const finalSubs = subs.filter(s => s.task.type === "FINAL" && (s.status === "GRADED" || s.grade != null));
 

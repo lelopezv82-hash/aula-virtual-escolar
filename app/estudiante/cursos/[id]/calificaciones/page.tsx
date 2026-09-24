@@ -328,7 +328,7 @@ export default async function CursoCalificacionesPage({
             });
             if (periodSubs.length === 0 && !additionalGradesMap.has(periodName)) return null;
 
-            const tareas   = periodSubs.filter(s => s.task.type === "TASK" || s.task.type === "TASK_HACER" || s.task.type === "HACER");
+            const tareas   = periodSubs.filter(s => s.task.type === "TASK" || s.task.type === "TASK_HACER" || s.task.type === "HACER" || s.task.type === "INTERACTIVE");
             const examenes = periodSubs.filter(s => s.task.type === "EXAM" || s.task.type === "TASK_SABER" || s.task.type === "SABER");
             const serSubs   = periodSubs.filter(s => s.task.type === "SER");
             const finalSubs = periodSubs.filter(s => s.task.type === "FINAL");

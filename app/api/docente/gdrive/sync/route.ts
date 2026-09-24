@@ -219,7 +219,7 @@ export async function POST(request: Request) {
     });
 
     const saberTasks = tasks.filter(t => t.type === "EXAM" || t.type === "TASK_SABER" || t.type === "SABER");
-    const hacerTasks = tasks.filter(t => t.type === "TASK" || t.type === "TASK_HACER" || t.type === "HACER");
+    const hacerTasks = tasks.filter(t => t.type === "TASK" || t.type === "TASK_HACER" || t.type === "HACER" || t.type === "INTERACTIVE");
     const serTasks   = tasks.filter(t => t.type === "SER");
 
     // Normalize name for fuzzy comparison: lowercase, strip accents, collapse spaces
@@ -461,7 +461,7 @@ export async function POST(request: Request) {
     });
 
     const freshSaber  = freshTasks.filter(t => t.type === "EXAM");
-    const freshHacer  = freshTasks.filter(t => t.type === "TASK");
+    const freshHacer  = freshTasks.filter(t => t.type === "TASK" || t.type === "TASK_HACER" || t.type === "HACER" || t.type === "INTERACTIVE");
     const freshSer    = freshTasks.filter(t => t.type === "SER");
     const freshFinal  = freshTasks.filter(t => t.type === "FINAL");
     const freshAttend = freshTasks.filter(t => t.type === "ATTEND");
@@ -536,7 +536,7 @@ export async function POST(request: Request) {
 
       const row1 = ["STUDENT_ID", "STUDENT_NAME", "GROUP", ...activeTasks.map(t => t.id)];
       const row2 = ["ID Estudiante", "Nombre Completo", "Grupo", ...activeTasks.map(t => {
-        const cat = t.type === "EXAM" ? "SABER" : t.type === "TASK" ? "HACER" : t.type === "SER" ? "SER" : t.type === "FINAL" ? "EXAMEN FINAL" : "ASISTENCIA";
+        const cat = t.type === "EXAM" ? "SABER" : (t.type === "TASK" || t.type === "INTERACTIVE") ? "HACER" : t.type === "SER" ? "SER" : t.type === "FINAL" ? "EXAMEN FINAL" : "ASISTENCIA";
         return `${cat} ${taskNumbers[t.id]} - ${t.title}`;
       })];
 

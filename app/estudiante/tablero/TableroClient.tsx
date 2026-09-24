@@ -207,7 +207,7 @@ export default function TableroClient({
       if (selectedPeriod !== "all" && task.period !== selectedPeriod) return false;
 
       if (selectedType !== "all") {
-        if (selectedType === "TASK" && task.type !== "TASK" && task.type !== "TASK_HACER" && task.type !== "HACER") return false;
+        if (selectedType === "TASK" && task.type !== "TASK" && task.type !== "TASK_HACER" && task.type !== "HACER" && task.type !== "INTERACTIVE") return false;
         if (selectedType === "TASK_SABER" && task.type !== "TASK_SABER" && task.type !== "SABER") return false;
         if (selectedType === "EXAM" && task.type !== "EXAM") return false;
         if (selectedType !== "TASK" && selectedType !== "TASK_SABER" && selectedType !== "EXAM" && task.type !== selectedType) return false;
