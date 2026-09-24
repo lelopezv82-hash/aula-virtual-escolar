@@ -272,20 +272,6 @@ export default function VisorActividadInteractiva({
 
         {/* Notificaciones de guardado y Badge de Nota */}
         <div className="flex items-center gap-3 ml-auto">
-          {/* Estado de guardado en vivo */}
-          {savingStatus !== "idle" && (
-            <div className={`hidden sm:flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md transition-all ${
-              savingStatus === "saving" ? "bg-amber-500/20 text-amber-300 border border-amber-500/30" :
-              savingStatus === "saved" ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" :
-              "bg-rose-500/20 text-rose-300 border border-rose-500/30"
-            }`}>
-              {savingStatus === "saving" && <RefreshCw size={13} className="animate-spin" />}
-              {savingStatus === "saved" && <CheckCircle2 size={13} />}
-              {savingStatus === "error" && <AlertCircle size={13} />}
-              <span>{statusMessage}</span>
-            </div>
-          )}
-
           {/* Badge de Nota Oficial */}
           <div className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-3 py-1.5 rounded-xl shadow-md border border-emerald-400/40">
             <Trophy size={16} className="text-yellow-300" />
