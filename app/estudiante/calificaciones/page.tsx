@@ -131,21 +131,43 @@ export default async function CalificacionesEstudiantePage() {
         (new Date(sub.startedAt).getTime() + task.duration * 60 * 1000 + 30000 < now.getTime()) &&
         !sub.allowLateSubmission;
 
+      const isExam = task.type === "EXAM" || task.type === "FINAL";
+      const isInteractive = task.type === "INTERACTIVE";
+      const hasUploadedFile = !isExam && !isInteractive && (
+        sub.status === "SUBMITTED" ||
+        !!sub.submittedAt ||
+        !!(sub.fileUrl && sub.fileUrl.trim() !== "") ||
+        (Array.isArray((sub as any).fileUrls) && (sub as any).fileUrls.length > 0)
+      );
+      const isExamSubmitted = isExam && !!(sub.status !== "PENDING" && sub.startedAt);
+      const isInteractiveSubmitted = isInteractive && !!(
+        (sub.grade !== null && sub.grade !== undefined) ||
+        sub.status === "GRADED" ||
+        sub.status === "SUBMITTED"
+      );
+      const isSubmitted = isExam ? isExamSubmitted : isInteractive ? isInteractiveSubmitted : hasUploadedFile;
+
+      const hasActiveExtension = !!(sub.allowLateSubmission || task.allowLateSubmission);
+      const hasRealGrade = sub.grade !== null && sub.grade !== undefined && !(hasActiveExtension && (sub.grade === 1 || sub.grade === 1.0) && !hasUploadedFile);
+
       const shouldHideFeedback = (task.type === "EXAM" || task.type === "FINAL") && !canSeeAnswers;
       const processedSub = {
         ...sub,
         feedback: shouldHideFeedback ? null : sub.feedback
       };
 
-      const hasActiveExtension = !!(sub.allowLateSubmission || task.allowLateSubmission);
-      if (hasActiveExtension && (sub.grade === 1 || sub.grade === 1.0) && sub.fileUrl === null) {
-        return {
-          ...processedSub,
-          status: "PENDING",
-          grade: null,
-          feedbackTemplate,
-          task
-        };
+      if (hasActiveExtension && (sub.grade === 1 || sub.grade === 1.0) && !hasUploadedFile) {
+        if (isClosed || isTimerExpired) {
+          return { ...processedSub, status: "GRADED", grade: 1.0, feedbackTemplate, task };
+        }
+        return null;
+      }
+
+      if (!isSubmitted && !hasRealGrade) {
+        if (isClosed || isTimerExpired) {
+          return { ...processedSub, status: "GRADED", grade: 1.0, feedbackTemplate, task };
+        }
+        return null;
       }
 
       if (sub.status === "PENDING" && (isClosed || isTimerExpired)) {
@@ -159,7 +181,17 @@ export default async function CalificacionesEstudiantePage() {
       };
     }
 
-    if (isClosed && !task.isExternal) {
+    if (isClosed) {
+      if (task.isExternal) {
+        return {
+          id: `ext-${task.id}`,
+          taskId: task.id, studentId: studentId, status: "PENDING", grade: null,
+          feedback: null, feedbackTemplate: null, fileUrl: null, submittedAt: null,
+          createdAt: task.createdAt, updatedAt: task.updatedAt,
+          allowLateSubmission: false, lateSubmissionUntil: null, gdriveEmail: null,
+          startedAt: null, attempt: 1, unlockedAnswers: false, task
+        };
+      }
       return {
         id: `virtual-${task.id}`,
         taskId: task.id, studentId: studentId, status: "GRADED", grade: 1.0,
@@ -170,15 +202,8 @@ export default async function CalificacionesEstudiantePage() {
       };
     }
 
-    // Open tasks not yet submitted by student: show as "pending submission / completion"
-    return {
-      id: `open-${task.id}`,
-      taskId: task.id, studentId: studentId, status: "PENDING", grade: null,
-      feedback: null, feedbackTemplate: null, fileUrl: null, submittedAt: null,
-      createdAt: task.createdAt, updatedAt: task.updatedAt,
-      allowLateSubmission: false, lateSubmissionUntil: null, gdriveEmail: null,
-      startedAt: null, attempt: 1, unlockedAnswers: false, task
-    };
+    // Open tasks not yet submitted by student and not expired: do not show in Calificaciones
+    return null;
   }))).filter((sub): sub is any => sub !== null);
 
   // Sort by updatedAt desc (using task updatedAt fallback for virtual ones)
