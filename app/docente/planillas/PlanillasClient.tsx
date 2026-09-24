@@ -4783,7 +4783,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                           🎮 Actividad Interactiva / Gamificada
                         </span>
                         <span className="text-[11px] text-muted leading-tight">
-                          Juego autocalificable (ej. Excel Escape o plantilla de Gemini Canvas).
+                          Juego autocalificable o plantilla de Gemini Canvas.
                         </span>
                       </button>
                     </div>
