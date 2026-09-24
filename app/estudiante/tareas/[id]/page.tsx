@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatToColombiaString, getTaskDeadlineStatus } from "@/lib/dateUtils";
 import { useConfirm } from "@/components/ConfirmProvider";
+import VisorActividadInteractiva from "@/components/VisorActividadInteractiva";
 
 // Get clean filename from absolute URL
 function getFileNameFromUrl(url: string, defaultFallback: string = "Documento adjunto"): string {
@@ -477,6 +478,22 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
     return <div className="alert alert-danger">No se encontró la tarea o no tienes acceso.</div>;
   }
   
+  const isInteractive = task.type === "INTERACTIVE" || !!(task.attachmentUrl && (task.attachmentUrl.includes("/activities/") || task.attachmentUrl.endsWith(".html") || task.attachmentUrl.includes("excel_escape")));
+
+  if (isInteractive) {
+    return (
+      <div className="animate-fade-in max-w-6xl mx-auto px-2 md:px-4 py-4 md:py-6 min-h-[85vh]">
+        <VisorActividadInteractiva
+          task={task}
+          initialSubmission={submission}
+          onSubmissionUpdated={(newSub) => {
+            setSubmission(newSub);
+          }}
+        />
+      </div>
+    );
+  }
+
   const isGoogleForm = task.attachmentUrl && (task.attachmentUrl.includes("docs.google.com/forms") || task.attachmentUrl.includes("forms.gle"));
   
   const teacherName = task.course?.teacher?.name || "Docente";

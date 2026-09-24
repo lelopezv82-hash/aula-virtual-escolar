@@ -20,6 +20,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
   const [duration, setDuration] = useState("");
   const [groupIds, setGroupIds] = useState<string[]>([]);
   const [type, setType] = useState("TASK");
+  const [externalUrl, setExternalUrl] = useState("");
   const [isExternal, setIsExternal] = useState(false);
   const [requiresFolder, setRequiresFolder] = useState(false);
   const [gradeGroups, setGradeGroups] = useState<{id: string, name: string}[]>([]);
@@ -105,6 +106,7 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
           setRequiresFolder(data.task.requiresFolder || false);
           setDueDate(toColombiaISOString(data.task.dueDate));
           setExistingAttachment(data.task.attachmentUrl || null);
+          if (data.task.attachmentUrl) setExternalUrl(data.task.attachmentUrl);
           setCourseId(data.task.courseId || "");
           setSelectedResourceIds(data.task.resources ? data.task.resources.map((r: any) => r.id) : []);
           setSelectedStudentIds(data.task.assignedStudents ? data.task.assignedStudents.map((s: any) => s.id) : []);
@@ -157,6 +159,9 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
     formData.append("studentIds", JSON.stringify(selectedStudentIds));
     formData.append("resourceIds", JSON.stringify(selectedResourceIds));
     formData.append("type", type);
+    if (externalUrl) {
+      formData.append("externalUrl", externalUrl);
+    }
     formData.append("isExternal", String(isExternal));
     formData.append("requiresFolder", String(requiresFolder));
     if (removeExistingAttachment && !file) {
@@ -440,12 +445,19 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
               id="type"
               className="input-field"
               value={type}
-              onChange={(e) => setType(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setType(val);
+                if (val === "INTERACTIVE" && !externalUrl) {
+                  setExternalUrl("/activities/excel_escape.html");
+                }
+              }}
               required
             >
               <option value="TASK">Tarea (Hacer)</option>
               <option value="TASK_SABER">Tarea (Saber)</option>
               <option value="EXAM">Examen (Saber)</option>
+              <option value="INTERACTIVE">Actividad Interactiva / Gamificada (Autocalificable)</option>
             </select>
           </div>
           <div className="input-group flex-1 flex items-center gap-2 pt-6">
@@ -462,6 +474,38 @@ export default function EditarTareaPage({ params }: { params: Promise<{ id: stri
             </label>
           </div>
         </div>
+
+        {type === "INTERACTIVE" && (
+          <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl space-y-3">
+            <div className="flex items-center gap-2 text-purple-900 font-bold text-sm">
+              <span className="text-lg">🎮</span>
+              <span>Actividad Interactiva con Calificación Automática</span>
+            </div>
+            <p className="text-xs text-purple-700 leading-relaxed">
+              El estudiante completará la actividad directamente en la plataforma. Su avance y calificación (1.0 a 5.0) se sincronizarán en tiempo real con la planilla de notas.
+            </p>
+            <div className="flex flex-col gap-2 pt-1">
+              <label className="text-xs font-semibold text-gray-700">Seleccionar plantilla o juego integrado:</label>
+              <select
+                className="input-field text-sm bg-white"
+                value={externalUrl.includes("/activities/excel_escape.html") ? "/activities/excel_escape.html" : (externalUrl ? "custom" : "")}
+                onChange={(e) => {
+                  if (e.target.value === "/activities/excel_escape.html") {
+                    setExternalUrl("/activities/excel_escape.html");
+                  }
+                }}
+              >
+                <option value="/activities/excel_escape.html">🎯 Excel Escape (20 niveles interactivos de fórmulas de Excel)</option>
+                <option value="custom">📁 Archivo HTML propio / cargado</option>
+              </select>
+              {externalUrl && !externalUrl.includes("/activities/excel_escape.html") && (
+                <p className="text-xs text-purple-800 break-all bg-purple-100/60 p-2 rounded">
+                  URL o archivo actual: <strong>{externalUrl}</strong>
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         {!isExternal && type === "TASK" && (
           <div className="p-4 bg-orange-50/60 border border-orange-200 rounded-xl flex items-start gap-3">

@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Escape - Juego de Aprendizaje</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        .excel-table {
+            border-collapse: collapse;
+            width: 100%;
+            background-color: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .excel-table th, .excel-table td {
+            border: 1px solid #d1d5db;
+            padding: 0.5rem 1rem;
+            text-align: left;
+        }
+
+        .excel-table th {
+            background-color: #f9fafb;
+            color: #374151;
+            font-weight: 600;
+        }
+
+        .excel-table th.row-header {
+            background-color: #f3f4f6;
+            text-align: center;
+            width: 40px;
+        }
+        
+        .excel-table th.col-header {
+            background-color: #f3f4f6;
+            text-align: center;
+        }
+
+        .formula-input:focus {
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .shake {
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col items-center justify-center p-2 md:p-4">
+
+    <div class="max-w-4xl w-full bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col md:flex-row h-[95vh] max-h-[850px] relative">
+        
+        <!-- Panel lateral: Instrucciones y progreso -->
+        <div class="md:w-1/3 bg-green-800 text-white p-5 md:p-6 flex flex-col justify-between overflow-y-auto">
+            <div>
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-file-excel text-3xl text-green-400"></i>
+                        <h1 class="text-2xl font-bold">Excel Escape</h1>
+                    </div>
+                </div>
+                
+                <!-- Indicador de Nota en Vivo -->
+                <div class="bg-green-900/80 border border-green-600/50 rounded-lg p-3 mb-4 flex items-center justify-between">
+                    <div>
+                        <span class="text-xs text-green-300 block uppercase font-bold tracking-wider">Nota Actual</span>
+                        <span class="text-xs text-green-200">Guardado en plataforma</span>
+                    </div>
+                    <div class="text-2xl font-black text-white bg-green-700 px-3 py-1 rounded shadow" id="live-grade-badge">
+                        1.0
+                    </div>
+                </div>
+
+                <div class="flex-grow">
+                    <h2 class="text-lg font-semibold mb-2 text-green-200" id="level-title">Nivel 1: El Despertar</h2>
+                    <div class="bg-green-700/50 p-3.5 rounded-lg mb-3 text-sm leading-relaxed" id="level-description">
+                        Cargando nivel...
+                    </div>
+                    
+                    <div class="mb-4">
+                        <span class="text-xs uppercase tracking-wider text-green-300 font-bold block mb-1">Misión:</span>
+                        <div id="mission-goal" class="bg-green-900 p-3 rounded border-l-4 border-green-400 text-sm italic">
+                            ...
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Progreso y Botón de entrega anticipada -->
+            <div class="mt-4 pt-3 border-t border-green-700/60">
+                <div class="flex justify-between text-xs mb-1 text-green-200">
+                    <span>Progreso de niveles</span>
+                    <span id="progress-text">1 / 20</span>
+                </div>
+                <div class="w-full bg-green-900 rounded-full h-2.5 mb-4">
+                    <div id="progress-bar" class="bg-green-400 h-2.5 rounded-full transition-all duration-500" style="width: 5%"></div>
+                </div>
+
+                <!-- Botón: Entregar lo que llevo -->
+                <button id="early-submit-btn" class="w-full bg-yellow-500 hover:bg-yellow-600 text-gray-900 py-2 px-3 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-colors shadow">
+                    <i class="fas fa-paper-plane"></i>
+                    <span>Entregar avance actual</span>
+                </button>
+                <p class="text-[10px] text-green-300/80 text-center mt-1">Guarda tu nota proporcional si termina la clase</p>
+            </div>
+        </div>
+
+        <!-- Área de juego principal: Tabla y Formula Bar -->
+        <div class="md:w-2/3 bg-gray-50 flex flex-col p-0 fade-in" id="game-area">
+            
+            <div class="bg-white border-b p-3 flex items-center gap-2 sticky top-0 z-10 shadow-sm">
+                <div class="w-10 h-10 flex items-center justify-center bg-gray-100 rounded text-gray-500 font-mono font-bold border">
+                    fx
+                </div>
+                <div class="relative flex-grow">
+                    <input type="text" id="formula-input" 
+                           class="formula-input w-full p-2 border border-gray-300 rounded text-gray-800 font-mono text-base md:text-lg shadow-inner focus:border-green-500 focus:ring-1 focus:ring-green-500" 
+                           placeholder="=Escribe tu fórmula aquí..." autocomplete="off">
+                </div>
+                <button id="submit-btn" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded font-semibold transition-colors shadow flex items-center gap-2">
+                    <span>Ejecutar</span>
+                    <i class="fas fa-play text-sm"></i>
+                </button>
+            </div>
+
+            <div class="flex-grow overflow-auto p-4 bg-gray-100 relative">
+                
+                <!-- Mensaje de Feedback flotante -->
+                <div id="feedback-msg" class="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 px-6 py-3 rounded-lg shadow-lg font-bold text-white text-center hidden transition-opacity duration-300 opacity-0 pointer-events-none">
+                    Mensaje
+                </div>
+
+                <div class="bg-white rounded shadow overflow-x-auto">
+                    <table class="excel-table" id="data-table">
+                        <thead>
+                            <tr>
+                                <th class="row-header"></th>
+                                <th class="col-header">A</th>
+                                <th class="col-header">B</th>
+                                <th class="col-header">C</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Hint Section -->
+                <div class="mt-6 text-center">
+                    <button id="hint-btn" class="text-gray-500 hover:text-yellow-600 text-sm font-medium transition-colors flex items-center justify-center gap-1 mx-auto">
+                        <i class="fas fa-lightbulb"></i> ¿Necesitas una pista?
+                    </button>
+                    <div id="hint-text" class="hidden mt-2 text-sm text-yellow-700 bg-yellow-50 p-3 rounded border border-yellow-200 inline-block max-w-md mx-auto text-left shadow-sm">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pantalla de Victoria / Finalización -->
+        <div id="victory-screen" class="hidden absolute inset-0 bg-green-900 bg-opacity-95 flex flex-col items-center justify-center text-white z-50 p-6 text-center overflow-y-auto">
+            <i class="fas fa-trophy text-6xl text-yellow-400 mb-4 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]"></i>
+            <h2 class="text-3xl md:text-4xl font-bold mb-2" id="victory-title">¡Escape Exitoso!</h2>
+            
+            <!-- Sección de Calificación -->
+            <div class="mb-5 flex flex-col items-center">
+                <span class="text-base text-green-200 mb-1">Tu Calificación Oficial Registrada</span>
+                <div class="text-5xl md:text-6xl font-black text-white bg-green-800 border-4 border-green-400 rounded-full h-28 w-28 md:h-32 md:w-32 flex items-center justify-center shadow-xl mb-2" id="final-grade">
+                    5.0
+                </div>
+                <p class="text-sm text-green-300">
+                    Niveles superados: <span id="completed-levels-count">20</span>/20 · Errores: <span id="mistakes-count">0</span>
+                </p>
+                <div class="mt-2 inline-flex items-center gap-2 bg-green-800/80 border border-green-500/50 px-4 py-1.5 rounded-full text-xs text-green-200">
+                    <i class="fas fa-check-circle text-green-400"></i>
+                    <span>Nota guardada con éxito en la plataforma</span>
+                </div>
+            </div>
+
+            <p class="text-sm md:text-base mb-5 text-green-100 max-w-lg" id="victory-message">
+                Has completado la actividad de Excel y las fórmulas han sido registradas en tu planilla académica.
+            </p>
+            
+            <div class="bg-green-800 p-4 rounded-xl max-w-2xl w-full mb-6 shadow-inner border border-green-700">
+                <h3 class="text-md font-semibold mb-2 text-green-300 border-b border-green-700 pb-1.5">Habilidades Trabajadas</h3>
+                <ul class="text-left text-xs md:text-sm grid grid-cols-1 md:grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-2" id="skills-report">
+                </ul>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button id="restart-btn" class="bg-white text-green-800 hover:bg-gray-100 px-6 py-2.5 rounded-full font-bold text-sm transition-transform hover:scale-105 shadow-lg">
+                    Intentar de Nuevo para Mejorar Nota
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Definición de los 20 Niveles ---
+        const levels = [
+            // TALLER 1: Torneo Deportivo
+            {
+                id: 1, title: "Nivel 1: Puntos del Torneo",
+                description: "Taller 1 (Parte 2). Por cada partido ganado, el equipo recibe 3 puntos.",
+                mission: "En la celda D2, escribe la fórmula para multiplicar los Partidos Ganados (B2) por 3.", hint: "Usa el símbolo de asterisco (*) para multiplicar. Ej: =B2*3",
+                tableData: [["Equipo", "PG", "PP", "Puntos"], ["Noveno A", 4, 1, "?"], ["Noveno B", 2, 3, ""]],
+                validAnswers: ["=B2*3"], skill: "Multiplicación (*)"
+            },
+            {
+                id: 2, title: "Nivel 2: Promedio de Goles",
+                description: "Taller 1 (Parte 3). Ahora practicaremos con los goles anotados en 3 partidos.",
+                mission: "Calcula el promedio de los goles de Noveno A en el Partido 1, 2 y 3 (B2 a D2).", hint: "Usa =PROMEDIO(rango).",
+                tableData: [["Equipo", "Partido 1", "Partido 2", "Partido 3", "Promedio"], ["Noveno A", 2, 4, 3, "?"], ["Noveno B", 1, 1, 2, ""]],
+                validAnswers: ["=PROMEDIO(B2:D2)", "=AVERAGE(B2:D2)"], skill: "Función PROMEDIO"
+            },
+            {
+                id: 3, title: "Nivel 3: El Equipo Más Goleador",
+                description: "Taller 1 (Parte 4). Vamos a buscar el número más alto en la tabla de promedios.",
+                mission: "Usa la función para encontrar el valor máximo en la columna Promedio (E2:E6).", hint: "Usa =MAX(rango).",
+                tableData: [["Equipo", "P1", "P2", "P3", "Promedio"], ["Noveno A", 2, 4, 3, 3], ["Noveno B", 1, 1, 2, 1.3], ["Noveno C", 3, 5, 4, 4], ["Noveno D", 0, 0, 1, 0.3], ["Noveno E", 2, 2, 2, 2], ["Goleador", "", "", "", "?"]],
+                validAnswers: ["=MAX(E2:E6)"], skill: "Función MAX"
+            },
+            {
+                id: 4, title: "Nivel 4: El Equipo Menos Goleador",
+                description: "Taller 1 (Parte 4). Ahora buscaremos el número más bajo.",
+                mission: "Usa la función para encontrar el valor mínimo en la columna Promedio (E2:E6).", hint: "Usa =MIN(rango).",
+                tableData: [["Equipo", "P1", "P2", "P3", "Promedio"], ["Noveno A", 2, 4, 3, 3], ["Noveno B", 1, 1, 2, 1.3], ["Noveno C", 3, 5, 4, 4], ["Noveno D", 0, 0, 1, 0.3], ["Noveno E", 2, 2, 2, 2], ["Menos goles", "", "", "", "?"]],
+                validAnswers: ["=MIN(E2:E6)"], skill: "Función MIN"
+            },
+            {
+                id: 5, title: "Nivel 5: Goles Totales del Jugador",
+                description: "Taller 1 (Parte 5). En la tabla de goleadores, necesitamos sumar todos los goles.",
+                mission: "Suma los goles de los 3 partidos del jugador Luis (rango C2 a E2).", hint: "Usa =SUMA(rango).",
+                tableData: [["Jugador", "Equipo", "P1", "P2", "P3", "Total"], ["Luis", "Noveno A", 1, 2, 1, "?"], ["Ana", "Noveno C", 3, 1, 2, ""]],
+                validAnswers: ["=SUMA(C2:E2)", "=SUM(C2:E2)", "=C2+D2+E2"], skill: "Función SUMA"
+            },
+            
+            // TALLER 2: Asistencia y Tienda
+            {
+                id: 6, title: "Nivel 6: Contar Estudiantes",
+                description: "Taller 2 (Parte 2). Control de asistencia. Vamos a contar a todos los estudiantes registrados.",
+                mission: "Cuenta las celdas NO vacías en la columna Estudiante (A2:A7).", hint: "Usa =CONTARA(rango).",
+                tableData: [["Estudiante", "Días"], ["Pedro", 5], ["María", 2], ["Juan", 4], ["Luis", 0], ["Ana", 3], ["Carlos", 5], ["Total", "?"]],
+                validAnswers: ["=CONTARA(A2:A7)", "=COUNTA(A2:A7)"], skill: "Función CONTARA"
+            },
+            {
+                id: 7, title: "Nivel 7: Contar Días Registrados",
+                description: "Taller 2 (Parte 2). Ahora necesitamos contar solo las celdas que contienen números en la asistencia.",
+                mission: "Cuenta cuántos datos numéricos hay en la columna Días (B2:B7).", hint: "Usa =CONTAR(rango).",
+                tableData: [["Estudiante", "Días"], ["Pedro", 5], ["María", 2], ["Juan", 4], ["Luis", 0], ["Ana", 3], ["Carlos", 5], ["Registros", "?"]],
+                validAnswers: ["=CONTAR(B2:B7)", "=COUNT(B2:B7)"], skill: "Función CONTAR"
+            },
+            {
+                id: 8, title: "Nivel 8: ¿Cumple con la Asistencia?",
+                description: "Taller 2 (Parte 3). Función SI. El estudiante cumple si asistió a 3 o más días.",
+                mission: "En C2, escribe la fórmula que diga 'Cumple' si B2 es mayor o igual a 3; si no, 'No cumple'.", hint: "Usa =SI(B2>=3;\"Cumple\";\"No cumple\")",
+                tableData: [["Estudiante", "Días", "¿Cumple?"], ["Pedro", 5, "?"], ["María", 2, ""]],
+                validAnswers: ["=SI(B2>=3,\"CUMPLE\",\"NO CUMPLE\")", "=IF(B2>=3,\"CUMPLE\",\"NO CUMPLE\")"], skill: "Función SI (Simple)"
+            },
+            {
+                id: 9, title: "Nivel 9: Total de Ventas por Producto",
+                description: "Taller 2 (Parte 5). Feria escolar. Vamos a calcular el dinero total por producto.",
+                mission: "Multiplica el Precio unitario (B2) por las Unidades vendidas (C2).", hint: "Multiplica las dos celdas usando el asterisco (*).",
+                tableData: [["Producto", "Precio", "Unidades", "Total"], ["Gaseosa", 1500, 8, "?"], ["Empanada", 2000, 15, ""]],
+                validAnswers: ["=B2*C2", "=C2*B2"], skill: "Multiplicación de Celdas"
+            },
+            {
+                id: 10, title: "Nivel 10: Sumar Todo el Dinero",
+                description: "Taller 2. Ya tienes el total por producto, ahora halla el total de toda la feria.",
+                mission: "Suma todos los valores de la columna Total (D2 a D7).", hint: "Usa la función =SUMA()",
+                tableData: [["Producto", "Precio", "Unidades", "Total"], ["Gaseosa", 1500, 8, 12000], ["Empanada", 2000, 15, 30000], ["Pulsera", 1000, 5, 5000], ["Dulce", 200, 20, 4000], ["Esfero", 800, 10, 8000], ["Llavero", 1200, 4, 4800], ["", "", "Total Feria", "?"]],
+                validAnswers: ["=SUMA(D2:D7)", "=SUM(D2:D7)"], skill: "Función SUMA (Rango)"
+            },
+            {
+                id: 11, title: "Nivel 11: Promedio de Precios",
+                description: "Taller 2 (Parte 5). Queremos saber en promedio cuánto cuesta un artículo en nuestra feria.",
+                mission: "Calcula el promedio de los precios unitarios (B2 a B7).", hint: "Usa =PROMEDIO(B2:B7).",
+                tableData: [["Producto", "Precio"], ["Gaseosa", 1500], ["Empanada", 2000], ["Pulsera", 1000], ["Dulce", 200], ["Esfero", 800], ["Llavero", 1200], ["Promedio", "?"]],
+                validAnswers: ["=PROMEDIO(B2:B7)", "=AVERAGE(B2:B7)"], skill: "Promedio de Precios"
+            },
+            {
+                id: 12, title: "Nivel 12: Redondear el Promedio",
+                description: "Taller 2 (Parte 5). El promedio nos dio decimales y queremos un número exacto.",
+                mission: "Redondea a 0 decimales el valor que se encuentra en la celda G2.", hint: "Usa =REDONDEAR(G2; 0).",
+                tableData: [["Valor Exacto", "Redondeado"], ["1116.66 (G2)", "?"]],
+                validAnswers: ["=REDONDEAR(G2,0)", "=ROUND(G2,0)"], skill: "Función REDONDEAR"
+            },
+            {
+                id: 13, title: "Nivel 13: Estado del Inventario",
+                description: "Taller 2 (Parte 6). Queremos marcar automáticamente qué productos se están agotando.",
+                mission: "En D2, usa SI: si las Unidades (C2) son menores a 5, escribe 'Agotado'; de lo contrario, 'Disponible'.", hint: "Usa =SI(C2<5;\"Agotado\";\"Disponible\")",
+                tableData: [["Producto", "Precio", "Unidades", "Estado"], ["Pulsera", 1000, 3, "?"], ["Empanada", 2000, 15, ""]],
+                validAnswers: ["=SI(C2<5,\"AGOTADO\",\"DISPONIBLE\")", "=IF(C2<5,\"AGOTADO\",\"DISPONIBLE\")"], skill: "Función SI (Texto)"
+            },
+
+            // TALLER 3: Notas, Contar.Si, Sumar.Si, SI Anidado
+            {
+                id: 14, title: "Nivel 14: El Temido SI Anidado",
+                description: "Taller 3 (Parte 2). Boletín de notas. Decidir entre 3 opciones: Excelente, Aceptable o Necesita mejorar.",
+                mission: "En C2, si Nota (B2)>=4.5 es 'Excelente'; si B2>=3 es 'Aceptable'; sino 'Necesita mejorar'.", hint: "Usa: =SI(B2>=4.5;\"Excelente\";SI(B2>=3;\"Aceptable\";\"Necesita mejorar\"))",
+                tableData: [["Estudiante", "Nota", "Desempeño"], ["Juan", 4.6, "?"], ["Ana", 3.2, ""]],
+                validAnswers: [
+                    "=SI(B2>=4.5,\"EXCELENTE\",SI(B2>=3,\"ACEPTABLE\",\"NECESITA MEJORAR\"))", 
+                    "=SI(B2>=4,5,\"EXCELENTE\",SI(B2>=3,\"ACEPTABLE\",\"NECESITA MEJORAR\"))",
+                    "=IF(B2>=4.5,\"EXCELENTE\",IF(B2>=3,\"ACEPTABLE\",\"NECESITA MEJORAR\"))"
+                ], skill: "Función SI Anidada"
+            },
+            {
+                id: 15, title: "Nivel 15: ¿Cuántos Excelentes?",
+                description: "Taller 3 (Parte 2). Contar con condición. Queremos saber exactamente cuántos estudiantes fueron Excelentes.",
+                mission: "Cuenta cuántas veces dice 'Excelente' en el rango Desempeño (C2:C7).", hint: "Usa =CONTAR.SI(C2:C7; \"Excelente\").",
+                tableData: [["Estudiante", "Nota", "Desempeño"], ["Juan", 4.6, "Excelente"], ["Ana", 3.2, "Aceptable"], ["Luis", 2.0, "Necesita mejorar"], ["María", 4.8, "Excelente"], ["Pedro", 3.5, "Aceptable"], ["Sara", 4.5, "Excelente"], ["Excelentes:", "", "?"]],
+                validAnswers: ["=CONTAR.SI(C2:C7,\"EXCELENTE\")", "=COUNTIF(C2:C7,\"EXCELENTE\")"], skill: "Función CONTAR.SI"
+            },
+            {
+                id: 16, title: "Nivel 16: ¿Cuántos Necesitan Mejorar?",
+                description: "Taller 3 (Parte 2). Repetimos la herramienta, ahora para buscar a los que perdieron.",
+                mission: "Cuenta cuántas veces dice 'Necesita mejorar' en el rango Desempeño (C2:C7).", hint: "Usa =CONTAR.SI(rango; \"criterio\").",
+                tableData: [["Estudiante", "Nota", "Desempeño"], ["Juan", 4.6, "Excelente"], ["Ana", 3.2, "Aceptable"], ["Luis", 2.0, "Necesita mejorar"], ["María", 4.8, "Excelente"], ["Pedro", 3.5, "Aceptable"], ["Sara", 2.5, "Necesita mejorar"], ["Perdieron:", "", "?"]],
+                validAnswers: ["=CONTAR.SI(C2:C7,\"NECESITA MEJORAR\")", "=COUNTIF(C2:C7,\"NECESITA MEJORAR\")"], skill: "Función CONTAR.SI"
+            },
+            {
+                id: 17, title: "Nivel 17: Sumar Solo Comida",
+                description: "Taller 3 (Parte 3). Tienda escolar. Vamos a sumar el dinero total, pero SOLO de los productos que sean 'Comida'.",
+                mission: "Suma los Totales (E2:E7) solo si la Categoría (B2:B7) es 'Comida'.", hint: "Usa =SUMAR.SI(B2:B7; \"Comida\"; E2:E7)",
+                tableData: [["Producto", "Categoría", "Precio", "Cant", "Total"], ["Gaseosa", "Comida", 1500, 8, 12000], ["Pulsera", "Accesorios", 1000, 5, 5000], ["Empanada", "Comida", 2000, 15, 30000], ["Cuadro", "Manualidades", 5000, 2, 10000], ["Dulce", "Comida", 200, 20, 4000], ["Anillo", "Accesorios", 800, 10, 8000], ["Comida:", "", "", "", "?"]],
+                validAnswers: ["=SUMAR.SI(B2:B7,\"COMIDA\",E2:E7)", "=SUMIF(B2:B7,\"COMIDA\",E2:E7)"], skill: "Función SUMAR.SI"
+            },
+            {
+                id: 18, title: "Nivel 18: Sumar Solo Manualidades",
+                description: "Taller 3 (Parte 3). Ahora queremos el reporte de ventas de las manualidades.",
+                mission: "Suma los Totales (E2:E7) solo si la Categoría (B2:B7) es 'Manualidades'.", hint: "Usa =SUMAR.SI(rango_criterio; \"criterio\"; rango_suma)",
+                tableData: [["Producto", "Categoría", "Precio", "Cant", "Total"], ["Gaseosa", "Comida", 1500, 8, 12000], ["Pulsera", "Accesorios", 1000, 5, 5000], ["Empanada", "Comida", 2000, 15, 30000], ["Cuadro", "Manualidades", 5000, 2, 10000], ["Flor", "Manualidades", 1500, 4, 6000], ["Anillo", "Accesorios", 800, 10, 8000], ["Manualidades:", "", "", "", "?"]],
+                validAnswers: ["=SUMAR.SI(B2:B7,\"MANUALIDADES\",E2:E7)", "=SUMIF(B2:B7,\"MANUALIDADES\",E2:E7)"], skill: "Función SUMAR.SI"
+            },
+            {
+                id: 19, title: "Nivel 19: Sumar Solo Accesorios",
+                description: "Taller 3 (Parte 3). Último reporte de caja para la tienda escolar.",
+                mission: "Suma los Totales (E2:E7) solo si la Categoría (B2:B7) es 'Accesorios'.", hint: "Cuidado con la ortografía del criterio 'Accesorios'.",
+                tableData: [["Producto", "Categoría", "Precio", "Cant", "Total"], ["Gaseosa", "Comida", 1500, 8, 12000], ["Pulsera", "Accesorios", 1000, 5, 5000], ["Empanada", "Comida", 2000, 15, 30000], ["Cuadro", "Manualidades", 5000, 2, 10000], ["Flor", "Manualidades", 1500, 4, 6000], ["Anillo", "Accesorios", 800, 10, 8000], ["Accesorios:", "", "", "", "?"]],
+                validAnswers: ["=SUMAR.SI(B2:B7,\"ACCESORIOS\",E2:E7)", "=SUMIF(B2:B7,\"ACCESORIOS\",E2:E7)"], skill: "Función SUMAR.SI"
+            },
+            {
+                id: 20, title: "Nivel 20: El Jefe Final (Condición Matemática)",
+                description: "Taller 3 (Intro). Además de texto, CONTAR.SI puede usar símbolos matemáticos como '>=' dentro de las comillas.",
+                mission: "Cuenta cuántos estudiantes obtuvieron una Nota (B2:B7) mayor o igual a 3.", hint: "Usa =CONTAR.SI(B2:B7; \">=3\"). ¡Pon el >=3 entre comillas!",
+                tableData: [["Estudiante", "Nota"], ["Juan", 4.6], ["Ana", 3.2], ["Luis", 2.0], ["María", 4.8], ["Pedro", 3.5], ["Sara", 2.5], ["Aprobados:", "?"]],
+                validAnswers: ["=CONTAR.SI(B2:B7,\">=3\")", "=COUNTIF(B2:B7,\">=3\")", "=CONTAR.SI(B2:B7,\">=3.0\")", "=CONTAR.SI(B2:B7,\">=3,0\")"], skill: "CONTAR.SI (Condición Matemática)"
+            }
+        ];
+
+        // --- Variables de Estado ---
+        let currentLevelIndex = 0;
+        let mistakes = 0;
+
+        // --- Elementos del DOM ---
+        const ui = {
+            levelTitle: document.getElementById('level-title'),
+            levelDescription: document.getElementById('level-description'),
+            missionGoal: document.getElementById('mission-goal'),
+            progressText: document.getElementById('progress-text'),
+            progressBar: document.getElementById('progress-bar'),
+            dataTable: document.getElementById('data-table'),
+            formulaInput: document.getElementById('formula-input'),
+            submitBtn: document.getElementById('submit-btn'),
+            hintBtn: document.getElementById('hint-btn'),
+            hintText: document.getElementById('hint-text'),
+            feedbackMsg: document.getElementById('feedback-msg'),
+            gameArea: document.getElementById('game-area'),
+            victoryScreen: document.getElementById('victory-screen'),
+            restartBtn: document.getElementById('restart-btn'),
+            skillsReport: document.getElementById('skills-report'),
+            liveGradeBadge: document.getElementById('live-grade-badge'),
+            earlySubmitBtn: document.getElementById('early-submit-btn'),
+            completedLevelsCount: document.getElementById('completed-levels-count'),
+            mistakesCount: document.getElementById('mistakes-count'),
+            victoryTitle: document.getElementById('victory-title'),
+            victoryMessage: document.getElementById('victory-message'),
+        };
+
+        // --- Cálculo de Calificación Proporcional en Escala 1.0 - 5.0 ---
+        function calculateProportionalGrade(completedLevels, totalLevels, errCount) {
+            if (completedLevels <= 0) return 1.0;
+            // Proporción de niveles completados (de 1.0 a 5.0)
+            // Si hace todos los niveles (20/20) la base es 5.0
+            const progressRatio = completedLevels / totalLevels;
+            const baseGrade = 1.0 + (progressRatio * 4.0);
+            
+            // Penalización por errores: 0.1 por error cometido
+            const penalty = errCount * 0.1;
+            let finalGrade = baseGrade - penalty;
+            
+            // Limitar entre 1.0 y 5.0
+            if (finalGrade < 1.0) finalGrade = 1.0;
+            if (finalGrade > 5.0) finalGrade = 5.0;
+            
+            return parseFloat(finalGrade.toFixed(1));
+        }
+
+        // --- Comunicación con la Plataforma Escolar (postMessage) ---
+        function notifyPlatform(isFinal = false) {
+            const currentGrade = calculateProportionalGrade(currentLevelIndex, levels.length, mistakes);
+            
+            // Actualizar badge visual en el juego
+            ui.liveGradeBadge.textContent = currentGrade.toFixed(1);
+
+            const payload = {
+                type: isFinal ? 'ACTIVIDAD_COMPLETADA' : 'ACTIVIDAD_PROGRESO',
+                grade: currentGrade,
+                currentLevel: currentLevelIndex,
+                totalLevels: levels.length,
+                mistakes: mistakes,
+                isFinal: isFinal,
+                activityTitle: 'Excel Escape'
+            };
+
+            // Enviar a la ventana padre (Aula Virtual)
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage(payload, '*');
+            }
+        }
+
+        // --- Funciones Principales ---
+
+        function initGame() {
+            currentLevelIndex = 0;
+            mistakes = 0;
+            ui.victoryScreen.classList.add('hidden');
+            ui.liveGradeBadge.textContent = "1.0";
+            loadLevel(currentLevelIndex);
+        }
+
+        function getColumnLetter(colIndex) {
+            let letter = '';
+            while (colIndex >= 0) {
+                letter = String.fromCharCode((colIndex % 26) + 65) + letter;
+                colIndex = Math.floor(colIndex / 26) - 1;
+            }
+            return letter;
+        }
+
+        function renderTable(data) {
+            const thead = ui.dataTable.querySelector('thead');
+            const tbody = ui.dataTable.querySelector('tbody');
+            
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+
+            const numCols = data[0].length;
+            let headerRowHTML = `<tr><th class="row-header"></th>`;
+            for (let i = 0; i < numCols; i++) {
+                headerRowHTML += `<th class="col-header">${getColumnLetter(i)}</th>`;
+            }
+            headerRowHTML += `</tr>`;
+            thead.innerHTML = headerRowHTML;
+
+            data.forEach((row, rowIndex) => {
+                const isHeaderData = rowIndex === 0;
+                let tr = document.createElement('tr');
+                
+                tr.innerHTML += `<td class="row-header text-gray-400 text-sm bg-gray-50">${rowIndex + 1}</td>`;
+                
+                row.forEach((cellData, colIndex) => {
+                    const tag = isHeaderData ? 'th' : 'td';
+                    const cssClass = isHeaderData ? 'bg-gray-100 font-bold' : '';
+                    const align = (typeof cellData === 'number' && !isHeaderData) ? 'text-right' : 'text-left';
+                    const content = cellData === '?' ? `<span class="inline-block w-full h-full bg-yellow-200 text-yellow-800 text-center font-bold rounded animate-pulse">?</span>` : cellData;
+
+                    tr.innerHTML += `<${tag} class="${cssClass} ${align}">${content}</${tag}>`;
+                });
+                tbody.appendChild(tr);
+            });
+        }
+
+        function loadLevel(index) {
+            const level = levels[index];
+            
+            ui.gameArea.classList.remove('fade-in');
+            void ui.gameArea.offsetWidth;
+            ui.gameArea.classList.add('fade-in');
+
+            ui.levelTitle.textContent = level.title;
+            ui.levelDescription.textContent = level.description;
+            ui.missionGoal.innerHTML = `<i class="fas fa-crosshairs mr-2"></i>${level.mission}`;
+            
+            ui.progressText.textContent = `${index + 1} / ${levels.length}`;
+            ui.progressBar.style.width = `${((index) / levels.length) * 100}%`;
+
+            ui.formulaInput.value = '';
+            ui.hintText.classList.add('hidden');
+            ui.hintText.textContent = level.hint;
+            ui.formulaInput.focus();
+
+            renderTable(level.tableData);
+        }
+
+        function cleanFormula(formula) {
+            let cleaned = formula.trim().toUpperCase();
+            cleaned = cleaned.replace(/;/g, ',');
+            cleaned = cleaned.replace(/\s*([=(),<>\/*+-])\s*/g, "$1");
+            cleaned = cleaned.replace(/[“”]/g, '"');
+            return cleaned;
+        }
+
+        function showFeedback(message, isSuccess) {
+            const msgEl = ui.feedbackMsg;
+            msgEl.textContent = message;
+            msgEl.classList.remove('hidden', 'opacity-0', 'bg-green-500', 'bg-red-500');
+            
+            if (isSuccess) {
+                msgEl.classList.add('bg-green-500', 'opacity-100');
+            } else {
+                msgEl.classList.add('bg-red-500', 'opacity-100');
+                ui.formulaInput.classList.add('shake');
+                setTimeout(() => ui.formulaInput.classList.remove('shake'), 400);
+            }
+
+            setTimeout(() => {
+                msgEl.classList.add('opacity-0');
+                setTimeout(() => msgEl.classList.add('hidden'), 300);
+            }, 3000);
+        }
+
+        function checkAnswer() {
+            const userInput = ui.formulaInput.value;
+            const level = levels[currentLevelIndex];
+            
+            if (!userInput.startsWith('=')) {
+                showFeedback("¡Toda fórmula debe empezar con el signo igual (=)!", false);
+                return;
+            }
+
+            const cleanedInput = cleanFormula(userInput);
+            const cleanedValidAnswers = level.validAnswers.map(cleanFormula);
+
+            let isCorrect = false;
+            if (cleanedValidAnswers.includes(cleanedInput)) {
+                isCorrect = true;
+            }
+
+            if (isCorrect) {
+                showFeedback("¡Fórmula Correcta!", true);
+                
+                setTimeout(() => {
+                    currentLevelIndex++;
+                    // Notificar progreso a la plataforma escolar automáticamente
+                    notifyPlatform(false);
+
+                    if (currentLevelIndex < levels.length) {
+                        loadLevel(currentLevelIndex);
+                    } else {
+                        showVictory(true);
+                    }
+                }, 1200);
+            } else {
+                mistakes++;
+                notifyPlatform(false);
+                showFeedback("Fórmula incorrecta o error de sintaxis. Intenta de nuevo.", false);
+            }
+        }
+
+        function showVictory(isFullCompletion = true) {
+            ui.victoryScreen.classList.remove('hidden');
+            
+            const grade = calculateProportionalGrade(currentLevelIndex, levels.length, mistakes);
+            
+            document.getElementById('final-grade').textContent = grade.toFixed(1);
+            ui.mistakesCount.textContent = mistakes;
+            ui.completedLevelsCount.textContent = currentLevelIndex;
+            
+            if (isFullCompletion) {
+                ui.victoryTitle.textContent = "¡Escape Exitoso!";
+                ui.victoryMessage.textContent = "Has superado todos los niveles de fórmulas de Excel.";
+                ui.progressBar.style.width = '100%';
+            } else {
+                ui.victoryTitle.textContent = "¡Avance Entregado!";
+                ui.victoryMessage.textContent = `Has entregado tu trabajo con ${currentLevelIndex} de ${levels.length} niveles completados.`;
+            }
+
+            // Reporte de habilidades superadas
+            ui.skillsReport.innerHTML = '';
+            for (let i = 0; i < currentLevelIndex; i++) {
+                const l = levels[i];
+                ui.skillsReport.innerHTML += `
+                    <li class="flex items-center gap-2">
+                        <i class="fas fa-check-circle text-green-400"></i>
+                        <span class="truncate" title="${l.skill}">${l.skill}</span>
+                    </li>
+                `;
+            }
+
+            // Notificación final definitiva a la plataforma
+            notifyPlatform(true);
+        }
+
+        // --- Event Listeners ---
+        ui.submitBtn.addEventListener('click', checkAnswer);
+        
+        ui.formulaInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                checkAnswer();
+            }
+        });
+
+        ui.hintBtn.addEventListener('click', function() {
+            ui.hintText.classList.toggle('hidden');
+        });
+
+        ui.earlySubmitBtn.addEventListener('click', function() {
+            if (confirm(`¿Deseas finalizar y entregar tu avance actual?\n\nNiveles completados: ${currentLevelIndex} de ${levels.length}\nNota calculada: ${calculateProportionalGrade(currentLevelIndex, levels.length, mistakes).toFixed(1)}`)) {
+                showVictory(false);
+            }
+        });
+
+        ui.restartBtn.addEventListener('click', initGame);
+
+        window.onload = initGame;
+    </script>
+</body>
+</html>

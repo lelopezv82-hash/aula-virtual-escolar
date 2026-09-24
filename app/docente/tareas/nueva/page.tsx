@@ -19,6 +19,7 @@ export default function NuevaTareaPage() {
   const [duration, setDuration] = useState("");
   const [groupIds, setGroupIds] = useState<string[]>([]);
   const [type, setType] = useState("TASK");
+  const [externalUrl, setExternalUrl] = useState("");
   const [isExternal, setIsExternal] = useState(false);
   const [requiresFolder, setRequiresFolder] = useState(false);
   const [courses, setCourses] = useState<{id: string, name: string, groups: {id: string, name: string, grade?: {name: string}}[]}[]>([]);
@@ -153,6 +154,9 @@ export default function NuevaTareaPage() {
     formData.append("studentIds", JSON.stringify(selectedStudentIds));
     formData.append("resourceIds", JSON.stringify(selectedResourceIds));
     formData.append("type", type);
+    if (externalUrl) {
+      formData.append("externalUrl", externalUrl);
+    }
     formData.append("isExternal", String(isExternal));
     formData.append("requiresFolder", String(requiresFolder));
     if (file) {
@@ -410,12 +414,21 @@ export default function NuevaTareaPage() {
               id="type"
               className="input-field"
               value={type}
-              onChange={(e) => setType(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setType(val);
+                if (val === "INTERACTIVE") {
+                  if (!title) setTitle("Excel Escape - Juego de Fórmulas");
+                  if (!description) setDescription("Supera los 20 niveles de fórmulas de Excel. Cada nivel completado registrará y aumentará tu nota automáticamente.");
+                  setExternalUrl("/activities/excel_escape.html");
+                }
+              }}
               required
             >
               <option value="TASK">Tarea (Hacer)</option>
               <option value="TASK_SABER">Tarea (Saber)</option>
               <option value="EXAM">Examen (Saber)</option>
+              <option value="INTERACTIVE">Actividad Interactiva / Gamificada (Autocalificable)</option>
             </select>
           </div>
           <div className="input-group flex-1 flex items-center gap-2 pt-6">
@@ -432,6 +445,34 @@ export default function NuevaTareaPage() {
             </label>
           </div>
         </div>
+
+        {type === "INTERACTIVE" && (
+          <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl space-y-3">
+            <div className="flex items-center gap-2 text-purple-900 font-bold text-sm">
+              <span className="text-lg">🎮</span>
+              <span>Actividad Interactiva con Calificación Automática</span>
+            </div>
+            <p className="text-xs text-purple-700 leading-relaxed">
+              El estudiante completará la actividad directamente en la plataforma. Su avance y calificación (1.0 a 5.0) se sincronizarán en tiempo real con la planilla de notas.
+            </p>
+            <div className="flex flex-col gap-2 pt-1">
+              <label className="text-xs font-semibold text-gray-700">Seleccionar plantilla o juego integrado:</label>
+              <select
+                className="input-field text-sm bg-white"
+                value={externalUrl}
+                onChange={(e) => setExternalUrl(e.target.value)}
+              >
+                <option value="/activities/excel_escape.html">🎯 Excel Escape (20 niveles interactivos de fórmulas de Excel)</option>
+                <option value="">📁 Subir mi propio archivo HTML (ej. creado en Gemini Canvas)</option>
+              </select>
+              {externalUrl === "" && (
+                <p className="text-xs text-amber-700 bg-amber-50 p-2 rounded border border-amber-200">
+                  ℹ️ Recuerda seleccionar abajo el archivo <code>.html</code> generado en Gemini Canvas como archivo adjunto.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         {!isExternal && type === "TASK" && (
           <div className="p-4 bg-orange-50/60 border border-orange-200 rounded-xl flex items-start gap-3">
