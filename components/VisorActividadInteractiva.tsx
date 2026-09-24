@@ -150,11 +150,28 @@ export default function VisorActividadInteractiva({
       const doc = iframeRef.current?.contentDocument;
       const win = iframeRef.current?.contentWindow as any;
       if (doc) {
-        const gradeEl = doc.getElementById('final-grade') || doc.getElementById('live-grade');
+        // Verificar si la pantalla de victoria está REALMENTE visible en el juego
+        const victoryEl = doc.getElementById('victory-screen') || doc.querySelector('.victory-screen, .game-over, #pantalla-final');
+        let isVictory = false;
+        if (victoryEl) {
+          const isHidden = victoryEl.classList.contains('hidden') || (victoryEl as HTMLElement).style.display === 'none' || (victoryEl as HTMLElement).offsetParent === null;
+          if (!isHidden) isVictory = true;
+        }
+
         let parsedGrade: number | null = null;
-        if (gradeEl) {
-          const val = parseFloat((gradeEl.textContent || "").trim());
-          if (!isNaN(val) && val >= 1.0 && val <= 5.0) parsedGrade = val;
+        if (isVictory) {
+          const gradeEl = doc.getElementById('final-grade') || doc.getElementById('nota-final');
+          if (gradeEl) {
+            const val = parseFloat((gradeEl.textContent || "").trim());
+            if (!isNaN(val) && val >= 1.0 && val <= 5.0) parsedGrade = val;
+          }
+          if (parsedGrade === null) {
+            const errs = win?.mistakes ?? 0;
+            let gVic = 5.0 - (errs * 0.1);
+            if (gVic < 1.0) gVic = 1.0;
+            if (gVic > 5.0) gVic = 5.0;
+            parsedGrade = parseFloat(gVic.toFixed(1));
+          }
         }
 
         const curLvl = win?.currentLevelIndex ?? null;
@@ -162,11 +179,15 @@ export default function VisorActividadInteractiva({
         const errs = win?.mistakes ?? 0;
 
         if (parsedGrade === null && curLvl !== null && Array.isArray(lvlArr) && lvlArr.length > 0) {
-          const progressRatio = curLvl / lvlArr.length;
-          let g = 1.0 + (progressRatio * 4.0) - (errs * 0.1);
-          if (g < 1.0) g = 1.0;
-          if (g > 5.0) g = 5.0;
-          parsedGrade = parseFloat(g.toFixed(1));
+          if (curLvl <= 0) {
+            parsedGrade = 1.0;
+          } else {
+            const progressRatio = curLvl / lvlArr.length;
+            let g = 1.0 + (progressRatio * 4.0) - (errs * 0.1);
+            if (g < 1.0) g = 1.0;
+            if (g > 5.0) g = 5.0;
+            parsedGrade = parseFloat(g.toFixed(1));
+          }
         }
 
         if (parsedGrade === null) {
@@ -178,16 +199,20 @@ export default function VisorActividadInteractiva({
               const tot = parseInt(match[2], 10);
               if (tot > 0) {
                 const completed = Math.max(0, cur - 1);
-                let g = 1.0 + ((completed / tot) * 4.0);
-                if (g > 5.0) g = 5.0;
-                parsedGrade = parseFloat(g.toFixed(1));
+                if (completed <= 0) {
+                  parsedGrade = 1.0;
+                } else {
+                  let g = 1.0 + ((completed / tot) * 4.0);
+                  if (g > 5.0) g = 5.0;
+                  parsedGrade = parseFloat(g.toFixed(1));
+                }
               }
             }
           }
         }
 
         if (parsedGrade !== null) {
-          submitGrade(parsedGrade, isFinal, {
+          submitGrade(parsedGrade, isFinal || isVictory, {
             currentLevel: curLvl,
             totalLevels: lvlArr?.length,
             mistakes: errs

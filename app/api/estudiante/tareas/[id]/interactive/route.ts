@@ -64,8 +64,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'El plazo de entrega para esta actividad ha vencido' }, { status: 403 });
     }
 
-    // Regla de Mejor Nota (Best Score): nunca reducir una nota superior previamente obtenida
-    const finalGrade = existingSubmission?.grade !== null && existingSubmission?.grade !== undefined
+    // Regla de Mejor Nota (Best Score):
+    // Solo preservar una nota mayor si no es una anomalía (ej. nota 5.0 en nivel 0 o 1 sin ser final)
+    const isAnomalous = existingSubmission?.grade === 5.0 && (currentLevel || 0) < 5 && !isFinal;
+    const finalGrade = (existingSubmission?.grade !== null && existingSubmission?.grade !== undefined && !isAnomalous)
       ? Math.max(existingSubmission.grade, clampedGrade)
       : clampedGrade;
 

@@ -25,22 +25,30 @@ function injectBridgeScript(html: string): string {
 <script id="aula-virtual-bridge">
 (function() {
   function getCalculatedGrade() {
-    const gradeEls = [
-      document.getElementById('final-grade'),
-      document.getElementById('live-grade'),
-      document.querySelector('.final-grade'),
-      document.querySelector('[data-grade]'),
-      document.getElementById('nota-final'),
-      document.getElementById('nota')
-    ];
-    for (var i = 0; i < gradeEls.length; i++) {
-      var el = gradeEls[i];
-      if (el) {
-        var val = parseFloat((el.textContent || el.innerText || "").trim());
-        if (!isNaN(val) && val >= 1.0 && val <= 5.0) return val;
-      }
+    // 1. Verificar si la pantalla de victoria está REALMENTE visible en el juego
+    var isVictory = false;
+    var victoryEl = document.getElementById('victory-screen') || document.querySelector('.victory-screen, .game-over, #pantalla-final');
+    if (victoryEl) {
+      var isHidden = victoryEl.classList.contains('hidden') || victoryEl.style.display === 'none' || victoryEl.offsetParent === null;
+      if (!isHidden) isVictory = true;
     }
 
+    if (isVictory) {
+      // Pantalla de victoria visible: leer nota final de victoria
+      var fgEl = document.getElementById('final-grade') || document.getElementById('nota-final');
+      if (fgEl) {
+        var val = parseFloat((fgEl.textContent || fgEl.innerText || "").trim());
+        if (!isNaN(val) && val >= 1.0 && val <= 5.0) return val;
+      }
+      var vErrs = typeof mistakes !== 'undefined' ? mistakes : 0;
+      var gVic = 5.0 - (vErrs * 0.1);
+      if (gVic < 1.0) gVic = 1.0;
+      if (gVic > 5.0) gVic = 5.0;
+      return parseFloat(gVic.toFixed(1));
+    }
+
+    // 2. Durante el juego (pantalla de victoria NO visible):
+    // Calcular nota proporcional según los niveles REALMENTE superados
     try {
       var curLvl = typeof currentLevelIndex !== 'undefined' ? currentLevelIndex : (typeof currentLevel !== 'undefined' ? currentLevel : null);
       var lvlArr = typeof levels !== 'undefined' && Array.isArray(levels) ? levels : null;
@@ -48,7 +56,10 @@ function injectBridgeScript(html: string): string {
 
       if (curLvl !== null && lvlArr && lvlArr.length > 0) {
         var total = lvlArr.length;
-        if (curLvl <= 0) return 1.0;
+        if (curLvl <= 0) {
+          // El estudiante está en el nivel 1 (0 niveles completados)
+          return 1.0;
+        }
         var progressRatio = curLvl / total;
         var g = 1.0 + (progressRatio * 4.0) - (errs * 0.1);
         if (g < 1.0) g = 1.0;
@@ -57,6 +68,7 @@ function injectBridgeScript(html: string): string {
       }
     } catch(e) {}
 
+    // 3. Respaldo por texto de progreso ("X / Y")
     var progEl = document.getElementById('progress-text') || document.querySelector('.progress-text');
     if (progEl) {
       var match = (progEl.textContent || "").match(/(\\d+)\\s*\\/\\s*(\\d+)/);
@@ -64,7 +76,9 @@ function injectBridgeScript(html: string): string {
         var cur = parseInt(match[1], 10);
         var tot = parseInt(match[2], 10);
         if (tot > 0) {
+          // Si el texto dice "1 / 20", el nivel 1 está en juego: 0 niveles completados
           var completed = Math.max(0, cur - 1);
+          if (completed <= 0) return 1.0;
           var gProg = 1.0 + ((completed / tot) * 4.0);
           if (gProg > 5.0) gProg = 5.0;
           return parseFloat(gProg.toFixed(1));
