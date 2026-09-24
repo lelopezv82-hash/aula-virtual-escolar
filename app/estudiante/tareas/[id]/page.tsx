@@ -570,7 +570,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
         </p>
 
         {/* Material adjunto de la tarea: */}
-        {((task.attachmentUrl && !isGoogleForm) || (task.resources && task.resources.length > 0)) && (
+        {((task.attachmentUrl && !isGoogleForm && task.type !== "INTERACTIVE") || (task.resources && task.resources.length > 0)) && (
           <div style={{
             marginTop: "1rem",
             padding: "0.75rem 1rem",
@@ -584,7 +584,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
             <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#64748b" }}>
               Material adjunto de la tarea:
             </div>
-            {task.attachmentUrl && !isGoogleForm && (
+            {task.attachmentUrl && !isGoogleForm && task.type !== "INTERACTIVE" && (
               <a 
                 href={`/api/tareas/${task.id}/attachment`}
                 target="_blank" 

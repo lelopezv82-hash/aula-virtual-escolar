@@ -366,7 +366,7 @@ export default async function CursoDescripcionPage({
                 </div>
 
                 {/* Nested Attached Guides / Materials under Task */}
-                {((task.attachmentUrl) || (task.resources && task.resources.length > 0)) && (
+                {((task.type !== "INTERACTIVE" && task.attachmentUrl) || (task.resources && task.resources.length > 0)) && (
                   <div style={{
                     marginLeft: "2.75rem",
                     marginTop: "0.35rem",
@@ -381,7 +381,7 @@ export default async function CursoDescripcionPage({
                     <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#64748b" }}>
                       Material adjunto de la tarea:
                     </div>
-                    {task.attachmentUrl && (
+                    {task.type !== "INTERACTIVE" && task.attachmentUrl && (
                       <a href={`/api/tareas/${task.id}/attachment`} target="_blank" rel="noreferrer" style={{ fontSize: "0.85rem", color: "#0284c7", textDecoration: "none", fontWeight: 500 }} className="inline-flex items-center gap-2 hover:underline group w-fit">
                         <ResourceIcon type={task.attachmentUrl.split('.').pop() || "FILE"} />
                         <span className="group-hover:underline">Descargar Guía de la Tarea</span>

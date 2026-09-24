@@ -275,6 +275,15 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                           >
                             {item.title}
                           </Link>
+                          {item.type === "INTERACTIVE" && (
+                            <span style={{
+                              fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
+                              borderRadius: 3, background: "#f3e8ff", color: "#6b21a8",
+                              border: "1px solid #d8b4fe"
+                            }}>
+                              🎮 Actividad Interactiva
+                            </span>
+                          )}
                           {item.isGraded && !isClosedWithoutSubmission && (
                             <span className="inline-flex items-center gap-1.5 flex-wrap">
                               <span style={{
@@ -392,7 +401,7 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                     </div>
 
                     {/* Nested Assigned Resources under Task */}
-                    {((item.attachmentUrl) || (item.resources && item.resources.length > 0)) && (
+                    {((item.type !== "INTERACTIVE" && item.attachmentUrl) || (item.resources && item.resources.length > 0)) && (
                       <div style={{
                         marginLeft: "2.5rem",
                         marginTop: "0.4rem",
@@ -407,7 +416,7 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                         <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#6c757d", marginBottom: "0.1rem" }}>
                           Material adjunto de la tarea:
                         </div>
-                        {item.attachmentUrl && (
+                        {item.type !== "INTERACTIVE" && item.attachmentUrl && (
                           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                             <ResourceIcon type={item.attachmentUrl.split('.').pop() || "FILE"} />
                             <a href={`/api/tareas/${item.id}/attachment`} target="_blank" rel="noreferrer" style={{ fontSize: "0.85rem", color: "#0066cc", textDecoration: "none" }}>

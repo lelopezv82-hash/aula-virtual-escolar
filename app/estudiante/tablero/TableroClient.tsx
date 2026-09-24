@@ -24,7 +24,8 @@ import {
   ExternalLink,
   GraduationCap,
   Download,
-  Paperclip
+  Paperclip,
+  Gamepad2
 } from "lucide-react";
 import { getTaskDeadlineStatus, formatToColombiaString } from "@/lib/dateUtils";
 
@@ -860,6 +861,10 @@ export default function TableroClient({
 function TaskCard({ task, info }: { task: TableroTask; info: any }) {
   const isExam = task.type === "EXAM" || task.type === "FINAL";
   const isTaskSaber = task.type === "TASK_SABER" || task.type === "SABER";
+  const isInteractive = task.type === "INTERACTIVE";
+  const showGuide = !isInteractive && !!task.attachmentUrl;
+  const hasAttachedMaterials = showGuide || (task.resources && task.resources.length > 0);
+
   const href = isExam
     ? `/estudiante/examenes/${task.id}`
     : `/estudiante/tareas/${task.id}`;
@@ -897,13 +902,21 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
               className={`text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 ${
                 isExam
                   ? "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300"
+                  : isInteractive
+                  ? "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
                   : isTaskSaber
                   ? "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300"
                   : "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
               }`}
             >
-              {isExam ? <ClipboardList size={12} /> : <FileText size={12} />}
-              {isExam ? "Examen (Saber)" : isTaskSaber ? "Tarea (Saber)" : "Tarea (Hacer)"}
+              {isExam ? (
+                <ClipboardList size={12} />
+              ) : isInteractive ? (
+                <Gamepad2 size={12} />
+              ) : (
+                <FileText size={12} />
+              )}
+              {isExam ? "Examen (Saber)" : isInteractive ? "Actividad Interactiva (Hacer)" : isTaskSaber ? "Tarea (Saber)" : "Tarea (Hacer)"}
             </span>
 
             {/* In-class delivery badge */}
@@ -990,12 +1003,12 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
         )}
 
         {/* Attached Guide and Resources */}
-        {(task.attachmentUrl || (task.resources && task.resources.length > 0)) && (
+        {hasAttachedMaterials && (
           <div className="mt-2.5 mb-1 p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800/60 flex flex-col gap-2" style={{ borderColor: "var(--border-color)" }}>
             <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">
               <Paperclip size={12} /> Material adjunto de la tarea:
             </div>
-            {task.attachmentUrl && (
+            {showGuide && (
               <div className="flex items-center gap-2">
                 <a
                   href={`/api/tareas/${task.id}/attachment`}
@@ -1055,6 +1068,8 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
               ? "bg-slate-600 hover:bg-slate-700"
               : isExam
               ? "bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700"
+              : isInteractive
+              ? "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
               : "btn-primary"
           }`}
         >
@@ -1073,6 +1088,10 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
           ) : isExam ? (
             <>
               Comenzar Examen <ArrowRight size={14} />
+            </>
+          ) : isInteractive ? (
+            <>
+              Realizar Actividad <ArrowRight size={14} />
             </>
           ) : task.isExternal ? (
             <>
