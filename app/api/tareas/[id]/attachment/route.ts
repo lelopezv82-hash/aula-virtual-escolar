@@ -20,6 +20,177 @@ function extractDriveFileId(url: string): string | null {
   return null;
 }
 
+function injectBridgeScript(html: string): string {
+  const bridgeScript = `
+<script id="aula-virtual-bridge">
+(function() {
+  function getCalculatedGrade() {
+    const gradeEls = [
+      document.getElementById('final-grade'),
+      document.getElementById('live-grade'),
+      document.querySelector('.final-grade'),
+      document.querySelector('[data-grade]'),
+      document.getElementById('nota-final'),
+      document.getElementById('nota')
+    ];
+    for (var i = 0; i < gradeEls.length; i++) {
+      var el = gradeEls[i];
+      if (el) {
+        var val = parseFloat((el.textContent || el.innerText || "").trim());
+        if (!isNaN(val) && val >= 1.0 && val <= 5.0) return val;
+      }
+    }
+
+    try {
+      var curLvl = typeof currentLevelIndex !== 'undefined' ? currentLevelIndex : (typeof currentLevel !== 'undefined' ? currentLevel : null);
+      var lvlArr = typeof levels !== 'undefined' && Array.isArray(levels) ? levels : null;
+      var errs = typeof mistakes !== 'undefined' ? mistakes : (typeof errors !== 'undefined' ? errors : 0);
+
+      if (curLvl !== null && lvlArr && lvlArr.length > 0) {
+        var total = lvlArr.length;
+        if (curLvl <= 0) return 1.0;
+        var progressRatio = curLvl / total;
+        var g = 1.0 + (progressRatio * 4.0) - (errs * 0.1);
+        if (g < 1.0) g = 1.0;
+        if (g > 5.0) g = 5.0;
+        return parseFloat(g.toFixed(1));
+      }
+    } catch(e) {}
+
+    var progEl = document.getElementById('progress-text') || document.querySelector('.progress-text');
+    if (progEl) {
+      var match = (progEl.textContent || "").match(/(\\d+)\\s*\\/\\s*(\\d+)/);
+      if (match) {
+        var cur = parseInt(match[1], 10);
+        var tot = parseInt(match[2], 10);
+        if (tot > 0) {
+          var completed = Math.max(0, cur - 1);
+          var gProg = 1.0 + ((completed / tot) * 4.0);
+          if (gProg > 5.0) gProg = 5.0;
+          return parseFloat(gProg.toFixed(1));
+        }
+      }
+    }
+
+    return 1.0;
+  }
+
+  function report(isFinal) {
+    var grade = getCalculatedGrade();
+    var curLvl = 0;
+    var totLvls = 20;
+    var errCount = 0;
+
+    try {
+      if (typeof currentLevelIndex !== 'undefined') curLvl = currentLevelIndex;
+      else if (typeof currentLevel !== 'undefined') curLvl = currentLevel;
+      if (typeof levels !== 'undefined' && Array.isArray(levels)) totLvls = levels.length;
+      if (typeof mistakes !== 'undefined') errCount = mistakes;
+      else if (typeof errors !== 'undefined') errCount = errors;
+    } catch(e) {}
+
+    if (curLvl === 0) {
+      var progEl = document.getElementById('progress-text') || document.querySelector('.progress-text');
+      if (progEl) {
+        var match = (progEl.textContent || "").match(/(\\d+)\\s*\\/\\s*(\\d+)/);
+        if (match) {
+          curLvl = Math.max(0, parseInt(match[1], 10) - 1);
+          totLvls = parseInt(match[2], 10);
+        }
+      }
+    }
+
+    var payload = {
+      type: isFinal ? 'ACTIVIDAD_COMPLETADA' : 'ACTIVIDAD_PROGRESO',
+      grade: grade,
+      currentLevel: curLvl,
+      totalLevels: totLvls,
+      mistakes: errCount,
+      isFinal: !!isFinal,
+      activityTitle: document.title || 'Actividad Interactiva'
+    };
+
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage(payload, '*');
+    }
+  }
+
+  window.addEventListener('message', function(ev) {
+    if (ev.data && ev.data.type === 'AULA_REQUEST_PROGRESS') {
+      report(!!ev.data.isFinal);
+    }
+  });
+
+  function setupHooks() {
+    setTimeout(function() { report(false); }, 1000);
+
+    try {
+      if (typeof window.showVictory === 'function') {
+        var origVictory = window.showVictory;
+        window.showVictory = function() {
+          var r = origVictory.apply(this, arguments);
+          setTimeout(function() { report(true); }, 300);
+          return r;
+        };
+      }
+    } catch(e) {}
+
+    document.addEventListener('click', function() {
+      setTimeout(function() {
+        var isVic = document.getElementById('victory-screen') || document.querySelector('.victory-screen');
+        var isDone = isVic && !isVic.classList.contains('hidden') && isVic.offsetParent !== null;
+        report(isDone);
+      }, 600);
+    }, true);
+
+    document.addEventListener('keyup', function(e) {
+      if (e.key === 'Enter') {
+        setTimeout(function() {
+          var isVic = document.getElementById('victory-screen') || document.querySelector('.victory-screen');
+          var isDone = isVic && !isVic.classList.contains('hidden') && isVic.offsetParent !== null;
+          report(isDone);
+        }, 600);
+      }
+    }, true);
+
+    try {
+      var observer = new MutationObserver(function() {
+        var isVic = document.getElementById('victory-screen') || document.querySelector('.victory-screen');
+        if (isVic && !isVic.classList.contains('hidden') && isVic.offsetParent !== null) {
+          report(true);
+        }
+      });
+      observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+    } catch(e) {}
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupHooks);
+  } else {
+    setupHooks();
+  }
+
+  window.aulaVirtual = {
+    reportGrade: function(g, isFinal) {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({
+          type: isFinal ? 'ACTIVIDAD_COMPLETADA' : 'ACTIVIDAD_PROGRESO',
+          grade: g,
+          isFinal: !!isFinal
+        }, '*');
+      }
+    }
+  };
+})();
+</script>
+`;
+
+  if (html.includes('</body>')) {
+    return html.replace('</body>', bridgeScript + '</body>');
+  }
+  return html + bridgeScript;
+}
+
 /**
  * GET /api/tareas/[id]/attachment
  *
@@ -79,13 +250,16 @@ export async function GET(
         try {
           const fetchRes = await fetch(url);
           if (fetchRes.ok) {
-            const body = await fetchRes.arrayBuffer();
-            return new Response(body, {
+            let htmlText = await fetchRes.text();
+            if (!htmlText.includes('aula-virtual-bridge')) {
+              htmlText = injectBridgeScript(htmlText);
+            }
+            return new Response(htmlText, {
               status: 200,
               headers: {
                 'Content-Type': 'text/html; charset=utf-8',
                 'Content-Disposition': 'inline',
-                'Cache-Control': 'private, max-age=300',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
               },
             });
           }
@@ -178,6 +352,21 @@ export async function GET(
     const disposition = isInline
       ? `inline; filename="${originalName}"`
       : `attachment; filename="${originalName}"; filename*=UTF-8''${encodeURIComponent(originalName)}`;
+
+    if (isHtml) {
+      let htmlText = await fileRes.text();
+      if (!htmlText.includes('aula-virtual-bridge')) {
+        htmlText = injectBridgeScript(htmlText);
+      }
+      return new Response(htmlText, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Content-Disposition': disposition,
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+        },
+      });
+    }
 
     const body = await fileRes.arrayBuffer();
 

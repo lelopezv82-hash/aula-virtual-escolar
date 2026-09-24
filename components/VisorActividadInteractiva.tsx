@@ -81,6 +81,122 @@ export default function VisorActividadInteractiva({
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
+  // Sincronizar calificación si initialSubmission carga de forma asíncrona
+  useEffect(() => {
+    if (initialSubmission) {
+      setSubmission(initialSubmission);
+      if (initialSubmission.grade !== undefined && initialSubmission.grade !== null) {
+        setCurrentGrade(initialSubmission.grade);
+      }
+    }
+  }, [initialSubmission]);
+
+  const submitGrade = async (grade: number, isFinal: boolean, extraData?: any) => {
+    setSavingStatus("saving");
+    setStatusMessage(isFinal ? "Guardando entrega final..." : "Guardando avance...");
+
+    try {
+      const res = await fetch(`/api/estudiante/tareas/${task.id}/interactive`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          grade,
+          currentLevel: extraData?.currentLevel,
+          totalLevels: extraData?.totalLevels,
+          mistakes: extraData?.mistakes,
+          isFinal,
+          activityTitle: extraData?.activityTitle || task.title
+        })
+      });
+
+      const result = await res.json();
+      if (res.ok && result.success) {
+        setCurrentGrade(result.grade);
+        setSavingStatus("saved");
+        setStatusMessage(result.message || "Guardado");
+
+        const updated = {
+          id: result.submissionId,
+          grade: result.grade,
+          status: "GRADED",
+          submittedAt: new Date().toISOString()
+        };
+        setSubmission(updated);
+        if (onSubmissionUpdated) onSubmissionUpdated(updated);
+
+        if (isFinal) {
+          setShowCelebration(true);
+          setTimeout(() => setShowCelebration(false), 5000);
+        }
+        setTimeout(() => setSavingStatus("idle"), 2500);
+      } else {
+        setSavingStatus("error");
+        setStatusMessage(result.error || "No se pudo guardar la nota");
+      }
+    } catch {
+      setSavingStatus("error");
+      setStatusMessage("Error de conexión al guardar nota");
+    }
+  };
+
+  // Función de sincronización manual / directa desde el iframe
+  const handleManualSync = (isFinal = false) => {
+    if (iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage({ type: 'AULA_REQUEST_PROGRESS', isFinal }, '*');
+    }
+
+    // Inspección directa del DOM del iframe como respaldo inmediato (mismo origen)
+    try {
+      const doc = iframeRef.current?.contentDocument;
+      const win = iframeRef.current?.contentWindow as any;
+      if (doc) {
+        const gradeEl = doc.getElementById('final-grade') || doc.getElementById('live-grade');
+        let parsedGrade: number | null = null;
+        if (gradeEl) {
+          const val = parseFloat((gradeEl.textContent || "").trim());
+          if (!isNaN(val) && val >= 1.0 && val <= 5.0) parsedGrade = val;
+        }
+
+        const curLvl = win?.currentLevelIndex ?? null;
+        const lvlArr = win?.levels ?? null;
+        const errs = win?.mistakes ?? 0;
+
+        if (parsedGrade === null && curLvl !== null && Array.isArray(lvlArr) && lvlArr.length > 0) {
+          const progressRatio = curLvl / lvlArr.length;
+          let g = 1.0 + (progressRatio * 4.0) - (errs * 0.1);
+          if (g < 1.0) g = 1.0;
+          if (g > 5.0) g = 5.0;
+          parsedGrade = parseFloat(g.toFixed(1));
+        }
+
+        if (parsedGrade === null) {
+          const progEl = doc.getElementById('progress-text') || doc.querySelector('.progress-text');
+          if (progEl) {
+            const match = (progEl.textContent || "").match(/(\d+)\s*\/\s*(\d+)/);
+            if (match) {
+              const cur = parseInt(match[1], 10);
+              const tot = parseInt(match[2], 10);
+              if (tot > 0) {
+                const completed = Math.max(0, cur - 1);
+                let g = 1.0 + ((completed / tot) * 4.0);
+                if (g > 5.0) g = 5.0;
+                parsedGrade = parseFloat(g.toFixed(1));
+              }
+            }
+          }
+        }
+
+        if (parsedGrade !== null) {
+          submitGrade(parsedGrade, isFinal, {
+            currentLevel: curLvl,
+            totalLevels: lvlArr?.length,
+            mistakes: errs
+          });
+        }
+      }
+    } catch {}
+  };
+
   // Escuchar mensajes del juego o actividad interactiva
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
@@ -89,57 +205,21 @@ export default function VisorActividadInteractiva({
 
       if (data.type === "ACTIVIDAD_PROGRESO" || data.type === "ACTIVIDAD_COMPLETADA") {
         const isFinal = data.type === "ACTIVIDAD_COMPLETADA" || !!data.isFinal;
-        setSavingStatus("saving");
-        setStatusMessage(isFinal ? "Guardando entrega final..." : "Guardando avance...");
-
-        try {
-          const res = await fetch(`/api/estudiante/tareas/${task.id}/interactive`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              grade: data.grade,
-              currentLevel: data.currentLevel,
-              totalLevels: data.totalLevels,
-              mistakes: data.mistakes,
-              isFinal,
-              activityTitle: data.activityTitle || task.title
-            })
-          });
-
-          const result = await res.json();
-          if (res.ok && result.success) {
-            setCurrentGrade(result.grade);
-            setSavingStatus("saved");
-            setStatusMessage(result.message || "Guardado");
-
-            const updated = {
-              id: result.submissionId,
-              grade: result.grade,
-              status: "GRADED",
-              submittedAt: new Date().toISOString()
-            };
-            setSubmission(updated);
-            if (onSubmissionUpdated) onSubmissionUpdated(updated);
-
-            if (isFinal) {
-              setShowCelebration(true);
-              setTimeout(() => setShowCelebration(false), 5000);
-            }
-            setTimeout(() => setSavingStatus("idle"), 2500);
-          } else {
-            setSavingStatus("error");
-            setStatusMessage(result.error || "No se pudo guardar la nota");
-          }
-        } catch {
-          setSavingStatus("error");
-          setStatusMessage("Error de conexión al guardar nota");
-        }
+        await submitGrade(data.grade, isFinal, data);
       }
     };
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
   }, [task.id, task.title, onSubmissionUpdated]);
+
+  // Sincronización periódica automática en segundo plano
+  useEffect(() => {
+    const timer = setInterval(() => {
+      handleManualSync(false);
+    }, 10000);
+    return () => clearInterval(timer);
+  }, [task.id]);
 
   return (
     <div ref={containerRef} className="flex flex-col h-full min-h-[85vh] bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-700/60 relative">
@@ -193,6 +273,18 @@ export default function VisorActividadInteractiva({
             </div>
           </div>
 
+          {/* Botón Guardar Avance */}
+          <button
+            type="button"
+            onClick={() => handleManualSync(true)}
+            disabled={savingStatus === "saving"}
+            className="flex items-center gap-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 px-3 py-1.5 rounded-xl transition-all shadow-sm border border-blue-400/40"
+            title="Guardar y registrar mi avance actual en la planilla escolar"
+          >
+            <CheckCircle2 size={15} className="text-blue-200" />
+            <span className="hidden sm:inline">Guardar Avance</span>
+          </button>
+
           {/* Botón Descargar Guía si existe */}
           {guideUrl && (
             <a
@@ -239,6 +331,11 @@ export default function VisorActividadInteractiva({
           className="w-full h-full border-0 absolute inset-0"
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
           allow="fullscreen"
+          onLoad={() => {
+            setTimeout(() => {
+              handleManualSync(false);
+            }, 1000);
+          }}
         />
       </div>
     </div>
