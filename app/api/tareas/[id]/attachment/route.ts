@@ -24,103 +24,228 @@ function injectBridgeScript(html: string): string {
   const bridgeScript = `
 <script id="aula-virtual-bridge">
 (function() {
-  function getCalculatedGrade() {
-    // 1. Verificar si la pantalla de victoria está REALMENTE visible en el juego
-    var isVictory = false;
-    var victoryEl = document.getElementById('victory-screen') || document.querySelector('.victory-screen, .game-over, #pantalla-final');
-    if (victoryEl) {
-      var isHidden = victoryEl.classList.contains('hidden') || victoryEl.style.display === 'none' || victoryEl.offsetParent === null;
-      if (!isHidden) isVictory = true;
+  function isElementVisible(el) {
+    if (!el) return false;
+    if (el.classList && el.classList.contains('hidden')) return false;
+    if (el.hasAttribute && el.hasAttribute('hidden')) return false;
+    if (el.style) {
+      if (el.style.display === 'none' || el.style.visibility === 'hidden') return false;
+      if (el.style.opacity === '0') return false;
     }
+    try {
+      if (window.getComputedStyle) {
+        var s = window.getComputedStyle(el);
+        if (s.display === 'none' || s.visibility === 'hidden' || s.opacity === '0') return false;
+      }
+    } catch(e) {}
+    if (el.offsetWidth === 0 && el.offsetHeight === 0) {
+      if (el.getClientRects && el.getClientRects().length === 0) return false;
+    }
+    return true;
+  }
+
+  function detectActivityProgress() {
+    var doc = document;
+    var win = window;
+
+    // 1. Detección de Victoria / Fin de Actividad
+    var victorySelectors = [
+      '#screen-victory', '#victory-screen', '.victory-screen',
+      '#pantalla-final', '#pantalla-victoria', '.pantalla-victoria',
+      '[id*="victory"]', '[id*="victoria"]', '[id*="game-over"]',
+      '[id*="gameOver"]', '[id*="congratulation"]', '[id*="felicitacion"]',
+      '[id*="pantalla-ganador"]', '[id*="pantalla-exito"]'
+    ];
+
+    var isVictory = false;
+    for (var i = 0; i < victorySelectors.length; i++) {
+      var els = doc.querySelectorAll(victorySelectors[i]);
+      for (var j = 0; j < els.length; j++) {
+        if (isElementVisible(els[j])) {
+          isVictory = true;
+          break;
+        }
+      }
+      if (isVictory) break;
+    }
+
+    // Indicadores emoji o texto de victoria en cabeceras o displays
+    var trophyEl = doc.getElementById('level-display') || doc.getElementById('progress-text') || doc.querySelector('.level-display, .progress-text, [id*="level"]');
+    if (trophyEl) {
+      var tText = (trophyEl.textContent || trophyEl.innerText || '').trim();
+      if (tText.indexOf('🏆') !== -1 || tText.indexOf('🎉') !== -1 || /victoria|completado|ganaste|felicidades/i.test(tText)) {
+        isVictory = true;
+      }
+    }
+
+    var mistakes = 0;
+    try {
+      if (typeof win.mistakes === 'number') mistakes = win.mistakes;
+      else if (typeof win.errors === 'number') mistakes = win.errors;
+      else if (typeof win.fallos === 'number') mistakes = win.fallos;
+    } catch(e) {}
 
     if (isVictory) {
-      // Pantalla de victoria visible: leer nota final de victoria
-      var fgEl = document.getElementById('final-grade') || document.getElementById('nota-final');
-      if (fgEl) {
-        var val = parseFloat((fgEl.textContent || fgEl.innerText || "").trim());
-        if (!isNaN(val) && val >= 1.0 && val <= 5.0) return val;
+      var gradeSelectors = ['#final-grade', '#nota-final', '[id*="final-grade"]', '[id*="nota-final"]', '.final-grade', '.nota-final'];
+      for (var g = 0; g < gradeSelectors.length; g++) {
+        var gEl = doc.querySelector(gradeSelectors[g]);
+        if (gEl) {
+          var gText = (gEl.textContent || gEl.innerText || '').trim();
+          var gVal = parseFloat(gText);
+          if (!isNaN(gVal) && gVal >= 1.0 && gVal <= 5.0) {
+            return { grade: gVal, isFinal: true, currentLevel: 100, totalLevels: 100, mistakes: mistakes };
+          }
+        }
       }
-      var vErrs = typeof mistakes !== 'undefined' ? mistakes : 0;
-      var gVic = 5.0 - (vErrs * 0.1);
-      if (gVic < 1.0) gVic = 1.0;
-      if (gVic > 5.0) gVic = 5.0;
-      return parseFloat(gVic.toFixed(1));
+      var vGrade = 5.0 - (mistakes * 0.1);
+      if (vGrade < 1.0) vGrade = 1.0;
+      if (vGrade > 5.0) vGrade = 5.0;
+      return {
+        grade: parseFloat(vGrade.toFixed(1)),
+        isFinal: true,
+        currentLevel: 100,
+        totalLevels: 100,
+        mistakes: mistakes
+      };
     }
 
-    // 2. Durante el juego (pantalla de victoria NO visible):
-    // Calcular nota proporcional según los niveles REALMENTE superados
+    // 2. Variables globales del juego (ej. Excel Escape: currentLevelIndex, levels)
     try {
-      var curLvl = typeof currentLevelIndex !== 'undefined' ? currentLevelIndex : (typeof currentLevel !== 'undefined' ? currentLevel : null);
-      var lvlArr = typeof levels !== 'undefined' && Array.isArray(levels) ? levels : null;
-      var errs = typeof mistakes !== 'undefined' ? mistakes : (typeof errors !== 'undefined' ? errors : 0);
-
-      if (curLvl !== null && lvlArr && lvlArr.length > 0) {
-        var total = lvlArr.length;
-        if (curLvl <= 0) {
-          // El estudiante está en el nivel 1 (0 niveles completados)
-          return 1.0;
+      var curIdx = typeof win.currentLevelIndex === 'number' ? win.currentLevelIndex : (typeof win.currentLevel === 'number' ? win.currentLevel : null);
+      var lvlList = (win.levels && Array.isArray(win.levels)) ? win.levels : null;
+      if (curIdx !== null && lvlList && lvlList.length > 0) {
+        var tot = lvlList.length;
+        if (curIdx <= 0) {
+          return { grade: 1.0, isFinal: false, currentLevel: 0, totalLevels: tot, mistakes: mistakes };
         }
-        var progressRatio = curLvl / total;
-        var g = 1.0 + (progressRatio * 4.0) - (errs * 0.1);
-        if (g < 1.0) g = 1.0;
-        if (g > 5.0) g = 5.0;
-        return parseFloat(g.toFixed(1));
+        var pRatio = curIdx / tot;
+        var calcG = 1.0 + (pRatio * 4.0) - (mistakes * 0.1);
+        if (calcG < 1.0) calcG = 1.0;
+        if (calcG > 5.0) calcG = 5.0;
+        return {
+          grade: parseFloat(calcG.toFixed(1)),
+          isFinal: curIdx >= tot,
+          currentLevel: curIdx,
+          totalLevels: tot,
+          mistakes: mistakes
+        };
       }
     } catch(e) {}
 
-    // 3. Respaldo por texto de progreso ("X / Y")
-    var progEl = document.getElementById('progress-text') || document.querySelector('.progress-text');
-    if (progEl) {
-      var match = (progEl.textContent || "").match(/(\\d+)\\s*\\/\\s*(\\d+)/);
+    // 3. Texto de nivel / progreso en el DOM (ej: "2/7", "Nivel 3 / 10", "4 de 20")
+    var textCandidates = [
+      doc.getElementById('level-display'),
+      doc.getElementById('progress-text'),
+      doc.querySelector('.level-display'),
+      doc.querySelector('.progress-text'),
+      doc.querySelector('[id*="level-display"]'),
+      doc.querySelector('[id*="progress-text"]'),
+      doc.querySelector('header [id*="level"]'),
+      doc.querySelector('header [id*="nivel"]'),
+      doc.querySelector('[id*="nivel"]'),
+      doc.querySelector('[class*="nivel"]'),
+      doc.querySelector('#score'),
+      doc.querySelector('.score'),
+      doc.querySelector('#puntos'),
+      doc.querySelector('.puntos')
+    ];
+
+    for (var k = 0; k < textCandidates.length; k++) {
+      var el = textCandidates[k];
+      if (!el) continue;
+      var content = (el.textContent || el.innerText || '').trim();
+      var match = content.match(/(\\d+)\\s*(?:\\/|de|-)\\s*(\\d+)/i);
       if (match) {
         var cur = parseInt(match[1], 10);
         var tot = parseInt(match[2], 10);
         if (tot > 0) {
-          // Si el texto dice "1 / 20", el nivel 1 está en juego: 0 niveles completados
-          var completed = Math.max(0, cur - 1);
-          if (completed <= 0) return 1.0;
-          var gProg = 1.0 + ((completed / tot) * 4.0);
-          if (gProg > 5.0) gProg = 5.0;
-          return parseFloat(gProg.toFixed(1));
+          var isPoints = /punto|acierto|correct|score|superad|completad/i.test(content) || /score|punto/i.test(el.id || '') || /score|punto/i.test(el.className || '');
+          var completed = isPoints ? cur : Math.max(0, cur - 1);
+          if (completed <= 0) {
+            return { grade: 1.0, isFinal: false, currentLevel: cur, totalLevels: tot, mistakes: mistakes };
+          }
+          var gTextCalc = 1.0 + ((completed / tot) * 4.0) - (mistakes * 0.1);
+          if (gTextCalc < 1.0) gTextCalc = 1.0;
+          if (gTextCalc > 5.0) gTextCalc = 5.0;
+          return {
+            grade: parseFloat(gTextCalc.toFixed(1)),
+            isFinal: completed >= tot,
+            currentLevel: cur,
+            totalLevels: tot,
+            mistakes: mistakes
+          };
         }
       }
     }
 
-    return 1.0;
+    // 4. Barra de progreso CSS (ej: style="width: 50%")
+    var barEls = doc.querySelectorAll('[role="progressbar"], .progress-bar, [class*="progress-bar"], [id*="progress-bar"], [class*="progress-fill"], [id*="progress-fill"]');
+    for (var b = 0; b < barEls.length; b++) {
+      var bar = barEls[b];
+      var wStr = bar.style && bar.style.width ? bar.style.width : '';
+      var wMatch = wStr.match(/(\\d+(?:\\.\\d+)?)\\s*%/);
+      if (wMatch) {
+        var pct = parseFloat(wMatch[1]);
+        if (!isNaN(pct) && pct > 0) {
+          var gBar = 1.0 + ((pct / 100) * 4.0) - (mistakes * 0.1);
+          if (gBar < 1.0) gBar = 1.0;
+          if (gBar > 5.0) gBar = 5.0;
+          return {
+            grade: parseFloat(gBar.toFixed(1)),
+            isFinal: pct >= 100,
+            currentLevel: Math.round(pct),
+            totalLevels: 100,
+            mistakes: mistakes
+          };
+        }
+      }
+    }
+
+    // 5. Pantallas activas en el DOM (ej: Flowgorithm screen-intro, screen-level1, etc.)
+    var screens = doc.querySelectorAll('main[id*="screen"], div[id*="screen"], section[id*="screen"], .screen, .pantalla');
+    if (screens && screens.length > 2) {
+      var activeIdx = -1;
+      for (var s = 0; s < screens.length; s++) {
+        if (isElementVisible(screens[s])) {
+          activeIdx = s;
+          break;
+        }
+      }
+      if (activeIdx > 0) {
+        var totalScreens = screens.length;
+        var lastIsVic = /victory|victoria|final|game-over/i.test(screens[totalScreens - 1].id || '');
+        var denominator = lastIsVic ? (totalScreens - 1) : totalScreens;
+        if (activeIdx >= denominator) {
+          return { grade: 5.0, isFinal: true, currentLevel: denominator, totalLevels: denominator, mistakes: mistakes };
+        }
+        var sRatio = activeIdx / denominator;
+        var gScreen = 1.0 + (sRatio * 4.0);
+        if (gScreen > 5.0) gScreen = 5.0;
+        return {
+          grade: parseFloat(gScreen.toFixed(1)),
+          isFinal: false,
+          currentLevel: activeIdx,
+          totalLevels: denominator,
+          mistakes: mistakes
+        };
+      }
+    }
+
+    return { grade: 1.0, isFinal: false, currentLevel: 0, totalLevels: 20, mistakes: mistakes };
   }
 
-  function report(isFinal) {
-    var grade = getCalculatedGrade();
-    var curLvl = 0;
-    var totLvls = 20;
-    var errCount = 0;
-
-    try {
-      if (typeof currentLevelIndex !== 'undefined') curLvl = currentLevelIndex;
-      else if (typeof currentLevel !== 'undefined') curLvl = currentLevel;
-      if (typeof levels !== 'undefined' && Array.isArray(levels)) totLvls = levels.length;
-      if (typeof mistakes !== 'undefined') errCount = mistakes;
-      else if (typeof errors !== 'undefined') errCount = errors;
-    } catch(e) {}
-
-    if (curLvl === 0) {
-      var progEl = document.getElementById('progress-text') || document.querySelector('.progress-text');
-      if (progEl) {
-        var match = (progEl.textContent || "").match(/(\\d+)\\s*\\/\\s*(\\d+)/);
-        if (match) {
-          curLvl = Math.max(0, parseInt(match[1], 10) - 1);
-          totLvls = parseInt(match[2], 10);
-        }
-      }
-    }
+  function report(isFinalParam) {
+    var res = detectActivityProgress();
+    var isTrulyFinal = !!isFinalParam || res.isFinal;
+    var finalGrade = isTrulyFinal ? Math.max(res.grade, 5.0) : res.grade;
 
     var payload = {
-      type: isFinal ? 'ACTIVIDAD_COMPLETADA' : 'ACTIVIDAD_PROGRESO',
-      grade: grade,
-      currentLevel: curLvl,
-      totalLevels: totLvls,
-      mistakes: errCount,
-      isFinal: !!isFinal,
+      type: isTrulyFinal ? 'ACTIVIDAD_COMPLETADA' : 'ACTIVIDAD_PROGRESO',
+      grade: finalGrade,
+      currentLevel: res.currentLevel,
+      totalLevels: res.totalLevels,
+      mistakes: res.mistakes,
+      isFinal: isTrulyFinal,
       activityTitle: document.title || 'Actividad Interactiva'
     };
 
@@ -136,46 +261,68 @@ function injectBridgeScript(html: string): string {
   });
 
   function setupHooks() {
-    setTimeout(function() { report(false); }, 1000);
+    setTimeout(function() { report(false); }, 800);
 
+    // Hook a funciones comunes de actividades
+    ['showVictory', 'victory', 'gameWon', 'gameOver', 'winGame', 'finalizarActividad', 'completarActividad', 'finishGame'].forEach(function(fnName) {
+      try {
+        if (typeof window[fnName] === 'function') {
+          var origFn = window[fnName];
+          window[fnName] = function() {
+            var r = origFn.apply(this, arguments);
+            setTimeout(function() { report(true); }, 200);
+            return r;
+          };
+        }
+      } catch(e) {}
+    });
+
+    // Hook específico para updateLevel(lvl) usado en Flowgorithm y otras actividades
     try {
-      if (typeof window.showVictory === 'function') {
-        var origVictory = window.showVictory;
-        window.showVictory = function() {
-          var r = origVictory.apply(this, arguments);
-          setTimeout(function() { report(true); }, 300);
+      if (typeof window.updateLevel === 'function') {
+        var origUpdateLevel = window.updateLevel;
+        window.updateLevel = function(lvl) {
+          var r = origUpdateLevel.apply(this, arguments);
+          setTimeout(function() {
+            var isVic = lvl === '🏆' || String(lvl).indexOf('🏆') !== -1;
+            report(isVic);
+          }, 150);
           return r;
         };
       }
     } catch(e) {}
 
+    // Eventos de interacción del usuario
     document.addEventListener('click', function() {
-      setTimeout(function() {
-        var isVic = document.getElementById('victory-screen') || document.querySelector('.victory-screen');
-        var isDone = isVic && !isVic.classList.contains('hidden') && isVic.offsetParent !== null;
-        report(isDone);
-      }, 600);
+      setTimeout(function() { report(); }, 400);
+    }, true);
+
+    document.addEventListener('change', function() {
+      setTimeout(function() { report(); }, 400);
     }, true);
 
     document.addEventListener('keyup', function(e) {
       if (e.key === 'Enter') {
-        setTimeout(function() {
-          var isVic = document.getElementById('victory-screen') || document.querySelector('.victory-screen');
-          var isDone = isVic && !isVic.classList.contains('hidden') && isVic.offsetParent !== null;
-          report(isDone);
-        }, 600);
+        setTimeout(function() { report(); }, 400);
       }
     }, true);
 
+    // Observador de cambios en el DOM
     try {
+      var debounceTimer = null;
       var observer = new MutationObserver(function() {
-        var isVic = document.getElementById('victory-screen') || document.querySelector('.victory-screen');
-        if (isVic && !isVic.classList.contains('hidden') && isVic.offsetParent !== null) {
-          report(true);
-        }
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(function() {
+          report();
+        }, 500);
       });
       observer.observe(document.body, { childList: true, subtree: true, attributes: true });
     } catch(e) {}
+
+    // Intervalo periódico de seguridad
+    setInterval(function() {
+      report();
+    }, 4000);
   }
 
   if (document.readyState === 'loading') {
