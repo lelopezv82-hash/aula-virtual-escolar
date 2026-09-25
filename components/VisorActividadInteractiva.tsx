@@ -91,7 +91,7 @@ export default function VisorActividadInteractiva({
     }
   }, [initialSubmission]);
 
-  const submitGrade = async (grade: number, isFinal: boolean, extraData?: any) => {
+  const submitGrade = async (grade: number, isFinal: boolean, extraData?: any, isManualClick = false) => {
     setSavingStatus("saving");
     setStatusMessage(isFinal ? "Guardando entrega final..." : "Guardando avance...");
 
@@ -124,9 +124,9 @@ export default function VisorActividadInteractiva({
         setSubmission(updated);
         if (onSubmissionUpdated) onSubmissionUpdated(updated);
 
-        if (isFinal) {
+        if (isManualClick || isFinal) {
           setShowCelebration(true);
-          setTimeout(() => setShowCelebration(false), 5000);
+          setTimeout(() => setShowCelebration(false), 4000);
         }
         setTimeout(() => setSavingStatus("idle"), 2500);
       } else {
@@ -140,9 +140,9 @@ export default function VisorActividadInteractiva({
   };
 
   // Función de sincronización manual / directa desde el iframe
-  const handleManualSync = (isFinal = false) => {
+  const handleManualSync = (isManualClick = false) => {
     if (iframeRef.current?.contentWindow) {
-      iframeRef.current.contentWindow.postMessage({ type: 'AULA_REQUEST_PROGRESS', isFinal }, '*');
+      iframeRef.current.contentWindow.postMessage({ type: 'AULA_REQUEST_PROGRESS', isFinal: false }, '*');
     }
 
     // Inspección directa del DOM del iframe como respaldo inmediato (mismo origen)
@@ -212,11 +212,12 @@ export default function VisorActividadInteractiva({
         }
 
         if (parsedGrade !== null) {
-          submitGrade(parsedGrade, isFinal || isVictory, {
+          const isTrulyFinal = isVictory || (curLvl !== null && lvlArr && curLvl >= lvlArr.length);
+          submitGrade(parsedGrade, isTrulyFinal, {
             currentLevel: curLvl,
             totalLevels: lvlArr?.length,
             mistakes: errs
-          });
+          }, isManualClick);
         }
       }
     } catch {}
@@ -322,13 +323,13 @@ export default function VisorActividadInteractiva({
         </div>
       </header>
 
-      {/* Banner de Celebración cuando finaliza */}
+      {/* Banner de confirmación cuando guarda avance */}
       {showCelebration && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white px-6 py-3 rounded-2xl shadow-2xl border border-emerald-400 flex items-center gap-3 animate-bounce">
-          <Sparkles className="text-yellow-300 animate-spin" size={24} />
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white px-5 py-2.5 rounded-2xl shadow-2xl border border-emerald-400 flex items-center gap-3">
+          <CheckCircle2 className="text-emerald-200 shrink-0" size={22} />
           <div>
-            <p className="font-bold text-sm md:text-base">¡Excelente trabajo!</p>
-            <p className="text-xs text-emerald-100">Tu calificación de <strong>{currentGrade?.toFixed(1)}</strong> ha sido registrada en tu planilla escolar.</p>
+            <p className="font-bold text-xs sm:text-sm">Avance guardado</p>
+            <p className="text-[11px] sm:text-xs text-emerald-100">Tu calificación de <strong>{currentGrade !== null ? currentGrade.toFixed(1) : "—"}</strong> ha sido registrada en tu planilla escolar.</p>
           </div>
         </div>
       )}
