@@ -24,324 +24,95 @@ function injectBridgeScript(html: string): string {
   const bridgeScript = `
 <script id="aula-virtual-bridge">
 (function() {
-  function isElementVisible(el) {
-    if (!el) return false;
-    if (el.classList && el.classList.contains('hidden')) return false;
-    if (el.hasAttribute && el.hasAttribute('hidden')) return false;
-    if (el.style) {
-      if (el.style.display === 'none' || el.style.visibility === 'hidden') return false;
-      if (el.style.opacity === '0') return false;
+  function normalizeGrade(val) {
+    if (typeof val === 'string') {
+      var match = val.match(/([0-9]+(?:[\.,][0-9]+)?)/);
+      if (match) val = parseFloat(match[1].replace(',', '.'));
+      else val = parseFloat(val.replace(',', '.'));
     }
-    try {
-      if (window.getComputedStyle) {
-        var s = window.getComputedStyle(el);
-        if (s.display === 'none' || s.visibility === 'hidden' || s.opacity === '0') return false;
-      }
-    } catch(e) {}
-    if (el.offsetWidth === 0 && el.offsetHeight === 0) {
-      if (el.getClientRects && el.getClientRects().length === 0) return false;
-    }
-    return true;
+    if (typeof val !== 'number' || isNaN(val)) return null;
+    if (val > 5.0 && val <= 10.0) val = 1.0 + (val / 10.0) * 4.0;
+    else if (val > 10.0 && val <= 100.0) val = 1.0 + (val / 100.0) * 4.0;
+    return Math.max(1.0, Math.min(5.0, parseFloat(val.toFixed(1))));
   }
 
-  function detectActivityProgress() {
-    var doc = document;
-    var win = window;
-
-    // 1. Detección de Victoria / Fin de Actividad
-    var victorySelectors = [
-      '#screen-victory', '#victory-screen', '.victory-screen',
-      '#pantalla-final', '#pantalla-victoria', '.pantalla-victoria',
-      '[id*="victory"]', '[id*="victoria"]', '[id*="game-over"]',
-      '[id*="gameOver"]', '[id*="congratulation"]', '[id*="felicitacion"]',
-      '[id*="pantalla-ganador"]', '[id*="pantalla-exito"]'
-    ];
-
-    var isVictory = false;
-    for (var i = 0; i < victorySelectors.length; i++) {
-      var els = doc.querySelectorAll(victorySelectors[i]);
-      for (var j = 0; j < els.length; j++) {
-        if (isElementVisible(els[j])) {
-          isVictory = true;
-          break;
-        }
-      }
-      if (isVictory) break;
-    }
-
-    // Indicadores emoji o texto de victoria en cabeceras o displays
-    var trophyEl = doc.getElementById('level-display') || doc.getElementById('progress-text') || doc.querySelector('.level-display, .progress-text, [id*="level"]');
-    if (trophyEl) {
-      var tText = (trophyEl.textContent || trophyEl.innerText || '').trim();
-      if (tText.indexOf('🏆') !== -1 || tText.indexOf('🎉') !== -1 || /victoria|completado|ganaste|felicidades/i.test(tText)) {
-        isVictory = true;
-      }
-    }
-
-    var mistakes = 0;
-    try {
-      if (typeof win.mistakes === 'number') mistakes = win.mistakes;
-      else if (typeof win.errors === 'number') mistakes = win.errors;
-      else if (typeof win.fallos === 'number') mistakes = win.fallos;
-    } catch(e) {}
-
-    if (isVictory) {
-      var gradeSelectors = ['#final-grade', '#nota-final', '[id*="final-grade"]', '[id*="nota-final"]', '.final-grade', '.nota-final'];
-      for (var g = 0; g < gradeSelectors.length; g++) {
-        var gEl = doc.querySelector(gradeSelectors[g]);
-        if (gEl) {
-          var gText = (gEl.textContent || gEl.innerText || '').trim();
-          var gVal = parseFloat(gText);
-          if (!isNaN(gVal) && gVal >= 1.0 && gVal <= 5.0) {
-            return { grade: gVal, isFinal: true, currentLevel: 100, totalLevels: 100, mistakes: mistakes };
-          }
-        }
-      }
-      var vGrade = 5.0 - (mistakes * 0.1);
-      if (vGrade < 1.0) vGrade = 1.0;
-      if (vGrade > 5.0) vGrade = 5.0;
-      return {
-        grade: parseFloat(vGrade.toFixed(1)),
-        isFinal: true,
-        currentLevel: 100,
-        totalLevels: 100,
-        mistakes: mistakes
-      };
-    }
-
-    // 2. Variables globales del juego (ej. Excel Escape: currentLevelIndex, levels)
-    try {
-      var curIdx = typeof win.currentLevelIndex === 'number' ? win.currentLevelIndex : (typeof win.currentLevel === 'number' ? win.currentLevel : null);
-      var lvlList = (win.levels && Array.isArray(win.levels)) ? win.levels : null;
-      if (curIdx !== null && lvlList && lvlList.length > 0) {
-        var tot = lvlList.length;
-        if (curIdx <= 0) {
-          return { grade: 1.0, isFinal: false, currentLevel: 0, totalLevels: tot, mistakes: mistakes };
-        }
-        var pRatio = curIdx / tot;
-        var calcG = 1.0 + (pRatio * 4.0) - (mistakes * 0.1);
-        if (calcG < 1.0) calcG = 1.0;
-        if (calcG > 5.0) calcG = 5.0;
-        return {
-          grade: parseFloat(calcG.toFixed(1)),
-          isFinal: curIdx >= tot,
-          currentLevel: curIdx,
-          totalLevels: tot,
-          mistakes: mistakes
-        };
-      }
-    } catch(e) {}
-
-    // 3. Texto de nivel / progreso en el DOM (ej: "2/7", "Nivel 3 / 10", "4 de 20")
-    var textCandidates = [
-      doc.getElementById('level-display'),
-      doc.getElementById('progress-text'),
-      doc.querySelector('.level-display'),
-      doc.querySelector('.progress-text'),
-      doc.querySelector('[id*="level-display"]'),
-      doc.querySelector('[id*="progress-text"]'),
-      doc.querySelector('header [id*="level"]'),
-      doc.querySelector('header [id*="nivel"]'),
-      doc.querySelector('[id*="nivel"]'),
-      doc.querySelector('[class*="nivel"]'),
-      doc.querySelector('#score'),
-      doc.querySelector('.score'),
-      doc.querySelector('#puntos'),
-      doc.querySelector('.puntos')
-    ];
-
-    for (var k = 0; k < textCandidates.length; k++) {
-      var el = textCandidates[k];
-      if (!el) continue;
-      var content = (el.textContent || el.innerText || '').trim();
-      var match = content.match(/(\\d+)\\s*(?:\\/|de|-)\\s*(\\d+)/i);
-      if (match) {
-        var cur = parseInt(match[1], 10);
-        var tot = parseInt(match[2], 10);
-        if (tot > 0) {
-          var isPoints = /punto|acierto|correct|score|superad|completad/i.test(content) || /score|punto/i.test(el.id || '') || /score|punto/i.test(el.className || '');
-          var completed = isPoints ? cur : Math.max(0, cur - 1);
-          if (completed <= 0) {
-            return { grade: 1.0, isFinal: false, currentLevel: cur, totalLevels: tot, mistakes: mistakes };
-          }
-          var gTextCalc = 1.0 + ((completed / tot) * 4.0) - (mistakes * 0.1);
-          if (gTextCalc < 1.0) gTextCalc = 1.0;
-          if (gTextCalc > 5.0) gTextCalc = 5.0;
-          return {
-            grade: parseFloat(gTextCalc.toFixed(1)),
-            isFinal: completed >= tot,
-            currentLevel: cur,
-            totalLevels: tot,
-            mistakes: mistakes
-          };
-        }
-      }
-    }
-
-    // 4. Barra de progreso CSS (ej: style="width: 50%")
-    var barEls = doc.querySelectorAll('[role="progressbar"], .progress-bar, [class*="progress-bar"], [id*="progress-bar"], [class*="progress-fill"], [id*="progress-fill"]');
-    for (var b = 0; b < barEls.length; b++) {
-      var bar = barEls[b];
-      var wStr = bar.style && bar.style.width ? bar.style.width : '';
-      var wMatch = wStr.match(/(\\d+(?:\\.\\d+)?)\\s*%/);
-      if (wMatch) {
-        var pct = parseFloat(wMatch[1]);
-        if (!isNaN(pct) && pct > 0) {
-          var gBar = 1.0 + ((pct / 100) * 4.0) - (mistakes * 0.1);
-          if (gBar < 1.0) gBar = 1.0;
-          if (gBar > 5.0) gBar = 5.0;
-          return {
-            grade: parseFloat(gBar.toFixed(1)),
-            isFinal: pct >= 100,
-            currentLevel: Math.round(pct),
-            totalLevels: 100,
-            mistakes: mistakes
-          };
-        }
-      }
-    }
-
-    // 5. Pantallas activas en el DOM (ej: Flowgorithm screen-intro, screen-level1, etc.)
-    var screens = doc.querySelectorAll('main[id*="screen"], div[id*="screen"], section[id*="screen"], .screen, .pantalla');
-    if (screens && screens.length > 2) {
-      var activeIdx = -1;
-      for (var s = 0; s < screens.length; s++) {
-        if (isElementVisible(screens[s])) {
-          activeIdx = s;
-          break;
-        }
-      }
-      if (activeIdx > 0) {
-        var totalScreens = screens.length;
-        var lastIsVic = /victory|victoria|final|game-over/i.test(screens[totalScreens - 1].id || '');
-        var denominator = lastIsVic ? (totalScreens - 1) : totalScreens;
-        if (activeIdx >= denominator) {
-          return { grade: 5.0, isFinal: true, currentLevel: denominator, totalLevels: denominator, mistakes: mistakes };
-        }
-        var sRatio = activeIdx / denominator;
-        var gScreen = 1.0 + (sRatio * 4.0);
-        if (gScreen > 5.0) gScreen = 5.0;
-        return {
-          grade: parseFloat(gScreen.toFixed(1)),
-          isFinal: false,
-          currentLevel: activeIdx,
-          totalLevels: denominator,
-          mistakes: mistakes
-        };
-      }
-    }
-
-    return { grade: 1.0, isFinal: false, currentLevel: 0, totalLevels: 20, mistakes: mistakes };
-  }
-
-  function report(isFinalParam) {
-    var res = detectActivityProgress();
-    var isTrulyFinal = !!isFinalParam || res.isFinal;
-    var finalGrade = isTrulyFinal ? Math.max(res.grade, 5.0) : res.grade;
-
-    var payload = {
-      type: isTrulyFinal ? 'ACTIVIDAD_COMPLETADA' : 'ACTIVIDAD_PROGRESO',
-      grade: finalGrade,
-      currentLevel: res.currentLevel,
-      totalLevels: res.totalLevels,
-      mistakes: res.mistakes,
-      isFinal: isTrulyFinal,
-      activityTitle: document.title || 'Actividad Interactiva'
-    };
-
+  function sendGradeToPlatform(grade, isFinal, extra) {
+    var norm = normalizeGrade(grade);
+    if (norm === null) return;
     if (window.parent && window.parent !== window) {
-      window.parent.postMessage(payload, '*');
+      window.parent.postMessage({
+        type: isFinal ? 'ACTIVIDAD_COMPLETADA' : 'ACTIVIDAD_PROGRESO',
+        grade: norm,
+        isFinal: !!isFinal,
+        activityTitle: document.title || 'Actividad Interactiva',
+        feedback: extra && extra.feedback ? extra.feedback : undefined
+      }, '*');
     }
   }
 
+  // API pública disponible para que la actividad reporte su propia nota
+  window.aulaVirtual = {
+    reportGrade: function(g, isFinal, extra) {
+      sendGradeToPlatform(g, isFinal, extra);
+    }
+  };
+  window.reportGrade = function(g, isFinal, extra) {
+    sendGradeToPlatform(g, isFinal, extra);
+  };
+  window.guardarNota = function(g, isFinal, extra) {
+    sendGradeToPlatform(g, isFinal, extra);
+  };
+  window.setGrade = function(g, isFinal, extra) {
+    sendGradeToPlatform(g, isFinal, extra);
+  };
+
+  // Escuchar si la actividad envía un postMessage propio con su nota
   window.addEventListener('message', function(ev) {
-    if (ev.data && ev.data.type === 'AULA_REQUEST_PROGRESS') {
-      report(!!ev.data.isFinal);
+    if (!ev.data || typeof ev.data !== 'object') return;
+    var d = ev.data;
+    var raw = d.grade !== undefined ? d.grade : (d.nota !== undefined ? d.nota : (d.calificacion !== undefined ? d.calificacion : (d.score !== undefined ? d.score : null)));
+    if (raw !== null) {
+      sendGradeToPlatform(raw, d.isFinal || d.type === 'ACTIVIDAD_COMPLETADA' || d.type === 'ACTIVIDAD_FINALIZADA', d);
     }
   });
 
-  function setupHooks() {
-    setTimeout(function() { report(false); }, 800);
-
-    // Hook a funciones comunes de actividades
-    ['showVictory', 'victory', 'gameWon', 'gameOver', 'winGame', 'finalizarActividad', 'completarActividad', 'finishGame'].forEach(function(fnName) {
-      try {
-        if (typeof window[fnName] === 'function') {
-          var origFn = window[fnName];
-          window[fnName] = function() {
-            var r = origFn.apply(this, arguments);
-            setTimeout(function() { report(true); }, 200);
-            return r;
-          };
-        }
-      } catch(e) {}
-    });
-
-    // Hook específico para updateLevel(lvl) usado en Flowgorithm y otras actividades
-    try {
-      if (typeof window.updateLevel === 'function') {
-        var origUpdateLevel = window.updateLevel;
-        window.updateLevel = function(lvl) {
-          var r = origUpdateLevel.apply(this, arguments);
-          setTimeout(function() {
-            var isVic = lvl === '🏆' || String(lvl).indexOf('🏆') !== -1;
-            report(isVic);
-          }, 150);
-          return r;
-        };
-      }
-    } catch(e) {}
-
-    // Eventos de interacción del usuario
-    document.addEventListener('click', function() {
-      setTimeout(function() { report(); }, 400);
-    }, true);
-
-    document.addEventListener('change', function() {
-      setTimeout(function() { report(); }, 400);
-    }, true);
-
-    document.addEventListener('keyup', function(e) {
-      if (e.key === 'Enter') {
-        setTimeout(function() { report(); }, 400);
-      }
-    }, true);
-
-    // Observador de cambios en el DOM
-    try {
-      var debounceTimer = null;
-      var observer = new MutationObserver(function() {
-        if (debounceTimer) clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(function() {
-          report();
-        }, 500);
-      });
-      observer.observe(document.body, { childList: true, subtree: true, attributes: true });
-    } catch(e) {}
-
-    // Intervalo periódico de seguridad
-    setInterval(function() {
-      report();
-    }, 4000);
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupHooks);
-  } else {
-    setupHooks();
-  }
-
-  window.aulaVirtual = {
-    reportGrade: function(g, isFinal) {
-      if (window.parent && window.parent !== window) {
-        window.parent.postMessage({
-          type: isFinal ? 'ACTIVIDAD_COMPLETADA' : 'ACTIVIDAD_PROGRESO',
-          grade: g,
-          isFinal: !!isFinal
-        }, '*');
+  // Detección únicamente si la actividad escribe su propia nota en el DOM o en variables globales
+  function checkExplicitActivityGrade() {
+    // 1. Variables globales asignadas por la actividad
+    var gVars = [window.finalGrade, window.notaFinal, window.calificacion, window.currentGrade, window.nota];
+    for (var v = 0; v < gVars.length; v++) {
+      var nVar = normalizeGrade(gVars[v]);
+      if (nVar !== null) {
+        sendGradeToPlatform(nVar, true);
+        return;
       }
     }
-  };
+
+    // 2. Elementos del DOM donde la actividad escribe su nota final
+    var selectors = ['#final-grade', '#nota-final', '#calificacion', '#nota', '[id*="final-grade"]', '[id*="nota-final"]', '.nota-final', '.calificacion-final'];
+    for (var s = 0; s < selectors.length; s++) {
+      var el = document.querySelector(selectors[s]);
+      if (el) {
+        var txt = (el.textContent || el.innerText || '').trim();
+        var nEl = normalizeGrade(txt);
+        if (nEl !== null) {
+          sendGradeToPlatform(nEl, true);
+          return;
+        }
+      }
+    }
+  }
+
+  // Observador en el DOM para cuando la actividad escriba la nota en el elemento final
+  try {
+    var observer = new MutationObserver(function() {
+      checkExplicitActivityGrade();
+    });
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+  } catch(e) {}
+
+  setTimeout(checkExplicitActivityGrade, 1500);
+  setInterval(checkExplicitActivityGrade, 4000);
 })();
 </script>
 `;

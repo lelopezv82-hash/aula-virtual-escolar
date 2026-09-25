@@ -64,27 +64,24 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'El plazo de entrega para esta actividad ha vencido' }, { status: 403 });
     }
 
-    // Regla de Mejor Nota (Best Score):
-    // Solo preservar una nota mayor si no es una anomalía (ej. nota 5.0 en nivel 0 o 1 sin ser final)
-    const isAnomalous = existingSubmission?.grade === 5.0 && (currentLevel || 0) < 5 && !isFinal;
-    const finalGrade = (existingSubmission?.grade !== null && existingSubmission?.grade !== undefined && !isAnomalous)
+    // Regla de Calificación:
+    // Preservar la mejor nota registrada en plataforma para el estudiante si ya tenía una
+    const finalGrade = (existingSubmission?.grade !== null && existingSubmission?.grade !== undefined)
       ? Math.max(existingSubmission.grade, clampedGrade)
       : clampedGrade;
 
     const feedbackText = isFinal
-      ? ((currentLevel || 0) >= (totalLevels || 20)
-          ? `Completó todos los ${totalLevels || 20} niveles de ${activityTitle || 'la actividad'} con ${mistakes || 0} error(es).`
-          : `Entregó avance: ${currentLevel || 0}/${totalLevels || 20} niveles de ${activityTitle || 'la actividad'} con ${mistakes || 0} error(es).`)
-      : `Progreso en curso: Nivel ${currentLevel || 0}/${totalLevels || 20} (Nota actual: ${finalGrade.toFixed(1)})`;
+      ? `Actividad completada. Calificación asignada por la actividad: ${clampedGrade.toFixed(1)} / 5.0.`
+      : `Avance registrado. Calificación asignada por la actividad: ${clampedGrade.toFixed(1)} / 5.0.`;
 
     const answersPayload = {
-      currentLevel: currentLevel || 0,
-      totalLevels: totalLevels || 20,
-      mistakes: mistakes || 0,
       isFinal: !!isFinal,
       activityTitle: activityTitle || 'Actividad Interactiva',
-      lastReportedGrade: clampedGrade,
+      reportedGrade: clampedGrade,
       highestGrade: finalGrade,
+      ...(currentLevel !== undefined ? { currentLevel } : {}),
+      ...(totalLevels !== undefined ? { totalLevels } : {}),
+      ...(mistakes !== undefined ? { mistakes } : {}),
       updatedAt: new Date().toISOString()
     };
 

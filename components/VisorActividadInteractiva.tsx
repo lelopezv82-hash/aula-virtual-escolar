@@ -141,214 +141,52 @@ export default function VisorActividadInteractiva({
     }
   };
 
-  // Función de sincronización manual / directa desde el iframe
+  // Función de sincronización para detectar si la actividad asignó o reportó su propia nota
   const handleManualSync = (isManualClick = false) => {
     if (iframeRef.current?.contentWindow) {
       iframeRef.current.contentWindow.postMessage({ type: 'AULA_REQUEST_PROGRESS', isFinal: false }, '*');
     }
 
-    // Inspección directa del DOM del iframe como respaldo inmediato (mismo origen)
+    // Inspección directa de variables globales o elementos del DOM donde la actividad asigna su propia nota
     try {
       const doc = iframeRef.current?.contentDocument;
       const win = iframeRef.current?.contentWindow as any;
-      if (doc) {
-        const isVisible = (el: Element | null): boolean => {
-          if (!el) return false;
-          const htmlEl = el as HTMLElement;
-          if (htmlEl.classList?.contains('hidden')) return false;
-          if (htmlEl.hasAttribute('hidden')) return false;
-          if (htmlEl.style?.display === 'none' || htmlEl.style?.visibility === 'hidden') return false;
-          try {
-            const w = doc.defaultView || win || window;
-            if (w?.getComputedStyle) {
-              const s = w.getComputedStyle(htmlEl);
-              if (s.display === 'none' || s.visibility === 'hidden' || s.opacity === '0') return false;
-            }
-          } catch {}
-          if (htmlEl.offsetWidth === 0 && htmlEl.offsetHeight === 0) {
-            if (htmlEl.getClientRects && htmlEl.getClientRects().length === 0) return false;
+      if (doc || win) {
+        const normalizeGrade = (val: any): number | null => {
+          if (typeof val === 'string') {
+            const match = val.match(/([0-9]+(?:[.,][0-9]+)?)/);
+            if (match) val = parseFloat(match[1].replace(',', '.'));
+            else val = parseFloat(val.replace(',', '.'));
           }
-          return true;
+          if (typeof val !== 'number' || isNaN(val)) return null;
+          if (val > 5.0 && val <= 10.0) val = 1.0 + (val / 10.0) * 4.0;
+          else if (val > 10.0 && val <= 100.0) val = 1.0 + (val / 100.0) * 4.0;
+          return Math.max(1.0, Math.min(5.0, parseFloat(val.toFixed(1))));
         };
 
-        // 1. Detección de Victoria / Fin de Actividad
-        const victorySelectors = [
-          '#screen-victory', '#victory-screen', '.victory-screen',
-          '#pantalla-final', '#pantalla-victoria', '.pantalla-victoria',
-          '[id*="victory"]', '[id*="victoria"]', '[id*="game-over"]',
-          '[id*="gameOver"]', '[id*="congratulation"]', '[id*="felicitacion"]',
-          '[id*="pantalla-ganador"]', '[id*="pantalla-exito"]'
-        ];
-
-        let isVictory = false;
-        for (const sel of victorySelectors) {
-          const els = doc.querySelectorAll(sel);
-          for (let j = 0; j < els.length; j++) {
-            if (isVisible(els[j])) {
-              isVictory = true;
-              break;
-            }
-          }
-          if (isVictory) break;
-        }
-
-        const trophyEl = doc.getElementById('level-display') || doc.getElementById('progress-text') || doc.querySelector('.level-display, .progress-text, [id*="level"]');
-        if (trophyEl) {
-          const tText = (trophyEl.textContent || '').trim();
-          if (tText.includes('🏆') || tText.includes('🎉') || /victoria|completado|ganaste|felicidades/i.test(tText)) {
-            isVictory = true;
-          }
-        }
-
-        const mistakes = typeof win?.mistakes === 'number' ? win.mistakes : (typeof win?.errors === 'number' ? win.errors : 0);
-
-        if (isVictory) {
-          let parsedGrade: number | null = null;
-          const gradeSelectors = ['#final-grade', '#nota-final', '[id*="final-grade"]', '[id*="nota-final"]'];
-          for (const gSel of gradeSelectors) {
-            const gEl = doc.querySelector(gSel);
-            if (gEl) {
-              const val = parseFloat((gEl.textContent || '').trim());
-              if (!isNaN(val) && val >= 1.0 && val <= 5.0) {
-                parsedGrade = val;
-                break;
-              }
-            }
-          }
-          if (parsedGrade === null) {
-            let vGrade = 5.0 - (mistakes * 0.1);
-            if (vGrade < 1.0) vGrade = 1.0;
-            if (vGrade > 5.0) vGrade = 5.0;
-            parsedGrade = parseFloat(vGrade.toFixed(1));
-          }
-          submitGrade(parsedGrade, true, {
-            currentLevel: 100,
-            totalLevels: 100,
-            mistakes,
-            activityTitle: doc.title || task.title
-          }, isManualClick);
-          return;
-        }
-
-        // 2. Variables globales del juego (ej. Excel Escape: currentLevelIndex, levels)
-        const curIdx = typeof win?.currentLevelIndex === 'number' ? win.currentLevelIndex : (typeof win?.currentLevel === 'number' ? win.currentLevel : null);
-        const lvlList = Array.isArray(win?.levels) ? win.levels : null;
-        if (curIdx !== null && lvlList && lvlList.length > 0) {
-          const tot = lvlList.length;
-          if (curIdx <= 0) {
-            submitGrade(1.0, false, { currentLevel: 0, totalLevels: tot, mistakes, activityTitle: doc.title || task.title }, isManualClick);
+        // 1. Variables globales asignadas por la actividad misma
+        const gVars = [win?.finalGrade, win?.notaFinal, win?.calificacion, win?.currentGrade, win?.nota];
+        for (const v of gVars) {
+          const nVar = normalizeGrade(v);
+          if (nVar !== null) {
+            submitGrade(nVar, true, { activityTitle: doc?.title || task.title }, isManualClick);
             return;
           }
-          const pRatio = curIdx / tot;
-          let calcG = 1.0 + (pRatio * 4.0) - (mistakes * 0.1);
-          if (calcG < 1.0) calcG = 1.0;
-          if (calcG > 5.0) calcG = 5.0;
-          submitGrade(parseFloat(calcG.toFixed(1)), curIdx >= tot, {
-            currentLevel: curIdx,
-            totalLevels: tot,
-            mistakes,
-            activityTitle: doc.title || task.title
-          }, isManualClick);
-          return;
         }
 
-        // 3. Texto de nivel / progreso en el DOM (ej: "2/7", "Nivel 3 / 10", "4 de 20")
-        const textCandidates = [
-          doc.getElementById('level-display'),
-          doc.getElementById('progress-text'),
-          doc.querySelector('.level-display'),
-          doc.querySelector('.progress-text'),
-          doc.querySelector('[id*="level-display"]'),
-          doc.querySelector('[id*="progress-text"]'),
-          doc.querySelector('header [id*="level"]'),
-          doc.querySelector('header [id*="nivel"]'),
-          doc.querySelector('[id*="nivel"]'),
-          doc.querySelector('[class*="nivel"]'),
-          doc.querySelector('#score'),
-          doc.querySelector('.score'),
-          doc.querySelector('#puntos'),
-          doc.querySelector('.puntos')
-        ];
-
-        for (const el of textCandidates) {
-          if (!el) continue;
-          const content = (el.textContent || '').trim();
-          const match = content.match(/(\d+)\s*(?:\/|de|-)\s*(\d+)/i);
-          if (match) {
-            const cur = parseInt(match[1], 10);
-            const tot = parseInt(match[2], 10);
-            if (tot > 0) {
-              const isPoints = /punto|acierto|correct|score|superad|completad/i.test(content) || /score|punto/i.test(el.id || '') || /score|punto/i.test(el.className || '');
-              const completed = isPoints ? cur : Math.max(0, cur - 1);
-              if (completed <= 0) {
-                submitGrade(1.0, false, { currentLevel: cur, totalLevels: tot, mistakes, activityTitle: doc.title || task.title }, isManualClick);
+        // 2. Elementos DOM donde la actividad escribe su nota asignada
+        if (doc) {
+          const selectors = ['#final-grade', '#nota-final', '#calificacion', '#nota', '[id*="final-grade"]', '[id*="nota-final"]', '.nota-final', '.calificacion-final'];
+          for (const sel of selectors) {
+            const el = doc.querySelector(sel);
+            if (el) {
+              const txt = (el.textContent || '').trim();
+              const nEl = normalizeGrade(txt);
+              if (nEl !== null) {
+                submitGrade(nEl, true, { activityTitle: doc.title || task.title }, isManualClick);
                 return;
               }
-              let gCalc = 1.0 + ((completed / tot) * 4.0) - (mistakes * 0.1);
-              if (gCalc < 1.0) gCalc = 1.0;
-              if (gCalc > 5.0) gCalc = 5.0;
-              submitGrade(parseFloat(gCalc.toFixed(1)), completed >= tot, {
-                currentLevel: cur,
-                totalLevels: tot,
-                mistakes,
-                activityTitle: doc.title || task.title
-              }, isManualClick);
-              return;
             }
-          }
-        }
-
-        // 4. Barra de progreso CSS (ej: style="width: 50%")
-        const barEls = doc.querySelectorAll('[role="progressbar"], .progress-bar, [class*="progress-bar"], [id*="progress-bar"], [class*="progress-fill"], [id*="progress-fill"]');
-        for (let b = 0; b < barEls.length; b++) {
-          const bar = barEls[b] as HTMLElement;
-          const wStr = bar.style?.width || '';
-          const wMatch = wStr.match(/(\d+(?:\.\d+)?)\s*%/);
-          if (wMatch) {
-            const pct = parseFloat(wMatch[1]);
-            if (!isNaN(pct) && pct > 0) {
-              let gBar = 1.0 + ((pct / 100) * 4.0) - (mistakes * 0.1);
-              if (gBar < 1.0) gBar = 1.0;
-              if (gBar > 5.0) gBar = 5.0;
-              submitGrade(parseFloat(gBar.toFixed(1)), pct >= 100, {
-                currentLevel: Math.round(pct),
-                totalLevels: 100,
-                mistakes,
-                activityTitle: doc.title || task.title
-              }, isManualClick);
-              return;
-            }
-          }
-        }
-
-        // 5. Pantallas activas en el DOM (ej: Flowgorithm screen-intro, screen-level1, etc.)
-        const screens = doc.querySelectorAll('main[id*="screen"], div[id*="screen"], section[id*="screen"], .screen, .pantalla');
-        if (screens && screens.length > 2) {
-          let activeIdx = -1;
-          for (let s = 0; s < screens.length; s++) {
-            if (isVisible(screens[s])) {
-              activeIdx = s;
-              break;
-            }
-          }
-          if (activeIdx > 0) {
-            const totalScreens = screens.length;
-            const lastIsVic = /victory|victoria|final|game-over/i.test((screens[totalScreens - 1] as HTMLElement).id || '');
-            const denominator = lastIsVic ? (totalScreens - 1) : totalScreens;
-            if (activeIdx >= denominator) {
-              submitGrade(5.0, true, { currentLevel: denominator, totalLevels: denominator, mistakes, activityTitle: doc.title || task.title }, isManualClick);
-              return;
-            }
-            const sRatio = activeIdx / denominator;
-            let gScreen = 1.0 + (sRatio * 4.0);
-            if (gScreen > 5.0) gScreen = 5.0;
-            submitGrade(parseFloat(gScreen.toFixed(1)), false, {
-              currentLevel: activeIdx,
-              totalLevels: denominator,
-              mistakes,
-              activityTitle: doc.title || task.title
-            }, isManualClick);
-            return;
           }
         }
       }
@@ -362,9 +200,34 @@ export default function VisorActividadInteractiva({
       const data = event.data;
       if (!data || typeof data !== "object") return;
 
-      if (data.type === "ACTIVIDAD_PROGRESO" || data.type === "ACTIVIDAD_COMPLETADA") {
-        const isFinal = data.type === "ACTIVIDAD_COMPLETADA" || !!data.isFinal;
-        await submitGrade(data.grade, isFinal, data);
+      // Detectar nota reportada directamente por la actividad
+      const rawGrade = data.grade !== undefined 
+        ? data.grade 
+        : (data.nota !== undefined 
+            ? data.nota 
+            : (data.calificacion !== undefined 
+                ? data.calificacion 
+                : (data.score !== undefined ? data.score : null)));
+
+      if (rawGrade !== null && rawGrade !== undefined) {
+        let val: number | null = null;
+        if (typeof rawGrade === 'string') {
+          const match = rawGrade.match(/([0-9]+(?:[.,][0-9]+)?)/);
+          if (match) val = parseFloat(match[1].replace(',', '.'));
+        } else if (typeof rawGrade === 'number') {
+          val = rawGrade;
+        }
+
+        if (val !== null && !isNaN(val)) {
+          if (val > 5.0 && val <= 10.0) {
+            val = 1.0 + (val / 10.0) * 4.0;
+          } else if (val > 10.0 && val <= 100.0) {
+            val = 1.0 + (val / 100.0) * 4.0;
+          }
+          const finalVal = Math.max(1.0, Math.min(5.0, parseFloat(val.toFixed(1))));
+          const isFinal = !!data.isFinal || data.type === "ACTIVIDAD_COMPLETADA" || data.type === "ACTIVIDAD_FINALIZADA";
+          await submitGrade(finalVal, isFinal, data);
+        }
       }
     };
 
