@@ -242,8 +242,12 @@ export default async function TareasEstudiantePage() {
                   ) : null}
 
                   {!(isClosed && neverSubmitted && !task.isExternal) && (
-                    <Link href={`/estudiante/tareas/${task.id}`} className={`btn w-full md:w-auto ${isSubmitted ? 'btn-secondary' : 'btn-primary'}`}>
-                      {task.type === "INTERACTIVE" ? (isSubmitted ? "Reintentar Actividad" : "Realizar Actividad") : task.isExternal ? (isSubmitted ? 'Ver Calificación' : 'Ver Detalles') : (isSubmitted ? 'Ver Entrega' : 'Subir Tarea')}
+                    <Link href={`/estudiante/tareas/${task.id}`} className={`btn w-full md:w-auto ${isSubmitted || (isClosed && !hasExtension) ? 'btn-secondary' : 'btn-primary'}`}>
+                      {task.type === "INTERACTIVE"
+                        ? (isClosed && !hasExtension ? "Ver Detalle" : (isSubmitted ? "Reintentar Actividad" : "Realizar Actividad"))
+                        : task.isExternal
+                        ? (isSubmitted ? 'Ver Calificación' : 'Ver Detalles')
+                        : (isSubmitted ? 'Ver Entrega' : 'Subir Tarea')}
                     </Link>
                   )}
                 </div>

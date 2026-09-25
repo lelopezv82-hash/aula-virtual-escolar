@@ -957,7 +957,12 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
           </div>
 
           {/* Time text / Expired Badge */}
-          {info.isInteractive && !info.isFinal && !info.isOverdue ? (
+          {info.isInteractive && (info.isOverdue || info.isExpired) && !info.hasExtension ? (
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border border-red-200 dark:border-red-900/50">
+              <Clock size={12} className="text-red-600 shrink-0" />
+              <span>Cerrada (plazo vencido) · Nota: {Number(info.grade ?? 1.0).toFixed(1)}</span>
+            </span>
+          ) : info.isInteractive && !info.isFinal && !info.isOverdue ? (
             <span className="text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-900/50">
               <Sparkles size={12} className="text-purple-600 dark:text-purple-400 shrink-0" />
               <span>Avance guardado · Nota: {Number(info.grade ?? 1.0).toFixed(1)}</span>
@@ -1101,7 +1106,7 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
               : isExam
               ? "bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700"
               : isInteractive
-              ? "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+              ? (info.isOverdue && !info.hasExtension ? "bg-slate-600 hover:bg-slate-700" : "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700")
               : "btn-primary"
           }`}
         >
@@ -1123,7 +1128,7 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
             </>
           ) : isInteractive ? (
             <>
-              Realizar Actividad <ArrowRight size={14} />
+              {info.isOverdue && !info.hasExtension ? "Ver Detalle" : "Realizar Actividad"} <ArrowRight size={14} />
             </>
           ) : task.isExternal ? (
             <>

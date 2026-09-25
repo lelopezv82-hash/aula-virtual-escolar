@@ -269,6 +269,16 @@ export default async function CursoDescripcionPage({
                           }}>
                             ✓ Calificado {submission?.grade !== null && submission?.grade !== undefined ? `· Nota: ${Number(submission.grade).toFixed(1)}` : ""}
                           </span>
+                          {isOverdue && !submission?.allowLateSubmission && (
+                            <span style={{
+                              fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
+                              borderRadius: 3,
+                              background: "#fee2e2", color: "#991b1b",
+                              border: "1px solid #fecaca",
+                            }}>
+                              Cerrada
+                            </span>
+                          )}
                           {submission?.allowLateSubmission && (
                             <span style={{
                               fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",

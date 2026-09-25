@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, Maximize2, Minimize2, CheckCircle2, Trophy, Sparkles, RefreshCw, AlertCircle, FileText } from "lucide-react";
+import { ArrowLeft, Maximize2, Minimize2, CheckCircle2, Trophy, Sparkles, RefreshCw, AlertCircle, FileText, Lock } from "lucide-react";
 
 interface VisorActividadInteractivaProps {
   task: {
@@ -23,12 +23,14 @@ interface VisorActividadInteractivaProps {
     submittedAt?: string | null;
   } | null;
   onSubmissionUpdated?: (sub: any) => void;
+  isClosed?: boolean;
 }
 
 export default function VisorActividadInteractiva({
   task,
   initialSubmission,
-  onSubmissionUpdated
+  onSubmissionUpdated,
+  isClosed = false
 }: VisorActividadInteractivaProps) {
   const [submission, setSubmission] = useState(initialSubmission);
   const [currentGrade, setCurrentGrade] = useState<number | null>(initialSubmission?.grade ?? null);
@@ -355,6 +357,7 @@ export default function VisorActividadInteractiva({
 
   // Escuchar mensajes del juego o actividad interactiva
   useEffect(() => {
+    if (isClosed) return;
     const handleMessage = async (event: MessageEvent) => {
       const data = event.data;
       if (!data || typeof data !== "object") return;
@@ -367,15 +370,16 @@ export default function VisorActividadInteractiva({
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [task.id, task.title, onSubmissionUpdated]);
+  }, [task.id, task.title, onSubmissionUpdated, isClosed]);
 
   // Sincronización periódica automática en segundo plano
   useEffect(() => {
+    if (isClosed) return;
     const timer = setInterval(() => {
       handleManualSync(false);
     }, 10000);
     return () => clearInterval(timer);
-  }, [task.id]);
+  }, [task.id, isClosed]);
 
   return (
     <div ref={containerRef} className="flex flex-col h-full min-h-[85vh] bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-700/60 relative">
@@ -396,12 +400,16 @@ export default function VisorActividadInteractiva({
               <h1 className="text-sm md:text-base font-bold text-white leading-tight line-clamp-1">
                 {task.title}
               </h1>
-              <span className="text-[11px] text-emerald-400 font-medium">Actividad Interactiva con Calificación Automática</span>
+              {isClosed ? (
+                <span className="text-[11px] text-amber-400 font-medium">Actividad Cerrada (Plazo Vencido)</span>
+              ) : (
+                <span className="text-[11px] text-emerald-400 font-medium">Actividad Interactiva con Calificación Automática</span>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Notificaciones de guardado y Badge de Nota */}
+        {/* Badge de Nota y botones de acción */}
         <div className="flex items-center gap-3 ml-auto">
           {/* Badge de Nota Oficial */}
           <div className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-3 py-1.5 rounded-xl shadow-md border border-emerald-400/40">
@@ -414,18 +422,6 @@ export default function VisorActividadInteractiva({
               <span className="text-[10px] text-emerald-200">/ 5.0</span>
             </div>
           </div>
-
-          {/* Botón Guardar Avance */}
-          <button
-            type="button"
-            onClick={() => handleManualSync(true)}
-            disabled={savingStatus === "saving"}
-            className="flex items-center gap-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 px-3 py-1.5 rounded-xl transition-all shadow-sm border border-blue-400/40"
-            title="Guardar y registrar mi avance actual en la planilla escolar"
-          >
-            <CheckCircle2 size={15} className="text-blue-200" />
-            <span className="hidden sm:inline">Guardar Avance</span>
-          </button>
 
           {/* Botón Descargar Guía si existe */}
           {guideUrl && (
@@ -443,43 +439,63 @@ export default function VisorActividadInteractiva({
           )}
 
           {/* Botón Pantalla Completa */}
-          <button
-            onClick={toggleFullscreen}
-            className="p-2 rounded-lg bg-slate-700/60 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
-            title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
-          >
-            {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-          </button>
+          {!isClosed && (
+            <button
+              onClick={toggleFullscreen}
+              className="p-2 rounded-lg bg-slate-700/60 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+              title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
+            >
+              {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+            </button>
+          )}
         </div>
       </header>
 
-      {/* Banner de confirmación cuando guarda avance */}
-      {showCelebration && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white px-5 py-2.5 rounded-2xl shadow-2xl border border-emerald-400 flex items-center gap-3">
-          <CheckCircle2 className="text-emerald-200 shrink-0" size={22} />
-          <div>
-            <p className="font-bold text-xs sm:text-sm">Avance guardado</p>
-            <p className="text-[11px] sm:text-xs text-emerald-100">Tu calificación de <strong>{currentGrade !== null ? currentGrade.toFixed(1) : "—"}</strong> ha sido registrada en tu planilla escolar.</p>
+      {/* Contenedor Iframe o Bloqueo por Plazo Vencido */}
+      {isClosed ? (
+        <div className="flex-grow w-full h-full flex flex-col items-center justify-center p-6 text-center bg-slate-950">
+          <div className="max-w-md p-8 bg-slate-900 rounded-2xl border border-slate-700 shadow-2xl flex flex-col items-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400">
+              <Lock size={32} />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white mb-2">Actividad Cerrada (Plazo Vencido)</h2>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                El plazo para realizar esta actividad interactiva ha vencido. La calificación registrada en tu planilla escolar es definitiva y ya no se admiten intentos ni modificaciones.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 bg-slate-800/80 px-5 py-2.5 rounded-xl border border-slate-700/80 w-full justify-center">
+              <Trophy size={20} className="text-yellow-400" />
+              <span className="text-xs text-slate-300 font-medium">Calificación oficial:</span>
+              <strong className="text-lg text-emerald-400">{currentGrade !== null ? currentGrade.toFixed(1) : "1.0"}</strong>
+              <span className="text-xs text-slate-400">/ 5.0</span>
+            </div>
+            <Link
+              href={`/estudiante/cursos/${task.courseId}`}
+              className="mt-3 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2"
+            >
+              <ArrowLeft size={16} />
+              <span>Volver a la Asignatura</span>
+            </Link>
           </div>
         </div>
+      ) : (
+        <div className="flex-grow w-full h-full relative bg-slate-950">
+          <iframe
+            ref={iframeRef}
+            src={activityUrl}
+            title={task.title}
+            className="w-full h-full border-0 absolute inset-0"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+            allow="fullscreen"
+            onLoad={() => {
+              setTimeout(() => {
+                handleManualSync(false);
+              }, 1000);
+            }}
+          />
+        </div>
       )}
-
-      {/* Contenedor Iframe con Sandbox seguro */}
-      <div className="flex-grow w-full h-full relative bg-slate-950">
-        <iframe
-          ref={iframeRef}
-          src={activityUrl}
-          title={task.title}
-          className="w-full h-full border-0 absolute inset-0"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
-          allow="fullscreen"
-          onLoad={() => {
-            setTimeout(() => {
-              handleManualSync(false);
-            }, 1000);
-          }}
-        />
-      </div>
     </div>
   );
 }

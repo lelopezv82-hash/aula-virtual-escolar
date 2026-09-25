@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, use, useRef } from "react";
-import { ArrowLeft, UploadCloud, Loader2, CheckCircle, FileText, Clock, AlertTriangle, Folder, Download, ChevronDown, ChevronUp, X, Send } from "lucide-react";
+import { ArrowLeft, UploadCloud, Loader2, CheckCircle, FileText, Clock, AlertTriangle, Folder, Download, ChevronDown, ChevronUp, X, Send, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatToColombiaString, getTaskDeadlineStatus } from "@/lib/dateUtils";
@@ -481,6 +481,86 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
   const isInteractive = task.type === "INTERACTIVE" || !!(task.interactiveUrl) || !!(task.attachmentUrl && (task.attachmentUrl.includes("/activities/") || task.attachmentUrl.endsWith(".html") || task.attachmentUrl.includes("excel_escape")));
 
   if (isInteractive) {
+    if (isSubmissionBlocked && !hasActiveExtension) {
+      return (
+        <div className="animate-fade-in max-w-4xl mx-auto px-4 py-8">
+          <div className="flex items-center gap-3 mb-6">
+            <Link
+              href={task?.courseId ? `/estudiante/cursos/${task.courseId}` : "/estudiante"}
+              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <ArrowLeft size={24} />
+            </Link>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <h1 className="text-2xl font-black text-gray-900 tracking-tight">{task.title}</h1>
+                <span className="px-2.5 py-0.5 rounded-full font-bold text-xs bg-purple-100 text-purple-800 border border-purple-200">
+                  🎮 Actividad Interactiva (Hacer)
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full font-bold text-xs bg-red-100 text-red-800 border border-red-200">
+                  Cerrada (Plazo Vencido)
+                </span>
+              </div>
+              {task.dueDate && (
+                <p className="text-muted text-sm">Venció el: {formatToColombiaString(task.dueDate)}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-5 mb-6 text-red-900 flex items-start gap-4">
+            <AlertTriangle className="text-red-600 shrink-0 mt-0.5" size={24} />
+            <div>
+              <h2 className="font-bold text-base mb-1">El plazo de entrega ha vencido</h2>
+              <p className="text-sm text-red-800 leading-relaxed">
+                El plazo programado para realizar esta actividad interactiva finalizó el {formatToColombiaString(task.dueDate)}. La plataforma ya no admite intentos ni modificaciones. La calificación registrada ha quedado asentada en tu planilla escolar.
+              </p>
+            </div>
+          </div>
+
+          {/* Tarjeta de Calificación Obtenida */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm mb-6 flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shadow-sm shrink-0">
+                <Trophy size={32} />
+              </div>
+              <div>
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Nota Oficial Registrada</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl sm:text-4xl font-black text-gray-900">
+                    {effectiveGrade !== null ? Number(effectiveGrade).toFixed(1) : (submission?.grade !== null && submission?.grade !== undefined ? Number(submission.grade).toFixed(1) : "1.0")}
+                  </span>
+                  <span className="text-gray-400 font-bold text-sm">/ 5.0</span>
+                </div>
+                <span className="text-xs text-gray-500 mt-1 block">
+                  {submission?.feedback || "Calificación final registrada al cierre del plazo."}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 w-full sm:w-auto">
+              <Link
+                href={`/estudiante/cursos/${task.courseId}`}
+                className="btn btn-primary px-6 py-2.5 text-center text-sm font-bold rounded-xl shadow-sm"
+              >
+                Volver a la Asignatura
+              </Link>
+              {task.attachmentUrl && (
+                <a
+                  href={`/api/tareas/${task.id}/attachment`}
+                  target="_blank"
+                  rel="noreferrer"
+                  download
+                  className="btn btn-secondary px-6 py-2 text-center text-xs font-semibold rounded-xl"
+                >
+                  Descargar Guía de Apoyo
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="animate-fade-in max-w-6xl mx-auto px-2 md:px-4 py-4 md:py-6 min-h-[85vh]">
         <VisorActividadInteractiva
@@ -489,6 +569,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
           onSubmissionUpdated={(newSub) => {
             setSubmission(newSub);
           }}
+          isClosed={isSubmissionBlocked}
         />
       </div>
     );

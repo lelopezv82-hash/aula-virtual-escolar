@@ -295,6 +295,16 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                               }}>
                                 ✓ Calificado {item.grade !== null && item.grade !== undefined ? `· Nota: ${Number(item.grade).toFixed(1)}` : ""}
                               </span>
+                              {deadlineStatus?.isClosed && !item.submissionAllowLateSubmission && (
+                                <span style={{
+                                  fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
+                                  borderRadius: 3,
+                                  background: "#fee2e2", color: "#991b1b",
+                                  border: "1px solid #fecaca",
+                                }}>
+                                  Cerrada
+                                </span>
+                              )}
                               {item.submissionAllowLateSubmission && (
                                 <span style={{
                                   fontSize: "0.7rem", fontWeight: 700, padding: "1px 6px",
