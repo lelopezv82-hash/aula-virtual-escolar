@@ -9,7 +9,12 @@ const JWT_SECRET = new TextEncoder().encode(
 );
 
 function isGoogleDriveUrl(url: string): boolean {
-  return url.includes('drive.google.com') || url.includes('docs.google.com');
+  return (
+    url.includes('drive.google.com') ||
+    url.includes('docs.google.com') ||
+    url.includes('sites.google.com/d/') ||
+    url.includes('drive.usercontent.google.com')
+  );
 }
 
 function extractDriveFileId(url: string): string | null {

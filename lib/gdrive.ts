@@ -423,7 +423,11 @@ export async function uploadToGoogleDrive(
   }
 
   const metaData = await metaRes.json();
-  return { id: fileId, url: metaData.webViewLink, email: selectedAccount.email };
+  const standardDriveUrl = `https://drive.google.com/file/d/${fileId}/view?usp=drivesdk`;
+  const urlToUse = (metaData.webViewLink && !metaData.webViewLink.includes('sites.google.com/d/'))
+    ? metaData.webViewLink
+    : standardDriveUrl;
+  return { id: fileId, url: urlToUse, email: selectedAccount.email };
 }
 
 /**
