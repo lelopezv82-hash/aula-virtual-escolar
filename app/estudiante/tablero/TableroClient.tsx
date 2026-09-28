@@ -967,7 +967,6 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
                 {info.isInteractive && !info.isFinal && !info.isOverdue ? "Nota actual:" : "Nota:"}
               </span>
               <span className="text-sm font-extrabold">{Number(info.grade).toFixed(1)}</span>
-              <span className="text-[10px] text-slate-400 font-normal">/ 5.0</span>
             </div>
           )}
         </div>
@@ -1147,6 +1146,8 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
             <>
               {info.isOverdue && !info.hasExtension 
                 ? "Ver Detalle" 
+                : info.isFinal
+                ? "Ver Calificación"
                 : (task.submission?.grade != null ? "Continuar Actividad" : "Realizar Actividad")} <ArrowRight size={14} />
             </>
           ) : task.isExternal ? (

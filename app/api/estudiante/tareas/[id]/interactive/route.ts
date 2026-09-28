@@ -64,13 +64,23 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'El plazo de entrega para esta actividad ha vencido' }, { status: 403 });
     }
 
+    // Si el estudiante ya finalizó la actividad previamente, no permitir volver a realizarla
+    const isAlreadyFinal = Boolean(
+      (existingSubmission?.answers as any)?.isFinal === true ||
+      (existingSubmission?.grade !== null && existingSubmission?.grade !== undefined && Number(existingSubmission.grade) >= 5.0) ||
+      existingSubmission?.status === "SUBMITTED"
+    );
+    if (isAlreadyFinal) {
+      return NextResponse.json({ error: 'Ya has finalizado esta actividad interactiva y tu calificación ha sido registrada de forma definitiva' }, { status: 403 });
+    }
+
     // Regla de Calificación:
     // Registrar directamente la calificación reportada por la actividad interactiva (nota actual o final)
     const finalGrade = clampedGrade;
 
     const feedbackText = isFinal
-      ? `Actividad completada. Calificación asignada por la actividad: ${clampedGrade.toFixed(1)} / 5.0.`
-      : `Avance en curso. Calificación actual de la actividad: ${clampedGrade.toFixed(1)} / 5.0.`;
+      ? `Actividad completada. Calificación asignada por la actividad: ${clampedGrade.toFixed(1)}.`
+      : `Avance en curso. Calificación actual de la actividad: ${clampedGrade.toFixed(1)}.`;
 
     const answersPayload = {
       isFinal: !!isFinal,

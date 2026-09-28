@@ -471,6 +471,8 @@ export default function TareasClient({ tasks, studentId }: TareasClientProps) {
                     {isInteractive ? (
                       status.isOverdue && !hasExtension ? (
                         <>Ver Detalle <ArrowRight size={13} /></>
+                      ) : status.isFinalInteractive ? (
+                        <>Ver Calificación <ArrowRight size={13} /></>
                       ) : activeGrade !== null ? (
                         <>Continuar Actividad <ArrowRight size={13} /></>
                       ) : (

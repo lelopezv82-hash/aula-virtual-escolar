@@ -529,7 +529,6 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                   <span className="text-3xl sm:text-4xl font-black text-gray-900">
                     {effectiveGrade !== null ? Number(effectiveGrade).toFixed(1) : (submission?.grade !== null && submission?.grade !== undefined ? Number(submission.grade).toFixed(1) : "1.0")}
                   </span>
-                  <span className="text-gray-400 font-bold text-sm">/ 5.0</span>
                 </div>
                 <span className="text-xs text-gray-500 mt-1 block">
                   {submission?.feedback || "Calificación final registrada al cierre del plazo."}

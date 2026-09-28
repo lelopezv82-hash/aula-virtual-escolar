@@ -67,62 +67,7 @@ function injectBridgeScript(html: string, taskId: string = ''): string {
     } catch(e) {}
   }
 
-  // 2. Función para reiniciar la partida completamente desde cero
-  window.resetInteractiveActivity = function() {
-    try {
-      var commonKeys = ['mision_flowgorithm_progress', 'progress', 'game_progress', 'partida_guardada', 'saved_game'];
-      commonKeys.forEach(function(k) {
-        try { localStorage.removeItem(k); } catch(e) {}
-        if (taskKeyPrefix) {
-          try { localStorage.removeItem(taskKeyPrefix + k); } catch(e) {}
-        }
-      });
-      if (taskKeyPrefix) {
-        try {
-          for (var i = localStorage.length - 1; i >= 0; i--) {
-            var kName = localStorage.key(i);
-            if (kName && kName.indexOf(taskKeyPrefix) === 0) {
-              localStorage.removeItem(kName);
-            }
-          }
-        } catch(e) {}
-      }
-      if (typeof window.clearSavedProgress === 'function') {
-        try { window.clearSavedProgress(); } catch(e) {}
-      }
-    } catch(err) {}
-    window.location.reload();
-  };
 
-  // Escuchar mensaje de reinicio desde el visor de la plataforma
-  window.addEventListener('message', function(ev) {
-    if (ev.data && (ev.data.type === 'REINICIAR_ACTIVIDAD' || ev.data.type === 'RESET_ACTIVITY')) {
-      window.resetInteractiveActivity();
-    }
-  });
-
-  // 3. Inyectar botón de "Empezar de nuevo (Nivel 1)" en el banner de partida guardada si existe
-  window.addEventListener('DOMContentLoaded', function() {
-    setTimeout(function() {
-      var resumeBanner = document.getElementById('resume-banner') || document.querySelector('[id*="resume"]');
-      if (resumeBanner && !document.getElementById('btn-reiniciar-desde-cero')) {
-        var restartBtn = document.createElement('button');
-        restartBtn.id = 'btn-reiniciar-desde-cero';
-        restartBtn.type = 'button';
-        restartBtn.innerHTML = '🔄 Empezar de nuevo (Nivel 1)';
-        restartBtn.style.cssText = 'width: 100%; margin-top: 8px; background: #ef4444; color: #fff; font-weight: bold; padding: 9px 14px; border-radius: 8px; font-size: 13px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.15); transition: background 0.2s;';
-        restartBtn.onmouseover = function() { restartBtn.style.background = '#dc2626'; };
-        restartBtn.onmouseout = function() { restartBtn.style.background = '#ef4444'; };
-        restartBtn.onclick = function(e) {
-          e.preventDefault();
-          if (confirm('¿Estás seguro de que deseas empezar de nuevo desde el Nivel 1? Se borrará el progreso anterior.')) {
-            window.resetInteractiveActivity();
-          }
-        };
-        resumeBanner.appendChild(restartBtn);
-      }
-    }, 200);
-  });
 
   function normalizeGrade(val) {
     if (typeof val === 'string') {

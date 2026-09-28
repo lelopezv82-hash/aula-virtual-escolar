@@ -413,7 +413,7 @@ export default async function CursoDescripcionPage({
                       }`}
                     >
                       {isInteractive
-                        ? (isClosedWithoutSubmission ? "Ver Detalle" : (submission?.grade != null ? "Continuar" : "Realizar"))
+                        ? (isClosedWithoutSubmission ? "Ver Detalle" : ((submission?.answers as any)?.isFinal || (submission?.grade !== null && submission?.grade !== undefined && Number(submission.grade) >= 5.0) ? "Ver Calificación" : (submission?.grade != null ? "Continuar" : "Realizar")))
                         : (isSubmitted ? "Ver Entrega" : "Ver Tarea")}
                     </Link>
                   </div>

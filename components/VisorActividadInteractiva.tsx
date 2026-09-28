@@ -41,6 +41,13 @@ export default function VisorActividadInteractiva({
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
+  const isAlreadyFinished = !isClosed && Boolean(
+    (submission?.answers as any)?.isFinal === true ||
+    (initialSubmission?.answers as any)?.isFinal === true ||
+    (submission?.grade !== null && submission?.grade !== undefined && Number(submission.grade) >= 5.0) ||
+    (initialSubmission?.grade !== null && initialSubmission?.grade !== undefined && Number(initialSubmission.grade) >= 5.0)
+  );
+
   // Determinar URL de la actividad
   let activityUrl = "/activities/excel_escape.html";
   const rawInteractive = task.interactiveUrl || (task.attachmentUrl && (task.attachmentUrl.includes(".html") || task.attachmentUrl.includes("/activities/")) ? task.attachmentUrl : null);
@@ -248,7 +255,7 @@ export default function VisorActividadInteractiva({
 
   // Escuchar mensajes del juego o actividad interactiva
   useEffect(() => {
-    if (isClosed) return;
+    if (isClosed || isAlreadyFinished) return;
     const handleMessage = async (event: MessageEvent) => {
       const data = event.data;
       if (!data || typeof data !== "object") return;
@@ -290,16 +297,16 @@ export default function VisorActividadInteractiva({
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [task.id, task.title, onSubmissionUpdated, isClosed]);
+  }, [task.id, task.title, onSubmissionUpdated, isClosed, isAlreadyFinished]);
 
   // Sincronización periódica automática en segundo plano
   useEffect(() => {
-    if (isClosed) return;
+    if (isClosed || isAlreadyFinished) return;
     const timer = setInterval(() => {
       handleManualSync(false);
     }, 2500);
     return () => clearInterval(timer);
-  }, [task.id, isClosed]);
+  }, [task.id, isClosed, isAlreadyFinished]);
 
   return (
     <div ref={containerRef} className="flex flex-col h-full min-h-[85vh] bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-700/60 relative">
@@ -322,6 +329,8 @@ export default function VisorActividadInteractiva({
               </h1>
               {isClosed ? (
                 <span className="text-[11px] text-amber-400 font-medium">Actividad Cerrada (Plazo Vencido)</span>
+              ) : isAlreadyFinished ? (
+                <span className="text-[11px] text-emerald-400 font-medium">Actividad Finalizada</span>
               ) : (
                 <span className="text-[11px] text-emerald-400 font-medium">Actividad Interactiva con Calificación Automática</span>
               )}
@@ -347,33 +356,8 @@ export default function VisorActividadInteractiva({
             </a>
           )}
 
-          {/* Botón Reiniciar Actividad */}
-          {!isClosed && (
-            <button
-              onClick={() => {
-                if (window.confirm("¿Deseas reiniciar la actividad interactiva desde el Nivel 1? Se borrará el progreso guardado localmente.")) {
-                  if (iframeRef.current?.contentWindow) {
-                    iframeRef.current.contentWindow.postMessage({ type: 'REINICIAR_ACTIVIDAD' }, '*');
-                  }
-                  setTimeout(() => {
-                    if (iframeRef.current) {
-                      const curSrc = iframeRef.current.src;
-                      const cleanSrc = curSrc.split('&_r=')[0].split('?_r=')[0];
-                      iframeRef.current.src = cleanSrc + (cleanSrc.includes('?') ? '&' : '?') + '_r=' + Date.now();
-                    }
-                  }, 150);
-                }
-              }}
-              className="flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-700/60 hover:bg-slate-700 px-3 py-1.5 rounded-lg transition-colors border border-slate-600/50"
-              title="Reiniciar la actividad interactiva desde el Nivel 1"
-            >
-              <RefreshCw size={14} />
-              <span className="hidden sm:inline">Reiniciar</span>
-            </button>
-          )}
-
           {/* Botón Pantalla Completa */}
-          {!isClosed && (
+          {!isClosed && !isAlreadyFinished && (
             <button
               onClick={toggleFullscreen}
               className="p-2 rounded-lg bg-slate-700/60 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
@@ -385,7 +369,7 @@ export default function VisorActividadInteractiva({
         </div>
       </header>
 
-      {/* Contenedor Iframe o Bloqueo por Plazo Vencido */}
+      {/* Contenedor Iframe o Bloqueo por Plazo Vencido / Actividad Finalizada */}
       {isClosed ? (
         <div className="flex-grow w-full h-full flex flex-col items-center justify-center p-6 text-center bg-slate-950">
           <div className="max-w-md p-8 bg-slate-900 rounded-2xl border border-slate-700 shadow-2xl flex flex-col items-center gap-4">
@@ -402,11 +386,38 @@ export default function VisorActividadInteractiva({
               <Trophy size={20} className="text-yellow-400" />
               <span className="text-xs text-slate-300 font-medium">Calificación:</span>
               <strong className="text-lg text-emerald-400">{currentGrade !== null && currentGrade !== undefined ? currentGrade.toFixed(1) : "1.0"}</strong>
-              <span className="text-xs text-slate-400">/ 5.0</span>
             </div>
             <Link
               href={`/estudiante/cursos/${task.courseId}`}
               className="mt-3 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2"
+            >
+              <ArrowLeft size={16} />
+              <span>Volver a la Asignatura</span>
+            </Link>
+          </div>
+        </div>
+      ) : isAlreadyFinished ? (
+        <div className="flex-grow w-full h-full flex flex-col items-center justify-center p-6 text-center bg-slate-950">
+          <div className="max-w-md p-8 bg-slate-900 rounded-2xl border border-emerald-500/40 shadow-2xl flex flex-col items-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+              <CheckCircle2 size={36} />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white mb-2">¡Actividad Finalizada!</h2>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Ya has completado satisfactoriamente esta actividad interactiva. Tu calificación ha sido registrada de forma definitiva en la planilla escolar y no es posible volver a realizarla.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 bg-slate-800/80 px-5 py-2.5 rounded-xl border border-slate-700/80 w-full justify-center">
+              <Trophy size={20} className="text-yellow-400" />
+              <span className="text-xs text-slate-300 font-medium">Calificación obtenida:</span>
+              <strong className="text-2xl text-emerald-400 font-black">
+                {currentGrade !== null && currentGrade !== undefined ? currentGrade.toFixed(1) : "5.0"}
+              </strong>
+            </div>
+            <Link
+              href={`/estudiante/cursos/${task.courseId}`}
+              className="mt-3 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2"
             >
               <ArrowLeft size={16} />
               <span>Volver a la Asignatura</span>

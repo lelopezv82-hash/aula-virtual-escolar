@@ -626,7 +626,6 @@ export default function CursosPage() {
                         className="input-field text-center font-bold"
                         style={{ width: "72px", padding: "0.4rem 0.5rem", fontSize: "0.95rem" }}
                       />
-                      <span className="text-xs text-muted">/ 5.0</span>
                     </div>
                   </div>
                 ))}
