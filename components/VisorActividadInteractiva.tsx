@@ -347,6 +347,31 @@ export default function VisorActividadInteractiva({
             </a>
           )}
 
+          {/* Botón Reiniciar Actividad */}
+          {!isClosed && (
+            <button
+              onClick={() => {
+                if (window.confirm("¿Deseas reiniciar la actividad interactiva desde el Nivel 1? Se borrará el progreso guardado localmente.")) {
+                  if (iframeRef.current?.contentWindow) {
+                    iframeRef.current.contentWindow.postMessage({ type: 'REINICIAR_ACTIVIDAD' }, '*');
+                  }
+                  setTimeout(() => {
+                    if (iframeRef.current) {
+                      const curSrc = iframeRef.current.src;
+                      const cleanSrc = curSrc.split('&_r=')[0].split('?_r=')[0];
+                      iframeRef.current.src = cleanSrc + (cleanSrc.includes('?') ? '&' : '?') + '_r=' + Date.now();
+                    }
+                  }, 150);
+                }
+              }}
+              className="flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-700/60 hover:bg-slate-700 px-3 py-1.5 rounded-lg transition-colors border border-slate-600/50"
+              title="Reiniciar la actividad interactiva desde el Nivel 1"
+            >
+              <RefreshCw size={14} />
+              <span className="hidden sm:inline">Reiniciar</span>
+            </button>
+          )}
+
           {/* Botón Pantalla Completa */}
           {!isClosed && (
             <button
