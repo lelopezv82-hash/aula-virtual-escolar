@@ -65,20 +65,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     // Regla de Calificación:
-    // Preservar la mejor nota registrada en plataforma para el estudiante si ya tenía una
-    const finalGrade = (existingSubmission?.grade !== null && existingSubmission?.grade !== undefined)
-      ? Math.max(existingSubmission.grade, clampedGrade)
-      : clampedGrade;
+    // Registrar directamente la calificación reportada por la actividad interactiva (nota actual o final)
+    const finalGrade = clampedGrade;
 
     const feedbackText = isFinal
       ? `Actividad completada. Calificación asignada por la actividad: ${clampedGrade.toFixed(1)} / 5.0.`
-      : `Avance registrado. Calificación asignada por la actividad: ${clampedGrade.toFixed(1)} / 5.0.`;
+      : `Avance en curso. Calificación actual de la actividad: ${clampedGrade.toFixed(1)} / 5.0.`;
 
     const answersPayload = {
       isFinal: !!isFinal,
       activityTitle: activityTitle || 'Actividad Interactiva',
       reportedGrade: clampedGrade,
-      highestGrade: finalGrade,
       ...(currentLevel !== undefined ? { currentLevel } : {}),
       ...(totalLevels !== undefined ? { totalLevels } : {}),
       ...(mistakes !== undefined ? { mistakes } : {}),

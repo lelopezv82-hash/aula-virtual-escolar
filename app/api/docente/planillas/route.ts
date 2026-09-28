@@ -113,7 +113,13 @@ export async function GET(req: Request) {
       orderBy: { createdAt: "asc" }
     });
 
-    return NextResponse.json({ students, tasks, course });
+    return NextResponse.json({ students, tasks, course }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
+    });
   } catch (error) {
     console.error("Error in planillas API:", error);
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });

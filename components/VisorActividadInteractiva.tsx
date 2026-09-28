@@ -93,9 +93,15 @@ export default function VisorActividadInteractiva({
     }
   }, [initialSubmission]);
 
+  const lastSavedGradeRef = useRef<number | null>(null);
+
   const submitGrade = async (grade: number, isFinal: boolean, extraData?: any, isManualClick = false) => {
+    if (!isFinal && lastSavedGradeRef.current === grade) {
+      return;
+    }
+    lastSavedGradeRef.current = grade;
     setSavingStatus("saving");
-    setStatusMessage(isFinal ? "Guardando entrega final..." : "Guardando avance...");
+    setStatusMessage(isFinal ? "Guardando entrega final..." : "Actualizando nota...");
 
     try {
       const res = await fetch(`/api/estudiante/tareas/${task.id}/interactive`, {
@@ -141,7 +147,7 @@ export default function VisorActividadInteractiva({
     }
   };
 
-  // Función de sincronización para detectar si la actividad asignó o reportó su propia nota
+  // Función de sincronización para detectar si la actividad asignó o reportó su propia nota (actual o final)
   const handleManualSync = (isManualClick = false) => {
     if (iframeRef.current?.contentWindow) {
       iframeRef.current.contentWindow.postMessage({ type: 'AULA_REQUEST_PROGRESS', isFinal: false }, '*');
@@ -188,8 +194,17 @@ export default function VisorActividadInteractiva({
           return true;
         };
 
-        // 1. Variables globales asignadas por la actividad misma
-        const gVars = [win?.finalGrade, win?.notaFinal, win?.calificacion, win?.currentGrade, win?.nota];
+        // 1. Variables globales de Nota Actual
+        const gCur = [win?.currentGrade, win?.notaActual];
+        for (const u of gCur) {
+          const nCur = normalizeGrade(u);
+          if (nCur !== null) {
+            submitGrade(nCur, false, { activityTitle: doc?.title || task.title }, isManualClick);
+          }
+        }
+
+        // 2. Variables globales de Nota Final
+        const gVars = [win?.finalGrade, win?.notaFinal, win?.calificacion, win?.nota];
         for (const v of gVars) {
           const nVar = normalizeGrade(v);
           if (nVar !== null) {
@@ -198,8 +213,22 @@ export default function VisorActividadInteractiva({
           }
         }
 
-        // 2. Elementos DOM donde la actividad escribe su nota asignada (únicamente si son visibles)
+        // 3. Elementos DOM de Nota Actual visible en pantalla
         if (doc) {
+          const curSelectors = ['#current-grade', '#nota-actual', '#currentGrade', '#calificacion-actual', '#nota-en-vivo', '[id*="current-grade"]', '[id*="nota-actual"]', '.current-grade', '.nota-actual', '.nota-en-vivo'];
+          for (const sel of curSelectors) {
+            const el = doc.querySelector(sel);
+            if (el && isElementVisible(el)) {
+              const txt = (el.textContent || '').trim();
+              const nEl = normalizeGrade(txt);
+              if (nEl !== null) {
+                submitGrade(nEl, false, { activityTitle: doc.title || task.title }, isManualClick);
+                break;
+              }
+            }
+          }
+
+          // 4. Elementos DOM de Nota Final (pantalla de victoria / fin de actividad)
           const selectors = ['#final-grade', '#nota-final', '#calificacion', '#nota', '[id*="final-grade"]', '[id*="nota-final"]', '.nota-final', '.calificacion-final'];
           for (const sel of selectors) {
             const el = doc.querySelector(sel);
@@ -224,14 +253,18 @@ export default function VisorActividadInteractiva({
       const data = event.data;
       if (!data || typeof data !== "object") return;
 
-      // Detectar nota reportada directamente por la actividad
-      const rawGrade = data.grade !== undefined 
-        ? data.grade 
-        : (data.nota !== undefined 
-            ? data.nota 
-            : (data.calificacion !== undefined 
-                ? data.calificacion 
-                : (data.score !== undefined ? data.score : null)));
+      // Detectar nota reportada directamente por la actividad (actual o final)
+      const rawGrade = data.currentGrade !== undefined
+        ? data.currentGrade
+        : (data.grade !== undefined 
+            ? data.grade 
+            : (data.notaActual !== undefined
+                ? data.notaActual
+                : (data.nota !== undefined 
+                    ? data.nota 
+                    : (data.calificacion !== undefined 
+                        ? data.calificacion 
+                        : (data.score !== undefined ? data.score : null)))));
 
       if (rawGrade !== null && rawGrade !== undefined) {
         let val: number | null = null;
@@ -264,7 +297,7 @@ export default function VisorActividadInteractiva({
     if (isClosed) return;
     const timer = setInterval(() => {
       handleManualSync(false);
-    }, 10000);
+    }, 2500);
     return () => clearInterval(timer);
   }, [task.id, isClosed]);
 

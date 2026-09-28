@@ -55,10 +55,13 @@ function injectBridgeScript(html: string): string {
     }
   }
 
-  // API pública disponible para que la actividad reporte su propia nota
+  // API pública disponible para que la actividad reporte su propia nota (actual o final)
   window.aulaVirtual = {
     reportGrade: function(g, isFinal, extra) {
       sendGradeToPlatform(g, isFinal, extra);
+    },
+    updateGrade: function(g, extra) {
+      sendGradeToPlatform(g, false, extra);
     }
   };
   window.AntigravityPlatform = {
@@ -69,10 +72,21 @@ function injectBridgeScript(html: string): string {
         norm = Math.max(1.0, Math.min(5.0, parseFloat(norm.toFixed(1))));
       }
       sendGradeToPlatform(norm, true, extra);
+    },
+    updateCurrentGrade: function(g, maxG, extra) {
+      var norm = normalizeGrade(g);
+      if (typeof g === 'number' && typeof maxG === 'number' && maxG > 0 && maxG !== 5.0) {
+        norm = 1.0 + (g / maxG) * 4.0;
+        norm = Math.max(1.0, Math.min(5.0, parseFloat(norm.toFixed(1))));
+      }
+      sendGradeToPlatform(norm, false, extra);
     }
   };
   window.reportGrade = function(g, isFinal, extra) {
     sendGradeToPlatform(g, isFinal, extra);
+  };
+  window.actualizarNota = function(g, extra) {
+    sendGradeToPlatform(g, false, extra);
   };
   window.guardarNota = function(g, isFinal, extra) {
     sendGradeToPlatform(g, isFinal, extra);
@@ -89,7 +103,12 @@ function injectBridgeScript(html: string): string {
       sendGradeToPlatform(d.grade, true, d);
       return;
     }
-    var raw = d.grade !== undefined ? d.grade : (d.nota !== undefined ? d.nota : (d.calificacion !== undefined ? d.calificacion : (d.score !== undefined ? d.score : null)));
+    if ((d.type === 'ANTIGRAVITY_CURRENT_GRADE' || d.type === 'NOTA_ACTUAL') && (d.grade !== undefined || d.currentGrade !== undefined || d.nota !== undefined)) {
+      var gVal = d.currentGrade !== undefined ? d.currentGrade : (d.grade !== undefined ? d.grade : d.nota);
+      sendGradeToPlatform(gVal, false, d);
+      return;
+    }
+    var raw = d.currentGrade !== undefined ? d.currentGrade : (d.grade !== undefined ? d.grade : (d.notaActual !== undefined ? d.notaActual : (d.nota !== undefined ? d.nota : (d.calificacion !== undefined ? d.calificacion : (d.score !== undefined ? d.score : null)))));
     if (raw !== null) {
       sendGradeToPlatform(raw, d.isFinal || d.type === 'ACTIVIDAD_COMPLETADA' || d.type === 'ACTIVIDAD_FINALIZADA', d);
     }
@@ -116,16 +135,37 @@ function injectBridgeScript(html: string): string {
   // Detección únicamente si la actividad escribe su propia nota en el DOM o en variables globales
   function checkExplicitActivityGrade() {
     // 1. Variables globales asignadas por la actividad
-    var gVars = [window.finalGrade, window.notaFinal, window.calificacion, window.currentGrade, window.nota];
-    for (var v = 0; v < gVars.length; v++) {
-      var nVar = normalizeGrade(gVars[v]);
+    var gCurrent = [window.currentGrade, window.notaActual];
+    for (var u = 0; u < gCurrent.length; u++) {
+      var nCur = normalizeGrade(gCurrent[u]);
+      if (nCur !== null) {
+        sendGradeToPlatform(nCur, false);
+      }
+    }
+    var gFinal = [window.finalGrade, window.notaFinal, window.calificacion, window.nota];
+    for (var v = 0; v < gFinal.length; v++) {
+      var nVar = normalizeGrade(gFinal[v]);
       if (nVar !== null) {
         sendGradeToPlatform(nVar, true);
         return;
       }
     }
 
-    // 2. Elementos del DOM donde la actividad escribe su nota final (únicamente si son visibles)
+    // 2. Elementos DOM de Nota Actual visible en pantalla
+    var curSelectors = ['#current-grade', '#nota-actual', '#currentGrade', '#calificacion-actual', '#nota-en-vivo', '[id*="current-grade"]', '[id*="nota-actual"]', '.current-grade', '.nota-actual', '.nota-en-vivo'];
+    for (var c = 0; c < curSelectors.length; c++) {
+      var cEl = document.querySelector(curSelectors[c]);
+      if (cEl && isElementVisible(cEl)) {
+        var cTxt = (cEl.textContent || cEl.innerText || '').trim();
+        var nCEl = normalizeGrade(cTxt);
+        if (nCEl !== null) {
+          sendGradeToPlatform(nCEl, false);
+          break;
+        }
+      }
+    }
+
+    // 3. Elementos DOM donde la actividad escribe su nota final (únicamente si son visibles)
     var selectors = ['#final-grade', '#nota-final', '#calificacion', '#nota', '[id*="final-grade"]', '[id*="nota-final"]', '.nota-final', '.calificacion-final'];
     for (var s = 0; s < selectors.length; s++) {
       var el = document.querySelector(selectors[s]);
@@ -140,7 +180,7 @@ function injectBridgeScript(html: string): string {
     }
   }
 
-  // Observador en el DOM para cuando la actividad escriba la nota en el elemento final
+  // Observador en el DOM para cuando la actividad cambie o escriba la nota
   try {
     var observer = new MutationObserver(function() {
       checkExplicitActivityGrade();
@@ -149,7 +189,7 @@ function injectBridgeScript(html: string): string {
   } catch(e) {}
 
   setTimeout(checkExplicitActivityGrade, 1500);
-  setInterval(checkExplicitActivityGrade, 4000);
+  setInterval(checkExplicitActivityGrade, 2500);
 })();
 </script>
 `;
