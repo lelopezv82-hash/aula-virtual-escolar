@@ -38,14 +38,18 @@ export default function VisorActividadInteractiva({
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [isFinalFinished, setIsFinalFinished] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const isAlreadyFinished = !isClosed && Boolean(
+    isFinalFinished ||
     (submission?.answers as any)?.isFinal === true ||
     (initialSubmission?.answers as any)?.isFinal === true ||
     (submission?.grade !== null && submission?.grade !== undefined && Number(submission.grade) >= 5.0) ||
-    (initialSubmission?.grade !== null && initialSubmission?.grade !== undefined && Number(initialSubmission.grade) >= 5.0)
+    (initialSubmission?.grade !== null && initialSubmission?.grade !== undefined && Number(initialSubmission.grade) >= 5.0) ||
+    (submission?.status === "GRADED" && (submission?.answers as any)?.isFinal) ||
+    (initialSubmission?.status === "GRADED" && (initialSubmission?.answers as any)?.isFinal)
   );
 
   // Determinar URL de la actividad
@@ -130,13 +134,18 @@ export default function VisorActividadInteractiva({
         setSavingStatus("saved");
         setStatusMessage(result.message || "Guardado");
 
+        const wasFinal = !!(isFinal || result.isFinal);
         const updated = {
           id: result.submissionId,
           grade: result.grade,
           status: "GRADED",
+          answers: { ...(submission?.answers || {}), isFinal: wasFinal },
           submittedAt: new Date().toISOString()
         };
         setSubmission(updated);
+        if (wasFinal) {
+          setIsFinalFinished(true);
+        }
         if (onSubmissionUpdated) onSubmissionUpdated(updated);
 
         if (isManualClick || isFinal) {
@@ -290,6 +299,9 @@ export default function VisorActividadInteractiva({
           }
           const finalVal = Math.max(1.0, Math.min(5.0, parseFloat(val.toFixed(1))));
           const isFinal = !!data.isFinal || data.type === "ACTIVIDAD_COMPLETADA" || data.type === "ACTIVIDAD_FINALIZADA" || data.type === "ANTIGRAVITY_GRADE_SUBMISSION";
+          if (isFinal) {
+            setIsFinalFinished(true);
+          }
           await submitGrade(finalVal, isFinal, data);
         }
       }

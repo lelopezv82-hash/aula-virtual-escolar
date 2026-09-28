@@ -67,6 +67,46 @@ function injectBridgeScript(html: string, taskId: string = ''): string {
     } catch(e) {}
   }
 
+  // 2. Neutralizar funciones de reinicio de la actividad y ocultar botones de "Jugar de nuevo"
+  try {
+    window.startNewGame = function() {
+      console.log('[Aula Virtual] Reintentos bloqueados.');
+      return false;
+    };
+    window.reiniciarActividad = function() { return false; };
+    window.restartGame = function() { return false; };
+  } catch(e) {}
+
+  function purgeRestartElements() {
+    var candidates = document.querySelectorAll('button, a, input[type="button"], div[role="button"]');
+    for (var i = 0; i < candidates.length; i++) {
+      var el = candidates[i];
+      var text = (el.textContent || el.innerText || '').toLowerCase().trim();
+      var oc = (el.getAttribute('onclick') || '').toLowerCase();
+      if (
+        text.indexOf('jugar de nuevo') !== -1 ||
+        text.indexOf('volver a jugar') !== -1 ||
+        text.indexOf('empezar de nuevo') !== -1 ||
+        text.indexOf('iniciar de nuevo') !== -1 ||
+        text.indexOf('reiniciar juego') !== -1 ||
+        text.indexOf('reiniciar actividad') !== -1 ||
+        text.indexOf('intentar de nuevo') !== -1 ||
+        oc.indexOf('startnewgame') !== -1 ||
+        oc.indexOf('reiniciar') !== -1 ||
+        oc.indexOf('restart') !== -1
+      ) {
+        el.style.setProperty('display', 'none', 'important');
+        el.remove();
+      }
+    }
+  }
+
+  try {
+    setInterval(purgeRestartElements, 250);
+  } catch(e) {}
+  document.addEventListener('DOMContentLoaded', purgeRestartElements);
+  window.addEventListener('load', purgeRestartElements);
+
 
 
   function normalizeGrade(val) {
@@ -205,7 +245,18 @@ function injectBridgeScript(html: string, taskId: string = ''): string {
       }
     }
 
-    // 3. Elementos DOM donde la actividad escribe su nota final (únicamente si son visibles)
+    // 3. Pantalla de victoria visible
+    var victoryEl = document.querySelector('#screen-victory, .screen-victory, [id*="victory"], [class*="victory"], [id*="victoria"]');
+    if (victoryEl && isElementVisible(victoryEl)) {
+      var fgEl = document.querySelector('#final-grade, .final-grade, [id*="final-grade"], [class*="final-grade"], #nota-final, [id*="nota-final"]');
+      var fGrade = fgEl ? normalizeGrade(fgEl.textContent || fgEl.innerText) : null;
+      if (fGrade !== null) {
+        sendGradeToPlatform(fGrade, true);
+        return;
+      }
+    }
+
+    // 4. Elementos DOM donde la actividad escribe su nota final (únicamente si son visibles)
     var selectors = ['#final-grade', '#nota-final', '#calificacion', '#nota', '[id*="final-grade"]', '[id*="nota-final"]', '.nota-final', '.calificacion-final'];
     for (var s = 0; s < selectors.length; s++) {
       var el = document.querySelector(selectors[s]);
@@ -232,6 +283,15 @@ function injectBridgeScript(html: string, taskId: string = ''): string {
   setInterval(checkExplicitActivityGrade, 2500);
 })();
 </script>
+<style id="aula-virtual-clean-ui">
+  button[onclick*="startNewGame"], button[onclick*="reiniciar"], button[onclick*="restart"], button[onclick*="reset"],
+  a[onclick*="startNewGame"], a[onclick*="reiniciar"], a[onclick*="restart"],
+  .btn-restart, .btn-replay, .btn-reiniciar, #btn-restart, #btn-replay, #btn-reiniciar {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+</style>
 `;
 
   if (html.includes('<head>')) {
