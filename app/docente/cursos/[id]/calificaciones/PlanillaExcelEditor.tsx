@@ -245,12 +245,20 @@ export default function PlanillaExcelEditor({ courseId, activePeriod }: Planilla
           const grid: Record<string, Record<string, string>> = {};
           const rawTasks = json.tasks || [];
 
+          const now = new Date();
           for (const student of json.students || []) {
             grid[student.id] = {};
             // Set task grades
             for (const t of rawTasks) {
               const sub = t.submissions?.find((s: any) => s.studentId === student.id);
-              grid[student.id][t.id] = sub && sub.grade !== null ? sub.grade.toFixed(1) : "";
+              const isClosed = t.dueDate ? new Date(t.dueDate) < now : false;
+              if (sub && sub.grade !== null && sub.grade !== undefined) {
+                grid[student.id][t.id] = sub.grade.toFixed(1);
+              } else if (isClosed && !t.isExternal) {
+                grid[student.id][t.id] = "1.0";
+              } else {
+                grid[student.id][t.id] = "";
+              }
             }
           }
 

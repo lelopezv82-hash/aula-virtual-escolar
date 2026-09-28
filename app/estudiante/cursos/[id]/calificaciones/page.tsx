@@ -149,11 +149,12 @@ export default async function CursoCalificacionesPage({
         (Array.isArray((sub as any).fileUrls) && (sub as any).fileUrls.length > 0)
       );
       const isExamSubmitted = isExam && !!(sub.status !== "PENDING" && sub.startedAt);
-      const isInteractiveSubmitted = isInteractive && !!(
-        (sub.grade !== null && sub.grade !== undefined) ||
-        sub.status === "GRADED" ||
+      const isInteractiveFinal = isInteractive && !!(
+        (sub.answers as any)?.isFinal ||
+        (sub.grade !== null && sub.grade !== undefined && Number(sub.grade) >= 5.0) ||
         sub.status === "SUBMITTED"
       );
+      const isInteractiveSubmitted = isInteractive && (isClosed || isTimerExpired || isInteractiveFinal);
       const isSubmitted = isExam ? isExamSubmitted : isInteractive ? isInteractiveSubmitted : hasUploadedFile;
 
       const hasActiveExtension = !!(sub.allowLateSubmission || task.allowLateSubmission);
@@ -183,14 +184,18 @@ export default async function CursoCalificacionesPage({
         return null;
       }
 
-      const hasRealGrade = sub.grade !== null && sub.grade !== undefined && !(hasActiveExtension && (sub.grade === 1 || sub.grade === 1.0) && !hasUploadedFile);
+      const hasRealGrade = (
+        sub.grade !== null && sub.grade !== undefined &&
+        (!isInteractive || isInteractiveSubmitted) &&
+        !(hasActiveExtension && (sub.grade === 1 || sub.grade === 1.0) && !hasUploadedFile)
+      );
 
       if (!isSubmitted && !hasRealGrade) {
         if (isClosed || isTimerExpired) {
           return {
             ...processedSub,
             status: "GRADED",
-            grade: 1.0,
+            grade: (sub.grade !== null && sub.grade !== undefined) ? Number(sub.grade) : 1.0,
             feedback: shouldHideFeedback ? null : (sub.feedback || "Actividad no entregada dentro del plazo establecido."),
             feedbackTemplate,
             task
@@ -203,7 +208,7 @@ export default async function CursoCalificacionesPage({
         return {
           ...processedSub,
           status: "GRADED",
-          grade: 1.0,
+          grade: (sub.grade !== null && sub.grade !== undefined) ? Number(sub.grade) : 1.0,
           feedback: shouldHideFeedback ? null : (sub.feedback || "Actividad no entregada dentro del plazo establecido."),
           feedbackTemplate,
           task
@@ -310,12 +315,11 @@ export default async function CursoCalificacionesPage({
                 📋 Tarea (Hacer)
               </span>
             )}
-            {sub.task.type === "INTERACTIVE" && (
+            {(sub.task.type === "INTERACTIVE" || !!(sub.task as any).interactiveUrl || (!!sub.task.attachmentUrl && (sub.task.attachmentUrl.includes(".html") || sub.task.attachmentUrl.includes("/activities/")))) ? (
               <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f3e8ff", color: "#6b21a8", border: "1px solid #d8b4fe" }}>
                 🎮 Actividad Interactiva (Hacer)
               </span>
-            )}
-            {sub.task.isExternal ? (
+            ) : sub.task.isExternal ? (
               <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1" }}>
                 📁 Entrega en clase
               </span>
@@ -369,8 +373,8 @@ export default async function CursoCalificacionesPage({
               href={sub.task.type === "EXAM" || sub.task.type === "FINAL" ? `/estudiante/examenes/${sub.task.id}` : `/estudiante/tareas/${sub.task.id}`}
               className="btn btn-secondary text-xs px-2 py-1 w-full flex justify-center"
             >
-              {sub.task.type === "INTERACTIVE"
-                ? (isGraded || sub.submittedAt ? "Ver Actividad" : "Ver Detalle")
+              {(sub.task.type === "INTERACTIVE" || !!(sub.task as any).interactiveUrl || (!!sub.task.attachmentUrl && (sub.task.attachmentUrl.includes(".html") || sub.task.attachmentUrl.includes("/activities/"))))
+                ? "Ver Actividad"
                 : sub.task.isExternal
                 ? "Ver Detalle"
                 : (sub.submittedAt || (sub.fileUrl && sub.fileUrl.trim() !== "") ? "Ver Entrega" : "Ver Detalle")}
