@@ -417,7 +417,7 @@ export default function VisorActividadInteractiva({
             <div>
               <h2 className="text-xl font-bold text-white mb-2">¡Actividad Finalizada!</h2>
               <p className="text-xs text-slate-300 leading-relaxed">
-                Ya has completado satisfactoriamente esta actividad interactiva. Tu calificación ha sido registrada de forma definitiva en la planilla escolar y no es posible volver a realizarla.
+                Ya has completado esta actividad interactiva. Tu calificación ha sido registrada de forma definitiva en la planilla escolar y no es posible volver a realizarla.
               </p>
             </div>
             <div className="flex items-center gap-3 bg-slate-800/80 px-5 py-2.5 rounded-xl border border-slate-700/80 w-full justify-center">
