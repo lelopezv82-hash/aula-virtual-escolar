@@ -33,7 +33,7 @@ export default function VisorActividadInteractiva({
   isClosed = false
 }: VisorActividadInteractivaProps) {
   const [submission, setSubmission] = useState(initialSubmission);
-  const [currentGrade, setCurrentGrade] = useState<number | null>(initialSubmission?.grade ?? null);
+  const [currentGrade, setCurrentGrade] = useState<number>(initialSubmission?.grade !== null && initialSubmission?.grade !== undefined ? initialSubmission.grade : 1.0);
   const [savingStatus, setSavingStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -85,11 +85,11 @@ export default function VisorActividadInteractiva({
 
   // Sincronizar calificación si initialSubmission carga de forma asíncrona
   useEffect(() => {
-    if (initialSubmission) {
+    if (initialSubmission && initialSubmission.grade !== undefined && initialSubmission.grade !== null) {
       setSubmission(initialSubmission);
-      if (initialSubmission.grade !== undefined && initialSubmission.grade !== null) {
-        setCurrentGrade(initialSubmission.grade);
-      }
+      setCurrentGrade(initialSubmission.grade);
+    } else {
+      setCurrentGrade(1.0);
     }
   }, [initialSubmission]);
 
@@ -164,6 +164,30 @@ export default function VisorActividadInteractiva({
           return Math.max(1.0, Math.min(5.0, parseFloat(val.toFixed(1))));
         };
 
+        // Función para verificar si un elemento es visible y no está dentro de una pantalla oculta
+        const isElementVisible = (el: Element | null): boolean => {
+          if (!el || !doc) return false;
+          let cur: Element | null = el;
+          while (cur && cur !== doc.body && cur !== doc.documentElement) {
+            const htmlEl = cur as HTMLElement;
+            if (htmlEl.classList && (htmlEl.classList.contains('hidden') || htmlEl.hasAttribute('hidden'))) return false;
+            if (htmlEl.style && (htmlEl.style.display === 'none' || htmlEl.style.visibility === 'hidden' || htmlEl.style.opacity === '0')) return false;
+            try {
+              const w = doc.defaultView || win || window;
+              if (w && w.getComputedStyle) {
+                const s = w.getComputedStyle(htmlEl);
+                if (s.display === 'none' || s.visibility === 'hidden' || s.opacity === '0') return false;
+              }
+            } catch {}
+            cur = cur.parentElement;
+          }
+          const htmlEl = el as HTMLElement;
+          if (htmlEl.offsetWidth === 0 && htmlEl.offsetHeight === 0) {
+            if (htmlEl.getClientRects && htmlEl.getClientRects().length === 0) return false;
+          }
+          return true;
+        };
+
         // 1. Variables globales asignadas por la actividad misma
         const gVars = [win?.finalGrade, win?.notaFinal, win?.calificacion, win?.currentGrade, win?.nota];
         for (const v of gVars) {
@@ -174,12 +198,12 @@ export default function VisorActividadInteractiva({
           }
         }
 
-        // 2. Elementos DOM donde la actividad escribe su nota asignada
+        // 2. Elementos DOM donde la actividad escribe su nota asignada (únicamente si son visibles)
         if (doc) {
           const selectors = ['#final-grade', '#nota-final', '#calificacion', '#nota', '[id*="final-grade"]', '[id*="nota-final"]', '.nota-final', '.calificacion-final'];
           for (const sel of selectors) {
             const el = doc.querySelector(sel);
-            if (el) {
+            if (el && isElementVisible(el)) {
               const txt = (el.textContent || '').trim();
               const nEl = normalizeGrade(txt);
               if (nEl !== null) {
@@ -274,13 +298,13 @@ export default function VisorActividadInteractiva({
 
         {/* Badge de Nota y botones de acción */}
         <div className="flex items-center gap-3 ml-auto">
-          {/* Badge de Nota Oficial */}
+          {/* Badge de Nota */}
           <div className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-3 py-1.5 rounded-xl shadow-md border border-emerald-400/40">
             <Trophy size={16} className="text-yellow-300" />
             <div className="flex items-baseline gap-1">
-              <span className="text-xs font-medium text-emerald-100 hidden md:inline">Nota Oficial:</span>
+              <span className="text-xs font-medium text-emerald-100 hidden md:inline">Nota:</span>
               <span className="text-base md:text-lg font-black tracking-tight">
-                {currentGrade !== null ? currentGrade.toFixed(1) : "—"}
+                {currentGrade !== null && currentGrade !== undefined ? currentGrade.toFixed(1) : "1.0"}
               </span>
               <span className="text-[10px] text-emerald-200">/ 5.0</span>
             </div>
@@ -329,8 +353,8 @@ export default function VisorActividadInteractiva({
             </div>
             <div className="flex items-center gap-3 bg-slate-800/80 px-5 py-2.5 rounded-xl border border-slate-700/80 w-full justify-center">
               <Trophy size={20} className="text-yellow-400" />
-              <span className="text-xs text-slate-300 font-medium">Calificación oficial:</span>
-              <strong className="text-lg text-emerald-400">{currentGrade !== null ? currentGrade.toFixed(1) : "1.0"}</strong>
+              <span className="text-xs text-slate-300 font-medium">Calificación:</span>
+              <strong className="text-lg text-emerald-400">{currentGrade !== null && currentGrade !== undefined ? currentGrade.toFixed(1) : "1.0"}</strong>
               <span className="text-xs text-slate-400">/ 5.0</span>
             </div>
             <Link

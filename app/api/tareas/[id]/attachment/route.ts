@@ -81,6 +81,24 @@ function injectBridgeScript(html: string): string {
     }
   });
 
+  function isElementVisible(el) {
+    if (!el) return false;
+    var cur = el;
+    while (cur && cur !== document.body && cur !== document.documentElement) {
+      if (cur.classList && (cur.classList.contains('hidden') || cur.hasAttribute('hidden'))) return false;
+      if (cur.style && (cur.style.display === 'none' || cur.style.visibility === 'hidden' || cur.style.opacity === '0')) return false;
+      try {
+        var s = window.getComputedStyle(cur);
+        if (s.display === 'none' || s.visibility === 'hidden' || s.opacity === '0') return false;
+      } catch(e) {}
+      cur = cur.parentElement;
+    }
+    if (el.offsetWidth === 0 && el.offsetHeight === 0 && (!el.getClientRects || !el.getClientRects().length)) {
+      return false;
+    }
+    return true;
+  }
+
   // Detección únicamente si la actividad escribe su propia nota en el DOM o en variables globales
   function checkExplicitActivityGrade() {
     // 1. Variables globales asignadas por la actividad
@@ -93,11 +111,11 @@ function injectBridgeScript(html: string): string {
       }
     }
 
-    // 2. Elementos del DOM donde la actividad escribe su nota final
+    // 2. Elementos del DOM donde la actividad escribe su nota final (únicamente si son visibles)
     var selectors = ['#final-grade', '#nota-final', '#calificacion', '#nota', '[id*="final-grade"]', '[id*="nota-final"]', '.nota-final', '.calificacion-final'];
     for (var s = 0; s < selectors.length; s++) {
       var el = document.querySelector(selectors[s]);
-      if (el) {
+      if (el && isElementVisible(el)) {
         var txt = (el.textContent || el.innerText || '').trim();
         var nEl = normalizeGrade(txt);
         if (nEl !== null) {
