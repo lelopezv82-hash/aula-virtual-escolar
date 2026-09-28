@@ -956,16 +956,33 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
             )}
           </div>
 
+          {/* Prominent Grade Badge right on card header */}
+          {info.grade !== null && (
+            <div className={`text-xs font-black px-2.5 py-1 rounded-lg flex items-center gap-1.5 border shadow-2xs ${
+              Number(info.grade) >= 3.0
+                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800"
+                : "bg-red-50 text-red-700 dark:bg-red-950/60 dark:text-red-300 border-red-300 dark:border-red-800"
+            }`}>
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                {info.isInteractive && !info.isFinal && !info.isOverdue ? "Nota actual:" : "Nota:"}
+              </span>
+              <span className="text-sm font-extrabold">{Number(info.grade).toFixed(1)}</span>
+              <span className="text-[10px] text-slate-400 font-normal">/ 5.0</span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
           {/* Time text / Expired Badge */}
           {info.isInteractive && (info.isOverdue || info.isExpired) && !info.hasExtension ? (
             <span className="text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border border-red-200 dark:border-red-900/50">
               <Clock size={12} className="text-red-600 shrink-0" />
               <span>Cerrada (plazo vencido) · Nota: {Number(info.grade ?? 1.0).toFixed(1)}</span>
             </span>
-          ) : info.isInteractive && !info.isFinal && !info.isOverdue ? (
+          ) : info.isInteractive && task.submission?.grade != null && !info.isOverdue ? (
             <span className="text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-900/50">
               <Sparkles size={12} className="text-purple-600 dark:text-purple-400 shrink-0" />
-              <span>Avance guardado · Nota: {Number(info.grade ?? 1.0).toFixed(1)}</span>
+              <span>{info.isFinal ? "Calificado" : "Avance guardado"} · Nota: {Number(info.grade).toFixed(1)}</span>
             </span>
           ) : !info.isSubmitted ? (
             <span
@@ -1128,7 +1145,9 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
             </>
           ) : isInteractive ? (
             <>
-              {info.isOverdue && !info.hasExtension ? "Ver Detalle" : "Realizar Actividad"} <ArrowRight size={14} />
+              {info.isOverdue && !info.hasExtension 
+                ? "Ver Detalle" 
+                : (task.submission?.grade != null ? "Continuar Actividad" : "Realizar Actividad")} <ArrowRight size={14} />
             </>
           ) : task.isExternal ? (
             <>

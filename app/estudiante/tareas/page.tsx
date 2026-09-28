@@ -1,13 +1,10 @@
 import prisma from '@/lib/prisma';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
-import { ClipboardList, Clock, CheckCircle } from "lucide-react";
-import Link from "next/link";
-import { formatToColombiaString, getTaskDeadlineStatus } from '@/lib/dateUtils';
+import TareasClient, { SerializedTask } from "./TareasClient";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-educational-key-2026');
 
@@ -32,7 +29,7 @@ export default async function TareasEstudiantePage() {
   const activePeriodNames = activePeriodsFromDb.map(p => p.name);
   const now = new Date();
 
-  const tasks = await prisma.task.findMany({
+  const rawTasks = await prisma.task.findMany({
     where: {
       active: true,
       type: { in: ["TASK", "TASK_SABER", "SABER", "INTERACTIVE"] },
@@ -56,7 +53,12 @@ export default async function TareasEstudiantePage() {
       ]
     },
     include: {
-      course: true,
+      course: {
+        select: {
+          id: true,
+          name: true
+        }
+      },
       assignedStudents: {
         select: { id: true }
       },
@@ -67,195 +69,41 @@ export default async function TareasEstudiantePage() {
     orderBy: { createdAt: "desc" }
   });
 
-  // Helper: check if a task is not activated for this student
-  const isNotActivated = (task: typeof tasks[0]) => {
-    const sub = task.submissions[0];
-    const hasProrroga = !!sub?.allowLateSubmission || !!task.allowLateSubmission;
-    const hasRealGrade = sub?.grade !== null && sub?.grade !== undefined;
-    return !task.assignedStudents.some(s => s.id === studentId) && !hasProrroga && !hasRealGrade;
-  };
+  // Serialize tasks safely for Client Component
+  const serializedTasks: SerializedTask[] = rawTasks.map(t => ({
+    id: t.id,
+    title: t.title,
+    description: t.description,
+    type: t.type,
+    courseId: t.courseId,
+    dueDate: t.dueDate.toISOString(),
+    publishAt: t.publishAt ? t.publishAt.toISOString() : null,
+    attachmentUrl: t.attachmentUrl,
+    interactiveUrl: (t as any).interactiveUrl || null,
+    isExternal: !!t.isExternal,
+    allowLateSubmission: !!t.allowLateSubmission,
+    lateSubmissionUntil: t.lateSubmissionUntil ? t.lateSubmissionUntil.toISOString() : null,
+    period: t.period,
+    createdAt: t.createdAt.toISOString(),
+    course: {
+      id: t.course.id,
+      name: t.course.name
+    },
+    assignedStudents: t.assignedStudents.map(s => ({ id: s.id })),
+    submissions: t.submissions.map(sub => ({
+      id: sub.id,
+      studentId: sub.studentId,
+      status: sub.status,
+      grade: sub.grade,
+      feedback: sub.feedback,
+      fileUrl: sub.fileUrl,
+      fileUrls: (sub as any).fileUrls,
+      answers: sub.answers,
+      submittedAt: sub.submittedAt ? sub.submittedAt.toISOString() : null,
+      allowLateSubmission: !!sub.allowLateSubmission,
+      lateSubmissionUntil: sub.lateSubmissionUntil ? sub.lateSubmissionUntil.toISOString() : null
+    }))
+  }));
 
-  const pendingTasks = tasks.filter(task => {
-    // Non-activated tasks (absent student) always show as graded 1.0, never pending
-    if (isNotActivated(task)) return false;
-    const submission = task.submissions[0];
-    const { isClosed } = getTaskDeadlineStatus(task, submission);
-    const isDeadlinePassed = isClosed || (task.dueDate && now > task.dueDate);
-    const isInteractive = task.type === "INTERACTIVE";
-    const isInteractiveSubmitted = isInteractive && !!(submission && (submission.grade !== null || submission.status === "GRADED"));
-    const isSubmitted = isInteractive ? isInteractiveSubmitted : (submission && submission.status !== "PENDING");
-    const virtualGraded = !task.isExternal && ((!submission && isDeadlinePassed) || (submission && submission.status === "PENDING" && isDeadlinePassed));
-    return !isSubmitted && !virtualGraded;
-  });
-
-  return (
-    <div className="animate-fade-in">
-      <div className="dashboard-header">
-        <h1>Mis Tareas</h1>
-        <p>Revisa y envía tus asignaciones pendientes.</p>
-      </div>
-
-      <div className="flex flex-col gap-4">
-        {pendingTasks.length === 0 ? (
-          <div className="card text-center py-8 text-muted">
-            <ClipboardList size={48} className="mx-auto mb-4 opacity-50" />
-            <p>No tienes tareas pendientes en este momento.</p>
-          </div>
-        ) : (
-          pendingTasks.map(task => {
-            const isTaskSaber = task.type === "TASK_SABER" || task.type === "SABER";
-            const submission = task.submissions[0];
-            const { activeDeadline, hasExtension, isClosed, isLate } = getTaskDeadlineStatus(task, submission);
-            const hasGradeSet = submission?.grade != null;
-            const isOverdue = isClosed || (task.dueDate && now > task.dueDate);
-            const virtualGraded = (!submission && isOverdue) || (submission && submission.status === "PENDING" && isOverdue && !hasGradeSet);
-
-            const isInteractive = task.type === "INTERACTIVE" || !!(task as any).interactiveUrl || (!!task.attachmentUrl && (task.attachmentUrl.includes(".html") || task.attachmentUrl.includes("/activities/")));
-            const isInteractiveSubmitted = isInteractive && !!(submission && (submission.grade !== null || submission.status === "GRADED"));
-            const activeStatus = isInteractive
-              ? (isInteractiveSubmitted ? "GRADED" : (virtualGraded ? "GRADED" : null))
-              : ((submission && submission.status !== "PENDING")
-                ? submission.status
-                : hasGradeSet ? "GRADED"
-                : virtualGraded ? "GRADED" : (submission?.status || null));
-            const activeGrade = isInteractive
-              ? (isInteractiveSubmitted ? (submission?.grade !== null && submission?.grade !== undefined ? submission.grade : null) : (virtualGraded ? 1.0 : null))
-              : ((submission && submission.status !== "PENDING")
-                ? (submission.grade !== null && submission.grade !== undefined ? submission.grade : null)
-                : hasGradeSet ? submission!.grade!
-                : virtualGraded ? 1.0 : null);
-
-            // Determine reason for minimum grade
-            const neverSubmitted = !submission || (submission.status === "PENDING" && !hasGradeSet && !isInteractiveSubmitted);
-            const gradeReason = virtualGraded && neverSubmitted ? "No entregado (plazo vencido)" : null;
-
-            const isSubmitted = activeStatus && activeStatus !== "PENDING";
-            const isGraded = activeStatus === "GRADED";
-
-            const leftBorderColor = isSubmitted
-              ? (isGraded && activeGrade !== null && Number(activeGrade) < 3.0 ? 'var(--danger)' : 'var(--success)')
-              : isLate ? 'var(--danger)' : isTaskSaber ? '#8b5cf6' : 'var(--primary-color)';
-
-            const gradeColor = isGraded
-              ? (activeGrade !== null && Number(activeGrade) >= 3 ? 'var(--success)' : 'var(--danger)')
-              : 'var(--text-muted)';
-
-            return (
-              <div key={task.id}
-                style={{
-                  background: "var(--bg-primary)",
-                  display: "flex",
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "1rem",
-                  padding: "1rem",
-                  borderRadius: "var(--radius-lg)",
-                  border: `1px solid var(--border-color)`,
-                  borderLeft: `4px solid ${leftBorderColor}`,
-                  boxShadow: "var(--shadow-sm)",
-                }}
-              >
-                {/* Left: info */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem", flexWrap: "wrap" }}>
-                    <span style={{ fontSize: "0.75rem", fontWeight: 700, padding: "2px 8px", background: "#f3f4f6", borderRadius: "4px", color: "#4b5563" }}>
-                      {task.course.name}
-                    </span>
-                    {task.type === "INTERACTIVE" ? (
-                      <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f3e8ff", color: "#6b21a8", border: "1px solid #d8b4fe" }}>
-                        🎮 Actividad Interactiva (Hacer)
-                      </span>
-                    ) : isTaskSaber ? (
-                      <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f3e8ff", color: "#6b21a8", border: "1px solid #d8b4fe" }}>
-                        📖 Saber (Cognitivo)
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#ffedd5", color: "#9a3412", border: "1px solid #fed7aa" }}>
-                        📋 Hacer (Procedimental)
-                      </span>
-                    )}
-                    {task.isExternal ? (
-                      <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1" }}>
-                        📁 Entrega en clase
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "#f0f9ff", color: "#0369a1", border: "1px solid #b9e6fe" }}>
-                        💻 Entrega en plataforma
-                      </span>
-                    )}
-                    {isGraded && (
-                      <span className={`badge flex items-center gap-1 ${gradeReason ? 'badge-danger' : 'badge-success'}`}>
-                        <CheckCircle size={12} /> Calificada
-                      </span>
-                    )}
-                    {isGraded && gradeReason && (
-                      <span className="text-xs text-red-500 dark:text-red-400 font-semibold">
-                        — {gradeReason}
-                      </span>
-                    )}
-                    {isSubmitted && !isGraded && (
-                      <span className="badge badge-info flex items-center gap-1"><Clock size={12} /> Entregada</span>
-                    )}
-                    {!isSubmitted && isLate && (
-                      <span className="badge badge-danger">Atrasada</span>
-                    )}
-                  </div>
-                  <h3 style={{ fontWeight: 700, fontSize: "1.1rem", margin: "0 0 0.25rem", color: "var(--primary-color)" }}>{task.title}</h3>
-                  <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", margin: "0 0 0.5rem 0", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                    {task.description
-                      ? <><span style={{ fontWeight: 700, color: "var(--text-primary)" }}>Instrucciones: </span>{task.description.replace(/Importado desde Excel\s*([—–-]\s*columna\s*[A-Z]+)?/gi, "").trim()}</>
-                      : ""}
-                  </p>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.75rem", color: "var(--text-muted)", flexWrap: "wrap" }}>
-                    <Clock size={12} />
-                    {activeDeadline && new Date(activeDeadline).getFullYear() < 9000 && (
-                      <span>Vence: {formatToColombiaString(activeDeadline)} {hasExtension && "(Prórroga)"}</span>
-                    )}
-                  </div>
-                  {submission?.submittedAt && (
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "0.75rem", color: "#16a34a", marginTop: "0.35rem", fontWeight: 600, flexWrap: "wrap" }}>
-                      <CheckCircle size={12} />
-                      <span>Entregada el: {new Date(submission.submittedAt).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })}</span>
-                      {submission.fileUrl && (
-                        <a href={submission.fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#2563eb", fontWeight: 600, marginLeft: "0.5rem", display: "inline-flex", alignItems: "center", gap: "2px" }}>
-                          📎 Ver archivo
-                        </a>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Right: grade + action */}
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem", minWidth: "120px", textAlign: "center" }}>
-                  {isGraded && activeGrade !== null ? (
-                    <>
-                      <div style={{ fontSize: "2rem", fontWeight: 800, color: gradeColor, lineHeight: 1 }}>
-                        {Number(activeGrade).toFixed(1)}
-                      </div>
-                      <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>nota</div>
-                    </>
-                  ) : isSubmitted && !isGraded ? (
-                    <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontStyle: "italic" }}>
-                      Pendiente de revisión
-                    </div>
-                  ) : null}
-
-                  {!(isClosed && neverSubmitted && !task.isExternal) && (
-                    <Link href={`/estudiante/tareas/${task.id}`} className={`btn w-full md:w-auto ${isSubmitted || (isClosed && !hasExtension) ? 'btn-secondary' : 'btn-primary'}`}>
-                      {task.type === "INTERACTIVE"
-                        ? (isClosed && !hasExtension ? "Ver Detalle" : (isSubmitted ? "Reintentar Actividad" : "Realizar Actividad"))
-                        : task.isExternal
-                        ? (isSubmitted ? 'Ver Calificación' : 'Ver Detalles')
-                        : (isSubmitted ? 'Ver Entrega' : 'Subir Tarea')}
-                    </Link>
-                  )}
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
-    </div>
-  );
+  return <TareasClient tasks={serializedTasks} studentId={studentId} />;
 }

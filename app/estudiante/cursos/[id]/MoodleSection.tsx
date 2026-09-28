@@ -293,7 +293,7 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                                 background: "#d4edda", color: "#155724",
                                 border: "1px solid #b8ddbf",
                               }}>
-                                ✓ Calificado {item.grade !== null && item.grade !== undefined ? `· Nota: ${Number(item.grade).toFixed(1)}` : ""}
+                                ✓ {item.type === "INTERACTIVE" && !deadlineStatus?.isClosed ? "Avance guardado" : "Calificado"} {item.grade !== null && item.grade !== undefined ? `· Nota: ${Number(item.grade).toFixed(1)}` : ""}
                               </span>
                               {deadlineStatus?.isClosed && !item.submissionAllowLateSubmission && (
                                 <span style={{
@@ -409,6 +409,29 @@ export default function MoodleSection({ title, items, defaultOpen = true }: Mood
                           </div>
                         )}
                       </div>
+
+                      {/* Right side: Grade badge */}
+                      {item.grade != null && (
+                        <div style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          minWidth: "56px",
+                          padding: "0.25rem 0.6rem",
+                          borderRadius: "8px",
+                          background: Number(item.grade) >= 3 ? "#f0fdf4" : "#fef2f2",
+                          border: `1px solid ${Number(item.grade) >= 3 ? "#bbf7d0" : "#fecaca"}`,
+                          flexShrink: 0
+                        }}>
+                          <span style={{ fontSize: "1.1rem", fontWeight: 800, color: Number(item.grade) >= 3 ? "#15803d" : "#b91c1c", lineHeight: 1 }}>
+                            {Number(item.grade).toFixed(1)}
+                          </span>
+                          <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "#64748b", textTransform: "uppercase", marginTop: "2px" }}>
+                            {item.type === "INTERACTIVE" && !deadlineStatus?.isClosed ? "Nota actual" : "Nota"}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Nested Assigned Resources under Task */}

@@ -267,7 +267,7 @@ export default async function CursoDescripcionPage({
                             background: "#d4edda", color: "#155724",
                             border: "1px solid #b8ddbf",
                           }}>
-                            ✓ Calificado {submission?.grade !== null && submission?.grade !== undefined ? `· Nota: ${Number(submission.grade).toFixed(1)}` : ""}
+                            ✓ {isInteractive && !isOverdue && !(submission?.answers as any)?.isFinal ? "Avance guardado" : "Calificado"} {submission?.grade !== null && submission?.grade !== undefined ? `· Nota: ${Number(submission.grade).toFixed(1)}` : ""}
                           </span>
                           {isOverdue && !submission?.allowLateSubmission && (
                             <span style={{
@@ -373,6 +373,49 @@ export default async function CursoDescripcionPage({
                         <span style={{ fontWeight: 700, color: "#1e293b" }}>Instrucciones: </span>{cleanDesc}
                       </div>
                     )}
+                  </div>
+
+                  {/* Right side: Grade badge + action button */}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.4rem", flexShrink: 0 }}>
+                    {(submission?.grade != null || isNotActivatedForStudent || isClosedWithoutSubmission) && (
+                      <div style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minWidth: "64px",
+                        padding: "0.25rem 0.6rem",
+                        borderRadius: "8px",
+                        background: (submission?.grade != null && Number(submission.grade) >= 3.0) ? "#f0fdf4" : "#fef2f2",
+                        border: `1px solid ${(submission?.grade != null && Number(submission.grade) >= 3.0) ? "#bbf7d0" : "#fecaca"}`
+                      }}>
+                        <span style={{
+                          fontSize: "1.15rem",
+                          fontWeight: 800,
+                          color: (submission?.grade != null && Number(submission.grade) >= 3.0) ? "#15803d" : "#b91c1c",
+                          lineHeight: 1
+                        }}>
+                          {Number(submission?.grade ?? 1.0).toFixed(1)}
+                        </span>
+                        <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "#64748b", textTransform: "uppercase", marginTop: "2px" }}>
+                          {isInteractive && !isOverdue && !(submission?.answers as any)?.isFinal ? "Nota actual" : "Nota"}
+                        </span>
+                      </div>
+                    )}
+                    <Link
+                      href={href}
+                      className={`btn text-xs font-bold px-3 py-1.5 rounded-lg shadow-2xs ${
+                        isInteractive && !isClosedWithoutSubmission
+                          ? (submission?.grade != null ? "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white" : "bg-purple-600 hover:bg-purple-700 text-white")
+                          : isSubmitted
+                          ? "btn-secondary"
+                          : "btn-primary"
+                      }`}
+                    >
+                      {isInteractive
+                        ? (isClosedWithoutSubmission ? "Ver Detalle" : (submission?.grade != null ? "Continuar" : "Realizar"))
+                        : (isSubmitted ? "Ver Entrega" : "Ver Tarea")}
+                    </Link>
                   </div>
                 </div>
 
