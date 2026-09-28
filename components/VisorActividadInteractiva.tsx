@@ -249,7 +249,7 @@ export default function VisorActividadInteractiva({
             val = 1.0 + (val / 100.0) * 4.0;
           }
           const finalVal = Math.max(1.0, Math.min(5.0, parseFloat(val.toFixed(1))));
-          const isFinal = !!data.isFinal || data.type === "ACTIVIDAD_COMPLETADA" || data.type === "ACTIVIDAD_FINALIZADA";
+          const isFinal = !!data.isFinal || data.type === "ACTIVIDAD_COMPLETADA" || data.type === "ACTIVIDAD_FINALIZADA" || data.type === "ANTIGRAVITY_GRADE_SUBMISSION";
           await submitGrade(finalVal, isFinal, data);
         }
       }
@@ -296,19 +296,8 @@ export default function VisorActividadInteractiva({
           </div>
         </div>
 
-        {/* Badge de Nota y botones de acción */}
+        {/* Botones de acción */}
         <div className="flex items-center gap-3 ml-auto">
-          {/* Badge de Nota */}
-          <div className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-3 py-1.5 rounded-xl shadow-md border border-emerald-400/40">
-            <Trophy size={16} className="text-yellow-300" />
-            <div className="flex items-baseline gap-1">
-              <span className="text-xs font-medium text-emerald-100 hidden md:inline">Nota:</span>
-              <span className="text-base md:text-lg font-black tracking-tight">
-                {currentGrade !== null && currentGrade !== undefined ? currentGrade.toFixed(1) : "1.0"}
-              </span>
-              <span className="text-[10px] text-emerald-200">/ 5.0</span>
-            </div>
-          </div>
 
           {/* Botón Descargar Guía si existe */}
           {guideUrl && (

@@ -61,6 +61,16 @@ function injectBridgeScript(html: string): string {
       sendGradeToPlatform(g, isFinal, extra);
     }
   };
+  window.AntigravityPlatform = {
+    submitGrade: function(g, maxG, extra) {
+      var norm = normalizeGrade(g);
+      if (typeof g === 'number' && typeof maxG === 'number' && maxG > 0 && maxG !== 5.0) {
+        norm = 1.0 + (g / maxG) * 4.0;
+        norm = Math.max(1.0, Math.min(5.0, parseFloat(norm.toFixed(1))));
+      }
+      sendGradeToPlatform(norm, true, extra);
+    }
+  };
   window.reportGrade = function(g, isFinal, extra) {
     sendGradeToPlatform(g, isFinal, extra);
   };
@@ -71,10 +81,14 @@ function injectBridgeScript(html: string): string {
     sendGradeToPlatform(g, isFinal, extra);
   };
 
-  // Escuchar si la actividad envía un postMessage propio con su nota
+  // Escuchar si la actividad envía un postMessage propio con su nota (incluyendo Gemini Canvas / Antigravity)
   window.addEventListener('message', function(ev) {
     if (!ev.data || typeof ev.data !== 'object') return;
     var d = ev.data;
+    if (d.type === 'ANTIGRAVITY_GRADE_SUBMISSION' && d.grade !== undefined) {
+      sendGradeToPlatform(d.grade, true, d);
+      return;
+    }
     var raw = d.grade !== undefined ? d.grade : (d.nota !== undefined ? d.nota : (d.calificacion !== undefined ? d.calificacion : (d.score !== undefined ? d.score : null)));
     if (raw !== null) {
       sendGradeToPlatform(raw, d.isFinal || d.type === 'ACTIVIDAD_COMPLETADA' || d.type === 'ACTIVIDAD_FINALIZADA', d);

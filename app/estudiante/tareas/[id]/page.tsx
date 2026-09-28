@@ -524,7 +524,7 @@ export default function TareaDetallePage({ params }: { params: Promise<{ id: str
                 <Trophy size={32} />
               </div>
               <div>
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Nota Oficial Registrada</span>
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Calificación Registrada</span>
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl sm:text-4xl font-black text-gray-900">
                     {effectiveGrade !== null ? Number(effectiveGrade).toFixed(1) : (submission?.grade !== null && submission?.grade !== undefined ? Number(submission.grade).toFixed(1) : "1.0")}
