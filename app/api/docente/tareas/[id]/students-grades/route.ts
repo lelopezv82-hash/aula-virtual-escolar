@@ -153,6 +153,18 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
     const students = await Promise.all(Array.from(studentMap.values()).map(async s => {
       let sub: any = submissionMap.get(s.id) ?? null;
+
+      // Sanitizar si sub tenía allowLateSubmission corrupto por el bug anterior (OVERDUE sin fecha límite)
+      if (sub && sub.status === "OVERDUE" && sub.allowLateSubmission && !sub.lateSubmissionUntil) {
+        sub.allowLateSubmission = false;
+        try {
+          await prisma.submission.update({
+            where: { id: sub.id },
+            data: { allowLateSubmission: false }
+          });
+        } catch(e) {}
+      }
+
       const hasProrroga = !!sub?.allowLateSubmission;
       const hasActualSubmission = !!sub && (sub.status === "SUBMITTED" || sub.status === "GRADED" || !!sub.fileUrl || (sub.fileUrls && (sub.fileUrls as any).length > 0));
       const isAssigned = !isTaskRestricted || assignedIds.includes(s.id) || hasProrroga || hasActualSubmission;
@@ -176,7 +188,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
           : "Actividad no entregada dentro del plazo establecido.";
         const targetGrade = (sub?.grade != null && sub.grade !== 1.0) ? sub.grade : 1.0;
 
-        if (!sub || sub.grade !== targetGrade || sub.status !== "OVERDUE" || sub.feedback !== feedbackText) {
+        if (!sub || sub.grade !== targetGrade || sub.status !== "OVERDUE" || sub.feedback !== feedbackText || (isOverdueWithoutSubmission && sub.allowLateSubmission)) {
           try {
             sub = await prisma.submission.upsert({
               where: {
@@ -189,6 +201,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
                 grade: targetGrade,
                 status: "OVERDUE",
                 feedback: feedbackText,
+                ...(isOverdueWithoutSubmission ? { allowLateSubmission: false, lateSubmissionUntil: null } : {}),
               },
               create: {
                 taskId,
@@ -196,8 +209,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
                 grade: targetGrade,
                 status: "OVERDUE",
                 feedback: feedbackText,
-                allowLateSubmission: sub?.allowLateSubmission ?? true,
-                lateSubmissionUntil: sub?.lateSubmissionUntil ?? null,
+                allowLateSubmission: false,
+                lateSubmissionUntil: null,
               },
               include: {
                 student: {
@@ -212,6 +225,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
               grade: targetGrade,
               status: "OVERDUE",
               feedback: feedbackText,
+              allowLateSubmission: false,
+              lateSubmissionUntil: null,
             };
           }
         }
