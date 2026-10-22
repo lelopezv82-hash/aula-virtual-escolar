@@ -80,8 +80,8 @@ function injectBridgeScript(html: string, taskId: string = ''): string {
     for (var i = 0; i < candidates.length; i++) {
       var el = candidates[i];
       var text = (el.textContent || el.innerText || '').toLowerCase().trim();
-      // NUNCA eliminar botones de inicio o continuación
-      if (text.indexOf('iniciar') !== -1 || text.indexOf('comenzar') !== -1 || text.indexOf('continuar') !== -1) {
+      // NUNCA eliminar botones de inicio, continuación o guardado en plataforma
+      if (text.indexOf('iniciar') !== -1 || text.indexOf('comenzar') !== -1 || text.indexOf('continuar') !== -1 || text.indexOf('guardar') !== -1) {
         continue;
       }
       if (
@@ -89,7 +89,9 @@ function injectBridgeScript(html: string, taskId: string = ''): string {
         text.indexOf('volver a jugar') !== -1 ||
         text.indexOf('reiniciar juego') !== -1 ||
         text.indexOf('reiniciar actividad') !== -1 ||
-        text.indexOf('intentar de nuevo') !== -1
+        text.indexOf('intentar de nuevo') !== -1 ||
+        text.indexOf('volver a intentar') !== -1 ||
+        text.indexOf('reintentar') !== -1
       ) {
         el.style.setProperty('display', 'none', 'important');
         el.remove();
@@ -102,8 +104,6 @@ function injectBridgeScript(html: string, taskId: string = ''): string {
   } catch(e) {}
   document.addEventListener('DOMContentLoaded', purgeRestartElements);
   window.addEventListener('load', purgeRestartElements);
-
-
 
   function normalizeGrade(val) {
     if (typeof val === 'string') {
@@ -129,6 +129,32 @@ function injectBridgeScript(html: string, taskId: string = ''): string {
         feedback: extra && extra.feedback ? extra.feedback : undefined
       }, '*');
     }
+  }
+
+  function injectPlatformSaveButton(grade) {
+    var resScreen = document.querySelector('#result-screen, .result-screen, #screen-victory, .screen-victory');
+    if (!resScreen) return;
+    if (document.getElementById('btn-guardar-plataforma-injected')) return;
+
+    var btn = document.createElement('button');
+    btn.id = 'btn-guardar-plataforma-injected';
+    btn.type = 'button';
+    btn.innerHTML = '<span style="font-size: 1.3rem;">💾</span> Guardar Calificación (' + grade.toFixed(1) + ') en Plataforma';
+    btn.style.cssText = 'display: inline-flex; align-items: center; justify-content: center; gap: 10px; background: linear-gradient(135deg, #059669, #10b981); color: white; padding: 14px 28px; border-radius: 9999px; font-weight: 800; font-size: 1.1rem; border: 2px solid #34d399; box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4); cursor: pointer; margin: 18px auto; transition: all 0.2s;';
+    btn.onclick = function() {
+      btn.disabled = true;
+      btn.style.opacity = '0.8';
+      btn.innerHTML = '⏳ Guardando en Plataforma...';
+      sendGradeToPlatform(grade, true);
+      setTimeout(function() {
+        btn.innerHTML = '✅ ¡Calificación (' + grade.toFixed(1) + ') Guardada en tu Planilla!';
+        btn.style.background = '#047857';
+        btn.style.borderColor = '#10b981';
+      }, 700);
+    };
+
+    var container = resScreen.querySelector('.flex.justify-center, .flex-col, .mt-10') || resScreen;
+    container.appendChild(btn);
   }
 
   // API pública disponible para que la actividad reporte su propia nota (actual o final)
@@ -171,10 +197,26 @@ function injectBridgeScript(html: string, taskId: string = ''): string {
     sendGradeToPlatform(g, isFinal, extra);
   };
 
-  // Escuchar si la actividad envía un postMessage propio con su nota (incluyendo Gemini Canvas / Antigravity)
+  // Interceptar showResults si existe en el entorno global
+  try {
+    if (typeof window.showResults === 'function') {
+      var origShowResults = window.showResults;
+      window.showResults = function() {
+        var res = origShowResults.apply(this, arguments);
+        setTimeout(checkExplicitActivityGrade, 100);
+        return res;
+      };
+    }
+  } catch(e) {}
+
+  // Escuchar si la actividad o el visor envían un postMessage propio
   window.addEventListener('message', function(ev) {
     if (!ev.data || typeof ev.data !== 'object') return;
     var d = ev.data;
+    if (d.type === 'AULA_REQUEST_PROGRESS') {
+      checkExplicitActivityGrade();
+      return;
+    }
     if (d.type === 'ANTIGRAVITY_GRADE_SUBMISSION' && d.grade !== undefined) {
       sendGradeToPlatform(d.grade, true, d);
       return;
@@ -208,7 +250,7 @@ function injectBridgeScript(html: string, taskId: string = ''): string {
     return true;
   }
 
-  // Detección únicamente si la actividad escribe su propia nota en el DOM o en variables globales
+  // Detección cuando la actividad escribe su propia nota en el DOM o en variables globales
   function checkExplicitActivityGrade() {
     // 1. Variables globales asignadas por la actividad
     var gCurrent = [window.currentGrade, window.notaActual];
@@ -227,32 +269,43 @@ function injectBridgeScript(html: string, taskId: string = ''): string {
       }
     }
 
-    // 2. Elementos DOM de Nota Actual visible en pantalla
-    var curSelectors = ['#current-grade', '#nota-actual', '#currentGrade', '#calificacion-actual', '#nota-en-vivo', '[id*="current-grade"]', '[id*="nota-actual"]', '.current-grade', '.nota-actual', '.nota-en-vivo'];
-    for (var c = 0; c < curSelectors.length; c++) {
-      var cEl = document.querySelector(curSelectors[c]);
-      if (cEl && isElementVisible(cEl)) {
-        var cTxt = (cEl.textContent || cEl.innerText || '').trim();
-        var nCEl = normalizeGrade(cTxt);
-        if (nCEl !== null) {
-          sendGradeToPlatform(nCEl, false);
-          break;
+    // 2. Pantalla de victoria o resultados final visible (#result-screen, #screen-victory, etc.)
+    var resultEl = document.querySelector('#result-screen, .result-screen, [id*="result-screen"], #screen-victory, .screen-victory, [id*="victory"], [class*="victory"], [id*="victoria"]');
+    if (resultEl && isElementVisible(resultEl)) {
+      var fgEl = document.querySelector('#final-grade, .final-grade, [id*="final-grade"], [class*="final-grade"], #nota-final, [id*="nota-final"], #calificacion, #nota');
+      var fGrade = null;
+      if (fgEl) {
+        var fgText = (fgEl.textContent || fgEl.innerText || '').trim();
+        fGrade = normalizeGrade(fgText);
+      }
+      if (fGrade === null) {
+        var rawScoreEl = document.querySelector('#raw-score-text, [id*="raw-score"]');
+        var finalScorePctEl = document.querySelector('#final-score, [id*="final-score"]');
+        var totalQuestions = 30;
+        if (window.quizData && window.quizData.length) totalQuestions = window.quizData.length;
+        if (rawScoreEl) {
+          var rawVal = parseInt(rawScoreEl.textContent || rawScoreEl.innerText || '0', 10);
+          if (!isNaN(rawVal)) {
+            fGrade = 1.0 + (rawVal / totalQuestions) * 4.0;
+            fGrade = normalizeGrade(fGrade);
+          }
+        } else if (finalScorePctEl) {
+          var pctVal = parseFloat((finalScorePctEl.textContent || finalScorePctEl.innerText || '').replace('%', '').trim());
+          if (!isNaN(pctVal)) {
+            fGrade = 1.0 + (pctVal / 100.0) * 4.0;
+            fGrade = normalizeGrade(fGrade);
+          }
         }
       }
-    }
 
-    // 3. Pantalla de victoria visible
-    var victoryEl = document.querySelector('#screen-victory, .screen-victory, [id*="victory"], [class*="victory"], [id*="victoria"]');
-    if (victoryEl && isElementVisible(victoryEl)) {
-      var fgEl = document.querySelector('#final-grade, .final-grade, [id*="final-grade"], [class*="final-grade"], #nota-final, [id*="nota-final"]');
-      var fGrade = fgEl ? normalizeGrade(fgEl.textContent || fgEl.innerText) : null;
       if (fGrade !== null) {
         sendGradeToPlatform(fGrade, true);
+        injectPlatformSaveButton(fGrade);
         return;
       }
     }
 
-    // 4. Elementos DOM donde la actividad escribe su nota final (únicamente si son visibles)
+    // 3. Elementos de nota final visibles
     var selectors = ['#final-grade', '#nota-final', '#calificacion', '#nota', '[id*="final-grade"]', '[id*="nota-final"]', '.nota-final', '.calificacion-final'];
     for (var s = 0; s < selectors.length; s++) {
       var el = document.querySelector(selectors[s]);
@@ -261,7 +314,37 @@ function injectBridgeScript(html: string, taskId: string = ''): string {
         var nEl = normalizeGrade(txt);
         if (nEl !== null) {
           sendGradeToPlatform(nEl, true);
+          injectPlatformSaveButton(nEl);
           return;
+        }
+      }
+    }
+
+    // 4. Elementos DOM de Nota Actual visible en pantalla
+    var curSelectors = ['#current-grade', '#nota-actual', '#currentGrade', '#calificacion-actual', '#nota-en-vivo', '[id*="current-grade"]', '[id*="nota-actual"]', '.current-grade', '.nota-actual', '.nota-en-vivo'];
+    for (var c = 0; c < curSelectors.length; c++) {
+      var cEl = document.querySelector(curSelectors[c]);
+      if (cEl && isElementVisible(cEl)) {
+        var cTxt = (cEl.textContent || cEl.innerText || '').trim();
+        var nCEl = normalizeGrade(cTxt);
+        if (nCEl !== null) {
+          sendGradeToPlatform(nCEl, false);
+          return;
+        }
+      }
+    }
+
+    // 5. Puntuación de aciertos en vivo (#current-score)
+    var curScoreEl = document.querySelector('#current-score, [id*="current-score"]');
+    if (curScoreEl && isElementVisible(curScoreEl)) {
+      var cScoreVal = parseInt(curScoreEl.textContent || curScoreEl.innerText || '0', 10);
+      var totalQ = 30;
+      if (window.quizData && window.quizData.length) totalQ = window.quizData.length;
+      if (!isNaN(cScoreVal) && cScoreVal > 0) {
+        var liveGrade = 1.0 + (cScoreVal / totalQ) * 4.0;
+        var normLive = normalizeGrade(liveGrade);
+        if (normLive !== null) {
+          sendGradeToPlatform(normLive, false);
         }
       }
     }
@@ -280,7 +363,12 @@ function injectBridgeScript(html: string, taskId: string = ''): string {
 })();
 </script>
 <style id="aula-virtual-clean-ui">
-  #screen-victory button, .screen-victory button, [id*="victory"] button, [id*="victoria"] button,
+  #screen-victory button:not(#btn-guardar-plataforma-injected),
+  .screen-victory button:not(#btn-guardar-plataforma-injected),
+  [id*="victory"] button:not(#btn-guardar-plataforma-injected),
+  [id*="victoria"] button:not(#btn-guardar-plataforma-injected),
+  #result-screen button[onclick*="restart"],
+  button[onclick*="restartQuiz"],
   .btn-restart, .btn-replay, .btn-reiniciar, #btn-restart, #btn-replay, #btn-reiniciar {
     display: none !important;
     visibility: hidden !important;

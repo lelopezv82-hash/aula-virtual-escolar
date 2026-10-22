@@ -45,11 +45,7 @@ export default function VisorActividadInteractiva({
   const isAlreadyFinished = !isClosed && Boolean(
     isFinalFinished ||
     (submission?.answers as any)?.isFinal === true ||
-    (initialSubmission?.answers as any)?.isFinal === true ||
-    (submission?.grade !== null && submission?.grade !== undefined && Number(submission.grade) >= 5.0) ||
-    (initialSubmission?.grade !== null && initialSubmission?.grade !== undefined && Number(initialSubmission.grade) >= 5.0) ||
-    (submission?.status === "GRADED" && (submission?.answers as any)?.isFinal) ||
-    (initialSubmission?.status === "GRADED" && (initialSubmission?.answers as any)?.isFinal)
+    (initialSubmission?.answers as any)?.isFinal === true
   );
 
   // Determinar URL de la actividad
@@ -229,22 +225,38 @@ export default function VisorActividadInteractiva({
           }
         }
 
-        // 3. Elementos DOM de Nota Actual visible en pantalla
+        // 3. Inspección directa del DOM dentro del iframe
         if (doc) {
-          const curSelectors = ['#current-grade', '#nota-actual', '#currentGrade', '#calificacion-actual', '#nota-en-vivo', '[id*="current-grade"]', '[id*="nota-actual"]', '.current-grade', '.nota-actual', '.nota-en-vivo'];
-          for (const sel of curSelectors) {
-            const el = doc.querySelector(sel);
-            if (el && isElementVisible(el)) {
-              const txt = (el.textContent || '').trim();
-              const nEl = normalizeGrade(txt);
-              if (nEl !== null) {
-                submitGrade(nEl, false, { activityTitle: doc.title || task.title }, isManualClick);
-                break;
+          // A. Pantalla de resultados o victoria visible (#result-screen, #screen-victory, etc.)
+          const resultEl = doc.querySelector('#result-screen, .result-screen, [id*="result-screen"], #screen-victory, .screen-victory, [id*="victory"], [class*="victory"], [id*="victoria"]');
+          if (resultEl && isElementVisible(resultEl)) {
+            const fgEl = doc.querySelector('#final-grade, .final-grade, [id*="final-grade"], [class*="final-grade"], #nota-final, [id*="nota-final"], #calificacion, #nota');
+            let fGrade = fgEl ? normalizeGrade(fgEl.textContent || '') : null;
+            if (fGrade === null) {
+              const rawScoreEl = doc.querySelector('#raw-score-text, [id*="raw-score"]');
+              const finalScorePctEl = doc.querySelector('#final-score, [id*="final-score"]');
+              let totalQuestions = 30;
+              const winObj = win as any;
+              if (winObj?.quizData && winObj.quizData.length) totalQuestions = winObj.quizData.length;
+              if (rawScoreEl) {
+                const rawVal = parseInt(rawScoreEl.textContent || '0', 10);
+                if (!isNaN(rawVal)) {
+                  fGrade = normalizeGrade(1.0 + (rawVal / totalQuestions) * 4.0);
+                }
+              } else if (finalScorePctEl) {
+                const pctVal = parseFloat((finalScorePctEl.textContent || '').replace('%', '').trim());
+                if (!isNaN(pctVal)) {
+                  fGrade = normalizeGrade(1.0 + (pctVal / 100.0) * 4.0);
+                }
               }
+            }
+            if (fGrade !== null) {
+              submitGrade(fGrade, true, { activityTitle: doc.title || task.title }, isManualClick);
+              return;
             }
           }
 
-          // 4. Elementos DOM de Nota Final (pantalla de victoria / fin de actividad)
+          // B. Elementos de nota final visibles
           const selectors = ['#final-grade', '#nota-final', '#calificacion', '#nota', '[id*="final-grade"]', '[id*="nota-final"]', '.nota-final', '.calificacion-final'];
           for (const sel of selectors) {
             const el = doc.querySelector(sel);
@@ -254,6 +266,35 @@ export default function VisorActividadInteractiva({
               if (nEl !== null) {
                 submitGrade(nEl, true, { activityTitle: doc.title || task.title }, isManualClick);
                 return;
+              }
+            }
+          }
+
+          // C. Elementos DOM de Nota Actual visible en pantalla
+          const curSelectors = ['#current-grade', '#nota-actual', '#currentGrade', '#calificacion-actual', '#nota-en-vivo', '[id*="current-grade"]', '[id*="nota-actual"]', '.current-grade', '.nota-actual', '.nota-en-vivo'];
+          for (const sel of curSelectors) {
+            const el = doc.querySelector(sel);
+            if (el && isElementVisible(el)) {
+              const txt = (el.textContent || '').trim();
+              const nEl = normalizeGrade(txt);
+              if (nEl !== null) {
+                submitGrade(nEl, false, { activityTitle: doc.title || task.title }, isManualClick);
+                return;
+              }
+            }
+          }
+
+          // D. Puntuación de aciertos en vivo (#current-score)
+          const curScoreEl = doc.querySelector('#current-score, [id*="current-score"]');
+          if (curScoreEl && isElementVisible(curScoreEl)) {
+            const cScoreVal = parseInt(curScoreEl.textContent || '0', 10);
+            let totalQ = 30;
+            const winObj = win as any;
+            if (winObj?.quizData && winObj.quizData.length) totalQ = winObj.quizData.length;
+            if (!isNaN(cScoreVal) && cScoreVal > 0) {
+              const liveGrade = normalizeGrade(1.0 + (cScoreVal / totalQ) * 4.0);
+              if (liveGrade !== null) {
+                submitGrade(liveGrade, false, { activityTitle: doc.title || task.title }, isManualClick);
               }
             }
           }
@@ -350,8 +391,35 @@ export default function VisorActividadInteractiva({
           </div>
         </div>
 
-        {/* Botones de acción */}
-        <div className="flex items-center gap-3 ml-auto">
+        {/* Botones de acción y estado de calificación */}
+        <div className="flex items-center gap-2.5 ml-auto flex-wrap">
+
+          {/* Insignia de Nota Guardada en Plataforma */}
+          {!isClosed && (
+            <div className="flex items-center gap-2 bg-slate-900/90 border border-slate-700/90 px-3 py-1.5 rounded-xl shadow-inner">
+              <Trophy size={16} className="text-yellow-400 shrink-0" />
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-[11px] text-slate-300 font-semibold hidden sm:inline">Nota en Plataforma:</span>
+                <span className="text-[11px] text-slate-300 font-semibold sm:hidden">Nota:</span>
+                <strong className="text-sm font-black text-emerald-400">
+                  {currentGrade !== null && currentGrade !== undefined ? Number(currentGrade).toFixed(1) : "1.0"}
+                </strong>
+              </div>
+            </div>
+          )}
+
+          {/* Botón manual para Guardar Calificación en Plataforma */}
+          {!isClosed && !isAlreadyFinished && (
+            <button
+              onClick={() => handleManualSync(true)}
+              disabled={savingStatus === "saving"}
+              className="flex items-center gap-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 px-3 py-1.5 rounded-xl transition-all shadow-md border border-emerald-400/40 active:scale-95"
+              title="Guardar o sincronizar tu calificación en la plataforma escolar"
+            >
+              <RefreshCw size={14} className={savingStatus === "saving" ? "animate-spin" : ""} />
+              <span>{savingStatus === "saving" ? "Guardando..." : "Guardar Nota"}</span>
+            </button>
+          )}
 
           {/* Botón Descargar Guía si existe */}
           {guideUrl && (
@@ -364,7 +432,7 @@ export default function VisorActividadInteractiva({
               title="Descargar Guía de Apoyo de la Actividad"
             >
               <FileText size={15} />
-              <span className="hidden sm:inline">Descargar Guía</span>
+              <span className="hidden sm:inline">Guía</span>
             </a>
           )}
 
@@ -380,6 +448,33 @@ export default function VisorActividadInteractiva({
           )}
         </div>
       </header>
+
+      {/* Banner de estado de guardado */}
+      {statusMessage && (
+        <div className={`px-4 py-2 text-xs font-bold flex items-center justify-center gap-2 transition-all shrink-0 ${
+          savingStatus === "saved" ? "bg-emerald-600 text-white shadow-sm" :
+          savingStatus === "error" ? "bg-red-600 text-white shadow-sm" :
+          "bg-blue-600 text-white shadow-sm"
+        }`}>
+          {savingStatus === "saved" && <CheckCircle2 size={15} />}
+          {savingStatus === "saving" && <RefreshCw size={15} className="animate-spin" />}
+          {savingStatus === "error" && <AlertCircle size={15} />}
+          <span>{statusMessage}</span>
+        </div>
+      )}
+
+      {/* Alerta flotante de celebración cuando se guarda */}
+      {showCelebration && (
+        <div className="absolute top-16 right-4 z-50 bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-5 py-3 rounded-2xl shadow-2xl border border-emerald-300/40 flex items-center gap-3 animate-bounce">
+          <Sparkles size={24} className="text-yellow-300 shrink-0" />
+          <div>
+            <div className="font-extrabold text-sm">¡Calificación Guardada!</div>
+            <div className="text-xs text-emerald-100">
+              Nota {currentGrade.toFixed(1)} registrada exitosamente en tu planilla escolar.
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Contenedor Iframe o Bloqueo por Plazo Vencido / Actividad Finalizada */}
       {isClosed ? (

@@ -66,6 +66,55 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   }
 }
 
+async function cleanupOpenTaskSubmissions(taskId: string) {
+  try {
+    // 1. Quitar todas las prórrogas individuales asociadas a esta tarea (ya que la tarea está abierta)
+    await prisma.submission.updateMany({
+      where: { taskId },
+      data: {
+        allowLateSubmission: false,
+        lateSubmissionUntil: null
+      }
+    });
+
+    // 2. Buscar entregas sin entrega real (sin archivos ni respuestas)
+    const candidateSubs = await prisma.submission.findMany({
+      where: {
+        taskId,
+        fileUrl: null,
+      }
+    });
+
+    const idsToDelete = candidateSubs
+      .filter(sub => {
+        const hasFiles = Array.isArray(sub.fileUrls) && (sub.fileUrls as any).length > 0;
+        const hasAnswers = sub.answers && typeof sub.answers === 'object' && Object.keys(sub.answers as any).length > 0;
+        if (hasFiles || hasAnswers) return false;
+
+        const isAutoOne = (sub.grade === 1 || sub.grade === 1.0) && (
+          sub.status === "OVERDUE" ||
+          !sub.submittedAt ||
+          (sub.feedback && (
+            sub.feedback.includes("plazo establecido") ||
+            sub.feedback.includes("prórroga vencido") ||
+            sub.feedback.includes("No asistió")
+          ))
+        );
+
+        return sub.status === "OVERDUE" || isAutoOne;
+      })
+      .map(sub => sub.id);
+
+    if (idsToDelete.length > 0) {
+      await prisma.submission.deleteMany({
+        where: { id: { in: idsToDelete } }
+      });
+    }
+  } catch (err) {
+    console.error("[cleanupOpenTaskSubmissions] Error:", err);
+  }
+}
+
 // PATCH update details/attachment of a task
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -95,10 +144,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     const contentType = request.headers.get("content-type") || "";
     if (contentType.includes("application/json")) {
-      const { active, allowLateSubmission, lateSubmissionUntil, studentIds, type } = await request.json();
+      const { active, allowLateSubmission, lateSubmissionUntil, studentIds, type, dueDate } = await request.json();
       const dataToUpdate: any = {};
       if (active !== undefined) dataToUpdate.active = !!active;
       if (type !== undefined && typeof type === "string") dataToUpdate.type = type;
+      if (dueDate !== undefined) {
+        dataToUpdate.dueDate = fromColombiaLocalStringToDate(dueDate);
+      }
       if (allowLateSubmission !== undefined) dataToUpdate.allowLateSubmission = !!allowLateSubmission;
       if (lateSubmissionUntil !== undefined) {
         dataToUpdate.lateSubmissionUntil = fromColombiaLocalStringToDate(lateSubmissionUntil);
@@ -124,6 +176,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           }
         }
       });
+
+      if (updatedTask.dueDate && new Date(updatedTask.dueDate) > new Date()) {
+        await cleanupOpenTaskSubmissions(resolvedParams.id);
+      }
+
       return NextResponse.json({ success: true, task: updatedTask });
     }
 
@@ -393,12 +450,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         type: type || undefined,
         isExternal: isExternal,
         requiresFolder: requiresFolder,
-        allowLateSubmission,
-        lateSubmissionUntil
+        allowLateSubmission: (parsedDueDate && new Date(parsedDueDate) > new Date()) ? false : allowLateSubmission,
+        lateSubmissionUntil: (parsedDueDate && new Date(parsedDueDate) > new Date()) ? null : lateSubmissionUntil
       }
     });
 
-    if (allowLateSubmission) {
+    const isNowOpen = parsedDueDate && new Date(parsedDueDate) > new Date();
+    if (isNowOpen) {
+      await cleanupOpenTaskSubmissions(resolvedParams.id);
+    } else if (allowLateSubmission) {
       await prisma.submission.updateMany({
         where: {
           taskId: resolvedParams.id,

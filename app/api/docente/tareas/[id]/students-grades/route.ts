@@ -230,14 +230,43 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
             };
           }
         }
-      } else if (hasProrroga && !isClosed && sub && !sub.fileUrl && (sub.grade === 1 || sub.grade === 1.0) && (sub.feedback?.includes("No asistió") || sub.feedback?.includes("plazo establecido") || sub.feedback?.includes("Plazo de prórroga vencido"))) {
-        // If student has active prórroga and residual automated 1.0, reset it so they can submit
-        sub = {
-          ...sub,
-          grade: null,
-          status: "PENDING",
-          feedback: "Prórroga concedida por el docente.",
-        };
+      } else if (!isClosed && !hasActualSubmission && sub) {
+        const isAutoMissing = sub.status === "OVERDUE" || (
+          (sub.grade === 1 || sub.grade === 1.0) && (
+            !sub.submittedAt ||
+            (sub.feedback && (
+              sub.feedback.includes("plazo establecido") ||
+              sub.feedback.includes("prórroga vencido") ||
+              sub.feedback.includes("No asistió")
+            ))
+          )
+        );
+
+        if (isAutoMissing) {
+          try {
+            await prisma.submission.delete({ where: { id: sub.id } });
+          } catch (e) {}
+          sub = null;
+        } else if (hasProrroga) {
+          sub = {
+            ...sub,
+            grade: null,
+            status: "PENDING",
+            feedback: "Prórroga concedida por el docente.",
+          };
+        }
+      }
+
+      const isGeneralOpen = task.dueDate ? new Date(task.dueDate) > new Date() : false;
+      if (isGeneralOpen && sub?.allowLateSubmission) {
+        sub.allowLateSubmission = false;
+        sub.lateSubmissionUntil = null;
+        try {
+          await prisma.submission.update({
+            where: { id: sub.id },
+            data: { allowLateSubmission: false, lateSubmissionUntil: null }
+          });
+        } catch(e) {}
       }
 
       return {
@@ -247,6 +276,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
         submission: sub,
       };
     }));
+
+    const isGeneralOpen = task.dueDate ? new Date(task.dueDate) > new Date() : false;
 
     return NextResponse.json({ 
       students, 
@@ -258,8 +289,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       duration: task.duration,
       groups: taskGroups,
       courseId: (task as any).courseId,
-      allowLateSubmission: task.allowLateSubmission,
-      lateSubmissionUntil: task.lateSubmissionUntil ? task.lateSubmissionUntil.toISOString() : null
+      allowLateSubmission: isGeneralOpen ? false : task.allowLateSubmission,
+      lateSubmissionUntil: isGeneralOpen ? null : (task.lateSubmissionUntil ? task.lateSubmissionUntil.toISOString() : null)
     });
   } catch (error) {
     console.error("Error fetching task students:", error);

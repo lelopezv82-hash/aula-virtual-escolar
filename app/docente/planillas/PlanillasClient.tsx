@@ -1102,8 +1102,9 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
             !!sub.fileUrl ||
             (Array.isArray(sub.fileUrls) && sub.fileUrls.length > 0)
           );
+          const isGeneralOpen = taskInfo.dueDate ? new Date(taskInfo.dueDate) > new Date() : false;
           const { isClosed, hasExtension } = getTaskDeadlineStatus(taskInfo, sub);
-          const hasProrroga = !!sub?.allowLateSubmission || !!data.allowLateSubmission;
+          const hasProrroga = !isGeneralOpen && (!!sub?.allowLateSubmission || !!data.allowLateSubmission);
           const isProrrogaExpiredWithoutSubmission = (hasExtension || hasProrroga) && isClosed && !hasActualSubmission;
           const isOverdueWithoutSubmission = !(data.isExternal ?? (task as any).isExternal) && isClosed && !hasActualSubmission;
 
@@ -1119,8 +1120,22 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
               ? sub.feedback 
               : "Prórroga concedida por el docente.";
           } else if (sub?.grade != null) {
-            inputs[s.id] = String(sub.grade);
-            fInputs[s.id] = sub?.feedback || "";
+            const isAutoMissingOne = !hasActualSubmission && !isClosed && (sub.grade === 1 || sub.grade === 1.0) && (
+              sub.status === "OVERDUE" ||
+              !sub.submittedAt ||
+              (sub.feedback && (
+                sub.feedback.includes("plazo establecido") ||
+                sub.feedback.includes("prórroga vencido") ||
+                sub.feedback.includes("No asistió")
+              ))
+            );
+            if (isAutoMissingOne) {
+              inputs[s.id] = "";
+              fInputs[s.id] = "";
+            } else {
+              inputs[s.id] = String(sub.grade);
+              fInputs[s.id] = sub?.feedback || "";
+            }
           } else if (s.isNotActivated) {
             inputs[s.id] = "1.0";
             fInputs[s.id] = "No asistió a la clase (Actividad no habilitada)";
@@ -1739,10 +1754,22 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
     }
   };
 
-  const statusBadge = (sub: { status: string; grade?: number | null } | null) => {
+  const statusBadge = (sub: { status: string; grade?: number | null; fileUrl?: string | null; fileUrls?: any; feedback?: string | null; submittedAt?: any } | null) => {
     if (!sub) return <span className="text-xs text-muted italic">Sin entrega</span>;
-    if (sub.status === "GRADED" || sub.grade != null) return <span className="badge badge-success flex items-center gap-1"><CheckCircle size={10} /> Calificada</span>;
-    if (sub.status === "SUBMITTED") return <span className="badge badge-info flex items-center gap-1"><Clock size={10} /> Entregada</span>;
+    const hasFiles = !!sub.fileUrl || (Array.isArray(sub.fileUrls) && sub.fileUrls.length > 0);
+    const hasDelivery = sub.status === "SUBMITTED" || hasFiles;
+    const isAutoMissing = (sub.grade === 1 || sub.grade === 1.0) && !hasDelivery && (
+      sub.status === "OVERDUE" ||
+      !sub.submittedAt ||
+      (sub.feedback && (
+        sub.feedback.includes("plazo establecido") ||
+        sub.feedback.includes("prórroga vencido") ||
+        sub.feedback.includes("No asistió")
+      ))
+    );
+    if (isAutoMissing) return <span className="badge badge-danger flex items-center gap-1"><AlertCircle size={10} /> Pendiente</span>;
+    if (sub.status === "GRADED" || (sub.grade != null && (hasDelivery || sub.status !== "OVERDUE"))) return <span className="badge badge-success flex items-center gap-1"><CheckCircle size={10} /> Calificada</span>;
+    if (hasDelivery) return <span className="badge badge-info flex items-center gap-1"><Clock size={10} /> Entregada</span>;
     return <span className="badge badge-danger flex items-center gap-1"><AlertCircle size={10} /> Pendiente</span>;
   };
 
@@ -2685,10 +2712,11 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
 
  // ─── Full-Screen Manual Grading View                                          ───
   if (gradingTask) {
+    const isGeneralOpen = gradingTask.dueDate ? new Date(gradingTask.dueDate) > new Date() : false;
     const totalCount = gradingStudents.length;
     const gradedCount = gradingStudents.filter(s => gradeInputs[s.id] !== undefined && gradeInputs[s.id] !== "").length;
     const pendingCount = totalCount - gradedCount;
-    const withProrrogaCount = gradingStudents.filter(s => s.submission?.allowLateSubmission).length;
+    const withProrrogaCount = isGeneralOpen ? 0 : gradingStudents.filter(s => s.submission?.allowLateSubmission).length;
     
     // Average
     const validGrades = gradingStudents
@@ -2705,11 +2733,11 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
       // Always keep actively selected student visible so they never disappear or get blocked while editing
       if (selectedStudentIds.includes(s.id)) return true;
 
-      const hasInitialGrade = s.submission?.grade != null || s.submission?.status === "GRADED";
-      if (gradingStatusFilter === "GRADED") return hasInitialGrade || (gradeInputs[s.id] !== undefined && gradeInputs[s.id] !== "");
-      if (gradingStatusFilter === "SUBMITTED") return (s.submission?.status === "SUBMITTED" || s.submission?.fileUrl) && (!gradeInputs[s.id] || gradeInputs[s.id] === "");
-      if (gradingStatusFilter === "PENDING") return !hasInitialGrade && (!gradeInputs[s.id] || gradeInputs[s.id] === "");
-      if (gradingStatusFilter === "PRORROGA") return !!s.submission?.allowLateSubmission;
+      const hasValidGrade = gradeInputs[s.id] !== undefined && gradeInputs[s.id] !== "";
+      if (gradingStatusFilter === "GRADED") return hasValidGrade;
+      if (gradingStatusFilter === "SUBMITTED") return (s.submission?.status === "SUBMITTED" || s.submission?.fileUrl) && !hasValidGrade;
+      if (gradingStatusFilter === "PENDING") return !hasValidGrade;
+      if (gradingStatusFilter === "PRORROGA") return !isGeneralOpen && !!s.submission?.allowLateSubmission;
       return true;
     });
 
@@ -3022,7 +3050,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                       (Array.isArray(sub.fileUrls) && sub.fileUrls.length > 0)
                     );
                     const { isClosed, hasExtension } = getTaskDeadlineStatus(taskInfo, sub as any);
-                    const hasProrroga = !!sub?.allowLateSubmission;
+                    const hasProrroga = !isGeneralOpen && !!sub?.allowLateSubmission;
                     const isProrrogaExpired = (hasExtension || hasProrroga) && isClosed && !hasActualSubmission;
                     const hasActiveProrroga = hasProrroga && !isClosed;
 
@@ -3039,8 +3067,8 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                       )
                     );
 
-                    // La nota está bloqueada si tiene 1.0 por falta de entrega Y no tiene prórroga activa
-                    const isGradeLocked = isMissingSubmission1 && !hasActiveProrroga;
+                    // La nota está bloqueada si tiene 1.0 por falta de entrega Y no tiene prórroga activa Y la tarea está cerrada
+                    const isGradeLocked = isMissingSubmission1 && !hasActiveProrroga && isClosed;
 
                     return (
                       <tr
@@ -3096,7 +3124,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                               ) : (
                                 statusBadge(student.submission)
                               )}
-                              {student.submission?.allowLateSubmission && (
+                              {student.submission?.allowLateSubmission && !isGeneralOpen && (
                                 isProrrogaExpired ? (
                                   <span
                                     className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 shadow-2xs"
@@ -3122,7 +3150,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                             </div>
 
                             {/* Direct Prorroga action button - solo para no entregados o con prorroga activa */}
-                            {(student.submission?.allowLateSubmission || !student.submission || student.submission.status === "PENDING" || student.submission.status === "OVERDUE" || (!student.submission.submittedAt && !student.submission.fileUrl)) && (
+                            {((student.submission?.allowLateSubmission && !isGeneralOpen) || !student.submission || student.submission.status === "PENDING" || student.submission.status === "OVERDUE" || (!student.submission.submittedAt && !student.submission.fileUrl)) && (
                               <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                                 <button
                                   type="button"
@@ -3131,7 +3159,7 @@ export default function PlanillasClient({ courses, periods, teacherName }: Plani
                                   title="Abrir configuración de prórroga para este estudiante"
                                 >
                                   <Calendar size={11} className="text-[#f98012]" />
-                                  <span>{isProrrogaExpired ? "Renovar Prórroga" : (student.submission?.allowLateSubmission ? "Modificar Prórroga" : "Dar Prórroga")}</span>
+                                  <span>{isProrrogaExpired ? "Renovar Prórroga" : (student.submission?.allowLateSubmission && !isGeneralOpen ? "Modificar Prórroga" : "Dar Prórroga")}</span>
                                 </button>
                               </div>
                             )}

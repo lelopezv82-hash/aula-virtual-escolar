@@ -292,8 +292,9 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
             !!(sub as any).fileUrl ||
             (Array.isArray((sub as any).fileUrls) && (sub as any).fileUrls.length > 0)
           );
+          const isGeneralOpen = taskInfo.dueDate ? new Date(taskInfo.dueDate) > new Date() : false;
           const { isClosed, hasExtension } = getTaskDeadlineStatus(taskInfo, sub as any);
-          const hasProrroga = !!(sub as any)?.allowLateSubmission || !!data.allowLateSubmission;
+          const hasProrroga = !isGeneralOpen && (!!(sub as any)?.allowLateSubmission || !!data.allowLateSubmission);
           const isProrrogaExpiredWithoutSubmission = (hasExtension || hasProrroga) && isClosed && !hasActualSubmission;
           const isOverdueWithoutSubmission = !data.isExternal && isClosed && !hasActualSubmission;
 
@@ -309,8 +310,22 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
               ? sub.feedback 
               : "Prórroga concedida por el docente.";
           } else if (sub?.grade != null) {
-            inputs[s.id] = String(sub.grade);
-            fInputs[s.id] = sub?.feedback || "";
+            const isAutoMissingOne = !hasActualSubmission && !isClosed && (sub.grade === 1 || sub.grade === 1.0) && (
+              sub.status === "OVERDUE" ||
+              !sub.submittedAt ||
+              (sub.feedback && (
+                sub.feedback.includes("plazo establecido") ||
+                sub.feedback.includes("prórroga vencido") ||
+                sub.feedback.includes("No asistió")
+              ))
+            );
+            if (isAutoMissingOne) {
+              inputs[s.id] = "";
+              fInputs[s.id] = "";
+            } else {
+              inputs[s.id] = String(sub.grade);
+              fInputs[s.id] = sub?.feedback || "";
+            }
           } else if (isOverdueWithoutSubmission) {
             inputs[s.id] = "1.0";
             fInputs[s.id] = "Actividad no entregada dentro del plazo establecido.";
@@ -500,13 +515,26 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
 
   const statusBadge = (sub: StudentGradeEntry["submission"]) => {
     if (!sub) return <span className="text-xs text-muted italic">Sin entrega</span>;
-    if (sub.status === "GRADED" || sub.grade != null) return <span className="badge badge-success flex items-center gap-1"><CheckCircle size={10} /> Calificada</span>;
-    if (sub.status === "SUBMITTED") return <span className="badge badge-info flex items-center gap-1"><Clock size={10} /> Entregada</span>;
+    const hasFiles = !!(sub as any).fileUrl || (Array.isArray((sub as any).fileUrls) && (sub as any).fileUrls.length > 0);
+    const hasDelivery = sub.status === "SUBMITTED" || hasFiles;
+    const isAutoMissing = (sub.grade === 1 || sub.grade === 1.0) && !hasDelivery && (
+      sub.status === "OVERDUE" ||
+      !sub.submittedAt ||
+      (sub.feedback && (
+        sub.feedback.includes("plazo establecido") ||
+        sub.feedback.includes("prórroga vencido") ||
+        sub.feedback.includes("No asistió")
+      ))
+    );
+    if (isAutoMissing) return <span className="badge badge-danger flex items-center gap-1"><AlertCircle size={10} /> Pendiente</span>;
+    if (sub.status === "GRADED" || (sub.grade != null && (hasDelivery || sub.status !== "OVERDUE"))) return <span className="badge badge-success flex items-center gap-1"><CheckCircle size={10} /> Calificada</span>;
+    if (hasDelivery) return <span className="badge badge-info flex items-center gap-1"><Clock size={10} /> Entregada</span>;
     return <span className="badge badge-danger flex items-center gap-1"><AlertCircle size={10} /> Pendiente</span>;
   };
 
   // ── Full-Screen Manual Grading View ─────────────────────────────────────────
   if (gradingTask) {
+    const isGeneralOpen = gradingTask.dueDate ? new Date(gradingTask.dueDate) > new Date() : false;
     const totalCount = gradingStudents.length;
     const gradedCount = gradingStudents.filter(s => gradeInputs[s.id] !== undefined && gradeInputs[s.id] !== "").length;
     const pendingCount = totalCount - gradedCount;
@@ -526,10 +554,10 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
       // Always keep actively selected student visible so they never disappear or get blocked while editing
       if (selectedStudentIds.includes(s.id)) return true;
 
-      const hasInitialGrade = s.submission?.grade != null || s.submission?.status === "GRADED";
-      if (gradingStatusFilter === "GRADED") return hasInitialGrade || (gradeInputs[s.id] !== undefined && gradeInputs[s.id] !== "");
-      if (gradingStatusFilter === "SUBMITTED") return (s.submission?.status === "SUBMITTED" || (s.submission as any)?.fileUrl) && (!gradeInputs[s.id] || gradeInputs[s.id] === "");
-      if (gradingStatusFilter === "PENDING") return !hasInitialGrade && (!gradeInputs[s.id] || gradeInputs[s.id] === "");
+      const hasValidGrade = gradeInputs[s.id] !== undefined && gradeInputs[s.id] !== "";
+      if (gradingStatusFilter === "GRADED") return hasValidGrade;
+      if (gradingStatusFilter === "SUBMITTED") return (s.submission?.status === "SUBMITTED" || (s.submission as any)?.fileUrl) && !hasValidGrade;
+      if (gradingStatusFilter === "PENDING") return !hasValidGrade;
       return true;
     });
 
@@ -796,7 +824,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                       (Array.isArray((sub as any).fileUrls) && (sub as any).fileUrls.length > 0)
                     );
                     const { isClosed, hasExtension } = getTaskDeadlineStatus(taskInfo, sub as any);
-                    const hasProrroga = !!(sub as any)?.allowLateSubmission;
+                    const hasProrroga = !isGeneralOpen && !!(sub as any)?.allowLateSubmission;
                     const isProrrogaExpired = (hasExtension || hasProrroga) && isClosed && !hasActualSubmission;
                     const hasActiveProrroga = hasProrroga && !isClosed;
 
@@ -813,8 +841,8 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                       )
                     );
 
-                    // La nota está bloqueada si tiene 1.0 por falta de entrega Y no tiene prórroga activa
-                    const isGradeLocked = isMissingSubmission1 && !hasActiveProrroga;
+                    // La nota está bloqueada si tiene 1.0 por falta de entrega Y no tiene prórroga activa Y la tarea está cerrada
+                    const isGradeLocked = isMissingSubmission1 && !hasActiveProrroga && isClosed;
 
                     return (
                       <tr
@@ -866,7 +894,7 @@ export default function TareasDocenteClient({ courses, periods }: { courses: Cou
                               ) : (
                                 statusBadge(student.submission)
                               )}
-                              {(student.submission as any)?.allowLateSubmission && (
+                              {(student.submission as any)?.allowLateSubmission && !isGeneralOpen && (
                                 isProrrogaExpired ? (
                                   <span
                                     className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 shadow-2xs"
