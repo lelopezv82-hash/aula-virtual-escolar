@@ -416,10 +416,10 @@ export default function VisorActividadInteractiva({
               rel="noopener noreferrer"
               download
               className="inline-flex items-center gap-2 text-xs md:text-sm font-bold text-white bg-black hover:bg-neutral-900 px-4 py-2 rounded-xl transition-all shadow-md border border-neutral-700 hover:border-neutral-500 whitespace-nowrap shrink-0 active:scale-95"
-              title="Descargar Guía de Apoyo de la Actividad"
+              title="Descargar Guía de Estudio"
             >
               <FileText size={17} className="shrink-0 text-white" />
-              <span className="whitespace-nowrap font-bold text-white">Descargar Guía de Apoyo</span>
+              <span className="whitespace-nowrap font-bold text-white">Descargar Guía de Estudio</span>
             </a>
           )}
 
