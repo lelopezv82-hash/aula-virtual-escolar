@@ -131,7 +131,8 @@ export default function TableroClient({
       (Array.isArray(task.submission?.fileUrls) && task.submission.fileUrls.length > 0)
     );
     const isExamSubmitted = isExam && !!(task.submission && task.submission.status !== "PENDING" && task.submission.startedAt);
-    const isInteractiveSubmitted = isInteractive && !!(task.submission && (task.submission.grade !== null && task.submission.grade !== undefined || task.submission.status === "GRADED"));
+    // Para actividades interactivas: solo se considera "entregada" si el estudiante terminó definitivamente (isFinal === true)
+    const isInteractiveSubmitted = isInteractive && !!(task.submission && (task.submission.answers as any)?.isFinal === true);
     const isSubmitted = isExam ? isExamSubmitted : isInteractive ? isInteractiveSubmitted : hasUploadedFile;
 
     // Non-activated (absent) student without prórroga or real grade: treat as expired/closed with grade 1.0
@@ -956,15 +957,15 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
             )}
           </div>
 
-          {/* Prominent Grade Badge right on card header */}
-          {info.grade !== null && (
+          {/* Prominent Grade Badge right on card header: solo si ya hay nota real (isFinal o expirada o no-interactiva) */}
+          {info.grade !== null && (!info.isInteractive || info.isFinal || (info.isInteractive && info.isOverdue)) && (
             <div className={`text-xs font-black px-2.5 py-1 rounded-lg flex items-center gap-1.5 border shadow-2xs ${
               Number(info.grade) >= 3.0
                 ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800"
                 : "bg-red-50 text-red-700 dark:bg-red-950/60 dark:text-red-300 border-red-300 dark:border-red-800"
             }`}>
               <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                {info.isInteractive && !info.isFinal && !info.isOverdue ? "Nota actual:" : "Nota:"}
+                {info.isInteractive && info.isFinal ? "Nota final:" : "Nota:"}
               </span>
               <span className="text-sm font-extrabold">{Number(info.grade).toFixed(1)}</span>
             </div>
@@ -976,12 +977,12 @@ function TaskCard({ task, info }: { task: TableroTask; info: any }) {
           {info.isInteractive && (info.isOverdue || info.isExpired) && !info.hasExtension ? (
             <span className="text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border border-red-200 dark:border-red-900/50">
               <Clock size={12} className="text-red-600 shrink-0" />
-              <span>Cerrada (plazo vencido) · Nota: {Number(info.grade ?? 1.0).toFixed(1)}</span>
+              <span>Cerrada (plazo vencido){info.isFinal ? ` · Nota: ${Number(info.grade).toFixed(1)}` : ""}</span>
             </span>
-          ) : info.isInteractive && task.submission?.grade != null && !info.isOverdue ? (
+          ) : info.isInteractive && info.isFinal && !info.isOverdue ? (
             <span className="text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-900/50">
               <Sparkles size={12} className="text-purple-600 dark:text-purple-400 shrink-0" />
-              <span>{info.isFinal ? "Calificado" : "Avance guardado"} · Nota: {Number(info.grade).toFixed(1)}</span>
+              <span>Calificado · Nota: {Number(info.grade).toFixed(1)}</span>
             </span>
           ) : !info.isSubmitted ? (
             <span

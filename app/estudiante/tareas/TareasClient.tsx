@@ -86,7 +86,8 @@ export default function TareasClient({ tasks, studentId }: TareasClientProps) {
     const isNotActivated = !task.assignedStudents.some(s => s.id === studentId) && !submission?.allowLateSubmission && !hasRealTeacherGrade;
     const isOverdue = isClosed || (task.dueDate && now > new Date(task.dueDate));
 
-    const isInteractiveSubmitted = isInteractive && !!(submission && (submission.grade !== null && submission.grade !== undefined || submission.status === "GRADED"));
+    // Para actividades interactivas: solo "entregada" si el estudiante terminó definitivamente (isFinal === true)
+    const isInteractiveSubmitted = isInteractive && !!((submission?.answers as any)?.isFinal === true);
     const isStandardSubmitted = !isInteractive && (
       task.isExternal ||
       (submission && (submission.status === "SUBMITTED" || submission.status === "GRADED" || !!(submission.fileUrl && submission.fileUrl.trim() !== "")))
@@ -101,16 +102,16 @@ export default function TareasClient({ tasks, studentId }: TareasClientProps) {
         ? (submission?.status === "GRADED" || hasRealTeacherGrade ? "GRADED" : "SUBMITTED")
         : (virtualGraded ? "GRADED" : (submission?.status || null)));
 
+    // Para interactivas: solo mostrar grade si ya finalizó (isFinal) o si está vencida sin entrega
     const activeGrade = isInteractive
       ? (isInteractiveSubmitted ? submission?.grade ?? null : (virtualGraded ? 1.0 : null))
       : (hasRealTeacherGrade
         ? submission!.grade!
         : (virtualGraded ? 1.0 : null));
 
-    const isFinalInteractive = isInteractive && !!((submission?.answers as any)?.isFinal || (activeGrade !== null && activeGrade >= 5.0));
+    const isFinalInteractive = isInteractive && !!((submission?.answers as any)?.isFinal === true);
 
-    // Determine if it should be displayed in pending vs completed
-    // Interactive tasks in progress (active with a grade < 5.0 and not overdue) are available in Pending so the student can keep improving!
+    // Pending = actividades interactivas no finalizadas y no vencidas, o tareas estándar no entregadas
     const isPending = isNotActivated 
       ? false 
       : isInteractive
@@ -437,14 +438,14 @@ export default function TareasClient({ tasks, studentId }: TareasClientProps) {
                   }}
                   className="w-full sm:w-auto border-t sm:border-t-0 pt-3 sm:pt-0"
                 >
-                  {/* Grade display if exists */}
-                  {activeGrade !== null ? (
+                  {/* Grade display: only show if isFinalInteractive or expired (definitive grade) */}
+                  {activeGrade !== null && (status.isFinalInteractive || status.isOverdue) ? (
                     <div className="flex flex-col items-center">
                       <div style={{ fontSize: "2.2rem", fontWeight: 900, color: gradeColor, lineHeight: 1 }}>
                         {Number(activeGrade).toFixed(1)}
                       </div>
                       <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-1">
-                        {isInteractive && !status.isOverdue && !status.isFinalInteractive ? "Nota actual" : "Nota final"}
+                        {status.isFinalInteractive ? "Nota final" : "Nota"}
                       </div>
                     </div>
                   ) : isSubmitted && !isGraded ? (
@@ -460,7 +461,7 @@ export default function TareasClient({ tasks, studentId }: TareasClientProps) {
                       isInteractive
                         ? (status.isOverdue && !hasExtension
                             ? "bg-slate-600 hover:bg-slate-700"
-                            : activeGrade !== null
+                            : status.isFinalInteractive
                             ? "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
                             : "bg-purple-600 hover:bg-purple-700")
                         : (isSubmitted || isGraded || (isClosed && !hasExtension)
@@ -473,8 +474,6 @@ export default function TareasClient({ tasks, studentId }: TareasClientProps) {
                         <>Ver Detalle <ArrowRight size={13} /></>
                       ) : status.isFinalInteractive ? (
                         <>Ver Calificación <ArrowRight size={13} /></>
-                      ) : activeGrade !== null ? (
-                        <>Continuar Actividad <ArrowRight size={13} /></>
                       ) : (
                         <>Realizar Actividad <ArrowRight size={13} /></>
                       )
