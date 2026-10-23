@@ -118,13 +118,14 @@ function injectBridgeScript(html: string, taskId: string = ''): string {
   }
 
   function sendGradeToPlatform(grade, isFinal, extra) {
+    if (!isFinal) return; // Registrar exclusivamente la nota definitiva al final de la actividad
     var norm = normalizeGrade(grade);
     if (norm === null) return;
     if (window.parent && window.parent !== window) {
       window.parent.postMessage({
-        type: isFinal ? 'ACTIVIDAD_COMPLETADA' : 'ACTIVIDAD_PROGRESO',
+        type: 'ACTIVIDAD_COMPLETADA',
         grade: norm,
-        isFinal: !!isFinal,
+        isFinal: true,
         activityTitle: document.title || 'Actividad Interactiva',
         feedback: extra && extra.feedback ? extra.feedback : undefined
       }, '*');
@@ -226,14 +227,7 @@ function injectBridgeScript(html: string, taskId: string = ''): string {
 
   // Detección cuando la actividad escribe su propia nota en el DOM o en variables globales
   function checkExplicitActivityGrade() {
-    // 1. Variables globales asignadas por la actividad
-    var gCurrent = [window.currentGrade, window.notaActual];
-    for (var u = 0; u < gCurrent.length; u++) {
-      var nCur = normalizeGrade(gCurrent[u]);
-      if (nCur !== null) {
-        sendGradeToPlatform(nCur, false);
-      }
-    }
+    // 1. Variables globales asignadas por la actividad al finalizar
     var gFinal = [window.finalGrade, window.notaFinal, window.calificacion, window.nota];
     for (var v = 0; v < gFinal.length; v++) {
       var nVar = normalizeGrade(gFinal[v]);
@@ -288,35 +282,6 @@ function injectBridgeScript(html: string, taskId: string = ''): string {
         if (nEl !== null) {
           sendGradeToPlatform(nEl, true);
           return;
-        }
-      }
-    }
-
-    // 4. Elementos DOM de Nota Actual visible en pantalla
-    var curSelectors = ['#current-grade', '#nota-actual', '#currentGrade', '#calificacion-actual', '#nota-en-vivo', '[id*="current-grade"]', '[id*="nota-actual"]', '.current-grade', '.nota-actual', '.nota-en-vivo'];
-    for (var c = 0; c < curSelectors.length; c++) {
-      var cEl = document.querySelector(curSelectors[c]);
-      if (cEl && isElementVisible(cEl)) {
-        var cTxt = (cEl.textContent || cEl.innerText || '').trim();
-        var nCEl = normalizeGrade(cTxt);
-        if (nCEl !== null) {
-          sendGradeToPlatform(nCEl, false);
-          return;
-        }
-      }
-    }
-
-    // 5. Puntuación de aciertos en vivo (#current-score)
-    var curScoreEl = document.querySelector('#current-score, [id*="current-score"]');
-    if (curScoreEl && isElementVisible(curScoreEl)) {
-      var cScoreVal = parseInt(curScoreEl.textContent || curScoreEl.innerText || '0', 10);
-      var totalQ = 30;
-      if (window.quizData && window.quizData.length) totalQ = window.quizData.length;
-      if (!isNaN(cScoreVal) && cScoreVal > 0) {
-        var liveGrade = 1.0 + (cScoreVal / totalQ) * 4.0;
-        var normLive = normalizeGrade(liveGrade);
-        if (normLive !== null) {
-          sendGradeToPlatform(normLive, false);
         }
       }
     }

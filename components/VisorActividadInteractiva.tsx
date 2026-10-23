@@ -103,12 +103,16 @@ export default function VisorActividadInteractiva({
   const lastSavedGradeRef = useRef<number | null>(null);
 
   const submitGrade = async (grade: number, isFinal: boolean, extraData?: any, isManualClick = false) => {
-    if (!isFinal && lastSavedGradeRef.current === grade) {
+    // Registrar EXCLUSIVAMENTE la nota definitiva que la actividad da al final
+    if (!isFinal) {
+      return;
+    }
+    if (lastSavedGradeRef.current === grade) {
       return;
     }
     lastSavedGradeRef.current = grade;
     setSavingStatus("saving");
-    setStatusMessage(isFinal ? "Guardando entrega final..." : "Actualizando nota...");
+    setStatusMessage("Guardando calificación definitiva...");
 
     try {
       const res = await fetch(`/api/estudiante/tareas/${task.id}/interactive`, {
@@ -206,16 +210,7 @@ export default function VisorActividadInteractiva({
           return true;
         };
 
-        // 1. Variables globales de Nota Actual
-        const gCur = [win?.currentGrade, win?.notaActual];
-        for (const u of gCur) {
-          const nCur = normalizeGrade(u);
-          if (nCur !== null) {
-            submitGrade(nCur, false, { activityTitle: doc?.title || task.title }, isManualClick);
-          }
-        }
-
-        // 2. Variables globales de Nota Final
+        // 1. Variables globales de Nota Final asignadas por la actividad
         const gVars = [win?.finalGrade, win?.notaFinal, win?.calificacion, win?.nota];
         for (const v of gVars) {
           const nVar = normalizeGrade(v);
@@ -225,7 +220,7 @@ export default function VisorActividadInteractiva({
           }
         }
 
-        // 3. Inspección directa del DOM dentro del iframe
+        // 2. Inspección directa de la pantalla final dentro del iframe
         if (doc) {
           // A. Pantalla de resultados o victoria visible (#result-screen, #screen-victory, etc.)
           const resultEl = doc.querySelector('#result-screen, .result-screen, [id*="result-screen"], #screen-victory, .screen-victory, [id*="victory"], [class*="victory"], [id*="victoria"]');
@@ -266,35 +261,6 @@ export default function VisorActividadInteractiva({
               if (nEl !== null) {
                 submitGrade(nEl, true, { activityTitle: doc.title || task.title }, isManualClick);
                 return;
-              }
-            }
-          }
-
-          // C. Elementos DOM de Nota Actual visible en pantalla
-          const curSelectors = ['#current-grade', '#nota-actual', '#currentGrade', '#calificacion-actual', '#nota-en-vivo', '[id*="current-grade"]', '[id*="nota-actual"]', '.current-grade', '.nota-actual', '.nota-en-vivo'];
-          for (const sel of curSelectors) {
-            const el = doc.querySelector(sel);
-            if (el && isElementVisible(el)) {
-              const txt = (el.textContent || '').trim();
-              const nEl = normalizeGrade(txt);
-              if (nEl !== null) {
-                submitGrade(nEl, false, { activityTitle: doc.title || task.title }, isManualClick);
-                return;
-              }
-            }
-          }
-
-          // D. Puntuación de aciertos en vivo (#current-score)
-          const curScoreEl = doc.querySelector('#current-score, [id*="current-score"]');
-          if (curScoreEl && isElementVisible(curScoreEl)) {
-            const cScoreVal = parseInt(curScoreEl.textContent || '0', 10);
-            let totalQ = 30;
-            const winObj = win as any;
-            if (winObj?.quizData && winObj.quizData.length) totalQ = winObj.quizData.length;
-            if (!isNaN(cScoreVal) && cScoreVal > 0) {
-              const liveGrade = normalizeGrade(1.0 + (cScoreVal / totalQ) * 4.0);
-              if (liveGrade !== null) {
-                submitGrade(liveGrade, false, { activityTitle: doc.title || task.title }, isManualClick);
               }
             }
           }
@@ -340,10 +306,9 @@ export default function VisorActividadInteractiva({
           }
           const finalVal = Math.max(1.0, Math.min(5.0, parseFloat(val.toFixed(1))));
           const isFinal = !!data.isFinal || data.type === "ACTIVIDAD_COMPLETADA" || data.type === "ACTIVIDAD_FINALIZADA" || data.type === "ANTIGRAVITY_GRADE_SUBMISSION";
-          if (isFinal) {
-            setIsFinalFinished(true);
-          }
-          await submitGrade(finalVal, isFinal, data);
+          if (!isFinal) return;
+          setIsFinalFinished(true);
+          await submitGrade(finalVal, true, data);
         }
       }
     };
@@ -393,6 +358,17 @@ export default function VisorActividadInteractiva({
 
         {/* Botones de acción */}
         <div className="flex items-center gap-2.5 ml-auto flex-wrap">
+
+          {/* Nota Definitiva reportada por la actividad al terminar */}
+          {isAlreadyFinished && currentGrade !== null && currentGrade !== undefined && (
+            <div className="flex items-center gap-2 bg-emerald-950/80 border border-emerald-500/50 px-3.5 py-1.5 rounded-xl text-emerald-300 text-xs md:text-sm font-bold shadow-md">
+              <Trophy size={16} className="text-yellow-400 shrink-0" />
+              <span>Nota Definitiva:</span>
+              <span className="text-white bg-emerald-600 px-2.5 py-0.5 rounded-md font-black text-sm">
+                {currentGrade.toFixed(1)} / 5.0
+              </span>
+            </div>
+          )}
 
           {/* Botón Descargar Guía si existe: Fondo negro con tipografía en blanco */}
           {guideUrl && (
