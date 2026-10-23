@@ -408,18 +408,18 @@ export default function VisorActividadInteractiva({
             </div>
           )}
 
-          {/* Botón Descargar Guía si existe */}
+          {/* Botón Descargar Guía si existe (diseño de alto contraste y visibilidad, sin rojo) */}
           {guideUrl && (
             <a
               href={guideUrl}
               target="_blank"
               rel="noopener noreferrer"
               download
-              className="flex items-center gap-1.5 text-xs font-bold text-orange-200 hover:text-white bg-orange-600/90 hover:bg-orange-600 px-3.5 py-1.5 rounded-xl transition-all shadow-sm border border-orange-400/40 whitespace-nowrap shrink-0"
+              className="inline-flex items-center gap-2 text-xs md:text-sm font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 px-4 py-2 rounded-xl transition-all shadow-lg border border-blue-400/50 whitespace-nowrap shrink-0 active:scale-95"
               title="Descargar Guía de Apoyo de la Actividad"
             >
-              <FileText size={15} className="shrink-0 text-orange-300" />
-              <span className="whitespace-nowrap">Descargar Guía de Apoyo</span>
+              <FileText size={17} className="shrink-0 text-blue-200" />
+              <span className="whitespace-nowrap font-bold">Descargar Guía de Apoyo</span>
             </a>
           )}
 
