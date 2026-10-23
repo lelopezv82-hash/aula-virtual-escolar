@@ -391,22 +391,8 @@ export default function VisorActividadInteractiva({
           </div>
         </div>
 
-        {/* Botones de acción y estado de calificación */}
+        {/* Botones de acción */}
         <div className="flex items-center gap-2.5 ml-auto flex-wrap">
-
-          {/* Insignia de Nota Guardada en Plataforma */}
-          {!isClosed && (
-            <div className="flex items-center gap-2 bg-slate-900/90 border border-slate-700/90 px-3 py-1.5 rounded-xl shadow-inner">
-              <Trophy size={16} className="text-yellow-400 shrink-0" />
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-[11px] text-slate-300 font-semibold hidden sm:inline">Nota en Plataforma:</span>
-                <span className="text-[11px] text-slate-300 font-semibold sm:hidden">Nota:</span>
-                <strong className="text-sm font-black text-emerald-400">
-                  {currentGrade !== null && currentGrade !== undefined ? Number(currentGrade).toFixed(1) : "1.0"}
-                </strong>
-              </div>
-            </div>
-          )}
 
           {/* Botón Descargar Guía si existe: Fondo negro con tipografía en blanco */}
           {guideUrl && (
