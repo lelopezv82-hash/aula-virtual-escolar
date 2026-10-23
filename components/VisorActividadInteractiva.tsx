@@ -415,11 +415,11 @@ export default function VisorActividadInteractiva({
               target="_blank"
               rel="noopener noreferrer"
               download
-              className="flex items-center gap-1.5 text-xs font-bold text-orange-200 hover:text-white bg-orange-600/80 hover:bg-orange-600 px-3 py-1.5 rounded-xl transition-all shadow-sm border border-orange-400/30"
+              className="flex items-center gap-1.5 text-xs font-bold text-orange-200 hover:text-white bg-orange-600/90 hover:bg-orange-600 px-3.5 py-1.5 rounded-xl transition-all shadow-sm border border-orange-400/40 whitespace-nowrap shrink-0"
               title="Descargar Guía de Apoyo de la Actividad"
             >
-              <FileText size={15} />
-              <span className="hidden sm:inline">Guía</span>
+              <FileText size={15} className="shrink-0 text-orange-300" />
+              <span className="whitespace-nowrap">Descargar Guía de Apoyo</span>
             </a>
           )}
 
@@ -427,7 +427,7 @@ export default function VisorActividadInteractiva({
           {!isClosed && !isAlreadyFinished && (
             <button
               onClick={toggleFullscreen}
-              className="p-2 rounded-lg bg-slate-700/60 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+              className="p-2 rounded-lg bg-slate-700/60 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors shrink-0"
               title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
             >
               {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
