@@ -408,19 +408,6 @@ export default function VisorActividadInteractiva({
             </div>
           )}
 
-          {/* Botón manual para Guardar Calificación en Plataforma */}
-          {!isClosed && !isAlreadyFinished && (
-            <button
-              onClick={() => handleManualSync(true)}
-              disabled={savingStatus === "saving"}
-              className="flex items-center gap-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 px-3 py-1.5 rounded-xl transition-all shadow-md border border-emerald-400/40 active:scale-95"
-              title="Guardar o sincronizar tu calificación en la plataforma escolar"
-            >
-              <RefreshCw size={14} className={savingStatus === "saving" ? "animate-spin" : ""} />
-              <span>{savingStatus === "saving" ? "Guardando..." : "Guardar Nota"}</span>
-            </button>
-          )}
-
           {/* Botón Descargar Guía si existe */}
           {guideUrl && (
             <a
@@ -448,20 +435,6 @@ export default function VisorActividadInteractiva({
           )}
         </div>
       </header>
-
-      {/* Banner de estado de guardado */}
-      {statusMessage && (
-        <div className={`px-4 py-2 text-xs font-bold flex items-center justify-center gap-2 transition-all shrink-0 ${
-          savingStatus === "saved" ? "bg-emerald-600 text-white shadow-sm" :
-          savingStatus === "error" ? "bg-red-600 text-white shadow-sm" :
-          "bg-blue-600 text-white shadow-sm"
-        }`}>
-          {savingStatus === "saved" && <CheckCircle2 size={15} />}
-          {savingStatus === "saving" && <RefreshCw size={15} className="animate-spin" />}
-          {savingStatus === "error" && <AlertCircle size={15} />}
-          <span>{statusMessage}</span>
-        </div>
-      )}
 
       {/* Alerta flotante de celebración cuando se guarda */}
       {showCelebration && (

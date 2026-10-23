@@ -131,32 +131,6 @@ function injectBridgeScript(html: string, taskId: string = ''): string {
     }
   }
 
-  function injectPlatformSaveButton(grade) {
-    var resScreen = document.querySelector('#result-screen, .result-screen, #screen-victory, .screen-victory');
-    if (!resScreen) return;
-    if (document.getElementById('btn-guardar-plataforma-injected')) return;
-
-    var btn = document.createElement('button');
-    btn.id = 'btn-guardar-plataforma-injected';
-    btn.type = 'button';
-    btn.innerHTML = '<span style="font-size: 1.3rem;">💾</span> Guardar Calificación (' + grade.toFixed(1) + ') en Plataforma';
-    btn.style.cssText = 'display: inline-flex; align-items: center; justify-content: center; gap: 10px; background: linear-gradient(135deg, #059669, #10b981); color: white; padding: 14px 28px; border-radius: 9999px; font-weight: 800; font-size: 1.1rem; border: 2px solid #34d399; box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4); cursor: pointer; margin: 18px auto; transition: all 0.2s;';
-    btn.onclick = function() {
-      btn.disabled = true;
-      btn.style.opacity = '0.8';
-      btn.innerHTML = '⏳ Guardando en Plataforma...';
-      sendGradeToPlatform(grade, true);
-      setTimeout(function() {
-        btn.innerHTML = '✅ ¡Calificación (' + grade.toFixed(1) + ') Guardada en tu Planilla!';
-        btn.style.background = '#047857';
-        btn.style.borderColor = '#10b981';
-      }, 700);
-    };
-
-    var container = resScreen.querySelector('.flex.justify-center, .flex-col, .mt-10') || resScreen;
-    container.appendChild(btn);
-  }
-
   // API pública disponible para que la actividad reporte su propia nota (actual o final)
   window.aulaVirtual = {
     reportGrade: function(g, isFinal, extra) {
@@ -300,7 +274,6 @@ function injectBridgeScript(html: string, taskId: string = ''): string {
 
       if (fGrade !== null) {
         sendGradeToPlatform(fGrade, true);
-        injectPlatformSaveButton(fGrade);
         return;
       }
     }
@@ -314,7 +287,6 @@ function injectBridgeScript(html: string, taskId: string = ''): string {
         var nEl = normalizeGrade(txt);
         if (nEl !== null) {
           sendGradeToPlatform(nEl, true);
-          injectPlatformSaveButton(nEl);
           return;
         }
       }
